@@ -216,29 +216,20 @@
   .overdue td .zero { color: #ff8888 !important; }
 
   /* ESTOQUE TABLE — sticky header + frozen first 4 columns */
-  #estoque-table-wrap { overflow: auto; max-height: 560px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 28px; }
+  /* ESTOQUE TABLE — sticky header + freeze UF + short desc only (mobile friendly) */
+  #estoque-table-wrap { overflow: auto; max-height: 480px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 28px; }
   #estoque-table-wrap table { table-layout: auto; border-collapse: separate; border-spacing: 0; }
   #estoque-table-wrap thead th { position: sticky; top: 0; z-index: 20; background: #1a4fcc; }
-  #estoque-table-wrap thead th:nth-child(1),
-  #estoque-table-wrap thead th:nth-child(2),
-  #estoque-table-wrap thead th:nth-child(3),
-  #estoque-table-wrap thead th:nth-child(4) { position: sticky; z-index: 30; background: #1a4fcc; }
-  #estoque-table-wrap thead th:nth-child(1) { left: 0; }
-  #estoque-table-wrap thead th:nth-child(2) { left: 54px; }
-  #estoque-table-wrap thead th:nth-child(3) { left: 108px; }
-  #estoque-table-wrap thead th:nth-child(4) { left: 230px; box-shadow: 3px 0 8px rgba(0,0,0,0.4); }
-  #estoque-table-wrap tbody td:nth-child(1),
-  #estoque-table-wrap tbody td:nth-child(2),
-  #estoque-table-wrap tbody td:nth-child(3),
-  #estoque-table-wrap tbody td:nth-child(4) { position: sticky; background: var(--surface); z-index: 10; }
+  #estoque-table-wrap thead th:nth-child(1) { position: sticky; left: 0; z-index: 30; background: #1a4fcc; }
+  #estoque-table-wrap thead th:nth-child(2) { position: sticky; left: 44px; z-index: 30; background: #1a4fcc; box-shadow: 3px 0 8px rgba(0,0,0,0.4); }
+  #estoque-table-wrap tbody td:nth-child(1) { position: sticky; left: 0; background: var(--surface); z-index: 10; }
+  #estoque-table-wrap tbody td:nth-child(2) { position: sticky; left: 44px; background: var(--surface); z-index: 10; box-shadow: 3px 0 8px rgba(0,0,0,0.3); }
   #estoque-table-wrap tbody tr:hover td:nth-child(1),
-  #estoque-table-wrap tbody tr:hover td:nth-child(2),
-  #estoque-table-wrap tbody tr:hover td:nth-child(3),
-  #estoque-table-wrap tbody tr:hover td:nth-child(4) { background: var(--surface2); }
-  #estoque-table-wrap tbody td:nth-child(1) { left: 0; }
-  #estoque-table-wrap tbody td:nth-child(2) { left: 54px; }
-  #estoque-table-wrap tbody td:nth-child(3) { left: 108px; }
-  #estoque-table-wrap tbody td:nth-child(4) { left: 230px; box-shadow: 3px 0 8px rgba(0,0,0,0.3); }
+  #estoque-table-wrap tbody tr:hover td:nth-child(2) { background: var(--surface2); }
+
+  /* Timeline scrollable on mobile */
+  .timeline-scroll { overflow-x: auto; margin-bottom: 20px; border-radius: 8px; border: 1px solid var(--border); }
+  .timeline-scroll table { min-width: 520px; border-collapse: collapse; }
 
   /* inline blue th for estoque frozen table */
   th.blue {
@@ -603,8 +594,7 @@
     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
       <span style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-right:4px">Produto:</span>
       <button class="ns-btn active" onclick="setNSProduct('tomada_bomba')">TOMADA + BOMBA</button>
-      <button class="ns-btn" onclick="setNSProduct('guincho')">GUINCHO</button>
-      <button class="ns-btn" onclick="setNSProduct('enrolador')">ENROLADOR</button>
+      <button class="ns-btn" onclick="setNSProduct('guincho_enrol')">GUINCHO + ENROL.</button>
       <button class="ns-btn" onclick="setNSProduct('todos')">TODOS</button>
     </div>
   </div>
@@ -667,7 +657,7 @@
 
   <!-- LINHA DO TEMPO MATRIZ vs FILIAL -->
   <div class="section-title">Linha do Tempo — Matriz vs Filial SP por Mês</div>
-  <div class="table-wrap" style="margin-bottom:24px;">
+  <div class="timeline-scroll">
     <table class="timeline-table" id="timeline-table">
       <thead><tr id="timeline-thead"></tr></thead>
       <tbody id="timeline-body"></tbody>
@@ -803,28 +793,56 @@ function renderMontados() {
     return;
   }
   const cols = ['TOMADA_MULT','BOMBA','CILINDRO','CONJ_EIXO','GUINCHO','COMANDO','VALVULA','KIT_HIDR'];
-  const totals = {}, medias = {};
-  cols.forEach(c => { totals[c]=0; });
-  DATA.montados.forEach(r => cols.forEach(c => totals[c] += (r[c]||0)));
-  const dias = DATA.montados.length;
-  cols.forEach(c => medias[c] = dias > 0 ? (totals[c]/dias).toFixed(2) : 0);
+  const colLabels = ['TOMADA E MULT','BOMBA','CILINDRO','CONJ. EIXO','GUINCHO','COMANDO','VÁLVULA','KIT HIDR.'];
+
+  // Sort by date ascending
+  const sorted = [...DATA.montados].sort((a,b) => {
+    const da = parseDate(a.DATA||a.DT||'01/01/2000');
+    const db = parseDate(b.DATA||b.DT||'01/01/2000');
+    return da - db;
+  });
+
+  // Totals
+  const totals = {};
+  cols.forEach(c => totals[c] = 0);
+  sorted.forEach(r => cols.forEach(c => totals[c] += (r[c]||0)));
+
+  // Working days — exclude today and weekends
+  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const workingDays = sorted.filter(r => {
+    const d = parseDate(r.DATA||r.DT||'01/01/2000');
+    if (d >= todayDate) return false; // exclude today
+    const dow = d.getDay();
+    return dow !== 0 && dow !== 6; // exclude weekends
+  }).length;
+
+  const medias = {};
+  cols.forEach(c => medias[c] = workingDays > 0 ? (totals[c]/workingDays).toFixed(1) : '—');
+
   el.innerHTML = `<div class="table-wrap"><div class="scrollable">
-    <table>
+    <table style="table-layout:auto;min-width:700px;">
       <thead class="green"><tr>
-        <th>DATA</th>
-        <th>TOMADA E MULT</th><th>BOMBA</th><th>CILINDRO</th><th>CONJ. EIXO</th>
-        <th>GUINCHO</th><th>COMANDO</th><th>VÁLVULA</th><th>KIT HIDR.</th>
+        <th style="text-align:left;min-width:100px">DATA</th>
+        ${colLabels.map(l=>`<th>${l}</th>`).join('')}
       </tr></thead>
-      <tbody>${DATA.montados.map(r => `<tr><td>${r.DATA||r.DT}</td>${cols.map(c=>`<td>${r[c]||'<span class="zero">—</span>'}</td>`).join('')}</tr>`).join('')}</tbody>
       <tfoot>
-        <tr class="tfoot-row"><td>TOTAL</td>${cols.map(c=>`<td>${totals[c]}</td>`).join('')}</tr>
-        <tr class="tfoot-row" style="background:#162a1e;border-top:1px solid var(--green-dark)">
-          <td style="color:var(--green)">MÉDIA</td>${cols.map(c=>`<td style="color:var(--green)">${medias[c]}</td>`).join('')}
+        <tr class="tfoot-row" style="background:#1e2a4a;border-top:2px solid var(--green-dark);border-bottom:3px solid var(--green-dark)">
+          <td style="text-align:left">TOTAL</td>${cols.map(c=>`<td>${totals[c].toLocaleString('pt-BR')}</td>`).join('')}
+        </tr>
+        <tr class="tfoot-row" style="background:#162a1e;border-bottom:1px solid var(--green-dark)">
+          <td style="text-align:left;color:var(--green)">MÉDIA</td>${cols.map(c=>`<td style="color:var(--green)">${medias[c]}</td>`).join('')}
         </tr>
         <tr class="tfoot-row" style="background:#162a1e">
-          <td style="color:var(--text-muted)">DIAS ÚTEIS</td><td colspan="8" style="color:var(--text-muted);text-align:left">${dias}</td>
+          <td style="text-align:left;color:var(--text-muted)">DIAS ÚTEIS</td><td colspan="8" style="color:var(--text-muted);text-align:left">${workingDays}</td>
         </tr>
       </tfoot>
+      <tbody>${sorted.map(r => {
+        const isToday = parseDate(r.DATA||r.DT||'01/01/2000').getTime() === todayDate.getTime();
+        return `<tr style="${isToday?'background:rgba(26,109,255,0.08)':''}">
+          <td style="text-align:left${isToday?';color:var(--blue-light);font-weight:600':''}">${r.DATA||r.DT}${isToday?' (hoje)':''}</td>
+          ${cols.map(c=>`<td>${r[c]?r[c]:'<span class="zero">—</span>'}</td>`).join('')}
+        </tr>`;
+      }).join('')}</tbody>
     </table>
   </div></div>`;
 }
@@ -860,15 +878,15 @@ function renderEstoque() {
   const ufColors = {'RS':'#3d8bff','SP':'#00c97a','MG':'#ffaa00','GO':'#ff6b3b','PE':'#c97aff'};
 
   echarts.innerHTML = `<div id="estoque-table-wrap">
-      <table style="min-width:1600px;font-size:12px;">
+      <table style="min-width:1400px;font-size:12px;">
         <thead>
           <tr>
-            <th class="blue" style="text-align:center;min-width:54px">COD<br>EMP</th>
-            <th class="blue" style="text-align:center;min-width:54px">UF</th>
-            <th class="blue" style="text-align:left;min-width:122px">CLASS.</th>
-            <th class="blue" style="text-align:left;min-width:220px">DESCRIÇÃO CLASS</th>
+            <th class="blue" style="text-align:center;min-width:44px;width:44px">UF</th>
+            <th class="blue" style="text-align:left;min-width:160px;width:160px">DESC.</th>
+            <th class="blue" style="text-align:center">COD<br>EMP</th>
+            <th class="blue" style="text-align:left">CLASS.</th>
             <th class="blue" style="text-align:center">COD<br>ALMOX</th>
-            <th class="blue" style="text-align:left">DESCRIÇÃO ALMOX</th>
+            <th class="blue" style="text-align:left">DEPÓSITO</th>
             <th class="blue">QTDE<br>COD ES</th>
             <th class="blue">QTDE<br>PARAM ES</th>
             <th class="blue">CUSTO TDT<br>ES</th>
@@ -881,7 +899,7 @@ function renderEstoque() {
             <th class="blue">CUSTO TOT<br>EXCES</th>
             <th class="blue">QTDE<br>ABASTECIDO</th>
             <th class="blue">PERC ABAST<br>MTZ PON</th>
-            <th style="background:#1a3a6e;color:#fff;font-family:var(--font-display);font-size:12px;letter-spacing:1px;text-transform:uppercase;padding:11px 14px;white-space:nowrap;min-width:100px">% ESTOQUE<br>SEGURANÇA</th>
+            <th style="background:#1a3a6e;color:#fff;font-family:var(--font-display);font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:9px 12px;white-space:nowrap;min-width:80px">% EST.<br>SEG.</th>
           </tr>
         </thead>
         <tbody>
@@ -889,11 +907,12 @@ function renderEstoque() {
             const pctOk = r.pct_es >= 90;
             const ufColor = ufColors[r.uf] || '#888';
             const faltaOk = r.tot_falta >= 0;
+            const descShort = r.descricao.substring(0,20) + (r.descricao.length>20?'…':'');
             return `<tr>
-              <td style="text-align:center">${r.cod_emp}</td>
               <td style="text-align:center;font-weight:700;color:${ufColor};font-family:var(--font-display);letter-spacing:1px">${r.uf}</td>
+              <td style="text-align:left;font-size:11px;white-space:nowrap" title="${r.descricao}">${descShort}</td>
+              <td style="text-align:center">${r.cod_emp}</td>
               <td style="text-align:left;color:var(--text-muted)">${r.classificacao}</td>
-              <td style="text-align:left">${r.descricao}</td>
               <td style="text-align:center;color:var(--text-muted)">${r.cod_almox}</td>
               <td style="text-align:left;color:var(--text-muted);font-size:11px">${r.deposito}</td>
               <td>${fmtNum(r.qtde_cod_es)}</td>
@@ -909,7 +928,7 @@ function renderEstoque() {
               <td>${fmtNum(r.qtde_abast)}</td>
               <td style="color:var(--text-muted)">${r.perc_abast_mtz.toFixed(1)}%</td>
               <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 10px;border-radius:4px;font-weight:700;font-size:12px;
+                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
                   background:${pctOk?'rgba(0,201,122,0.18)':'rgba(255,59,59,0.18)'};
                   color:${pctOk?'var(--green)':'var(--red)'}">${r.pct_es.toFixed(1)}%</span>
               </td>
@@ -1051,8 +1070,13 @@ function renderServico() {
   const totalMatriz = DATA.servico.filter(r=>r.empresa_num==='1').reduce((s,r)=>s+r.valor,0);
   const totalFilial = DATA.servico.filter(r=>r.empresa_num==='2').reduce((s,r)=>s+r.valor,0);
   const fornecedores = new Set(DATA.servico.map(r=>r.empresa)).size;
+  // Current month
+  const mesAtualKey = new Date().toISOString().substring(0,7);
+  const totalMesAtual = DATA.servico.filter(r=>r.mes===mesAtualKey).reduce((s,r)=>s+r.valor,0);
+  const mesAtualLabel = new Date().toLocaleDateString('pt-BR',{month:'short',year:'numeric'});
   document.getElementById('servico-kpis').innerHTML = `
     <div class="kpi"><div class="kpi-label">Total Geral</div><div class="kpi-val blue">${fmtMoney(totalGeral)}</div></div>
+    <div class="kpi"><div class="kpi-label">📅 ${mesAtualLabel}</div><div class="kpi-val" style="color:var(--amber)">${fmtMoney(totalMesAtual)}</div></div>
     <div class="kpi"><div class="kpi-label">🏭 Matriz</div><div class="kpi-val" style="color:#3d8bff">${fmtMoney(totalMatriz)}</div></div>
     <div class="kpi"><div class="kpi-label">🏢 Filial SP</div><div class="kpi-val" style="color:#ff8c3b">${fmtMoney(totalFilial)}</div></div>
     <div class="kpi"><div class="kpi-label">Fornecedores</div><div class="kpi-val">${fornecedores}</div></div>`;
@@ -1171,7 +1195,7 @@ function renderServico() {
       },
       scales:{
         x:{ticks:{color:'#7a8299',callback:v=>'R$'+Math.round(v/1000)+'k'},grid:{color:'#1e2334'}},
-        y:{ticks:{color:'#7a8299',font:{size:11}},grid:{display:false}}
+        y:{ticks:{color:'#7a8299',font:{size:11},align:'start'},grid:{display:false}}
       },
       layout:{ padding:{ right:60 } }
     }
@@ -1294,8 +1318,7 @@ function renderNSChart() {
     datasets.push({ label:'TOMADA', data: empsNS.map(e=>(n[e]||{}).TOM||0), backgroundColor:'#3d8bffcc', borderRadius:4 });
     datasets.push({ label:'BOMBA',  data: empsNS.map(e=>(n[e]||{}).BOM||0), backgroundColor:'#ff8c3bcc', borderRadius:4 });
   }
-  if (_nsProduct === 'guincho' || _nsProduct === 'todos') {
-    // GUINCHO OS-M (800.010.020) separately
+  if (_nsProduct === 'guincho_enrol' || _nsProduct === 'todos') {
     const guinchoOSM = empsNS.map(e => {
       const rows = DATA.estoque.filter(r => r.uf === e && r.classificacao === '800.010.020');
       const totParam = rows.reduce((s,r)=>s+r.qtde_param_es,0);
@@ -1303,7 +1326,6 @@ function renderNSChart() {
       return totParam>0 ? Math.round(totAbast/totParam*1000)/10 : 0;
     });
     datasets.push({ label:'GUINCHO OS-M', data: guinchoOSM, backgroundColor:'#00c97acc', borderRadius:4 });
-    // GUINCHO OP (800.010.040) separately
     const guinchoOP = empsNS.map(e => {
       const rows = DATA.estoque.filter(r => r.uf === e && r.classificacao === '800.010.040');
       const totParam = rows.reduce((s,r)=>s+r.qtde_param_es,0);
@@ -1311,11 +1333,8 @@ function renderNSChart() {
       return totParam>0 ? Math.round(totAbast/totParam*1000)/10 : 0;
     });
     datasets.push({ label:'GUINCHO OP', data: guinchoOP, backgroundColor:'#ffaa00cc', borderRadius:4 });
-  }
-  if (_nsProduct === 'enrolador' || _nsProduct === 'todos') {
     const enrolData = empsNS.map(e => {
       const rows = DATA.estoque.filter(r => r.uf === e && r.classificacao.startsWith('800.050'));
-      if (!rows.length) return 0;
       const totParam = rows.reduce((s,r)=>s+r.qtde_param_es,0);
       const totAbast = rows.reduce((s,r)=>s+r.qtde_abast,0);
       return totParam>0 ? Math.round(totAbast/totParam*1000)/10 : 0;
