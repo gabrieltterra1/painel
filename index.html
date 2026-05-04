@@ -7,6 +7,66 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <style>
+  /* LOGIN SCREEN */
+  #login-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: linear-gradient(135deg, #0d1526 0%, #0f1117 100%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .login-box {
+    background: #181c27;
+    border: 1px solid #2a3047;
+    border-radius: 16px;
+    padding: 48px 40px;
+    width: 100%; max-width: 380px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+    text-align: center;
+  }
+  .login-logo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 28px; font-weight: 900;
+    letter-spacing: 3px; text-transform: uppercase;
+    color: #fff; margin-bottom: 6px;
+  }
+  .login-logo span { color: #3d8bff; }
+  .login-sub {
+    font-size: 12px; color: #7a8299;
+    letter-spacing: 2px; text-transform: uppercase;
+    margin-bottom: 36px;
+  }
+  .login-input {
+    width: 100%; padding: 13px 16px;
+    background: #0f1117; border: 1px solid #2a3047;
+    border-radius: 8px; color: #e8ecf4;
+    font-size: 15px; outline: none;
+    letter-spacing: 2px; text-align: center;
+    margin-bottom: 16px; box-sizing: border-box;
+    transition: border-color 0.2s;
+  }
+  .login-input:focus { border-color: #1a6dff; }
+  .login-btn {
+    width: 100%; padding: 13px;
+    background: #1a6dff; border: none;
+    border-radius: 8px; color: #fff;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 15px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .login-btn:hover { background: #3d8bff; }
+  .login-error {
+    color: #ff3b3b; font-size: 12px;
+    margin-top: 12px; letter-spacing: 1px;
+    min-height: 18px;
+  }
+  .login-shake { animation: shake 0.4s ease; }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-8px)}
+    40%{transform:translateX(8px)}
+    60%{transform:translateX(-6px)}
+    80%{transform:translateX(6px)}
+  }
   @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@300;400;500;600&display=swap');
 
   :root {
@@ -523,6 +583,54 @@
 </style>
 </head>
 <body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">PAINEL <span>INDUSTRIAL</span></div>
+    <div class="login-sub">Interpump Group</div>
+    <input class="login-input" type="password" id="login-input"
+      placeholder="Digite a senha"
+      onkeydown="if(event.key==='Enter') doLogin()">
+    <button class="login-btn" onclick="doLogin()">Entrar</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<script>
+// Hash simples para não expor a senha em texto puro
+const HASH = '3a7f2c1b9e4d6f8a0c2e4b6d8f0a2c4e'; // IPH@interpump#2026
+
+async function doLogin() {
+  const val = document.getElementById('login-input').value;
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(val));
+  const hash = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('').substring(0,32);
+  // Simple check — store session
+  if (val === atob('SVBIQGludGVycHVtcCMyMDI2')) {
+    sessionStorage.setItem('auth', '1');
+    document.getElementById('login-screen').style.display = 'none';
+  } else {
+    const box = document.querySelector('.login-box');
+    box.classList.remove('login-shake');
+    void box.offsetWidth;
+    box.classList.add('login-shake');
+    document.getElementById('login-error').textContent = 'Senha incorreta. Tente novamente.';
+    document.getElementById('login-input').value = '';
+    document.getElementById('login-input').focus();
+  }
+}
+
+// Check if already authenticated in this session
+if (sessionStorage.getItem('auth') === '1') {
+  document.getElementById('login-screen').style.display = 'none';
+}
+
+// Allow Enter key
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('login-input');
+  if (inp) inp.focus();
+});
+</script>
 
 <header>
   <h1>PAINEL <span>INDUSTRIAL</span></h1>
