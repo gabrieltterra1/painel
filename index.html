@@ -632,8 +632,8 @@ document.addEventListener('DOMContentLoaded', () => {
   <h1>PAINEL <span>INDUSTRIAL</span></h1>
   <div class="header-right">
     <div class="monitor-status">
-      <div class="status-dot active" id="status-dot"></div>
-      <span id="update-time" class="last-update">✓ Publicado no GitHub às 16:12:19</span>
+      <div class="status-dot error" id="status-dot"></div>
+      <span id="update-time" class="last-update">Erro ao ler pasta — verifique o acesso</span>
       <span class="countdown-ring" id="countdown"></span>
     </div>
     <button class="upload-btn monitoring" id="monitor-btn" onclick="toggleMonitor()">⏹ Parar Monitor</button>
@@ -644,8 +644,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <nav class="tabs">
   <div class="tab" onclick="showTab('of')">OF Abertas</div>
-  <div class="tab active" onclick="showTab('montados')">Itens Montados</div>
-  <div class="tab" onclick="showTab('estoque')">Estoque &amp; Trânsito</div>
+  <div class="tab" onclick="showTab('montados')">Itens Montados</div>
+  <div class="tab active" onclick="showTab('estoque')">Estoque &amp; Trânsito</div>
   <div class="tab" onclick="showTab('servicos')">Serviços Terceiros</div>
 </nav>
 
@@ -670,29 +670,29 @@ document.addEventListener('DOMContentLoaded', () => {
         </thead>
         <tfoot id="of-foot"><tr class="tfoot-row">
     <td>TOTAL</td>
-    <td>817</td><td>353</td><td>115</td><td>122</td><td>48</td><td>460</td><td>90</td><td>7</td>
+    <td>788</td><td>351</td><td>105</td><td>122</td><td>47</td><td>460</td><td>90</td><td>7</td>
   </tr></tfoot>
         <tbody id="of-body"><tr class="overdue">
       <td>29/04/2026 ⚑</td>
-      <td><span class="zero">—</span></td><td>10</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td>45</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
+      <td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td>45</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
     </tr><tr class="overdue">
       <td>30/04/2026 ⚑</td>
-      <td>20</td><td>12</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
+      <td><span class="zero">—</span></td><td>10</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
     </tr><tr class="">
       <td>04/05/2026</td>
-      <td>184</td><td>88</td><td>10</td><td>9</td><td>2</td><td>43</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
+      <td>176</td><td>88</td><td><span class="zero">—</span></td><td>9</td><td><span class="zero">—</span></td><td>43</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
     </tr><tr class="">
       <td>05/05/2026</td>
-      <td>191</td><td>92</td><td>20</td><td>40</td><td>14</td><td>31</td><td><span class="zero">—</span></td><td>3</td>
+      <td>190</td><td>92</td><td>20</td><td>40</td><td>14</td><td>31</td><td><span class="zero">—</span></td><td>3</td>
     </tr><tr class="">
       <td>06/05/2026</td>
       <td>170</td><td>91</td><td>22</td><td>44</td><td>13</td><td>45</td><td><span class="zero">—</span></td><td>4</td>
     </tr><tr class="">
       <td>07/05/2026</td>
-      <td>159</td><td>60</td><td>20</td><td>29</td><td>12</td><td>43</td><td>30</td><td><span class="zero">—</span></td>
+      <td>159</td><td>70</td><td>20</td><td>29</td><td>12</td><td>43</td><td>30</td><td><span class="zero">—</span></td>
     </tr><tr class="">
       <td>08/05/2026</td>
-      <td>93</td><td><span class="zero">—</span></td><td>20</td><td><span class="zero">—</span></td><td>7</td><td>49</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
+      <td>93</td><td><span class="zero">—</span></td><td>20</td><td><span class="zero">—</span></td><td>8</td><td>49</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
     </tr><tr class="">
       <td>11/05/2026</td>
       <td><span class="zero">—</span></td><td><span class="zero">—</span></td><td>20</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td>2</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
@@ -733,7 +733,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 <!-- ======= MONTADOS ======= -->
-<div id="tab-montados" class="tab-content active">
+<div id="tab-montados" class="tab-content">
   <div class="section-title">Contagem de Itens Montados — EPP</div>
   <div id="montados-content"><div class="table-wrap"><div class="scrollable">
     <table style="table-layout:auto;min-width:700px;">
@@ -743,7 +743,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </tr></thead>
       <tfoot>
         <tr class="tfoot-row" style="background:#1e2a4a;border-top:2px solid var(--green-dark);border-bottom:3px solid var(--green-dark)">
-          <td style="text-align:left">TOTAL</td><td>54</td><td>26</td><td>10</td><td>78</td><td>9</td><td>15</td><td>0</td><td>0</td>
+          <td style="text-align:left">TOTAL</td><td>84</td><td>28</td><td>20</td><td>78</td><td>11</td><td>15</td><td>0</td><td>0</td>
         </tr>
         <tr class="tfoot-row" style="background:#162a1e;border-bottom:1px solid var(--green-dark)">
           <td style="text-align:left;color:var(--green)">MÉDIA</td><td style="color:var(--green)">—</td><td style="color:var(--green)">—</td><td style="color:var(--green)">—</td><td style="color:var(--green)">—</td><td style="color:var(--green)">—</td><td style="color:var(--green)">—</td><td style="color:var(--green)">—</td><td style="color:var(--green)">—</td>
@@ -754,25 +754,25 @@ document.addEventListener('DOMContentLoaded', () => {
       </tfoot>
       <tbody><tr style="background:rgba(26,109,255,0.08)">
           <td style="text-align:left;color:var(--blue-light);font-weight:600">04/05/2026 (hoje)</td>
-          <td>54</td><td>26</td><td>10</td><td>78</td><td>9</td><td>15</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
+          <td>84</td><td>28</td><td>20</td><td>78</td><td>11</td><td>15</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
         </tr></tbody>
     </table>
   </div></div></div>
 </div>
 
 <!-- ======= ESTOQUE & TRÂNSITO ======= -->
-<div id="tab-estoque" class="tab-content">
+<div id="tab-estoque" class="tab-content active">
   <div class="section-title">Estoque em Trânsito por Empresa</div>
   <div class="transit-grid" id="transit-grid"><div class="transit-card">
       <div class="transit-card-header">SP</div>
       
       <div class="transit-row">
         <span class="transit-label">TOM</span>
-        <span class="transit-val ">228</span>
+        <span class="transit-val ">260</span>
       </div>
       <div class="transit-row">
         <span class="transit-label">BOM</span>
-        <span class="transit-val ">79</span>
+        <span class="transit-val ">82</span>
       </div>
       <div class="transit-row">
         <span class="transit-label">CIL</span>
@@ -825,11 +825,11 @@ document.addEventListener('DOMContentLoaded', () => {
       
       <div class="transit-row">
         <span class="transit-label">TOM</span>
-        <span class="transit-val ">58</span>
+        <span class="transit-val ">84</span>
       </div>
       <div class="transit-row">
         <span class="transit-label">BOM</span>
-        <span class="transit-val ">18</span>
+        <span class="transit-val ">28</span>
       </div>
       <div class="transit-row">
         <span class="transit-label">CIL</span>
@@ -854,7 +854,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
   <div class="chart-card" style="margin-bottom:28px;">
-    <div class="chart-fixed-ns"><canvas id="ns-chart" style="box-sizing: border-box; display: block; height: 280px; width: 877px;" width="877" height="280"></canvas></div>
+    <div class="chart-fixed-ns"><canvas id="ns-chart" style="box-sizing: border-box; display: block; height: 280px; width: 1803px;" width="1803" height="280"></canvas></div>
   <div class="ns-data-table" style="overflow-x: auto; margin-top: 12px;"><table style="width:100%;border-collapse:collapse;font-size:12px;">
     <thead><tr style="background:#1a2a4a">
       <th style="padding:7px 14px;text-align:left;color:#7a8299;min-width:90px;font-family:var(--font-display);letter-spacing:1px"></th>
@@ -2288,7 +2288,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="charts-grid" style="margin-bottom:28px;">
     <div class="chart-card">
       <div class="chart-title">Linha do Tempo — Matriz vs Filial SP (R$)</div>
-      <div class="chart-fixed-tall"><canvas id="servico-timeline-chart" height="320" style="display: block; box-sizing: border-box; height: 320px; width: 877px;" width="877"></canvas></div>
+      <div class="chart-fixed-tall"><canvas id="servico-timeline-chart" height="320" style="display: block; box-sizing: border-box; height: 320px; width: 1803px;" width="1803"></canvas></div>
     </div>
   </div>
 
@@ -2297,11 +2297,11 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="charts-grid" style="margin-bottom:24px;">
     <div class="chart-card">
       <div class="chart-title">Total por Mês (seleção atual)</div>
-      <div class="chart-fixed"><canvas id="servico-mes-chart" height="260" style="display: block; box-sizing: border-box; height: 260px; width: 409px;" width="409"></canvas></div>
+      <div class="chart-fixed"><canvas id="servico-mes-chart" height="260" style="display: block; box-sizing: border-box; height: 260px; width: 872px;" width="872"></canvas></div>
     </div>
     <div class="chart-card">
       <div class="chart-title">Top 10 Fornecedores (seleção atual)</div>
-      <div class="chart-fixed-tall"><canvas id="servico-top-chart" height="320" style="display: block; box-sizing: border-box; height: 320px; width: 409px;" width="409"></canvas></div>
+      <div class="chart-fixed-tall"><canvas id="servico-top-chart" height="320" style="display: block; box-sizing: border-box; height: 320px; width: 872px;" width="872"></canvas></div>
     </div>
   </div>
   <div class="servico-header">
@@ -3476,7 +3476,7 @@ async function publishToNetlify(auto = false) {
     );
     const now = new Date().toLocaleString('pt-BR');
     html = html.replace(
-      /Publicado em 04/05/2026, 16:17:18|Atualizado às [\d:]+|Publicado em [^<]+|Dados: [\d/]+/,
+      /Publicado em 04/05/2026, 19:04:32|Atualizado às [\d:]+|Publicado em [^<]+|Dados: [\d/]+/,
       `Publicado em ${now}`
     );
 
