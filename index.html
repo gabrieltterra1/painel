@@ -633,7 +633,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="header-right">
     <div class="monitor-status">
       <div class="status-dot active" id="status-dot"></div>
-      <span id="update-time" class="last-update">✓ Publicado no GitHub às 16:05:18</span>
+      <span id="update-time" class="last-update">✓ Publicado no GitHub às 16:12:19</span>
       <span class="countdown-ring" id="countdown"></span>
     </div>
     <button class="upload-btn monitoring" id="monitor-btn" onclick="toggleMonitor()">⏹ Parar Monitor</button>
@@ -644,9 +644,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <nav class="tabs">
   <div class="tab" onclick="showTab('of')">OF Abertas</div>
-  <div class="tab" onclick="showTab('montados')">Itens Montados</div>
+  <div class="tab active" onclick="showTab('montados')">Itens Montados</div>
   <div class="tab" onclick="showTab('estoque')">Estoque &amp; Trânsito</div>
-  <div class="tab active" onclick="showTab('servicos')">Serviços Terceiros</div>
+  <div class="tab" onclick="showTab('servicos')">Serviços Terceiros</div>
 </nav>
 
 <!-- ======= OF ABERTAS ======= -->
@@ -733,7 +733,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 <!-- ======= MONTADOS ======= -->
-<div id="tab-montados" class="tab-content">
+<div id="tab-montados" class="tab-content active">
   <div class="section-title">Contagem de Itens Montados — EPP</div>
   <div id="montados-content"><div class="table-wrap"><div class="scrollable">
     <table style="table-layout:auto;min-width:700px;">
@@ -2253,7 +2253,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 <!-- ======= SERVIÇOS ======= -->
-<div id="tab-servicos" class="tab-content active">
+<div id="tab-servicos" class="tab-content">
   <div class="section-title">Gastos com Serviços de Terceiros</div>
   <div class="kpi-bar" id="servico-kpis">
     <div class="kpi"><div class="kpi-label">Total Geral</div><div class="kpi-val blue">R$ 2.302.324,91</div></div>
@@ -3476,7 +3476,7 @@ async function publishToNetlify(auto = false) {
     );
     const now = new Date().toLocaleString('pt-BR');
     html = html.replace(
-      /Publicado em 04/05/2026, 16:12:16|Atualizado às [\d:]+|Publicado em [^<]+|Dados: [\d/]+/,
+      /Publicado em 04/05/2026, 16:17:18|Atualizado às [\d:]+|Publicado em [^<]+|Dados: [\d/]+/,
       `Publicado em ${now}`
     );
 
