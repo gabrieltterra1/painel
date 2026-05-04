@@ -1690,31 +1690,30 @@ function startCountdown() {
   }, 1000);
 }
 
-// ===== CLOUDFLARE PAGES AUTO-PUBLISH =====
-let CF_ACCOUNT_ID  = localStorage.getItem('cf_account_id') || '';
-let CF_API_TOKEN   = localStorage.getItem('cf_api_token') || '';
-let CF_PROJECT     = localStorage.getItem('cf_project') || 'indicadorpcpiph';
+// ===== GITHUB PAGES AUTO-PUBLISH =====
+const GH_USER  = 'gabrieltterra1';
+const GH_REPO  = 'painel';
+const GH_FILE  = 'index.html';
+const GH_BRANCH = 'main';
 
-// Ask for credentials on first run
-function checkCredentials() {
-  if (!CF_ACCOUNT_ID || !CF_API_TOKEN) {
-    const setup = confirm('⚙️ Configurar publicação automática no Cloudflare?\n\nClique OK para configurar agora.');
+// GitHub token stored locally (never in code)
+let GH_TOKEN = localStorage.getItem('gh_token') || '';
+
+function checkGHCredentials() {
+  if (!GH_TOKEN) {
+    const setup = confirm('⚙️ Configurar publicação automática no GitHub?\n\nClique OK para configurar agora.');
     if (!setup) return false;
-    CF_ACCOUNT_ID = prompt('Cole o Account ID do Cloudflare:') || '';
-    CF_API_TOKEN  = prompt('Cole o API Token do Cloudflare:') || '';
-    CF_PROJECT    = prompt('Nome do projeto:', 'indicadorpcpiph') || 'indicadorpcpiph';
-    if (CF_ACCOUNT_ID && CF_API_TOKEN) {
-      localStorage.setItem('cf_account_id', CF_ACCOUNT_ID);
-      localStorage.setItem('cf_api_token', CF_API_TOKEN);
-      localStorage.setItem('cf_project', CF_PROJECT);
+    GH_TOKEN = prompt('Cole o GitHub Personal Access Token:\n\n(github.com → Settings → Developer settings → Personal access tokens → Tokens classic → New token → marque "repo" → Generate)') || '';
+    if (GH_TOKEN) {
+      localStorage.setItem('gh_token', GH_TOKEN);
       alert('✅ Configurado! O painel vai publicar automaticamente a cada 5 minutos.');
     }
   }
-  return !!(CF_ACCOUNT_ID && CF_API_TOKEN);
+  return !!GH_TOKEN;
 }
 
 async function publishToNetlify(auto = false) {
-  if (!checkCredentials()) return;
+  if (!checkGHCredentials()) return;
   const btn = document.getElementById('export-btn');
   if (!auto) {
     btn.textContent = '⏳ Publicando…';
@@ -1734,26 +1733,38 @@ async function publishToNetlify(auto = false) {
       `Publicado em ${now}`
     );
 
-    // Build multipart form with index.html
-    const blob = new Blob([html], { type: 'text/html' });
-    const form = new FormData();
-    form.append('branch', 'main');
-    form.append('files', blob, 'index.html');
+    // Get current file SHA (required by GitHub API to update)
+    const getResp = await fetch(
+      `https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}?ref=${GH_BRANCH}`,
+      { headers: { 'Authorization': `token ${GH_TOKEN}`, 'Accept': 'application/vnd.github.v3+json' } }
+    );
+    const fileInfo = await getResp.json();
+    const sha = fileInfo.sha;
 
-    const resp = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}/deployments`,
+    // Upload updated file
+    const content = btoa(unescape(encodeURIComponent(html)));
+    const putResp = await fetch(
+      `https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,
       {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${CF_API_TOKEN}` },
-        body: form
+        method: 'PUT',
+        headers: {
+          'Authorization': `token ${GH_TOKEN}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: `Atualizar painel - ${now}`,
+          content: content,
+          sha: sha,
+          branch: GH_BRANCH
+        })
       }
     );
 
-    const result = await resp.json();
-    if (!result.success) throw new Error(JSON.stringify(result.errors));
+    if (!putResp.ok) throw new Error(`GitHub API error: ${putResp.status}`);
 
     const nowTime = new Date().toLocaleTimeString('pt-BR');
-    setStatus('active', `✓ Publicado às ${nowTime}`);
+    setStatus('active', `✓ Publicado no GitHub às ${nowTime}`);
 
     if (!auto) {
       btn.textContent = '✓ Publicado!';
@@ -1765,7 +1776,7 @@ async function publishToNetlify(auto = false) {
       }, 3000);
     }
   } catch(e) {
-    console.error('Cloudflare error:', e);
+    console.error('GitHub publish error:', e);
     if (!auto) {
       btn.textContent = '❌ Erro — tente de novo';
       btn.style.background = '#cc2200';
