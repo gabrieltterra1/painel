@@ -632,8 +632,8 @@ document.addEventListener('DOMContentLoaded', () => {
   <h1>PAINEL <span>INDUSTRIAL</span></h1>
   <div class="header-right">
     <div class="monitor-status">
-      <div class="status-dot active" id="status-dot"></div>
-      <span id="update-time" class="last-update">Lendo arquivos…</span>
+      <div class="status-dot error" id="status-dot"></div>
+      <span id="update-time" class="last-update">Erro ao ler pasta — verifique o acesso</span>
       <span class="countdown-ring" id="countdown"></span>
     </div>
     <button class="upload-btn monitoring" id="monitor-btn" onclick="toggleMonitor()">⏹ Parar Monitor</button>
@@ -672,7 +672,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </thead>
         <tfoot id="of-foot"><tr class="tfoot-row">
     <td>TOTAL</td>
-    <td>704</td><td>381</td><td>111</td><td>110</td><td>44</td><td>413</td><td>90</td><td>11</td>
+    <td>704</td><td>383</td><td>111</td><td>110</td><td>44</td><td>413</td><td>90</td><td>11</td>
   </tr></tfoot>
         <tbody id="of-body"><tr class="overdue">
       <td>04/05/2026 ⚑</td>
@@ -685,7 +685,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <td>18</td><td>67</td><td>12</td><td>6</td><td>10</td><td>38</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
     </tr><tr class="">
       <td>07/05/2026</td>
-      <td>173</td><td>92</td><td>20</td><td>48</td><td>12</td><td>46</td><td>30</td><td><span class="zero">—</span></td>
+      <td>173</td><td>94</td><td>20</td><td>48</td><td>12</td><td>46</td><td>30</td><td><span class="zero">—</span></td>
     </tr><tr class="">
       <td>08/05/2026</td>
       <td>153</td><td>70</td><td>20</td><td>16</td><td>16</td><td>54</td><td><span class="zero">—</span></td><td>11</td>
@@ -859,7 +859,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
   <div class="chart-card" style="margin-bottom:28px;">
-    <div class="chart-fixed-ns"><canvas id="ns-chart" style="box-sizing: border-box; display: block; height: 280px; width: 1419px;" width="1774" height="350"></canvas></div>
+    <div class="chart-fixed-ns"><canvas id="ns-chart" style="box-sizing: border-box; display: block; height: 280px; width: 1419px;" width="1419" height="280"></canvas></div>
   <div class="ns-data-table" style="overflow-x: auto; margin-top: 12px;"><table style="width:100%;border-collapse:collapse;font-size:12px;">
     <thead><tr style="background:#1a2a4a">
       <th style="padding:7px 14px;text-align:left;color:#7a8299;min-width:90px;font-family:var(--font-display);letter-spacing:1px"></th>
@@ -3649,7 +3649,7 @@ async function publishToNetlify(auto = false) {
     );
     const now = new Date().toLocaleString('pt-BR');
     html = html.replace(
-      /Publicado em 07/05/2026, 08:43:19|Atualizado às [\d:]+|Publicado em [^<]+|Dados: [\d/]+/,
+      /Publicado em 07/05/2026, 09:13:19|Atualizado às [\d:]+|Publicado em [^<]+|Dados: [\d/]+/,
       `Publicado em ${now}`
     );
 
