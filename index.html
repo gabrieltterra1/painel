@@ -632,8 +632,8 @@ document.addEventListener('DOMContentLoaded', () => {
   <h1>PAINEL <span>INDUSTRIAL</span></h1>
   <div class="header-right">
     <div class="monitor-status">
-      <div class="status-dot error" id="status-dot"></div>
-      <span id="update-time" class="last-update">Erro ao ler pasta — verifique o acesso</span>
+      <div class="status-dot active" id="status-dot"></div>
+      <span id="update-time" class="last-update">Lendo arquivos…</span>
       <span class="countdown-ring" id="countdown"></span>
     </div>
     <button class="upload-btn monitoring" id="monitor-btn" onclick="toggleMonitor()">⏹ Parar Monitor</button>
@@ -672,17 +672,17 @@ document.addEventListener('DOMContentLoaded', () => {
         </thead>
         <tfoot id="of-foot"><tr class="tfoot-row">
     <td>TOTAL</td>
-    <td>804</td><td>377</td><td>111</td><td>193</td><td>46</td><td>452</td><td>99</td><td>7</td>
+    <td>804</td><td>357</td><td>111</td><td>193</td><td>40</td><td>452</td><td>99</td><td>7</td>
   </tr></tfoot>
         <tbody id="of-body"><tr class="overdue">
       <td>06/05/2026 ⚑</td>
-      <td><span class="zero">—</span></td><td>2</td><td>2</td><td><span class="zero">—</span></td><td>1</td><td>1</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
+      <td><span class="zero">—</span></td><td>2</td><td>2</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td>1</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
     </tr><tr class="overdue">
       <td>07/05/2026 ⚑</td>
-      <td>17</td><td>66</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td>4</td><td>38</td><td>30</td><td><span class="zero">—</span></td>
+      <td>17</td><td>46</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td>2</td><td>38</td><td>30</td><td><span class="zero">—</span></td>
     </tr><tr class="">
       <td>08/05/2026</td>
-      <td>118</td><td>88</td><td>20</td><td>49</td><td>14</td><td>47</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
+      <td>118</td><td>88</td><td>20</td><td>49</td><td>11</td><td>47</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
     </tr><tr class="">
       <td>11/05/2026</td>
       <td>170</td><td>86</td><td>20</td><td>64</td><td>16</td><td>56</td><td><span class="zero">—</span></td><td>6</td>
@@ -733,7 +733,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </tr></thead>
       <tfoot>
         <tr class="tfoot-row" style="background:#1e2a4a;border-top:2px solid var(--green-dark);border-bottom:3px solid var(--green-dark)">
-          <td style="text-align:left">TOTAL</td><td>868</td><td>355</td><td>80</td><td>260</td><td>56</td><td>187</td><td>0</td><td>18</td>
+          <td style="text-align:left">TOTAL</td><td>868</td><td>375</td><td>80</td><td>260</td><td>62</td><td>187</td><td>0</td><td>18</td>
         </tr>
         <tr class="tfoot-row" style="background:#162a1e;border-bottom:1px solid var(--green-dark)">
           <td style="text-align:left;color:var(--green)">MÉDIA</td><td style="color:var(--green)">194.8</td><td style="color:var(--green)">78.0</td><td style="color:var(--green)">17.5</td><td style="color:var(--green)">50.5</td><td style="color:var(--green)">12.3</td><td style="color:var(--green)">26.8</td><td style="color:var(--green)">0.0</td><td style="color:var(--green)">1.8</td>
@@ -744,7 +744,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </tfoot>
       <tbody><tr style="background:rgba(26,109,255,0.08)">
           <td style="text-align:left;color:var(--blue-light);font-weight:600">08/05/2026 (hoje)</td>
-          <td>89</td><td>43</td><td>10</td><td>58</td><td>7</td><td>80</td><td><span class="zero">—</span></td><td>11</td>
+          <td>89</td><td>63</td><td>10</td><td>58</td><td>13</td><td>80</td><td><span class="zero">—</span></td><td>11</td>
         </tr><tr style="">
           <td style="text-align:left">07/05/2026</td>
           <td>181</td><td>56</td><td>20</td><td>51</td><td>12</td><td>42</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
@@ -808,15 +808,15 @@ document.addEventListener('DOMContentLoaded', () => {
       
       <div class="transit-row">
         <span class="transit-label">TOM</span>
-        <span class="transit-val ">110</span>
+        <span class="transit-val ">119</span>
       </div>
       <div class="transit-row">
         <span class="transit-label">BOM</span>
-        <span class="transit-val ">86</span>
+        <span class="transit-val ">95</span>
       </div>
       <div class="transit-row">
         <span class="transit-label">CIL</span>
-        <span class="transit-val zero">—</span>
+        <span class="transit-val ">2</span>
       </div>
       <div class="transit-row">
         <span class="transit-label">GUI</span>
@@ -867,12 +867,12 @@ document.addEventListener('DOMContentLoaded', () => {
         <td style="padding:6px 14px;white-space:nowrap">
           <span style="display:inline-block;width:10px;height:10px;background:#3d8bff;border-radius:2px;margin-right:6px;vertical-align:middle"></span>TOMADA
         </td>
-        <td style="text-align:center;color:#3d8bff;font-weight:700;padding:6px 14px">88.6%</td><td style="text-align:center;color:#3d8bff;font-weight:700;padding:6px 14px">93.8%</td><td style="text-align:center;color:#3d8bff;font-weight:700;padding:6px 14px">96.9%</td><td style="text-align:center;color:#3d8bff;font-weight:700;padding:6px 14px">78.3%</td><td style="text-align:center;color:#3d8bff;font-weight:700;padding:6px 14px">94.8%</td>
+        <td style="text-align:center;color:#3d8bff;font-weight:700;padding:6px 14px">88.6%</td><td style="text-align:center;color:#3d8bff;font-weight:700;padding:6px 14px">93.5%</td><td style="text-align:center;color:#3d8bff;font-weight:700;padding:6px 14px">96.9%</td><td style="text-align:center;color:#3d8bff;font-weight:700;padding:6px 14px">78.3%</td><td style="text-align:center;color:#3d8bff;font-weight:700;padding:6px 14px">94.8%</td>
       </tr><tr style="border-bottom:1px solid var(--border)">
         <td style="padding:6px 14px;white-space:nowrap">
           <span style="display:inline-block;width:10px;height:10px;background:#ff8c3b;border-radius:2px;margin-right:6px;vertical-align:middle"></span>BOMBA
         </td>
-        <td style="text-align:center;color:#ff8c3b;font-weight:700;padding:6px 14px">96.1%</td><td style="text-align:center;color:#ff8c3b;font-weight:700;padding:6px 14px">99.1%</td><td style="text-align:center;color:#ff8c3b;font-weight:700;padding:6px 14px">88.9%</td><td style="text-align:center;color:#ff8c3b;font-weight:700;padding:6px 14px">76.9%</td><td style="text-align:center;color:#ff8c3b;font-weight:700;padding:6px 14px">88.9%</td>
+        <td style="text-align:center;color:#ff8c3b;font-weight:700;padding:6px 14px">96.1%</td><td style="text-align:center;color:#ff8c3b;font-weight:700;padding:6px 14px">98.7%</td><td style="text-align:center;color:#ff8c3b;font-weight:700;padding:6px 14px">88.9%</td><td style="text-align:center;color:#ff8c3b;font-weight:700;padding:6px 14px">76.6%</td><td style="text-align:center;color:#ff8c3b;font-weight:700;padding:6px 14px">88.9%</td>
       </tr>
       <tr>
         <td style="padding:6px 14px;white-space:nowrap">
@@ -923,10 +923,10 @@ document.addEventListener('DOMContentLoaded', () => {
               <td style="color:var(--red);font-weight:600">-50</td>
               <td style="color:var(--text-muted)">R$-34.552,00</td>
               <td style="color:var(--amber)">1</td>
-              <td>1.185</td>
-              <td style="color:var(--text-muted)">R$748.382,00</td>
-              <td style="color:var(--green)">796</td>
-              <td style="color:var(--text-muted)">R$524.047,00</td>
+              <td>1.175</td>
+              <td style="color:var(--text-muted)">R$742.520,00</td>
+              <td style="color:var(--green)">786</td>
+              <td style="color:var(--text-muted)">R$518.186,00</td>
               <td>389</td>
               <td style="color:var(--text-muted)">88.6%</td>
               <td style="text-align:center">
@@ -947,10 +947,10 @@ document.addEventListener('DOMContentLoaded', () => {
               <td style="color:var(--red);font-weight:600">-11</td>
               <td style="color:var(--text-muted)">R$-8.202,00</td>
               <td style="color:var(--amber)">1</td>
-              <td>493</td>
-              <td style="color:var(--text-muted)">R$266.053,00</td>
-              <td style="color:var(--green)">221</td>
-              <td style="color:var(--text-muted)">R$123.959,00</td>
+              <td>504</td>
+              <td style="color:var(--text-muted)">R$268.690,00</td>
+              <td style="color:var(--green)">232</td>
+              <td style="color:var(--text-muted)">R$126.596,00</td>
               <td>272</td>
               <td style="color:var(--text-muted)">96.1%</td>
               <td style="text-align:center">
@@ -971,10 +971,10 @@ document.addEventListener('DOMContentLoaded', () => {
               <td style="color:var(--red);font-weight:600">-8</td>
               <td style="color:var(--text-muted)">R$-54.713,00</td>
               <td style="color:var(--amber)">3</td>
-              <td>5</td>
-              <td style="color:var(--text-muted)">R$35.002,00</td>
-              <td style="color:var(--green)">2</td>
-              <td style="color:var(--text-muted)">R$11.445,00</td>
+              <td>6</td>
+              <td style="color:var(--text-muted)">R$40.724,00</td>
+              <td style="color:var(--green)">3</td>
+              <td style="color:var(--text-muted)">R$17.168,00</td>
               <td>3</td>
               <td style="color:var(--text-muted)">27.3%</td>
               <td style="text-align:center">
@@ -995,10 +995,10 @@ document.addEventListener('DOMContentLoaded', () => {
               <td style="color:var(--red);font-weight:600">-10</td>
               <td style="color:var(--text-muted)">R$-35.442,00</td>
               <td style="color:var(--amber)">5</td>
-              <td>10</td>
-              <td style="color:var(--text-muted)">R$28.740,00</td>
-              <td style="color:var(--green)">4</td>
-              <td style="color:var(--text-muted)">R$10.858,00</td>
+              <td>15</td>
+              <td style="color:var(--text-muted)">R$46.894,00</td>
+              <td style="color:var(--green)">9</td>
+              <td style="color:var(--text-muted)">R$29.013,00</td>
               <td>6</td>
               <td style="color:var(--text-muted)">37.5%</td>
               <td style="text-align:center">
@@ -1040,19 +1040,19 @@ document.addEventListener('DOMContentLoaded', () => {
               <td>86</td>
               <td>663</td>
               <td style="color:var(--text-muted)">R$448.976,00</td>
-              <td style="color:var(--red);font-weight:600">-41</td>
-              <td style="color:var(--text-muted)">R$-26.612,00</td>
+              <td style="color:var(--red);font-weight:600">-43</td>
+              <td style="color:var(--text-muted)">R$-27.661,00</td>
               <td style="color:var(--amber)">2</td>
-              <td>870</td>
-              <td style="color:var(--text-muted)">R$590.269,00</td>
-              <td style="color:var(--green)">248</td>
-              <td style="color:var(--text-muted)">R$167.906,00</td>
-              <td>622</td>
-              <td style="color:var(--text-muted)">93.8%</td>
+              <td>867</td>
+              <td style="color:var(--text-muted)">R$588.744,00</td>
+              <td style="color:var(--green)">247</td>
+              <td style="color:var(--text-muted)">R$167.429,00</td>
+              <td>620</td>
+              <td style="color:var(--text-muted)">93.5%</td>
               <td style="text-align:center">
                 <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
                   background:rgba(0,201,122,0.18);
-                  color:var(--green)">93.8%</span>
+                  color:var(--green)">93.5%</span>
               </td>
             </tr><tr>
               <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:1px">SP</td>
@@ -1064,19 +1064,19 @@ document.addEventListener('DOMContentLoaded', () => {
               <td>23</td>
               <td>230</td>
               <td style="color:var(--text-muted)">R$132.412,00</td>
-              <td style="color:var(--red);font-weight:600">-2</td>
-              <td style="color:var(--text-muted)">R$-1.325,00</td>
+              <td style="color:var(--red);font-weight:600">-3</td>
+              <td style="color:var(--text-muted)">R$-2.153,00</td>
               <td style="color:var(--text)">0</td>
-              <td>302</td>
-              <td style="color:var(--text-muted)">R$182.540,00</td>
+              <td>301</td>
+              <td style="color:var(--text-muted)">R$181.711,00</td>
               <td style="color:var(--green)">74</td>
               <td style="color:var(--text-muted)">R$51.452,00</td>
-              <td>228</td>
-              <td style="color:var(--text-muted)">99.1%</td>
+              <td>227</td>
+              <td style="color:var(--text-muted)">98.7%</td>
               <td style="text-align:center">
                 <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
                   background:rgba(0,201,122,0.18);
-                  color:var(--green)">99.1%</span>
+                  color:var(--green)">98.7%</span>
               </td>
             </tr><tr>
               <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:1px">SP</td>
@@ -1280,19 +1280,19 @@ document.addEventListener('DOMContentLoaded', () => {
               <td>37</td>
               <td>290</td>
               <td style="color:var(--text-muted)">R$182.668,00</td>
-              <td style="color:var(--red);font-weight:600">-67</td>
-              <td style="color:var(--text-muted)">R$-43.471,00</td>
+              <td style="color:var(--red);font-weight:600">-68</td>
+              <td style="color:var(--text-muted)">R$-43.973,00</td>
               <td style="color:var(--amber)">1</td>
-              <td>290</td>
-              <td style="color:var(--text-muted)">R$193.736,00</td>
+              <td>289</td>
+              <td style="color:var(--text-muted)">R$193.234,00</td>
               <td style="color:var(--green)">67</td>
               <td style="color:var(--text-muted)">R$54.538,00</td>
-              <td>223</td>
-              <td style="color:var(--text-muted)">76.9%</td>
+              <td>222</td>
+              <td style="color:var(--text-muted)">76.6%</td>
               <td style="text-align:center">
                 <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
                   background:rgba(255,59,59,0.18);
-                  color:var(--red)">76.9%</span>
+                  color:var(--red)">76.6%</span>
               </td>
             </tr><tr>
               <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:1px">GO</td>
@@ -1491,7 +1491,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <option value="qtd_asc">Ordenar: Qtd ↑</option>
       <option value="emp">Ordenar: Empresa</option>
     </select>
-    <span class="transito-count" id="tr-count">116 ITENS · 488 UN TOTAL</span>
+    <span class="transito-count" id="tr-count">123 ITENS · 510 UN TOTAL</span>
   </div>
   <div class="table-wrap">
     <div class="scrollable">
@@ -1507,7 +1507,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </thead>
         <tfoot id="tr-foot"><tr class="tfoot-row">
     <td colspan="3" style="text-align:left">TOTAL</td>
-    <td>488</td>
+    <td>510</td>
     <td></td>
   </tr></tfoot>
         <tbody id="tr-body"><tr>
@@ -1595,6 +1595,12 @@ document.addEventListener('DOMContentLoaded', () => {
       <td style="font-weight:600;color:var(--blue-light)">4</td>
       <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
     </tr><tr>
+      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">110000</td>
+      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 110000  ZF  03  T  P  100  04  H  600</td>
+      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
+      <td style="font-weight:600;color:var(--blue-light)">3</td>
+      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
+    </tr><tr>
       <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">11540</td>
       <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9131  EC  24  D  P  135  01  H  350</td>
       <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
@@ -1640,7 +1646,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">120800</td>
       <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 120800  EC  01  D  P  100  04  A  350</td>
       <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
+      <td style="font-weight:600;color:var(--blue-light)">6</td>
       <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
     </tr><tr>
       <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">120800</td>
@@ -1653,6 +1659,12 @@ document.addEventListener('DOMContentLoaded', () => {
       <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9150 16 B 100 23 23 02 AG 20 225 250</td>
       <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
       <td style="font-weight:600;color:var(--blue-light)">3</td>
+      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
+    </tr><tr>
+      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">12214</td>
+      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9150 16 B 120 23 23 02 AG 15 210 230</td>
+      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
+      <td style="font-weight:600;color:var(--blue-light)">2</td>
       <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
     </tr><tr>
       <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">12364</td>
@@ -1808,7 +1820,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17693</td>
       <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 01 B 065 01 01 04 BA 90 220 240</td>
       <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">21</td>
+      <td style="font-weight:600;color:var(--blue-light)">24</td>
       <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
     </tr><tr>
       <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17693</td>
@@ -1852,6 +1864,12 @@ document.addEventListener('DOMContentLoaded', () => {
       <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
       <td style="font-weight:600;color:var(--blue-light)">6</td>
       <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
+    </tr><tr>
+      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17877</td>
+      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9131  SC  04  D  P  110  01  H  CA  350</td>
+      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
+      <td style="font-weight:600;color:var(--blue-light)">4</td>
+      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
     </tr><tr>
       <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">18770</td>
       <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9162  SC  06  D  P  068  06  H  350</td>
@@ -1899,6 +1917,12 @@ document.addEventListener('DOMContentLoaded', () => {
       <td style="text-align:left;font-size:12px">CILINDRO HIDRAULICO BP6" X850 FIXACAO CENTRAL</td>
       <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
       <td style="font-weight:600;color:var(--blue-light)">6</td>
+      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.400.001</td>
+    </tr><tr>
+      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">54564</td>
+      <td style="text-align:left;font-size:12px">CILINDRO HIDRAULICO BP7" X850 FIXACAO CENTRAL</td>
+      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
+      <td style="font-weight:600;color:var(--blue-light)">2</td>
       <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.400.001</td>
     </tr><tr>
       <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">567700</td>
@@ -2008,6 +2032,12 @@ document.addEventListener('DOMContentLoaded', () => {
       <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
       <td style="font-weight:600;color:var(--blue-light)">1</td>
       <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
+    </tr><tr>
+      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">7052</td>
+      <td style="text-align:left;font-size:12px">CILINDRO HIDRAULICO BP3"  (620MM)</td>
+      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
+      <td style="font-weight:600;color:var(--blue-light)">2</td>
+      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.400.010</td>
     </tr><tr>
       <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">7821</td>
       <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 7235  MB  03  T  P  200  01  A  FM  350</td>
@@ -2189,6 +2219,12 @@ document.addEventListener('DOMContentLoaded', () => {
       <td style="font-weight:600;color:var(--blue-light)">3</td>
       <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
     </tr><tr>
+      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">9532</td>
+      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9101 01 H 065 13 12 06 P 01 A21 BA 20 210 210</td>
+      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
+      <td style="font-weight:600;color:var(--blue-light)">3</td>
+      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
+    </tr><tr>
       <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">9535</td>
       <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9101 01 A 065 12 12 06 P 01 A21 BA 20 210 210</td>
       <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
@@ -2206,6 +2242,12 @@ document.addEventListener('DOMContentLoaded', () => {
       <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
       <td style="font-weight:600;color:var(--blue-light)">1</td>
       <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
+    </tr><tr>
+      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">9562</td>
+      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9101 06 A 065 13 12 06 P 01 A21 BA 20 210 210</td>
+      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
+      <td style="font-weight:600;color:var(--blue-light)">1</td>
+      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
     </tr></tbody>
       </table>
     </div>
@@ -2216,11 +2258,11 @@ document.addEventListener('DOMContentLoaded', () => {
 <div id="tab-servicos" class="tab-content">
   <div class="section-title">Gastos com Serviços de Terceiros</div>
   <div class="kpi-bar" id="servico-kpis">
-    <div class="kpi"><div class="kpi-label">Total Geral</div><div class="kpi-val blue">R$ 2.433.035,06</div></div>
-    <div class="kpi"><div class="kpi-label">📅 mai. de 2026</div><div class="kpi-val" style="color:var(--amber)">R$ 123.540,14</div></div>
-    <div class="kpi"><div class="kpi-label">🏭 Matriz</div><div class="kpi-val" style="color:#3d8bff">R$ 2.248.072,84</div></div>
+    <div class="kpi"><div class="kpi-label">Total Geral</div><div class="kpi-val blue">R$ 2.437.561,16</div></div>
+    <div class="kpi"><div class="kpi-label">📅 mai. de 2026</div><div class="kpi-val" style="color:var(--amber)">R$ 128.066,24</div></div>
+    <div class="kpi"><div class="kpi-label">🏭 Matriz</div><div class="kpi-val" style="color:#3d8bff">R$ 2.252.598,94</div></div>
     <div class="kpi"><div class="kpi-label">🏢 Filial SP</div><div class="kpi-val" style="color:#ff8c3b">R$ 184.962,22</div></div>
-    <div class="kpi"><div class="kpi-label">Fornecedores</div><div class="kpi-val">45</div></div></div>
+    <div class="kpi"><div class="kpi-label">Fornecedores</div><div class="kpi-val">46</div></div></div>
 
   <!-- LINHA DO TEMPO MATRIZ vs FILIAL -->
   <div class="section-title">Linha do Tempo — Matriz vs Filial SP por Mês</div>
@@ -2230,8 +2272,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <tbody id="timeline-body">
     <tr class="emp-matriz">
       <td>🏭 MATRIZ</td>
-      <td class="money">R$ 397.504,87</td><td class="money">R$ 562.009,75</td><td class="money">R$ 617.627,15</td><td class="money">R$ 556.690,93</td><td class="money">R$ 114.240,14</td>
-      <td class="money">R$ 2.248.072,84</td>
+      <td class="money">R$ 397.504,87</td><td class="money">R$ 562.009,75</td><td class="money">R$ 617.627,15</td><td class="money">R$ 556.690,93</td><td class="money">R$ 118.766,24</td>
+      <td class="money">R$ 2.252.598,94</td>
     </tr>
     <tr class="emp-filial">
       <td>🏢 FILIAL SP</td>
@@ -2240,8 +2282,8 @@ document.addEventListener('DOMContentLoaded', () => {
     </tr>
     <tr class="emp-total">
       <td>TOTAL GERAL</td>
-      <td class="money">R$ 508.122,39</td><td class="money">R$ 579.819,75</td><td class="money">R$ 640.704,65</td><td class="money">R$ 580.848,13</td><td class="money">R$ 123.540,14</td>
-      <td class="money">R$ 2.433.035,06</td>
+      <td class="money">R$ 508.122,39</td><td class="money">R$ 579.819,75</td><td class="money">R$ 640.704,65</td><td class="money">R$ 580.848,13</td><td class="money">R$ 128.066,24</td>
+      <td class="money">R$ 2.437.561,16</td>
     </tr></tbody>
     </table>
   </div>
@@ -2351,6 +2393,11 @@ document.addEventListener('DOMContentLoaded', () => {
       <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
       <td class="money">R$ 80.521,00</td>
       <td class="money" style="color:var(--blue-light);font-weight:600">R$ 80.521,00</td>
+    </tr><tr>
+      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="52958 - FORJAS CAXIENSE LTDA">FORJAS CAXIENSE LTDA</span></td>
+      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
+      <td class="money"><span class="zero">—</span></td>
+      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 0,00</td>
     </tr><tr>
       <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="59143 - CARL ZEISS DO BRASIL LTDA">CARL ZEISS DO BRASIL LTDA</span></td>
       <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
@@ -3503,7 +3550,7 @@ async function publishToNetlify(auto = false) {
     );
     const now = new Date().toLocaleString('pt-BR');
     html = html.replace(
-      /Publicado em 08/05/2026, 15:28:02|Atualizado às [\d:]+|Publicado em [^<]+|Dados: [\d/]+/,
+      /Publicado em 08/05/2026, 15:58:01|Atualizado às [\d:]+|Publicado em [^<]+|Dados: [\d/]+/,
       `Publicado em ${now}`
     );
 
