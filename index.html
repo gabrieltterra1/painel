@@ -1,7 +1,9 @@
-<html lang="pt-BR"><head>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard Industrial — Produção &amp; Estoque</title>
+<title>Dashboard Industrial — Produção & Estoque</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <style>
@@ -583,11 +585,13 @@
 <body>
 
 <!-- LOGIN SCREEN -->
-<div id="login-screen" style="display: none;">
+<div id="login-screen">
   <div class="login-box">
     <div class="login-logo">PAINEL <span>INDUSTRIAL</span></div>
     <div class="login-sub">Interpump Group</div>
-    <input class="login-input" type="password" id="login-input" placeholder="Digite a senha" onkeydown="if(event.key==='Enter') doLogin()">
+    <input class="login-input" type="password" id="login-input"
+      placeholder="Digite a senha"
+      onkeydown="if(event.key==='Enter') doLogin()">
     <button class="login-btn" onclick="doLogin()">Entrar</button>
     <div class="login-error" id="login-error"></div>
   </div>
@@ -632,27 +636,29 @@ document.addEventListener('DOMContentLoaded', () => {
   <h1>PAINEL <span>INDUSTRIAL</span></h1>
   <div class="header-right">
     <div class="monitor-status">
-      <div class="status-dot active" id="status-dot"></div>
-      <span id="update-time" class="last-update">Lendo arquivos…</span>
+      <div class="status-dot" id="status-dot"></div>
+      <span id="update-time" class="last-update">— Aguardando pasta…</span>
       <span class="countdown-ring" id="countdown"></span>
     </div>
-    <button class="upload-btn monitoring" id="monitor-btn" onclick="toggleMonitor()">⏹ Parar Monitor</button>
+    <button class="upload-btn" id="monitor-btn" onclick="toggleMonitor()">
+      📁 Autorizar Pasta
+    </button>
     <button class="upload-btn" id="export-btn" onclick="publishToNetlify()" style="background:#6a35cc;" title="Publica os dados atuais no Cloudflare para todos acessarem">
       🚀 Publicar
     </button>
-    <input type="file" id="file-input" multiple="" accept=".csv,.CSV" onchange="handleFiles(this.files)">
+    <input type="file" id="file-input" multiple accept=".csv,.CSV" onchange="handleFiles(this.files)">
   </div>
 </header>
 
 <nav class="tabs">
-  <div class="tab" onclick="showTab('of')">OF Abertas</div>
+  <div class="tab active" onclick="showTab('of')">OF Abertas</div>
   <div class="tab" onclick="showTab('montados')">Itens Montados</div>
-  <div class="tab" onclick="showTab('estoque')">Estoque &amp; Trânsito</div>
-  <div class="tab active" onclick="showTab('servicos')">Serviços Terceiros</div>
+  <div class="tab" onclick="showTab('estoque')">Estoque & Trânsito</div>
+  <div class="tab" onclick="showTab('servicos')">Serviços Terceiros</div>
 </nav>
 
 <!-- ======= OF ABERTAS ======= -->
-<div id="tab-of" class="tab-content">
+<div id="tab-of" class="tab-content active">
   <div class="section-title">Carga de Montagem — OFM e OFA</div>
   <div class="table-wrap">
     <div class="scrollable">
@@ -670,53 +676,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <th>KIT HIDR.</th>
           </tr>
         </thead>
-        <tfoot id="of-foot"><tr class="tfoot-row">
-    <td>TOTAL</td>
-    <td>795</td><td>357</td><td>111</td><td>192</td><td>38</td><td>450</td><td>99</td><td>8</td>
-  </tr></tfoot>
-        <tbody id="of-body"><tr class="overdue">
-      <td>06/05/2026 ⚑</td>
-      <td><span class="zero">—</span></td><td>2</td><td>2</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td>1</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
-    </tr><tr class="overdue">
-      <td>07/05/2026 ⚑</td>
-      <td>16</td><td>26</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td>2</td><td>36</td><td>30</td><td><span class="zero">—</span></td>
-    </tr><tr class="">
-      <td>08/05/2026</td>
-      <td>94</td><td>78</td><td>20</td><td>30</td><td>9</td><td>47</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
-    </tr><tr class="">
-      <td>11/05/2026</td>
-      <td>178</td><td>86</td><td>20</td><td>94</td><td>16</td><td>56</td><td><span class="zero">—</span></td><td>7</td>
-    </tr><tr class="">
-      <td>12/05/2026</td>
-      <td>178</td><td>80</td><td>19</td><td>28</td><td>11</td><td>46</td><td><span class="zero">—</span></td><td>1</td>
-    </tr><tr class="">
-      <td>13/05/2026</td>
-      <td>168</td><td>55</td><td>20</td><td>20</td><td><span class="zero">—</span></td><td>86</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
-    </tr><tr class="">
-      <td>14/05/2026</td>
-      <td>161</td><td>30</td><td>20</td><td>20</td><td><span class="zero">—</span></td><td>39</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
-    </tr><tr class="">
-      <td>15/05/2026</td>
-      <td><span class="zero">—</span></td><td><span class="zero">—</span></td><td>10</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td>21</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
-    </tr><tr class="">
-      <td>18/05/2026</td>
-      <td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td>10</td><td>2</td><td><span class="zero">—</span></td>
-    </tr><tr class="">
-      <td>19/05/2026</td>
-      <td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td>33</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
-    </tr><tr class="">
-      <td>20/05/2026</td>
-      <td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td>2</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
-    </tr><tr class="">
-      <td>21/05/2026</td>
-      <td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td>60</td><td><span class="zero">—</span></td>
-    </tr><tr class="">
-      <td>22/05/2026</td>
-      <td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td>50</td><td>7</td><td><span class="zero">—</span></td>
-    </tr><tr class="">
-      <td>26/05/2026</td>
-      <td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td>23</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
-    </tr></tbody>
+        <tfoot id="of-foot"></tfoot>
+        <tbody id="of-body"></tbody>
       </table>
     </div>
   </div>
@@ -725,123 +686,13 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- ======= MONTADOS ======= -->
 <div id="tab-montados" class="tab-content">
   <div class="section-title">Contagem de Itens Montados — EPP</div>
-  <div id="montados-content"><div class="table-wrap"><div class="scrollable">
-    <table style="table-layout:auto;min-width:700px;">
-      <thead class="green"><tr>
-        <th style="text-align:left;min-width:100px">DATA</th>
-        <th>TOMADA E MULT</th><th>BOMBA</th><th>CILINDRO</th><th>CONJ. EIXO</th><th>GUINCHO</th><th>COMANDO</th><th>VÁLVULA</th><th>KIT HIDR.</th>
-      </tr></thead>
-      <tfoot>
-        <tr class="tfoot-row" style="background:#1e2a4a;border-top:2px solid var(--green-dark);border-bottom:3px solid var(--green-dark)">
-          <td style="text-align:left">TOTAL</td><td>885</td><td>375</td><td>80</td><td>279</td><td>64</td><td>189</td><td>0</td><td>18</td>
-        </tr>
-        <tr class="tfoot-row" style="background:#162a1e;border-bottom:1px solid var(--green-dark)">
-          <td style="text-align:left;color:var(--green)">MÉDIA</td><td style="color:var(--green)">194.8</td><td style="color:var(--green)">78.0</td><td style="color:var(--green)">17.5</td><td style="color:var(--green)">50.5</td><td style="color:var(--green)">12.3</td><td style="color:var(--green)">26.8</td><td style="color:var(--green)">0.0</td><td style="color:var(--green)">1.8</td>
-        </tr>
-        <tr class="tfoot-row" style="background:#162a1e">
-          <td style="text-align:left;color:var(--text-muted)">DIAS ÚTEIS</td><td colspan="8" style="color:var(--text-muted);text-align:left">4</td>
-        </tr>
-      </tfoot>
-      <tbody><tr style="background:rgba(26,109,255,0.08)">
-          <td style="text-align:left;color:var(--blue-light);font-weight:600">08/05/2026 (hoje)</td>
-          <td>106</td><td>63</td><td>10</td><td>77</td><td>15</td><td>82</td><td><span class="zero">—</span></td><td>11</td>
-        </tr><tr style="">
-          <td style="text-align:left">07/05/2026</td>
-          <td>181</td><td>56</td><td>20</td><td>51</td><td>12</td><td>42</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
-        </tr><tr style="">
-          <td style="text-align:left">06/05/2026</td>
-          <td>227</td><td>92</td><td>10</td><td>24</td><td>8</td><td>50</td><td><span class="zero">—</span></td><td>4</td>
-        </tr><tr style="">
-          <td style="text-align:left">05/05/2026</td>
-          <td>207</td><td>100</td><td>20</td><td>49</td><td>18</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td><td>3</td>
-        </tr><tr style="">
-          <td style="text-align:left">04/05/2026</td>
-          <td>164</td><td>64</td><td>20</td><td>78</td><td>11</td><td>15</td><td><span class="zero">—</span></td><td><span class="zero">—</span></td>
-        </tr></tbody>
-    </table>
-  </div></div></div>
+  <div id="montados-content"></div>
 </div>
 
 <!-- ======= ESTOQUE & TRÂNSITO ======= -->
 <div id="tab-estoque" class="tab-content">
   <div class="section-title">Estoque em Trânsito por Empresa</div>
-  <div class="transit-grid" id="transit-grid"><div class="transit-card">
-      <div class="transit-card-header">SP</div>
-      
-      <div class="transit-row">
-        <span class="transit-label">TOM</span>
-        <span class="transit-val ">93</span>
-      </div>
-      <div class="transit-row">
-        <span class="transit-label">BOM</span>
-        <span class="transit-val ">23</span>
-      </div>
-      <div class="transit-row">
-        <span class="transit-label">CIL</span>
-        <span class="transit-val zero">—</span>
-      </div>
-      <div class="transit-row">
-        <span class="transit-label">GUI</span>
-        <span class="transit-val ">2</span>
-      </div>
-    </div><div class="transit-card">
-      <div class="transit-card-header">MG</div>
-      
-      <div class="transit-row">
-        <span class="transit-label">TOM</span>
-        <span class="transit-val ">41</span>
-      </div>
-      <div class="transit-row">
-        <span class="transit-label">BOM</span>
-        <span class="transit-val ">20</span>
-      </div>
-      <div class="transit-row">
-        <span class="transit-label">CIL</span>
-        <span class="transit-val ">10</span>
-      </div>
-      <div class="transit-row">
-        <span class="transit-label">GUI</span>
-        <span class="transit-val ">16</span>
-      </div>
-    </div><div class="transit-card">
-      <div class="transit-card-header">GO</div>
-      
-      <div class="transit-row">
-        <span class="transit-label">TOM</span>
-        <span class="transit-val ">119</span>
-      </div>
-      <div class="transit-row">
-        <span class="transit-label">BOM</span>
-        <span class="transit-val ">95</span>
-      </div>
-      <div class="transit-row">
-        <span class="transit-label">CIL</span>
-        <span class="transit-val ">2</span>
-      </div>
-      <div class="transit-row">
-        <span class="transit-label">GUI</span>
-        <span class="transit-val zero">—</span>
-      </div>
-    </div><div class="transit-card">
-      <div class="transit-card-header">PE</div>
-      
-      <div class="transit-row">
-        <span class="transit-label">TOM</span>
-        <span class="transit-val ">60</span>
-      </div>
-      <div class="transit-row">
-        <span class="transit-label">BOM</span>
-        <span class="transit-val ">39</span>
-      </div>
-      <div class="transit-row">
-        <span class="transit-label">CIL</span>
-        <span class="transit-val ">6</span>
-      </div>
-      <div class="transit-row">
-        <span class="transit-label">GUI</span>
-        <span class="transit-val ">5</span>
-      </div>
-    </div></div>
+  <div class="transit-grid" id="transit-grid"></div>
 
   <div class="section-title" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
     <span style="display:flex;align-items:center;gap:10px;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted)">
@@ -856,616 +707,11 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
   <div class="chart-card" style="margin-bottom:28px;">
-    <div class="chart-fixed-ns"><canvas id="ns-chart" style="box-sizing: border-box; display: block; height: 280px; width: 1419px;" width="1774" height="350"></canvas></div>
-  <div class="ns-data-table" style="overflow-x: auto; margin-top: 12px;"><table style="width:100%;border-collapse:collapse;font-size:12px;">
-    <thead><tr style="background:#1a2a4a">
-      <th style="padding:7px 14px;text-align:left;color:#7a8299;min-width:90px;font-family:var(--font-display);letter-spacing:1px"></th>
-      <th style="padding:7px 14px;text-align:center;color:#e8ecf4;font-family:var(--font-display);letter-spacing:2px">MTZ</th><th style="padding:7px 14px;text-align:center;color:#e8ecf4;font-family:var(--font-display);letter-spacing:2px">SP</th><th style="padding:7px 14px;text-align:center;color:#e8ecf4;font-family:var(--font-display);letter-spacing:2px">MG</th><th style="padding:7px 14px;text-align:center;color:#e8ecf4;font-family:var(--font-display);letter-spacing:2px">GO</th><th style="padding:7px 14px;text-align:center;color:#e8ecf4;font-family:var(--font-display);letter-spacing:2px">PE</th>
-    </tr></thead>
-    <tbody>
-      <tr style="border-bottom:1px solid var(--border)">
-        <td style="padding:6px 14px;white-space:nowrap">
-          <span style="display:inline-block;width:10px;height:10px;background:#3d8bff;border-radius:2px;margin-right:6px;vertical-align:middle"></span>TOMADA
-        </td>
-        <td style="text-align:center;color:#3d8bff;font-weight:700;padding:6px 14px">84.3%</td><td style="text-align:center;color:#3d8bff;font-weight:700;padding:6px 14px">93.5%</td><td style="text-align:center;color:#3d8bff;font-weight:700;padding:6px 14px">96.6%</td><td style="text-align:center;color:#3d8bff;font-weight:700;padding:6px 14px">78.3%</td><td style="text-align:center;color:#3d8bff;font-weight:700;padding:6px 14px">94.8%</td>
-      </tr><tr style="border-bottom:1px solid var(--border)">
-        <td style="padding:6px 14px;white-space:nowrap">
-          <span style="display:inline-block;width:10px;height:10px;background:#ff8c3b;border-radius:2px;margin-right:6px;vertical-align:middle"></span>BOMBA
-        </td>
-        <td style="text-align:center;color:#ff8c3b;font-weight:700;padding:6px 14px">96.1%</td><td style="text-align:center;color:#ff8c3b;font-weight:700;padding:6px 14px">98.7%</td><td style="text-align:center;color:#ff8c3b;font-weight:700;padding:6px 14px">88.9%</td><td style="text-align:center;color:#ff8c3b;font-weight:700;padding:6px 14px">76.6%</td><td style="text-align:center;color:#ff8c3b;font-weight:700;padding:6px 14px">88.9%</td>
-      </tr>
-      <tr>
-        <td style="padding:6px 14px;white-space:nowrap">
-          <span style="display:inline-block;width:12px;height:2px;background:#ff3b3b;margin-right:6px;vertical-align:middle"></span>META
-        </td>
-        <td style="text-align:center;color:#ff3b3b;font-weight:700;padding:6px 14px">90%</td><td style="text-align:center;color:#ff3b3b;font-weight:700;padding:6px 14px">90%</td><td style="text-align:center;color:#ff3b3b;font-weight:700;padding:6px 14px">90%</td><td style="text-align:center;color:#ff3b3b;font-weight:700;padding:6px 14px">90%</td><td style="text-align:center;color:#ff3b3b;font-weight:700;padding:6px 14px">90%</td>
-      </tr>
-    </tbody>
-  </table></div></div>
+    <div class="chart-fixed-ns"><canvas id="ns-chart"></canvas></div>
+  </div>
 
   <div class="section-title">Análise Gráfica — Estoque Atual vs. Segurança</div>
-  <div id="estoque-charts"><div id="estoque-table-wrap">
-      <table style="min-width:1400px;font-size:12px;">
-        <thead>
-          <tr>
-            <th class="blue" style="text-align:center;min-width:44px;width:44px">UF</th>
-            <th class="blue" style="text-align:left;min-width:160px;width:160px">DESC.</th>
-            <th class="blue" style="text-align:center">COD<br>EMP</th>
-            <th class="blue" style="text-align:left">CLASS.</th>
-            <th class="blue" style="text-align:center">COD<br>ALMOX</th>
-            <th class="blue" style="text-align:left">DEPÓSITO</th>
-            <th class="blue">QTDE<br>COD ES</th>
-            <th class="blue">QTDE<br>PARAM ES</th>
-            <th class="blue">CUSTO TDT<br>ES</th>
-            <th class="blue">TOT FALTA<br>ABASTECER</th>
-            <th class="blue">CUSTO<br>ABASTECER</th>
-            <th class="blue">CÓDIGOS<br>ZERADOS</th>
-            <th class="blue">ESTOQUE<br>TOTAL</th>
-            <th class="blue">CUSTO TOT<br>SALDO</th>
-            <th class="blue">ESTOQUE<br>EXCESSO</th>
-            <th class="blue">CUSTO TOT<br>EXCES</th>
-            <th class="blue">QTDE<br>ABASTECIDO</th>
-            <th class="blue">PERC ABAST<br>MTZ PON</th>
-            <th style="background:#1a3a6e;color:#fff;font-family:var(--font-display);font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:9px 12px;white-space:nowrap;min-width:80px">% EST.<br>SEG.</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-              <td style="text-align:center;font-weight:700;color:#3d8bff;font-family:var(--font-display);letter-spacing:1px">RS</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="TOMADA DE FORCA TAKARADA">TOMADA DE FORCA TAKA…</td>
-              <td style="text-align:center">1</td>
-              <td style="text-align:left;color:var(--text-muted)">300.200.001</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO (PRODUTO PRONTO)</td>
-              <td>43</td>
-              <td>439</td>
-              <td style="color:var(--text-muted)">R$258.886,00</td>
-              <td style="color:var(--red);font-weight:600">-69</td>
-              <td style="color:var(--text-muted)">R$-43.910,00</td>
-              <td style="color:var(--amber)">1</td>
-              <td>1.092</td>
-              <td style="color:var(--text-muted)">R$697.548,00</td>
-              <td style="color:var(--green)">722</td>
-              <td style="color:var(--text-muted)">R$482.572,00</td>
-              <td>370</td>
-              <td style="color:var(--text-muted)">84.3%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(255,59,59,0.18);
-                  color:var(--red)">84.3%</span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#3d8bff;font-family:var(--font-display);letter-spacing:1px">RS</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="BOMBA HIDRAULICA TAKARADA">BOMBA HIDRAULICA TAK…</td>
-              <td style="text-align:center">1</td>
-              <td style="text-align:left;color:var(--text-muted)">300.500.001</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO (PRODUTO PRONTO)</td>
-              <td>12</td>
-              <td>283</td>
-              <td style="color:var(--text-muted)">R$150.296,00</td>
-              <td style="color:var(--red);font-weight:600">-11</td>
-              <td style="color:var(--text-muted)">R$-8.202,00</td>
-              <td style="color:var(--amber)">1</td>
-              <td>498</td>
-              <td style="color:var(--text-muted)">R$264.396,00</td>
-              <td style="color:var(--green)">226</td>
-              <td style="color:var(--text-muted)">R$122.302,00</td>
-              <td>272</td>
-              <td style="color:var(--text-muted)">96.1%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(0,201,122,0.18);
-                  color:var(--green)">96.1%</span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#3d8bff;font-family:var(--font-display);letter-spacing:1px">RS</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="GUINCHO LINHA OS-M">GUINCHO LINHA OS-M</td>
-              <td style="text-align:center">1</td>
-              <td style="text-align:left;color:var(--text-muted)">800.010.020</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO (PRODUTO PRONTO)</td>
-              <td>6</td>
-              <td>11</td>
-              <td style="color:var(--text-muted)">R$78.269,00</td>
-              <td style="color:var(--red);font-weight:600">-8</td>
-              <td style="color:var(--text-muted)">R$-54.713,00</td>
-              <td style="color:var(--amber)">3</td>
-              <td>3</td>
-              <td style="color:var(--text-muted)">R$23.556,00</td>
-              <td style="color:var(--text)">0</td>
-              <td style="color:var(--text-muted)">R$0,00</td>
-              <td>3</td>
-              <td style="color:var(--text-muted)">27.3%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(255,59,59,0.18);
-                  color:var(--red)">27.3%</span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#3d8bff;font-family:var(--font-display);letter-spacing:1px">RS</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="GUINCHO LINHA OP">GUINCHO LINHA OP</td>
-              <td style="text-align:center">1</td>
-              <td style="text-align:left;color:var(--text-muted)">800.010.040</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO (PRODUTO PRONTO)</td>
-              <td>10</td>
-              <td>16</td>
-              <td style="color:var(--text-muted)">R$53.324,00</td>
-              <td style="color:var(--red);font-weight:600">-12</td>
-              <td style="color:var(--text-muted)">R$-43.163,00</td>
-              <td style="color:var(--amber)">7</td>
-              <td>9</td>
-              <td style="color:var(--text-muted)">R$25.421,00</td>
-              <td style="color:var(--green)">5</td>
-              <td style="color:var(--text-muted)">R$15.260,00</td>
-              <td>4</td>
-              <td style="color:var(--text-muted)">25.0%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(255,59,59,0.18);
-                  color:var(--red)">25.0%</span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#3d8bff;font-family:var(--font-display);letter-spacing:1px">RS</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="ENROLADOR DE MANGUEIRA">ENROLADOR DE MANGUEI…</td>
-              <td style="text-align:center">1</td>
-              <td style="text-align:left;color:var(--text-muted)">800.050.010</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO (PRODUTO PRONTO)</td>
-              <td>1</td>
-              <td>1</td>
-              <td style="color:var(--text-muted)">R$7.628,00</td>
-              <td style="color:var(--red);font-weight:600">-1</td>
-              <td style="color:var(--text-muted)">R$-7.628,00</td>
-              <td style="color:var(--amber)">1</td>
-              <td>0</td>
-              <td style="color:var(--text-muted)">R$0,00</td>
-              <td style="color:var(--text)">0</td>
-              <td style="color:var(--text-muted)">R$0,00</td>
-              <td>0</td>
-              <td style="color:var(--text-muted)">0.0%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(255,59,59,0.18);
-                  color:var(--red)">0.0%</span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:1px">SP</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="TOMADA DE FORCA TAKARADA">TOMADA DE FORCA TAKA…</td>
-              <td style="text-align:center">2</td>
-              <td style="text-align:left;color:var(--text-muted)">300.200.001</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO(PRODUTO PRONTO)</td>
-              <td>86</td>
-              <td>663</td>
-              <td style="color:var(--text-muted)">R$448.976,00</td>
-              <td style="color:var(--red);font-weight:600">-43</td>
-              <td style="color:var(--text-muted)">R$-27.661,00</td>
-              <td style="color:var(--amber)">2</td>
-              <td>865</td>
-              <td style="color:var(--text-muted)">R$587.530,00</td>
-              <td style="color:var(--green)">245</td>
-              <td style="color:var(--text-muted)">R$166.215,00</td>
-              <td>620</td>
-              <td style="color:var(--text-muted)">93.5%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(0,201,122,0.18);
-                  color:var(--green)">93.5%</span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:1px">SP</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="BOMBA HIDRAULICA TAKARADA">BOMBA HIDRAULICA TAK…</td>
-              <td style="text-align:center">2</td>
-              <td style="text-align:left;color:var(--text-muted)">300.500.001</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO(PRODUTO PRONTO)</td>
-              <td>23</td>
-              <td>230</td>
-              <td style="color:var(--text-muted)">R$132.412,00</td>
-              <td style="color:var(--red);font-weight:600">-3</td>
-              <td style="color:var(--text-muted)">R$-2.153,00</td>
-              <td style="color:var(--text)">0</td>
-              <td>301</td>
-              <td style="color:var(--text-muted)">R$181.711,00</td>
-              <td style="color:var(--green)">74</td>
-              <td style="color:var(--text-muted)">R$51.452,00</td>
-              <td>227</td>
-              <td style="color:var(--text-muted)">98.7%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(0,201,122,0.18);
-                  color:var(--green)">98.7%</span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:1px">SP</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="GUINCHO LINHA OS-M">GUINCHO LINHA OS-M</td>
-              <td style="text-align:center">2</td>
-              <td style="text-align:left;color:var(--text-muted)">800.010.020</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO(PRODUTO PRONTO)</td>
-              <td>4</td>
-              <td>4</td>
-              <td style="color:var(--text-muted)">R$30.140,00</td>
-              <td style="color:var(--red);font-weight:600">-3</td>
-              <td style="color:var(--text-muted)">R$-22.173,00</td>
-              <td style="color:var(--amber)">3</td>
-              <td>1</td>
-              <td style="color:var(--text-muted)">R$7.966,00</td>
-              <td style="color:var(--text)">0</td>
-              <td style="color:var(--text-muted)">R$0,00</td>
-              <td>1</td>
-              <td style="color:var(--text-muted)">25.0%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(255,59,59,0.18);
-                  color:var(--red)">25.0%</span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:1px">SP</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="GUINCHO LINHA OP">GUINCHO LINHA OP</td>
-              <td style="text-align:center">2</td>
-              <td style="text-align:left;color:var(--text-muted)">800.010.040</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO(PRODUTO PRONTO)</td>
-              <td>4</td>
-              <td>18</td>
-              <td style="color:var(--text-muted)">R$50.083,00</td>
-              <td style="color:var(--red);font-weight:600">-12</td>
-              <td style="color:var(--text-muted)">R$-29.085,00</td>
-              <td style="color:var(--amber)">2</td>
-              <td>10</td>
-              <td style="color:var(--text-muted)">R$34.043,00</td>
-              <td style="color:var(--green)">4</td>
-              <td style="color:var(--text-muted)">R$13.045,00</td>
-              <td>6</td>
-              <td style="color:var(--text-muted)">33.3%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(255,59,59,0.18);
-                  color:var(--red)">33.3%</span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:1px">SP</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="ENROLADOR DE MANGUEIRA">ENROLADOR DE MANGUEI…</td>
-              <td style="text-align:center">2</td>
-              <td style="text-align:left;color:var(--text-muted)">800.050.010</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO(PRODUTO PRONTO)</td>
-              <td>0</td>
-              <td>0</td>
-              <td style="color:var(--text-muted)">R$0,00</td>
-              <td style="color:var(--green);font-weight:normal">0</td>
-              <td style="color:var(--text-muted)">R$0,00</td>
-              <td style="color:var(--text)">0</td>
-              <td>0</td>
-              <td style="color:var(--text-muted)">R$0,00</td>
-              <td style="color:var(--text)">0</td>
-              <td style="color:var(--text-muted)">R$0,00</td>
-              <td>0</td>
-              <td style="color:var(--text-muted)">0.0%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(255,59,59,0.18);
-                  color:var(--red)"></span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:1px">MG</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="TOMADA DE FORCA TAKARADA">TOMADA DE FORCA TAKA…</td>
-              <td style="text-align:center">3</td>
-              <td style="text-align:left;color:var(--text-muted)">300.200.001</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO(PRODUTO PRONTO)</td>
-              <td>121</td>
-              <td>326</td>
-              <td style="color:var(--text-muted)">R$206.950,00</td>
-              <td style="color:var(--red);font-weight:600">-11</td>
-              <td style="color:var(--text-muted)">R$-5.779,00</td>
-              <td style="color:var(--amber)">5</td>
-              <td>402</td>
-              <td style="color:var(--text-muted)">R$252.493,00</td>
-              <td style="color:var(--green)">87</td>
-              <td style="color:var(--text-muted)">R$51.322,00</td>
-              <td>315</td>
-              <td style="color:var(--text-muted)">96.6%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(0,201,122,0.18);
-                  color:var(--green)">96.6%</span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:1px">MG</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="BOMBA HIDRAULICA TAKARADA">BOMBA HIDRAULICA TAK…</td>
-              <td style="text-align:center">3</td>
-              <td style="text-align:left;color:var(--text-muted)">300.500.001</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO(PRODUTO PRONTO)</td>
-              <td>27</td>
-              <td>99</td>
-              <td style="color:var(--text-muted)">R$58.848,00</td>
-              <td style="color:var(--red);font-weight:600">-11</td>
-              <td style="color:var(--text-muted)">R$-6.969,00</td>
-              <td style="color:var(--amber)">4</td>
-              <td>112</td>
-              <td style="color:var(--text-muted)">R$67.266,00</td>
-              <td style="color:var(--green)">24</td>
-              <td style="color:var(--text-muted)">R$15.387,00</td>
-              <td>88</td>
-              <td style="color:var(--text-muted)">88.9%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(255,59,59,0.18);
-                  color:var(--red)">88.9%</span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:1px">MG</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="GUINCHO LINHA OS-M">GUINCHO LINHA OS-M</td>
-              <td style="text-align:center">3</td>
-              <td style="text-align:left;color:var(--text-muted)">800.010.020</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO(PRODUTO PRONTO)</td>
-              <td>0</td>
-              <td>0</td>
-              <td style="color:var(--text-muted)">R$0,00</td>
-              <td style="color:var(--green);font-weight:normal">0</td>
-              <td style="color:var(--text-muted)">R$0,00</td>
-              <td style="color:var(--text)">0</td>
-              <td>0</td>
-              <td style="color:var(--text-muted)">R$0,00</td>
-              <td style="color:var(--text)">0</td>
-              <td style="color:var(--text-muted)">R$0,00</td>
-              <td>0</td>
-              <td style="color:var(--text-muted)">0.0%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(255,59,59,0.18);
-                  color:var(--red)"></span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:1px">MG</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="GUINCHO LINHA OP">GUINCHO LINHA OP</td>
-              <td style="text-align:center">3</td>
-              <td style="text-align:left;color:var(--text-muted)">800.010.040</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO(PRODUTO PRONTO)</td>
-              <td>6</td>
-              <td>20</td>
-              <td style="color:var(--text-muted)">R$48.646,00</td>
-              <td style="color:var(--red);font-weight:600">-18</td>
-              <td style="color:var(--text-muted)">R$-41.757,00</td>
-              <td style="color:var(--amber)">4</td>
-              <td>3</td>
-              <td style="color:var(--text-muted)">R$9.365,00</td>
-              <td style="color:var(--green)">1</td>
-              <td style="color:var(--text-muted)">R$2.476,00</td>
-              <td>2</td>
-              <td style="color:var(--text-muted)">10.0%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(255,59,59,0.18);
-                  color:var(--red)">10.0%</span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:1px">GO</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="TOMADA DE FORCA TAKARADA">TOMADA DE FORCA TAKA…</td>
-              <td style="text-align:center">8</td>
-              <td style="text-align:left;color:var(--text-muted)">300.200.001</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO (PRODUTO PRONTO)</td>
-              <td>125</td>
-              <td>466</td>
-              <td style="color:var(--text-muted)">R$292.362,00</td>
-              <td style="color:var(--red);font-weight:600">-101</td>
-              <td style="color:var(--text-muted)">R$-65.920,00</td>
-              <td style="color:var(--amber)">5</td>
-              <td>551</td>
-              <td style="color:var(--text-muted)">R$341.030,00</td>
-              <td style="color:var(--green)">186</td>
-              <td style="color:var(--text-muted)">R$114.587,00</td>
-              <td>365</td>
-              <td style="color:var(--text-muted)">78.3%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(255,59,59,0.18);
-                  color:var(--red)">78.3%</span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:1px">GO</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="BOMBA HIDRAULICA TAKARADA">BOMBA HIDRAULICA TAK…</td>
-              <td style="text-align:center">8</td>
-              <td style="text-align:left;color:var(--text-muted)">300.500.001</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO (PRODUTO PRONTO)</td>
-              <td>37</td>
-              <td>290</td>
-              <td style="color:var(--text-muted)">R$182.668,00</td>
-              <td style="color:var(--red);font-weight:600">-68</td>
-              <td style="color:var(--text-muted)">R$-43.973,00</td>
-              <td style="color:var(--amber)">1</td>
-              <td>289</td>
-              <td style="color:var(--text-muted)">R$193.234,00</td>
-              <td style="color:var(--green)">67</td>
-              <td style="color:var(--text-muted)">R$54.538,00</td>
-              <td>222</td>
-              <td style="color:var(--text-muted)">76.6%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(255,59,59,0.18);
-                  color:var(--red)">76.6%</span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:1px">GO</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="GUINCHO LINHA OS-M">GUINCHO LINHA OS-M</td>
-              <td style="text-align:center">8</td>
-              <td style="text-align:left;color:var(--text-muted)">800.010.020</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO (PRODUTO PRONTO)</td>
-              <td>0</td>
-              <td>0</td>
-              <td style="color:var(--text-muted)">R$0,00</td>
-              <td style="color:var(--green);font-weight:normal">0</td>
-              <td style="color:var(--text-muted)">R$0,00</td>
-              <td style="color:var(--text)">0</td>
-              <td>2</td>
-              <td style="color:var(--text-muted)">R$13.420,00</td>
-              <td style="color:var(--green)">2</td>
-              <td style="color:var(--text-muted)">R$13.420,00</td>
-              <td>0</td>
-              <td style="color:var(--text-muted)">0.0%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(255,59,59,0.18);
-                  color:var(--red)"></span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:1px">GO</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="GUINCHO LINHA OP">GUINCHO LINHA OP</td>
-              <td style="text-align:center">8</td>
-              <td style="text-align:left;color:var(--text-muted)">800.010.040</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO (PRODUTO PRONTO)</td>
-              <td>6</td>
-              <td>14</td>
-              <td style="color:var(--text-muted)">R$20.257,00</td>
-              <td style="color:var(--red);font-weight:600">-12</td>
-              <td style="color:var(--text-muted)">R$-9.692,00</td>
-              <td style="color:var(--amber)">4</td>
-              <td>7</td>
-              <td style="color:var(--text-muted)">R$25.634,00</td>
-              <td style="color:var(--green)">5</td>
-              <td style="color:var(--text-muted)">R$15.068,00</td>
-              <td>2</td>
-              <td style="color:var(--text-muted)">14.3%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(255,59,59,0.18);
-                  color:var(--red)">14.3%</span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:1px">PE</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="TOMADA DE FORCA TAKARADA">TOMADA DE FORCA TAKA…</td>
-              <td style="text-align:center">9</td>
-              <td style="text-align:left;color:var(--text-muted)">300.200.001</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO (PRODUTO PRONTO)</td>
-              <td>98</td>
-              <td>639</td>
-              <td style="color:var(--text-muted)">R$408.624,00</td>
-              <td style="color:var(--red);font-weight:600">-33</td>
-              <td style="color:var(--text-muted)">R$-17.848,00</td>
-              <td style="color:var(--amber)">1</td>
-              <td>745</td>
-              <td style="color:var(--text-muted)">R$478.341,00</td>
-              <td style="color:var(--green)">139</td>
-              <td style="color:var(--text-muted)">R$87.564,00</td>
-              <td>606</td>
-              <td style="color:var(--text-muted)">94.8%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(0,201,122,0.18);
-                  color:var(--green)">94.8%</span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:1px">PE</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="BOMBA HIDRAULICA TAKARADA">BOMBA HIDRAULICA TAK…</td>
-              <td style="text-align:center">9</td>
-              <td style="text-align:left;color:var(--text-muted)">300.500.001</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO (PRODUTO PRONTO)</td>
-              <td>22</td>
-              <td>208</td>
-              <td style="color:var(--text-muted)">R$130.306,00</td>
-              <td style="color:var(--red);font-weight:600">-23</td>
-              <td style="color:var(--text-muted)">R$-15.499,00</td>
-              <td style="color:var(--text)">0</td>
-              <td>195</td>
-              <td style="color:var(--text-muted)">R$120.538,00</td>
-              <td style="color:var(--green)">10</td>
-              <td style="color:var(--text-muted)">R$5.732,00</td>
-              <td>185</td>
-              <td style="color:var(--text-muted)">88.9%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(255,59,59,0.18);
-                  color:var(--red)">88.9%</span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:1px">PE</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="GUINCHO LINHA OS-M">GUINCHO LINHA OS-M</td>
-              <td style="text-align:center">9</td>
-              <td style="text-align:left;color:var(--text-muted)">800.010.020</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO (PRODUTO PRONTO)</td>
-              <td>0</td>
-              <td>0</td>
-              <td style="color:var(--text-muted)">R$0,00</td>
-              <td style="color:var(--green);font-weight:normal">0</td>
-              <td style="color:var(--text-muted)">R$0,00</td>
-              <td style="color:var(--text)">0</td>
-              <td>1</td>
-              <td style="color:var(--text-muted)">R$5.822,00</td>
-              <td style="color:var(--green)">1</td>
-              <td style="color:var(--text-muted)">R$5.822,00</td>
-              <td>0</td>
-              <td style="color:var(--text-muted)">0.0%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(255,59,59,0.18);
-                  color:var(--red)"></span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:1px">PE</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="GUINCHO LINHA OP">GUINCHO LINHA OP</td>
-              <td style="text-align:center">9</td>
-              <td style="text-align:left;color:var(--text-muted)">800.010.040</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO (PRODUTO PRONTO)</td>
-              <td>3</td>
-              <td>15</td>
-              <td style="color:var(--text-muted)">R$50.755,00</td>
-              <td style="color:var(--red);font-weight:600">-15</td>
-              <td style="color:var(--text-muted)">R$-50.755,00</td>
-              <td style="color:var(--amber)">3</td>
-              <td>6</td>
-              <td style="color:var(--text-muted)">R$29.871,00</td>
-              <td style="color:var(--green)">6</td>
-              <td style="color:var(--text-muted)">R$29.871,00</td>
-              <td>0</td>
-              <td style="color:var(--text-muted)">0.0%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(255,59,59,0.18);
-                  color:var(--red)">0.0%</span>
-              </td>
-            </tr><tr>
-              <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:1px">PE</td>
-              <td style="text-align:left;font-size:11px;white-space:nowrap" title="ENROLADOR DE MANGUEIRA">ENROLADOR DE MANGUEI…</td>
-              <td style="text-align:center">9</td>
-              <td style="text-align:left;color:var(--text-muted)">800.050.010</td>
-              <td style="text-align:center;color:var(--text-muted)">10</td>
-              <td style="text-align:left;color:var(--text-muted);font-size:11px">EXPEDICAO (PRODUTO PRONTO)</td>
-              <td>0</td>
-              <td>0</td>
-              <td style="color:var(--text-muted)">R$0,00</td>
-              <td style="color:var(--green);font-weight:normal">0</td>
-              <td style="color:var(--text-muted)">R$0,00</td>
-              <td style="color:var(--text)">0</td>
-              <td>0</td>
-              <td style="color:var(--text-muted)">R$0,00</td>
-              <td style="color:var(--text)">0</td>
-              <td style="color:var(--text-muted)">R$0,00</td>
-              <td>0</td>
-              <td style="color:var(--text-muted)">0.0%</td>
-              <td style="text-align:center">
-                <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:11px;
-                  background:rgba(255,59,59,0.18);
-                  color:var(--red)"></span>
-              </td>
-            </tr>
-        </tbody>
-      </table>
-  </div></div>
+  <div id="estoque-charts"></div>
 
   <div class="section-title">Estoque em Trânsito — Detalhe por Item</div>
   <div class="transito-filters">
@@ -1491,7 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <option value="qtd_asc">Ordenar: Qtd ↑</option>
       <option value="emp">Ordenar: Empresa</option>
     </select>
-    <span class="transito-count" id="tr-count">129 ITENS · 534 UN TOTAL</span>
+    <span class="transito-count" id="tr-count"></span>
   </div>
   <div class="table-wrap">
     <div class="scrollable">
@@ -1505,828 +751,30 @@ document.addEventListener('DOMContentLoaded', () => {
             <th style="text-align:left;min-width:130px">CLASSIFICAÇÃO</th>
           </tr>
         </thead>
-        <tfoot id="tr-foot"><tr class="tfoot-row">
-    <td colspan="3" style="text-align:left">TOTAL</td>
-    <td>534</td>
-    <td></td>
-  </tr></tfoot>
-        <tbody id="tr-body"><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">10014</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 902401  EC  01  L  P  110  01  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">6</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">10014</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 902401  EC  01  L  P  110  01  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">26</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">10018</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 902403  EC  01  L  P  110  04  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">5</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">10018</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 902403  EC  01  L  P  110  04  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">5</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">10026</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 902413  EC  01  L  P  135  04  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">8</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">10051</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 906311  EC  01  L  P  135  06  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">10051</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 906311  EC  01  L  P  135  06  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">5</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">105000</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 105000  ZF  05  T  P  100  04  H  600</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">10612</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 901911  EC  02  L  P  135  01  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">10638</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 901913  EC  02  L  P  135  04  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">107700</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 107700  MB  02  T  P  100  04  H  600</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">10782</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 900311  ZF  13  L  P  135  01  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">10782</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 900311  ZF  13  L  P  135  01  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">10894</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 902111  EC  13  L  P  135  01  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">110000</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 110000  ZF  03  T  P  100  04  H  600</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">3</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">11540</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9131  EC  24  D  P  135  01  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">3</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">11697</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 903111  EC  04  D  P  135  01  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">3</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">11699</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 903113  EC  04  D  P  135  04  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">11728</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9131  EC  25  D  P  084  01  H  S  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">11859</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9131  EC  25  D  P  084  04  H  S  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">120000</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 120000  EC  02  D  P  100  04  A  350</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">120800</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 120800  EC  01  D  P  100  04  A  350</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">9</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">120800</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 120800  EC  01  D  P  100  04  A  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">6</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">120800</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 120800  EC  01  D  P  100  04  A  350</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">12212</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9150 16 B 100 23 23 02 AG 20 225 250</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">3</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">12214</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9150 16 B 120 23 23 02 AG 15 210 230</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">12364</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 902526 EC 12 E M 166 01 H 350</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">12479</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9131  EC  26  E  P  135  01  H  250</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">6</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">13238</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9131  EC  26  E  P  135  04  H  250</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">13314</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9106 SC 12 DT P 100 06 A CS 600</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">14311</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 01 B 036 01 01 02 GU 35 300 325</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">10</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">14311</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 01 B 036 01 01 02 GU 35 300 325</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">8</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">14312</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 01 B 043 01 01 02 GU 35 280 305</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">6</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">14312</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 01 B 043 01 01 02 GU 35 280 305</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">10</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">14312</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 01 B 043 01 01 02 GU 35 280 305</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">6</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">14313</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 01 B 051 01 01 02 GU 30 250 275</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">6</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">14313</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 01 B 051 01 01 02 GU 30 250 275</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">16</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">14313</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 01 B 051 01 01 02 GU 30 250 275</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">8</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">14492</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9131  EC  26  E  P  166  18  H  250</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">14492</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9131  EC  26  E  P  166  18  H  250</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">6</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">14658</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9131  EC  27  E  M  135  18  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">15601</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9131  EC  26  D  P  166  01  H  S  250</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">16527</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 5900  MB  10  T  P  130  04  A  S  FM  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17190</td>
-      <td style="text-align:left;font-size:12px">GUINCHO OP 3000 M MH  Ø8X15M  (6X19) PC G</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">800.010.040</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17214</td>
-      <td style="text-align:left;font-size:12px">GUINCHO OP 5000/7000 M PC</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">6</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">800.010.040</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17237</td>
-      <td style="text-align:left;font-size:12px">GUINCHO OP 19000 M MH  Ø16X25M  (8X31) PC G</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">3</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">800.010.040</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17237</td>
-      <td style="text-align:left;font-size:12px">GUINCHO OP 19000 M MH  Ø16X25M  (8X31) PC G</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">3</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">800.010.040</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17245</td>
-      <td style="text-align:left;font-size:12px">GUINCHO OP 10000 M MH  Ø14X25M  (6X25) PC G</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">800.010.040</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17251</td>
-      <td style="text-align:left;font-size:12px">GUINCHO OP 5000 M MH  Ø9,5X20M  (6X25) PC G</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">800.010.040</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17251</td>
-      <td style="text-align:left;font-size:12px">GUINCHO OP 5000 M MH  Ø9,5X20M  (6X25) PC G</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">800.010.040</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17254</td>
-      <td style="text-align:left;font-size:12px">GUINCHO OP 7000 M MH  Ø11X20M  (6X25) PC G</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">800.010.040</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">176600</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 176600  MB  01  T  P  100  10  H  C  FM  600</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17693</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 01 B 065 01 01 04 BA 90 220 240</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17693</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 01 B 065 01 01 04 BA 90 220 240</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">24</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17693</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 01 B 065 01 01 04 BA 90 220 240</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17694</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 01 B 075 01 01 04 BC 85 210 230</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17694</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 01 B 075 01 01 04 BC 85 210 230</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">3</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17695</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 01 B 085 22 22 04 BA 77 210 230</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17695</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 01 B 085 22 22 04 BA 77 210 230</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">11</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17811</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 06 B 085 22 22 04 RS BA 77 210 230</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17811</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 06 B 085 22 22 04 RS BA 77 210 230</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">6</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">17877</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9131  SC  04  D  P  110  01  H  CA  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">18770</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9162  SC  06  D  P  068  06  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">18789</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9162  EC  05  I  P  080  01  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">3</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">18791</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9162  EC  05  I  P  080  04  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">3</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">19689</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9131  EC  28  L  P  084  01  H  CA  300</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">19690</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9131  EC  28  L  P  110  01  H  CA  300</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">19691</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9131  EC  28  L  P  084  04  H  CA  300</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">19726</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 5900  MB  12  T  P  130  10  A  C  FM  AZF  350</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">3</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">22482</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 5900 ZF 21 T P 130 01 A C 350</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">15</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">54560</td>
-      <td style="text-align:left;font-size:12px">CILINDRO HIDRAULICO BP6" X850 FIXACAO CENTRAL</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">10</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.400.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">54560</td>
-      <td style="text-align:left;font-size:12px">CILINDRO HIDRAULICO BP6" X850 FIXACAO CENTRAL</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">6</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.400.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">54564</td>
-      <td style="text-align:left;font-size:12px">CILINDRO HIDRAULICO BP7" X850 FIXACAO CENTRAL</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.400.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">567700</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 567700  MB  02  T  P  153  04  A  400</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">575000</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 5750.00  VV  02  T  P  130  01  A  C  FV  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">3</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">590000</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 590000  MP  01  T  P  130  01  A  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">13</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">590700</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 590700  MP  01  T  P  130  04  A  350</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">592000</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 592000  ZF  05  T  P  130  01  A  C  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">592700</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 592700 ZF 05 T P 130 04 A C 350</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">595000</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 595000  ZF  11  T  P  130  01  A  350</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">596000</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 596000  MB  01  T  P  130  01  A  C  FM  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">596000</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 596000  MB  01  T  P  130  01  A  C  FM  350</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">596700</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 596700  MB  01  T  P  130  04  A  C  FM  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">3</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">596701</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 5967.01  MB  01  T  P  130  04  A  350</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">596701</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 5967.01  MB  01  T  P  130  04  A  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">597000</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 597000  MB  02  T  P  130  01  A  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">5</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">598000</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 598000  ZF  03  T  P  130  01  A  350</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">598000</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 598000  ZF  03  T  P  130  01  A  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">599000</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 599000  EC  18  T  P  130  01  A  350</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">599700</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 599700  EC  18  T  P  130  04  A  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">599700</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 599700  EC  18  T  P  130  04  A  350</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">7052</td>
-      <td style="text-align:left;font-size:12px">CILINDRO HIDRAULICO BP3"  (620MM)</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.400.010</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">7821</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 7235  MB  03  T  P  200  01  A  FM  350</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">8</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">7829</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 902411  EC  01  L  P  135  01  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">10</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">7829</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 902411  EC  01  L  P  135  01  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">10</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">8676</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 01 H 025 01 02 02 GU 65 300 325</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">8677</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 01 A 025 01 02 02 GU 65 300 325</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">8682</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9105 06 H 025 01 02 02 GU 65 300 325</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">8689</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9006  MB  03  T  P  200  04  A  FM  350</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">3</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">8689</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9006  MB  03  T  P  200  04  A  FM  350</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">900702</td>
-      <td style="text-align:left;font-size:12px">MULTIPLICADOR  9007 1:3  ENT 6Z F  SAI FLG SAE B 13Z F 90 CV</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.300.005</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">901001</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 901001  VV  01  T  P  130  01  A  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">3</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">901640</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9016 01 H 065 22 21 02 P 03 BA 20 190 200</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">901640</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9016 01 H 065 22 21 02 P 03 BA 20 190 200</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">901641</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9016 01 H 065 22 21 02 M 03 BA 20 190 200</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">901641</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9016 01 H 065 22 21 02 M 03 BA 20 190 200</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">901642</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9016 01 A 065 22 21 02 P 03 BA 20 190 200</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">901642</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9016 01 A 065 22 21 02 P 03 BA 20 190 200</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">3</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">903011</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 903011  EC  19  I  P  069  13  H  350</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">904501</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 904501  ZF  16  T  P  130  01  A  C  350</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">5</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">904501</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 904501  ZF  16  T  P  130  01  A  C  350</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">5</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">904501</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 904501  ZF  16  T  P  130  01  A  C  350</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">904503</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9045.03  ZF  16  T  P  130  04  A  C  350</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">2</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">910003</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 910003  ZF  10  T  P  130  01  A  C  350</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">910302</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 910302  MB  01  T  P  130  06  A  MC  C  FM  300</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">910302</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 910302  MB  01  T  P  130  06  A  MC  C  FM  300</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">910308</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 910308  ZF  16  T  P  130  06  A  MC  C  300</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">910310</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9103.10  MP  01  T  P  130  06  A  MC  300</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">5</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">910310</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 9103.10  MP  01  T  P  130  06  A  MC  300</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">6</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">910312</td>
-      <td style="text-align:left;font-size:12px">TOMADA DE FORCA TK 910312  VV  01  T  P  130  06  A  MC  C  FV  300</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.200.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">9531</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9101 01 H 085 13 12 06 P 01 A21 BA 15 210 210</td>
-      <td style="text-align:center;font-weight:700;color:#00c97a;font-family:var(--font-display);letter-spacing:2px">SP</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">9531</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9101 01 H 085 13 12 06 P 01 A21 BA 15 210 210</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">9531</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9101 01 H 085 13 12 06 P 01 A21 BA 15 210 210</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">3</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">9532</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9101 01 H 065 13 12 06 P 01 A21 BA 20 210 210</td>
-      <td style="text-align:center;font-weight:700;color:#ffaa00;font-family:var(--font-display);letter-spacing:2px">MG</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">9532</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9101 01 H 065 13 12 06 P 01 A21 BA 20 210 210</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">3</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">9535</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9101 01 A 065 12 12 06 P 01 A21 BA 20 210 210</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">5</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">9535</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9101 01 A 065 12 12 06 P 01 A21 BA 20 210 210</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">4</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">9536</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9101 01 A 085 13 12 06 P 01 A21 BA 15 210 210</td>
-      <td style="text-align:center;font-weight:700;color:#c97aff;font-family:var(--font-display);letter-spacing:2px">PE</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr><tr>
-      <td style="text-align:left;font-family:var(--font-display);letter-spacing:1px;color:var(--text-muted)">9562</td>
-      <td style="text-align:left;font-size:12px">BOMBA HIDRAULICA BHT 9101 06 A 065 13 12 06 P 01 A21 BA 20 210 210</td>
-      <td style="text-align:center;font-weight:700;color:#ff6b3b;font-family:var(--font-display);letter-spacing:2px">GO</td>
-      <td style="font-weight:600;color:var(--blue-light)">1</td>
-      <td style="text-align:left;font-size:11px;color:var(--text-muted)">300.500.001</td>
-    </tr></tbody>
+        <tfoot id="tr-foot"></tfoot>
+        <tbody id="tr-body"></tbody>
       </table>
     </div>
   </div>
 </div>
 
 <!-- ======= SERVIÇOS ======= -->
-<div id="tab-servicos" class="tab-content active">
+<div id="tab-servicos" class="tab-content">
   <div class="section-title">Gastos com Serviços de Terceiros</div>
-  <div class="kpi-bar" id="servico-kpis">
-    <div class="kpi"><div class="kpi-label">Total Geral</div><div class="kpi-val blue">R$ 2.437.561,16</div></div>
-    <div class="kpi"><div class="kpi-label">📅 mai. de 2026</div><div class="kpi-val" style="color:var(--amber)">R$ 128.066,24</div></div>
-    <div class="kpi"><div class="kpi-label">🏭 Matriz</div><div class="kpi-val" style="color:#3d8bff">R$ 2.252.598,94</div></div>
-    <div class="kpi"><div class="kpi-label">🏢 Filial SP</div><div class="kpi-val" style="color:#ff8c3b">R$ 184.962,22</div></div>
-    <div class="kpi"><div class="kpi-label">Fornecedores</div><div class="kpi-val">46</div></div></div>
+  <div class="kpi-bar" id="servico-kpis"></div>
 
   <!-- LINHA DO TEMPO MATRIZ vs FILIAL -->
   <div class="section-title">Linha do Tempo — Matriz vs Filial SP por Mês</div>
   <div class="timeline-scroll">
     <table class="timeline-table" id="timeline-table">
-      <thead><tr id="timeline-thead"><th>Empresa</th><th>jan. de 26</th><th>fev. de 26</th><th>mar. de 26</th><th>abr. de 26</th><th>mai. de 26</th><th>Total</th></tr></thead>
-      <tbody id="timeline-body">
-    <tr class="emp-matriz">
-      <td>🏭 MATRIZ</td>
-      <td class="money">R$ 397.504,87</td><td class="money">R$ 562.009,75</td><td class="money">R$ 617.627,15</td><td class="money">R$ 556.690,93</td><td class="money">R$ 118.766,24</td>
-      <td class="money">R$ 2.252.598,94</td>
-    </tr>
-    <tr class="emp-filial">
-      <td>🏢 FILIAL SP</td>
-      <td class="money">R$ 110.617,52</td><td class="money">R$ 17.810,00</td><td class="money">R$ 23.077,50</td><td class="money">R$ 24.157,20</td><td class="money">R$ 9.300,00</td>
-      <td class="money">R$ 184.962,22</td>
-    </tr>
-    <tr class="emp-total">
-      <td>TOTAL GERAL</td>
-      <td class="money">R$ 508.122,39</td><td class="money">R$ 579.819,75</td><td class="money">R$ 640.704,65</td><td class="money">R$ 580.848,13</td><td class="money">R$ 128.066,24</td>
-      <td class="money">R$ 2.437.561,16</td>
-    </tr></tbody>
+      <thead><tr id="timeline-thead"></tr></thead>
+      <tbody id="timeline-body"></tbody>
     </table>
   </div>
   <div class="charts-grid" style="margin-bottom:28px;">
     <div class="chart-card">
       <div class="chart-title">Linha do Tempo — Matriz vs Filial SP (R$)</div>
-      <div class="chart-fixed-tall"><canvas id="servico-timeline-chart" style="box-sizing: border-box; display: block; height: 320px; width: 1419px;" width="1774" height="400"></canvas></div>
+      <div class="chart-fixed-tall"><canvas id="servico-timeline-chart"></canvas></div>
     </div>
   </div>
 
@@ -2335,11 +783,11 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="charts-grid" style="margin-bottom:24px;">
     <div class="chart-card">
       <div class="chart-title">Total por Mês (seleção atual)</div>
-      <div class="chart-fixed"><canvas id="servico-mes-chart" style="box-sizing: border-box; display: block; height: 260px; width: 680px;" width="851" height="325"></canvas></div>
+      <div class="chart-fixed"><canvas id="servico-mes-chart"></canvas></div>
     </div>
     <div class="chart-card">
       <div class="chart-title">Top 10 Fornecedores (seleção atual)</div>
-      <div class="chart-fixed-tall"><canvas id="servico-top-chart" style="box-sizing: border-box; display: block; height: 320px; width: 680px;" width="851" height="400"></canvas></div>
+      <div class="chart-fixed-tall"><canvas id="servico-top-chart"></canvas></div>
     </div>
   </div>
   <div class="servico-header">
@@ -2352,259 +800,21 @@ document.addEventListener('DOMContentLoaded', () => {
       </select>
       <select class="filter-select" id="servico-mes" onchange="renderServico()">
         <option value="">Todos os meses</option>
-      <option value="2026-01">jan. de 2026</option><option value="2026-02">fev. de 2026</option><option value="2026-03">mar. de 2026</option><option value="2026-04">abr. de 2026</option><option value="2026-05">mai. de 2026</option></select>
+      </select>
       <select class="filter-select" id="servico-sort" onchange="renderServico()">
         <option value="nome">Ordenar: Nome A→Z</option>
         <option value="total_desc">Ordenar: Total ↓</option>
         <option value="total_asc">Ordenar: Total ↑</option>
-      <option value="mes_desc:2026-01">Ordenar: Jan. de 26 ↓</option><option value="mes_desc:2026-02">Ordenar: Fev. de 26 ↓</option><option value="mes_desc:2026-03">Ordenar: Mar. de 26 ↓</option><option value="mes_desc:2026-04">Ordenar: Abr. de 26 ↓</option><option value="mes_desc:2026-05">Ordenar: Mai. de 26 ↓</option></select>
+      </select>
     </div>
     <div style="font-family:var(--font-display);font-size:11px;color:var(--text-muted);letter-spacing:1px;">VALORES EM R$</div>
   </div>
   <div class="table-wrap">
     <div class="scrollable">
       <table id="servico-table" style="table-layout:fixed;min-width:700px;">
-        <thead class="blue"><tr id="servico-thead-row">
-    <th style="width:200px;text-align:left">Fornecedor</th>
-    <th style="width:50px;text-align:center;font-size:10px">EMP</th>
-    <th style="width:110px">jan. de 26</th><th style="width:110px">fev. de 26</th><th style="width:110px">mar. de 26</th><th style="width:110px">abr. de 26</th><th style="width:110px">mai. de 26</th>
-    <th style="width:120px">Total</th></tr></thead>
-        <tfoot id="servico-foot"><tr class="tfoot-row">
-    <td style="text-align:left">TOTAL</td><td></td>
-    <td class="money">R$ 508.122,39</td><td class="money">R$ 579.819,75</td><td class="money">R$ 640.704,65</td><td class="money">R$ 580.848,13</td><td class="money">R$ 128.066,24</td>
-    <td class="money" style="color:var(--amber)">R$ 2.437.561,16</td>
-  </tr></tfoot>
-        <tbody id="servico-body"><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="12144 - CLEMAR CROMO DURO LTDA">CLEMAR CROMO DURO LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 11.815,46</td><td class="money">R$ 15.237,60</td><td class="money">R$ 16.459,18</td><td class="money">R$ 17.326,40</td><td class="money">R$ 4.569,60</td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 65.408,24</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="126 - HURTH INFER INDUSTRIA DE MAQUINAS E FERRAMENTAS LTDA">HURTH INFER INDUSTRIA DE MAQUINAS E FERRAMENTAS LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money"><span class="zero">—</span></td><td class="money">R$ 1.595,00</td><td class="money"><span class="zero">—</span></td><td class="money">R$ 3.060,00</td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 4.655,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="138 - IMAP COMERCIO E SERVICOS INDUSTRIAIS LTDA">IMAP COMERCIO E SERVICOS INDUSTRIAIS LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money"><span class="zero">—</span></td><td class="money">R$ 680,00</td><td class="money">R$ 200,00</td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 880,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="178 - INDUSTRIA  MECANICA GUSFAR LTDA ME">INDUSTRIA  MECANICA GUSFAR LTDA ME</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 6.771,20</td><td class="money">R$ 27.285,31</td><td class="money">R$ 13.985,20</td><td class="money">R$ 27.937,99</td><td class="money">R$ 2.440,32</td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 78.420,02</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="2003 - STAR SU INDUSTRIA DE FERRAMENTAS LTDA">STAR SU INDUSTRIA DE FERRAMENTAS LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 12.882,04</td><td class="money">R$ 15.919,03</td><td class="money">R$ 18.650,57</td><td class="money">R$ 8.241,01</td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 55.692,65</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="20069 - IND MECANICA JAVER LTDA">IND MECANICA JAVER LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 19.636,00</td><td class="money">R$ 21.690,00</td><td class="money">R$ 19.487,00</td><td class="money">R$ 16.562,00</td><td class="money">R$ 1.100,00</td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 78.475,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="264 - MITEC INSTRUMENTOS INDUSTRIAIS LTDA">MITEC INSTRUMENTOS INDUSTRIAIS LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 2.868,00</td><td class="money">R$ 1.112,00</td><td class="money">R$ 2.289,00</td><td class="money">R$ 1.218,00</td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 7.487,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="29212 - THERMIX TRATAMENTO TERMICO LTDA">THERMIX TRATAMENTO TERMICO LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 53.572,76</td><td class="money">R$ 80.022,21</td><td class="money">R$ 84.572,22</td><td class="money">R$ 66.157,61</td><td class="money">R$ 6.268,12</td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 290.592,92</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="30972 - METALDIFFER INDUSTRIA E COMERCIO LTDA">METALDIFFER INDUSTRIA E COMERCIO LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money">R$ 9.127,40</td><td class="money">R$ 19.935,02</td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 29.062,42</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="365 - TECNOHARD INDUSTRIA METALURGICA LTDA">TECNOHARD INDUSTRIA METALURGICA LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 28.783,39</td><td class="money">R$ 45.308,92</td><td class="money">R$ 46.785,76</td><td class="money">R$ 33.479,01</td><td class="money">R$ 10.281,69</td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 164.638,77</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="51658 - BELUSSO INDUSTRIA METALURGICA LTDA">BELUSSO INDUSTRIA METALURGICA LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 46.861,80</td><td class="money">R$ 80.315,00</td><td class="money">R$ 80.521,00</td><td class="money">R$ 65.497,08</td><td class="money">R$ 19.822,50</td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 293.017,38</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="52958 - FORJAS CAXIENSE LTDA">FORJAS CAXIENSE LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money">R$ 4.526,10</td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 4.526,10</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="59143 - CARL ZEISS DO BRASIL LTDA">CARL ZEISS DO BRASIL LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money">R$ 38.220,67</td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 38.220,67</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="59485 - VERGANI USINAGEM LTDA">VERGANI USINAGEM LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 9.993,00</td><td class="money">R$ 21.833,00</td><td class="money">R$ 17.479,00</td><td class="money">R$ 9.022,00</td><td class="money">R$ 4.732,00</td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 63.059,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="59506 - VKASTA INDUSTRIA DE EQUIPAMENTOS HIDRAULICOS LTDA">VKASTA INDUSTRIA DE EQUIPAMENTOS HIDRAULICOS LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 69.814,80</td><td class="money">R$ 91.545,25</td><td class="money">R$ 106.984,62</td><td class="money">R$ 115.330,50</td><td class="money">R$ 11.235,00</td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 394.910,17</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="60496 - FORTUNA IND E COM. DE METAIS LTDA">FORTUNA IND E COM. DE METAIS LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 1.231,72</td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money">R$ 540,00</td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 1.771,72</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="60793 - CROMOFIX CROMO DURO LTDA">CROMOFIX CROMO DURO LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 3.720,00</td><td class="money">R$ 5.400,00</td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 9.120,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="62010 - GLEASON INDUSTRIA DE FERRAMENTAS LTDA">GLEASON INDUSTRIA DE FERRAMENTAS LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money">R$ 2.574,06</td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 2.574,06</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="62788 - BRASIN SOLUCOES HIDRAULICAS LTDA">BRASIN SOLUCOES HIDRAULICAS LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 11.990,00</td><td class="money">R$ 575,00</td><td class="money">R$ 7.200,00</td><td class="money"><span class="zero">—</span></td><td class="money">R$ 2.670,00</td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 22.435,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="62856 - HOVER COMPONENTES LTDA">HOVER COMPONENTES LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 50.680,00</td><td class="money">R$ 37.768,00</td><td class="money">R$ 26.458,00</td><td class="money">R$ 29.550,00</td><td class="money">R$ 24.824,00</td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 169.280,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="63175 - METALURGICA MT LINE DRILL LTDA - ME">METALURGICA MT LINE DRILL LTDA - ME</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 30.369,00</td><td class="money">R$ 29.059,18</td><td class="money">R$ 36.687,42</td><td class="money">R$ 42.103,06</td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 138.218,66</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="63254 - KROMI LOGÍSTICA DO BRASIL LTDA">KROMI LOGÍSTICA DO BRASIL LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 2.225,78</td><td class="money">R$ 3.221,54</td><td class="money">R$ 4.088,72</td><td class="money">R$ 3.018,96</td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 12.555,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="63427 - ESCALA PRODUTOS E SERVIÇOS DE CALIBRAÇÃO">ESCALA PRODUTOS E SERVIÇOS DE CALIBRAÇÃO</span></td>
-      <td style="text-align:center"><span style="color:#ff8c3b;font-size:10px;font-weight:700">FIL</span></td>
-      <td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money">R$ 4.387,20</td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 4.387,20</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="63616 - JRD USINAGEM EIRELI">JRD USINAGEM EIRELI</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money"><span class="zero">—</span></td><td class="money">R$ 6.207,20</td><td class="money">R$ 20.483,76</td><td class="money">R$ 11.172,96</td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 37.863,92</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="64074 - AC FIORAVANTE ME">AC FIORAVANTE ME</span></td>
-      <td style="text-align:center"><span style="color:#ff8c3b;font-size:10px;font-weight:700">FIL</span></td>
-      <td class="money">R$ 2.680,00</td><td class="money"><span class="zero">—</span></td><td class="money">R$ 2.380,00</td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 5.060,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="64299 - METAL RIBAS LTDA">METAL RIBAS LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money"><span class="zero">—</span></td><td class="money">R$ 920,00</td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 920,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="64348 - WIKA DO BRASIL IND COM LT">WIKA DO BRASIL IND COM LT</span></td>
-      <td style="text-align:center"><span style="color:#ff8c3b;font-size:10px;font-weight:700">FIL</span></td>
-      <td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money">R$ 1.818,90</td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 1.818,90</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="64550 - ODAIR LAERCIO MELONI">ODAIR LAERCIO MELONI</span></td>
-      <td style="text-align:center"><span style="color:#ff8c3b;font-size:10px;font-weight:700">FIL</span></td>
-      <td class="money">R$ 810,00</td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 810,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="64554 - USINAGEM COSTA LTDA">USINAGEM COSTA LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 10.600,00</td><td class="money">R$ 36.160,12</td><td class="money">R$ 26.777,08</td><td class="money">R$ 34.609,80</td><td class="money">R$ 8.252,00</td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 116.399,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="64597 - ZINCAGEM MAQUINE LTDA">ZINCAGEM MAQUINE LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 1.657,85</td><td class="money">R$ 4.464,14</td><td class="money">R$ 5.368,69</td><td class="money">R$ 2.740,30</td><td class="money">R$ 1.148,09</td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 15.379,07</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="64793 - JCL MANUTENÇÕES DE MÁQUINAS LTDA">JCL MANUTENÇÕES DE MÁQUINAS LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 4.030,00</td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 4.030,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="65031 - ACVL SERVIÇOS LTDA">ACVL SERVIÇOS LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 1.232,00</td><td class="money">R$ 1.530,00</td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money">R$ 2.720,00</td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 5.482,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="65184 - LUCAS DANIEL MOREIRA VELHO">LUCAS DANIEL MOREIRA VELHO</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 12.942,00</td><td class="money">R$ 14.338,80</td><td class="money">R$ 15.814,80</td><td class="money">R$ 15.300,00</td><td class="money">R$ 3.459,60</td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 61.855,20</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="65364 - C.J.C USINAGEM DE PECAS LTDA">C.J.C USINAGEM DE PECAS LTDA</span></td>
-      <td style="text-align:center"><span style="color:#ff8c3b;font-size:10px;font-weight:700">FIL</span></td>
-      <td class="money"><span class="zero">—</span></td><td class="money">R$ 570,00</td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 570,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="65736 - HIDRAUTEC SAO PAULO EQUIP HIDRAULICOS LTDA">HIDRAUTEC SAO PAULO EQUIP HIDRAULICOS LTDA</span></td>
-      <td style="text-align:center"><span style="color:#ff8c3b;font-size:10px;font-weight:700">FIL</span></td>
-      <td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money">R$ 5.920,00</td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 5.920,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="65865 - MARK AUTOMATION">MARK AUTOMATION</span></td>
-      <td style="text-align:center"><span style="color:#ff8c3b;font-size:10px;font-weight:700">FIL</span></td>
-      <td class="money">R$ 13.500,00</td><td class="money">R$ 17.160,00</td><td class="money">R$ 12.958,60</td><td class="money">R$ 12.170,00</td><td class="money">R$ 9.300,00</td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 65.088,60</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="66585 - JL PINTURAS A PO LTDA">JL PINTURAS A PO LTDA</span></td>
-      <td style="text-align:center"><span style="color:#ff8c3b;font-size:10px;font-weight:700">FIL</span></td>
-      <td class="money"><span class="zero">—</span></td><td class="money">R$ 80,00</td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 80,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="66846 - DLP MANUTENCAO E INSTALACAO DE EQUIPAMENTOS INDUSTRIAIS LTDA">DLP MANUTENCAO E INSTALACAO DE EQUIPAMENTOS INDUSTRIAIS LTDA</span></td>
-      <td style="text-align:center"><span style="color:#ff8c3b;font-size:10px;font-weight:700">FIL</span></td>
-      <td class="money">R$ 39.680,00</td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 39.680,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="67144 - SERGIO LUIZ LENZI LTDA">SERGIO LUIZ LENZI LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money">R$ 1.495,00</td><td class="money">R$ 3.723,00</td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 5.218,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="701173 - JL ZAPPE INDUSTRIA DE MOLAQSW LTDA">JL ZAPPE INDUSTRIA DE MOLAQSW LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 2.167,00</td><td class="money">R$ 11.300,00</td><td class="money">R$ 13.385,00</td><td class="money">R$ 8.766,00</td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 35.618,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="701185 - PICELLI MOTORES E BOMBAS LTDA EPP">PICELLI MOTORES E BOMBAS LTDA EPP</span></td>
-      <td style="text-align:center"><span style="color:#ff8c3b;font-size:10px;font-weight:700">FIL</span></td>
-      <td class="money">R$ 53.947,52</td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 53.947,52</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="701291 - TECH COAT REVESTIMENTO EM METAIS">TECH COAT REVESTIMENTO EM METAIS</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money">R$ 11.592,90</td><td class="money">R$ 638,10</td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 12.231,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="701319 - MARIA CARLINDA DA SILVA 24657959883">MARIA CARLINDA DA SILVA 24657959883</span></td>
-      <td style="text-align:center"><span style="color:#ff8c3b;font-size:10px;font-weight:700">FIL</span></td>
-      <td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money">R$ 5.600,00</td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 5.600,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="701337 - METALURGICA NEGRI LTDA">METALURGICA NEGRI LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money">R$ 7.275,83</td><td class="money">R$ 9.282,12</td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 16.557,95</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="701347 - 65287265 ABHNER EANES DUARTE BATISTA">65287265 ABHNER EANES DUARTE BATISTA</span></td>
-      <td style="text-align:center"><span style="color:#ff8c3b;font-size:10px;font-weight:700">FIL</span></td>
-      <td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money"><span class="zero">—</span></td><td class="money">R$ 2.000,00</td><td class="money"><span class="zero">—</span></td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 2.000,00</td>
-    </tr><tr>
-      <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="9883 - METALTECNICA METALURGICA LTDA">METALTECNICA METALURGICA LTDA</span></td>
-      <td style="text-align:center"><span style="color:#3d8bff;font-size:10px;font-weight:700">MTZ</span></td>
-      <td class="money">R$ 1.661,07</td><td class="money">R$ 8.522,45</td><td class="money">R$ 2.533,00</td><td class="money">R$ 2.531,50</td><td class="money">R$ 797,00</td>
-      <td class="money" style="color:var(--blue-light);font-weight:600">R$ 16.045,02</td>
-    </tr></tbody>
+        <thead class="blue"><tr id="servico-thead-row"></tr></thead>
+        <tfoot id="servico-foot"></tfoot>
+        <tbody id="servico-body"></tbody>
       </table>
     </div>
   </div>
@@ -3400,24 +1610,24 @@ function renderAll() {
 }
 
 // ===== FOLDER MONITOR =====
-const READ_INTERVAL_MS = 1 * 60 * 1000;  // leitura: 1 minuto
-const PUB_INTERVAL_MS  = 30 * 60 * 1000; // publicacao: 30 minutos
-const FILE_MAP = {
-  'OF_ABERTAS':           parseOF,
-  'ITENS_MONTADOS':       parseMontados,
-  'ITENS_MONTADOS_POR_DIA__EPP_': parseMontados,
-  'ESTOQUE_SEGURANCA':    parseEstoque,
-  'TRANSITO':             parseTransito,
-  'SERVICO_TERCEIROS':    parseServico,
+
+// ===== GOOGLE SHEETS MONITOR =====
+const READ_INTERVAL_MS = 5 * 60 * 1000;  // leitura: 5 minutos
+
+// Sheets: aba � parser
+const SHEETS_MAP = {
+  'OF_ABERTAS':        parseOF,
+  'ITENS_MONTADOS':    parseMontados,
+  'ESTOQUE_SEGURANCA': parseEstoque,
+  'TRANSITO':          parseTransito,
+  'SERVICO_TERCEIROS': parseServico,
 };
 
-let monitorHandle  = null;
 let monitorTimer   = null;
-let publishTimer   = null;
 let countdownTimer = null;
 let nextRead       = null;
-let nextPublish    = null;
 let isMonitoring   = false;
+let SHEET_ID       = localStorage.getItem('sheetId') || '';
 
 async function toggleMonitor() {
   if (isMonitoring) {
@@ -3425,114 +1635,83 @@ async function toggleMonitor() {
     return;
   }
 
-  // Check browser support
-  if (!window.showDirectoryPicker) {
-    alert('⚠️ Seu navegador não suporta acesso a pastas.\n\nUse o Google Chrome (versão 86 ou superior) para esta funcionalidade.');
-    return;
+  // Ask for Sheet ID if not set
+  if (!SHEET_ID) {
+    const id = prompt(
+      'Cole o ID da planilha Google Sheets:\n' +
+      '(encontre em: docs.google.com/spreadsheets/d/[ID]/edit)',
+      ''
+    );
+    if (!id || !id.trim()) return;
+    SHEET_ID = id.trim();
+    localStorage.setItem('sheetId', SHEET_ID);
   }
 
-  try {
-    monitorHandle = await window.showDirectoryPicker({ mode: 'read' });
-    startMonitor();
-  } catch (e) {
-    if (e.name !== 'AbortError') {
-      setStatus('error', 'Erro ao acessar pasta');
-    }
-  }
+  startMonitor();
 }
 
 async function startMonitor() {
   isMonitoring = true;
   const btn = document.getElementById('monitor-btn');
-  btn.textContent = '⏹ Parar Monitor';
+  btn.textContent = '� Parar Monitor';
   btn.classList.add('monitoring');
 
   // Leitura imediata
-  await readFolder();
+  await readSheets();
 
-  // Leitura a cada 1 minuto
-  monitorTimer = setInterval(readFolder, READ_INTERVAL_MS);
-
-  // Publicacao a cada 30 minutos
-  nextPublish = new Date(Date.now() + PUB_INTERVAL_MS);
-  publishTimer = setInterval(async () => {
-    await publishToNetlify(true);
-    nextPublish = new Date(Date.now() + PUB_INTERVAL_MS);
-  }, PUB_INTERVAL_MS);
-
+  // Leitura a cada 5 minutos
+  monitorTimer = setInterval(readSheets, READ_INTERVAL_MS);
   startCountdown();
 }
 
 function stopMonitor() {
   isMonitoring = false;
   clearInterval(monitorTimer);
-  clearInterval(publishTimer);
   clearInterval(countdownTimer);
-  monitorHandle  = null;
   monitorTimer   = null;
-  publishTimer   = null;
   nextRead       = null;
-  nextPublish    = null;
 
   const btn = document.getElementById('monitor-btn');
-  btn.textContent = '📁 Autorizar Pasta';
+  btn.textContent = '� Conectar Sheets';
   btn.classList.remove('monitoring');
-  setStatus('idle', '— Monitor pausado');
+  setStatus('idle', ' Monitor pausado');
   document.getElementById('countdown').textContent = '';
 }
 
-async function readFolder() {
-  if (!monitorHandle) return;
-  setStatus('active', 'Lendo arquivos…');
+async function readSheets() {
+  if (!SHEET_ID) return;
+  setStatus('active', 'Lendo planilha&');
 
   let found = 0;
-  try {
-    for await (const [name, handle] of monitorHandle.entries()) {
-      if (handle.kind !== 'file') continue;
-      const upper = name.toUpperCase().replace('.CSV','').replace(/-/g,'_');
+  const errors = [];
 
-      // Find matching parser
-      const parserKey = Object.keys(FILE_MAP).find(k => upper.includes(k));
-      if (!parserKey) continue;
-
-      const file = await handle.getFile();
-      const text = await readFileAsText(file);
-      FILE_MAP[parserKey](text);
+  for (const [aba, parser] of Object.entries(SHEETS_MAP)) {
+    try {
+      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(aba)}`;
+      const res = await fetch(url);
+      if (!res.ok) { errors.push(aba); continue; }
+      const text = await res.text();
+      if (!text.trim() || text.includes('error')) { errors.push(aba); continue; }
+      parser(text);
       found++;
+    } catch(e) {
+      errors.push(aba);
+      console.error('Erro ao ler aba ' + aba + ':', e);
     }
-
-    if (found > 0) {
-      renderAll();
-      const now = new Date();
-      setStatus('active', `Lendo… publicando no Netlify…`);
-      nextRefresh = new Date(now.getTime() + INTERVAL_MS);
-      startCountdown();
-      // Auto-publish to Netlify after every successful read
-      await publishToNetlify(true);
-    } else {
-      setStatus('error', 'Nenhum CSV encontrado na pasta');
-    }
-  } catch (e) {
-    setStatus('error', 'Erro ao ler pasta — verifique o acesso');
-    console.error(e);
   }
-}
 
-function readFileAsText(file) {
-  return new Promise((resolve, reject) => {
-    // Try latin1 first (common for Brazilian ERP exports)
-    const reader = new FileReader();
-    reader.onload = e => resolve(e.target.result);
-    reader.onerror = reject;
-    reader.readAsText(file, 'latin1');
-  });
-}
-
-function setStatus(state, msg) {
-  const dot = document.getElementById('status-dot');
-  const txt = document.getElementById('update-time');
-  dot.className = 'status-dot' + (state === 'active' ? ' active' : state === 'error' ? ' error' : '');
-  txt.textContent = msg;
+  if (found > 0) {
+    renderAll();
+    nextRead = new Date(Date.now() + READ_INTERVAL_MS);
+    const nowStr = new Date().toLocaleTimeString('pt-BR');
+    const status = errors.length
+      ? `Atualizado ${nowStr} (${errors.length} aba(s) sem dados)`
+      : `Atualizado ${nowStr}  pr�x. em 5min`;
+    setStatus('active', status);
+    startCountdown();
+  } else {
+    setStatus('error', 'Erro ao ler planilha  verifique o ID e as permiss�es');
+  }
 }
 
 function startCountdown() {
@@ -3586,7 +1765,7 @@ async function publishToNetlify(auto = false) {
     );
     const now = new Date().toLocaleString('pt-BR');
     html = html.replace(
-      /Publicado em 08/05/2026, 17:28:01|Atualizado às [\d:]+|Publicado em [^<]+|Dados: [\d/]+/,
+      /— Aguardando pasta…|Atualizado às [\d:]+|Publicado em [^<]+|Dados: [\d/]+/,
       `Publicado em ${now}`
     );
 
@@ -3649,6 +1828,5 @@ async function publishToNetlify(auto = false) {
 // ===== INIT =====
 renderAll();
 </script>
-
-
-</body></html>
+</body>
+</html>
