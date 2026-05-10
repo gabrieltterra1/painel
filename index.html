@@ -1680,16 +1680,25 @@ async function readSheets() {
   if (!SHEET_ID) return;
   setStatus('active', 'Lendo planilha&');
 
+  const WEBAPP = 'https://script.google.com/macros/s/AKfycbyFeoCDp-ROgWP_n8xImPFehmPbHlg0pjf5TiC7tW4O6BUAewqh9We0v6ROAiC0rnSn/exec';
+  const abas = {
+    'OF_ABERTAS':        parseOF,
+    'ITENS_MONTADOS':    parseMontados,
+    'ESTOQUE_SEGURANCA': parseEstoque,
+    'TRANSITO':          parseTransito,
+    'SERVICO_TERCEIROS': parseServico,
+  };
+
   let found = 0;
   const errors = [];
 
-  for (const [aba, parser] of Object.entries(SHEETS_MAP)) {
+  for (const [aba, parser] of Object.entries(abas)) {
     try {
-      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(aba)}`;
+      const url = WEBAPP + '?aba=' + encodeURIComponent(aba);
       const res = await fetch(url);
       if (!res.ok) { errors.push(aba); continue; }
       const text = await res.text();
-      if (!text.trim() || text.includes('error')) { errors.push(aba); continue; }
+      if (!text.trim()) { errors.push(aba); continue; }
       parser(text);
       found++;
     } catch(e) {
@@ -1703,12 +1712,12 @@ async function readSheets() {
     nextRead = new Date(Date.now() + READ_INTERVAL_MS);
     const nowStr = new Date().toLocaleTimeString('pt-BR');
     const status = errors.length
-      ? `Atualizado ${nowStr} (${errors.length} aba(s) sem dados)`
-      : `Atualizado ${nowStr}  pr�x. em 5min`;
+      ? 'Atualizado ' + nowStr + ' (' + errors.length + ' aba(s) sem dados)'
+      : 'Atualizado ' + nowStr + '  pr�x. em 5min';
     setStatus('active', status);
     startCountdown();
   } else {
-    setStatus('error', 'Erro ao ler planilha  verifique o ID e as permiss�es');
+    setStatus('error', 'Erro ao ler planilha  verifique o Web App');
   }
 }
 
