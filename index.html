@@ -1611,6 +1611,13 @@ function renderAll() {
 
 // ===== FOLDER MONITOR =====
 
+function setStatus(state, msg) {
+  const dot = document.getElementById('status-dot');
+  const txt = document.getElementById('update-time');
+  dot.className = 'status-dot' + (state === 'active' ? ' active' : state === 'error' ? ' error' : '');
+  txt.textContent = msg;
+}
+
 // ===== GOOGLE SHEETS MONITOR =====
 const READ_INTERVAL_MS = 5 * 60 * 1000;  // leitura: 5 minutos
 
