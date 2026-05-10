@@ -1627,7 +1627,7 @@ let monitorTimer   = null;
 let countdownTimer = null;
 let nextRead       = null;
 let isMonitoring   = false;
-let SHEET_ID       = localStorage.getItem('sheetId') || '';
+let SHEET_ID       = localStorage.getItem('sheetId') || '1-aTDOoqf7L9v1rPK8K9KM8jWkg0EC6_eP0bsek4FajI';
 
 async function toggleMonitor() {
   if (isMonitoring) {
@@ -1635,17 +1635,8 @@ async function toggleMonitor() {
     return;
   }
 
-  // Ask for Sheet ID if not set
-  if (!SHEET_ID) {
-    const id = prompt(
-      'Cole o ID da planilha Google Sheets:\n' +
-      '(encontre em: docs.google.com/spreadsheets/d/[ID]/edit)',
-      ''
-    );
-    if (!id || !id.trim()) return;
-    SHEET_ID = id.trim();
-    localStorage.setItem('sheetId', SHEET_ID);
-  }
+  // ID j� configurado  salva no localStorage para persistir
+  localStorage.setItem('sheetId', SHEET_ID);
 
   startMonitor();
 }
@@ -1672,7 +1663,7 @@ function stopMonitor() {
   nextRead       = null;
 
   const btn = document.getElementById('monitor-btn');
-  btn.textContent = '� Conectar Sheets';
+  btn.textContent = '� Iniciar Monitor';
   btn.classList.remove('monitoring');
   setStatus('idle', ' Monitor pausado');
   document.getElementById('countdown').textContent = '';
