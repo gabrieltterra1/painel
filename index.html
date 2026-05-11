@@ -640,12 +640,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <span id="update-time" class="last-update">— Aguardando pasta…</span>
       <span class="countdown-ring" id="countdown"></span>
     </div>
-    <button class="upload-btn" id="monitor-btn" onclick="toggleMonitor()">
-      📁 Autorizar Pasta
-    </button>
-    <button class="upload-btn" id="export-btn" onclick="publishToNetlify()" style="background:#6a35cc;" title="Publica os dados atuais no Cloudflare para todos acessarem">
-      🚀 Publicar
-    </button>
+    
+    
     <input type="file" id="file-input" multiple accept=".csv,.CSV" onchange="handleFiles(this.files)">
   </div>
 </header>
@@ -723,6 +719,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <option value="GUINCHO OS-M">Guincho OS-M</option>
       <option value="GUINCHO OP">Guincho OP</option>
       <option value="CONJUNTO EIXO">Conjunto Eixo</option>
+      <option value="CILINDRO HIDRAULICO">Cilindro Hidr�ulico</option>
     </select>
     <select class="filter-select" id="tr-empresa" onchange="renderTransito()">
       <option value="">Todas as empresas</option>
@@ -1395,7 +1392,8 @@ function parseOF(text) {
   DATA.of = rows
     .filter(r => {
       const d = r[0];
-      if (!d || d === 'DT FIM OF' || d.toUpperCase().includes('TOTAL')) return false;
+      const du2 = d.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      if (!d || du2 === 'DT FIM OF' || du2.includes('TOTAL')) return false;
       return true;
     })
     .map(r => ({
@@ -1411,7 +1409,8 @@ function parseMontados(text) {
   DATA.montados = rows
     .filter(r => {
       const d = r[0];
-      if (!d || d === 'DATA' || d.toUpperCase().includes('TOTAL') || d.toUpperCase().includes('MEDIA') || d.toUpperCase().includes('DIAS')) return false;
+      const du = d.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      if (!d || du === 'DATA' || du.includes('TOTAL') || du.includes('MEDIA') || du.includes('DIAS') || du.includes('UTEIS')) return false;
       return true;
     })
     .map(r => ({
@@ -1554,6 +1553,16 @@ function renderNSChart() {
     datasets.push({ label:'ENROLADOR', data: enrolData, backgroundColor:'#c97affcc', borderRadius:4 });
   }
 
+  if (_nsProduct === 'todos') {
+    const cilData = empsNS.map(e => {
+      const rows = DATA.estoque.filter(r => r.uf === e && r.classificacao === '300.300.005');
+      const totParam = rows.reduce((s,r)=>s+r.qtde_param_es,0);
+      const totAbast = rows.reduce((s,r)=>s+r.qtde_abast,0);
+      return totParam>0 ? Math.round(totAbast/totParam*1000)/10 : 0;
+    });
+    if (cilData.some(v=>v>0)) datasets.push({ label:'CILINDRO', data: cilData, backgroundColor:'#ff3b3bcc', borderRadius:4 });
+  }
+
   datasets.push({ label:'META', data:[90,90,90,90,90], type:'line', borderColor:'#ff3b3b', borderWidth:2, pointRadius:0, fill:false, tension:0 });
 
   window._nsChart = new Chart(document.getElementById('ns-chart'), {
@@ -1586,7 +1595,7 @@ function renderNSChart() {
   nsTable.className = 'ns-data-table';
   nsTable.style.cssText = 'overflow-x:auto;margin-top:12px;';
   const dataRows = datasets.filter(d=>d.type!=='line');
-  const colors = {'TOMADA':'#3d8bff','BOMBA':'#ff8c3b','GUINCHO OS-M':'#00c97a','GUINCHO OP':'#ffaa00','ENROLADOR':'#c97aff'};
+  const colors = {'TOMADA':'#3d8bff','BOMBA':'#ff8c3b','GUINCHO OS-M':'#00c97a','GUINCHO OP':'#ffaa00','ENROLADOR':'#c97aff','CILINDRO':'#ff3b3b'};
   nsTable.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px;">
     <thead><tr style="background:#1a2a4a">
       <th style="padding:7px 14px;text-align:left;color:#7a8299;min-width:90px;font-family:var(--font-display);letter-spacing:1px"></th>
@@ -1720,9 +1729,7 @@ function stopMonitor() {
   monitorTimer   = null;
   nextRead       = null;
 
-  const btn = document.getElementById('monitor-btn');
-  btn.textContent = '� Iniciar Monitor';
-  btn.classList.remove('monitoring');
+  // No button to update  auto mode
   setStatus('idle', ' Monitor pausado');
   document.getElementById('countdown').textContent = '';
 }
@@ -1885,6 +1892,8 @@ async function publishToNetlify(auto = false) {
 
 // ===== INIT =====
 renderAll();
+// Auto-start monitor on page load
+startMonitor();
 </script>
 </body>
 </html>
