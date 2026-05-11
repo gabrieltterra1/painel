@@ -1389,83 +1389,111 @@ function handleFiles(files) {
 
 function parseOF(text) {
   const rows = parseCSV(text);
+  // Detect if first column is an extra date stamp (new column added to report)
+  // Header row: if col0 normalized != 'DT FIM OF', there's an extra col at start
+  const headerRow = rows.find(r => r.join(';').toUpperCase().includes('DT FIM OF') || r.join(';').toUpperCase().includes('TOMADA'));
+  const off = (headerRow && headerRow[0].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes('DT FIM OF')) ? 0 : 1;
+
   DATA.of = rows
     .filter(r => {
-      const d = r[0];
-      const du2 = d.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-      if (!d || du2 === 'DT FIM OF' || du2.includes('TOTAL')) return false;
+      const d = (r[off]||'');
+      const du = d.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      if (!d || du === 'DT FIM OF' || du.includes('TOTAL') || du.includes('TOMADA')) return false;
       return true;
     })
     .map(r => ({
-      DT_FIM_OF: normDate(r[0]),
-      TOMADA_MULT:+r[1]||0, BOMBA:+r[2]||0, CILINDRO:+r[3]||0,
-      CONJ_EIXO:+r[4]||0, GUINCHO_ENROL:+r[5]||0, COMANDO:+r[6]||0,
-      VALVULA:+r[7]||0, KIT_HIDR:+r[8]||0
+      DT_FIM_OF: normDate(r[off]),
+      TOMADA_MULT: +r[off+1]||0, BOMBA:       +r[off+2]||0, CILINDRO:    +r[off+3]||0,
+      CONJ_EIXO:   +r[off+4]||0, GUINCHO_ENROL:+r[off+5]||0, COMANDO:   +r[off+6]||0,
+      VALVULA:     +r[off+7]||0, KIT_HIDR:    +r[off+8]||0
     }));
 }
 function parseMontados(text) {
   if (!text.trim()) { DATA.montados=[]; return; }
   const rows = parseCSV(text);
+  // Detect offset: if first column of header is 'DATA', offset=0; else offset=1
+  const headerRow = rows.find(r => r.join(';').toUpperCase().includes('TOMADA') || r.join(';').toUpperCase().includes('DATA'));
+  const off = (headerRow && headerRow[0].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'') === 'DATA') ? 0 : 1;
+
   DATA.montados = rows
     .filter(r => {
-      const d = r[0];
+      const d = (r[off]||'');
       const du = d.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-      if (!d || du === 'DATA' || du.includes('TOTAL') || du.includes('MEDIA') || du.includes('DIAS') || du.includes('UTEIS')) return false;
+      if (!d || du === 'DATA' || du.includes('TOTAL') || du.includes('MEDIA') || du.includes('DIAS') || du.includes('UTEIS') || du.includes('TOMADA')) return false;
       return true;
     })
     .map(r => ({
-      DATA: normDate(r[0]),
-      TOMADA_MULT:+r[1]||0, BOMBA:+r[2]||0, CILINDRO:+r[3]||0,
-      CONJ_EIXO:+r[4]||0, GUINCHO:+r[5]||0, COMANDO:+r[6]||0,
-      VALVULA:+r[7]||0, KIT_HIDR:+r[8]||0
+      DATA:        normDate(r[off]),
+      TOMADA_MULT: +r[off+1]||0, BOMBA:    +r[off+2]||0, CILINDRO: +r[off+3]||0,
+      CONJ_EIXO:   +r[off+4]||0, GUINCHO:  +r[off+5]||0, COMANDO:  +r[off+6]||0,
+      VALVULA:     +r[off+7]||0, KIT_HIDR: +r[off+8]||0
     }));
 }
 function parseTransito(text) {
   const rows = parseCSV(text, ';');
   const empMap = {'2':'SP','3':'MG','8':'GO','9':'PE'};
+  // Detect offset: empresa col should be '2','3','8' or '9'
+  const firstData = rows.find(r => r.length > 4 && r.some(c=>c.trim()));
+  const off = (firstData && empMap[firstData[2]]) ? 0 : 1;
+
   const classToGroup = {'300.200.001':'TOM','300.200.100':'TOM','300.500.001':'BOM','300.400.001':'CIL','800.010.020':'GUI','800.010.040':'GUI'};
   const classToLabel = {'300.200.001':'TOMADA DE FORCA','300.200.100':'TOMADA DE FORCA','300.500.001':'BOMBA HIDRAULICA','300.400.001':'CILINDRO HIDRAULICO','800.010.020':'GUINCHO OS-M','800.010.040':'GUINCHO OP'};
   const pivot = {};
   ['SP','MG','GO','PE'].forEach(e => { pivot[e] = {TOM:0,BOM:0,CIL:0,GUI:0}; });
   const detail = [];
+
   rows.forEach(r => {
-    const emp = empMap[(r[2]||'').trim()];
-    const classificacao = (r[4]||'').trim();
-    const qty = +r[3]||0;
+    const emp = empMap[(r[off+2]||'').trim()];
+    const classificacao = (r[off+4]||'').trim();
+    const qty = +r[off+3]||0;
     if (!emp || qty <= 0) return;
     const group = classToGroup[classificacao];
     if (group) pivot[emp][group] += qty;
-    detail.push({codigo:(r[0]||'').trim(), descricao:(r[1]||'').trim(), empresa:emp, quantidade:qty, classificacao, produto:classToLabel[classificacao]||classificacao});
+    detail.push({
+      codigo:     (r[off]||'').trim(),
+      descricao:  (r[off+1]||'').trim(),
+      empresa: emp, quantidade: qty, classificacao,
+      produto: classToLabel[classificacao]||classificacao
+    });
   });
   DATA.transito = ['SP','MG','GO','PE'].map(k=>({EMPRESA:k,...pivot[k]}));
   DATA.transito_detail = detail;
 }
+
 function parseEstoque(text) {
   const rows = parseCSV(text, ';');
-  const clsToGroup = {'300.200.001':'TOM','300.200.100':'TOM','300.500.001':'BOM','300.400.001':'CIL','800.010.020':'GUI','800.010.040':'GUI'};
-  DATA.estoque = rows.map(r => ({
-    cod_emp:        +r[0]||0,
-    uf:              r[1],
-    classificacao:   r[2],
-    descricao:       r[3],
-    cod_almox:      +r[4]||0,
-    deposito:        r[5],
-    qtde_cod_es:    +r[6]||0,
-    qtde_param_es:  +r[7]||0,
-    custo_tdt:       r[8],
-    tot_falta:      +r[9]||0,
-    custo_abast:     r[10],
-    cod_zerados:    +r[11]||0,
-    estoque_total:  +r[12]||0,
-    custo_saldo:     r[13],
-    estoque_excesso:+r[14]||0,
-    custo_exces:     r[15],
-    qtde_abast:     +r[16]||0,
-    perc_abast_mtz:  parseFloat((r[17]||'').replace(',','.'))||0,
-    pct_es: (+r[7]||0) > 0 ? Math.round((+r[16]||0)/(+r[7]||0)*1000)/10 : 0,
-  })).filter(r => r.uf);
+  // Detect offset: cod_emp (first real col) should be numeric
+  // If first col of first data row is not numeric, there's an extra date col
+  const firstData = rows.find(r => r.length > 5 && r.some(c => c.trim()));
+  const off = (firstData && !isNaN(+firstData[0]) && +firstData[0] > 0) ? 0 : 1;
 
-  // Recalculate NS from estoque data
+  const clsToGroup = {'300.200.001':'TOM','300.200.100':'TOM','300.500.001':'BOM','300.400.001':'CIL','800.010.020':'GUI','800.010.040':'GUI'};
+  DATA.estoque = rows
+    .filter(r => r.length > 5 && (r[off+1]||'').trim().length === 2) // uf = 2 chars
+    .map(r => ({
+      cod_emp:        +r[off]||0,
+      uf:              (r[off+1]||'').trim(),
+      classificacao:   (r[off+2]||'').trim(),
+      descricao:       (r[off+3]||'').trim(),
+      cod_almox:      +r[off+4]||0,
+      deposito:        (r[off+5]||'').trim(),
+      qtde_cod_es:    +r[off+6]||0,
+      qtde_param_es:  +r[off+7]||0,
+      custo_tdt:       (r[off+8]||'').trim(),
+      tot_falta:      +r[off+9]||0,
+      custo_abast:     (r[off+10]||'').trim(),
+      cod_zerados:    +r[off+11]||0,
+      estoque_total:  +r[off+12]||0,
+      custo_saldo:     (r[off+13]||'').trim(),
+      estoque_excesso:+r[off+14]||0,
+      custo_exces:     (r[off+15]||'').trim(),
+      qtde_abast:     +r[off+16]||0,
+      perc_abast_mtz:  parseFloat((r[off+17]||'').replace(',','.'))||0,
+      pct_es: (+r[off+7]||0) > 0 ? Math.round((+r[off+16]||0)/(+r[off+7]||0)*1000)/10 : 0,
+    }))
+    .filter(r => r.uf && r.uf.length === 2 && /^[A-Z]{2}$/.test(r.uf));
+
+  // Recalculate NS
   const nsMap = {};
   DATA.estoque.forEach(r => {
     const g = clsToGroup[r.classificacao];
@@ -1482,15 +1510,21 @@ function parseEstoque(text) {
     });
   });
 }
+
 function parseServico(text) {
   const rows = parseCSV(text, ';');
+  // Detect offset: empresa_num (col0) should be '1' or '2'
+  const firstData = rows.find(r => r.length > 10 && r.some(c=>c.trim()));
+  const off = (firstData && (firstData[0].trim()==='1' || firstData[0].trim()==='2')) ? 0 : 1;
+
   const result = {};
   rows.forEach(r => {
-    const dateStr = (r[7]||'').trim();
-    const emp     = (r[10]||'').trim();
-    const empresa_num = (r[0]||'').trim();
-    const val = parseFloat((r[47]||'').replace(',','.'))||0;
+    const empresa_num = (r[off]||'').trim();
+    const dateStr     = (r[off+7]||'').trim();
+    const emp         = (r[off+10]||'').trim();
+    const val         = parseFloat((r[off+47]||'').replace(',','.'))||0;
     if (!dateStr || !emp || !val) return;
+    if (empresa_num !== '1' && empresa_num !== '2') return;
     const p = dateStr.split('/');
     if (p.length < 3) return;
     const mes = p[2]+'-'+p[1].padStart(2,'0');
