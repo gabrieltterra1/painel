@@ -1398,8 +1398,10 @@ function parseMontados(text) {
     .map(r => {
       const u = String(r[0]||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       const isSpecial = u.includes('TOTAL') || u.includes('MEDIA') || u.includes('DIAS');
-      // For special rows keep original string values; for data rows convert to numbers
-      const val = (v, i) => isSpecial ? (String(v||'').trim()||null) : (+v||0);
+      // Parse number handling both "195,80" and "195.80" and plain numbers
+      const parseNum = v => { const s = String(v||'').replace(',','.').trim(); return parseFloat(s)||0; };
+      // For special rows keep display string; for data rows convert to numbers
+      const val = v => isSpecial ? (String(v||'').replace(',','.').trim()||'0') : parseNum(v);
       return {
         DATA: isSpecial ? String(r[0]||'').trim() : normDate(r[0]),
         TOMADA_MULT: val(r[1]), BOMBA: val(r[2]), CILINDRO: val(r[3]),
@@ -1430,7 +1432,7 @@ function parseTransito(text) {
     if (!col1 || col1.toUpperCase().includes('CODIGO') || col1.toUpperCase().includes('ITEM')) return;
     const codigo = col1;
     const descricao = String(r[2]||'').trim();
-    const empresaNum = String(+r[3]||'').trim() || String(r[3]||'').trim();
+    const empresaNum = String(r[3] === 0 ? '' : (r[3]||'')).trim();
     const qty = +r[4]||0;
     const cls = String(r[5]||'').trim();
     const emp = empMap[empresaNum];
@@ -1512,22 +1514,22 @@ function parseServico(text) {
     const empresa_num = String(r[1]||'').trim();
     if (empresa_num === 'EMP' || empresa_num === '') return;
     if (empresa_num !== '1' && empresa_num !== '2') return;
-    // DT ENT can be Date object, ISO string, or DD/MM/YYYY
-    const dtRaw = r[8];
+    const dtRaw = String(r[8]||'').trim();
     const emp   = String(r[11]||'').trim();
     const val   = parseFloat(String(r[r.length-1]||'').replace(',','.'))||0;
     if (!dtRaw || !emp || !val) return;
     let mes;
-    if (dtRaw instanceof Date || (typeof dtRaw === 'object' && dtRaw !== null)) {
-      // Date object from Sheets
-      const d = new Date(dtRaw);
-      mes = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-    } else {
-      const dtEnt = String(dtRaw).trim();
-      const iso = dtEnt.match(/^(\d{4})-(\d{2})-(\d{2})/);
-      if (iso) { mes = iso[1]+'-'+iso[2]; }
-      else {
-        const p = dtEnt.split('/');
+    // YYYY-MM-DD (from new doGet)
+    const isoFull = dtRaw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoFull) { mes = isoFull[1]+'-'+isoFull[2]; }
+    // "Sun Jan 04 2026..." (old format)
+    else {
+      const jsDate = dtRaw.match(/(\w{3}) (\w{3}) (\d{2}) (\d{4})/);
+      if (jsDate) {
+        const mo={Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+        mes = jsDate[4]+'-'+(mo[jsDate[2]]||'01');
+      } else {
+        const p = dtRaw.split('/');
         if (p.length < 3) return;
         mes = p[2]+'-'+p[1].padStart(2,'0');
       }
