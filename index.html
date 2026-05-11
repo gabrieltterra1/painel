@@ -876,19 +876,28 @@ function showTab(id) {
 // ===== OF ABERTAS =====
 function renderOF() {
   const cols = ['TOMADA_MULT','BOMBA','CILINDRO','CONJ_EIXO','GUINCHO_ENROL','COMANDO','VALVULA','KIT_HIDR'];
-  const rows = DATA.of.sort((a,b) => parseDate(a.DT_FIM_OF) - parseDate(b.DT_FIM_OF));
-  const totals = {};
-  cols.forEach(c => totals[c] = 0);
-  rows.forEach(r => cols.forEach(c => totals[c] += r[c]));
+  const rows = DATA.of;
 
-  // Render TOTAL row first (it sits in tfoot which is between thead and tbody in DOM)
+  // Find TOTAL row
+  const totalRow = rows.find(r => r.DT_FIM_OF.toUpperCase().includes('TOTAL'));
+  const dataRows = rows.filter(r => !r.DT_FIM_OF.toUpperCase().includes('TOTAL'));
+  const sorted = dataRows.sort((a,b) => parseDate(a.DT_FIM_OF) - parseDate(b.DT_FIM_OF));
+
+  // Use TOTAL from email if available, otherwise compute
+  const totals = {};
+  if (totalRow) {
+    cols.forEach(c => totals[c] = totalRow[c]);
+  } else {
+    cols.forEach(c => totals[c] = 0);
+    sorted.forEach(r => cols.forEach(c => totals[c] += r[c]));
+  }
+
   document.getElementById('of-foot').innerHTML = `<tr class="tfoot-row">
     <td>TOTAL</td>
     ${cols.map(c => `<td>${totals[c].toLocaleString('pt-BR')}</td>`).join('')}
   </tr>`;
 
-  // Then render data rows
-  document.getElementById('of-body').innerHTML = rows.map(r => {
+  document.getElementById('of-body').innerHTML = sorted.map(r => {
     const od = isOverdue(r.DT_FIM_OF);
     return `<tr class="${od?'overdue':''}">
       <td>${r.DT_FIM_OF}${od?' ⚑':''}</td>
@@ -897,7 +906,6 @@ function renderOF() {
   }).join('');
 }
 
-// ===== MONTADOS =====
 function renderMontados() {
   const el = document.getElementById('montados-content');
   if (!DATA.montados || DATA.montados.length === 0) {
@@ -906,20 +914,22 @@ function renderMontados() {
   }
   const cols = ['TOMADA_MULT','BOMBA','CILINDRO','CONJ_EIXO','GUINCHO','COMANDO','VALVULA','KIT_HIDR'];
   const colLabels = ['TOMADA E MULT','BOMBA','CILINDRO','CONJ. EIXO','GUINCHO','COMANDO','VÁLVULA','KIT HIDR.'];
-  const sorted = [...DATA.montados].sort((a,b) => parseDate(b.DATA||'01/01/2000') - parseDate(a.DATA||'01/01/2000'));
-  const totals = {}; cols.forEach(c => totals[c] = 0);
-  sorted.forEach(r => cols.forEach(c => totals[c] += (r[c]||0)));
-  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const pastWorkDays = sorted.filter(r => {
-    const d = parseDate(r.DATA||'01/01/2000');
-    if (d >= todayMidnight) return false;
-    const dow = d.getDay();
-    return dow >= 1 && dow <= 5;
+
+  // Separate special rows from data rows
+  const totalRow = DATA.montados.find(r => r.DATA.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes('TOTAL'));
+  const mediaRow = DATA.montados.find(r => r.DATA.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes('MEDIA'));
+  const diasRow  = DATA.montados.find(r => r.DATA.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes('DIAS'));
+  const dataRows = DATA.montados.filter(r => {
+    const u = r.DATA.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    return !u.includes('TOTAL') && !u.includes('MEDIA') && !u.includes('DIAS') && !u.includes('UTEIS');
   });
-  const workingDays = pastWorkDays.length;
-  const avgT = {}; cols.forEach(c => avgT[c] = 0);
-  pastWorkDays.forEach(r => cols.forEach(c => avgT[c] += (r[c]||0)));
-  const medias = {}; cols.forEach(c => medias[c] = workingDays > 0 ? (avgT[c]/workingDays).toFixed(1) : '—');
+  const sorted = dataRows.sort((a,b) => parseDate(b.DATA||'01/01/2000') - parseDate(a.DATA||'01/01/2000'));
+
+  const fmtRow = (r, style) => `<tr class="tfoot-row" style="${style}">
+    <td style="text-align:left">${r.DATA}</td>
+    ${cols.map(c => `<td>${r[c] ? r[c] : '<span class="zero">—</span>'}</td>`).join('')}
+  </tr>`;
+
   el.innerHTML = `<div class="table-wrap"><div class="scrollable">
     <table style="table-layout:auto;min-width:700px;">
       <thead class="green"><tr>
@@ -927,22 +937,13 @@ function renderMontados() {
         ${colLabels.map(l=>`<th>${l}</th>`).join('')}
       </tr></thead>
       <tfoot>
-        <tr class="tfoot-row" style="background:#1e2a4a;border-top:2px solid var(--green-dark)">
-          <td style="text-align:left">TOTAL</td>
-          ${cols.map(c=>`<td>${totals[c].toLocaleString('pt-BR')}</td>`).join('')}
-        </tr>
-        <tr class="tfoot-row" style="background:#162a1e">
-          <td style="text-align:left;color:var(--green)">MÉDIA</td>
-          ${cols.map(c=>`<td style="color:var(--green)">${medias[c]}</td>`).join('')}
-        </tr>
-        <tr class="tfoot-row" style="background:#162a1e">
-          <td style="text-align:left;color:var(--text-muted)">DIAS ÚTEIS</td>
-          <td colspan="8" style="color:var(--text-muted);text-align:left">${workingDays}</td>
-        </tr>
+        ${totalRow ? fmtRow(totalRow, 'background:#1e2a4a;border-top:2px solid var(--green-dark)') : ''}
+        ${mediaRow ? fmtRow(mediaRow, 'background:#162a1e;color:var(--green)') : ''}
+        ${diasRow  ? `<tr class="tfoot-row" style="background:#162a1e"><td style="text-align:left;color:var(--text-muted)">${diasRow.DATA}</td><td colspan="8" style="color:var(--text-muted);text-align:left">${diasRow.TOMADA_MULT||''}</td></tr>` : ''}
       </tfoot>
       <tbody>${sorted.map(r => {
-        const d = parseDate(r.DATA||'01/01/2000');
-        const isToday = d.getTime() === todayMidnight.getTime();
+        const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const isToday = parseDate(r.DATA||'01/01/2000').getTime() === todayMidnight.getTime();
         return `<tr style="${isToday?'background:rgba(26,109,255,0.08)':''}">
           <td style="text-align:left${isToday?';color:var(--blue-light);font-weight:600':''}">${r.DATA||''}${isToday?' (hoje)':''}</td>
           ${cols.map(c=>`<td>${r[c]?r[c]:'<span class="zero">—</span>'}</td>`).join('')}
@@ -1354,38 +1355,38 @@ function handleFiles(files) {
 
 function parseOF(text) {
   const rows = parseCSV(text);
+  // Skip only header row, keep TOTAL and all data rows exactly as in email
   DATA.of = rows
     .filter(r => {
       const v = String(r[0]||'').trim();
       if (!v) return false;
       const u = v.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-      return u !== 'DT FIM OF' && !u.includes('TOTAL');
+      return u !== 'DT FIM OF';
     })
     .map(r => ({
       DT_FIM_OF: normDate(r[0]),
       TOMADA_MULT:+r[1]||0, BOMBA:+r[2]||0, CILINDRO:+r[3]||0,
       CONJ_EIXO:+r[4]||0, GUINCHO_ENROL:+r[5]||0, COMANDO:+r[6]||0,
       VALVULA:+r[7]||0, KIT_HIDR:+r[8]||0
-    }))
-    .filter(r => /\d{2}\/\d{2}\/\d{4}/.test(r.DT_FIM_OF));
+    }));
 }
 function parseMontados(text) {
   if (!text.trim()) { DATA.montados=[]; return; }
   const rows = parseCSV(text);
+  // Skip only header row, keep TOTAL, MEDIA, DIAS UTEIS and all data rows
   DATA.montados = rows
     .filter(r => {
       const v = String(r[0]||'').trim();
       if (!v) return false;
       const u = v.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-      return u !== 'DATA' && !u.includes('TOTAL') && !u.includes('MEDIA') && !u.includes('DIAS') && !u.includes('UTEIS');
+      return u !== 'DATA';
     })
     .map(r => ({
       DATA: normDate(r[0]),
       TOMADA_MULT:+r[1]||0, BOMBA:+r[2]||0, CILINDRO:+r[3]||0,
       CONJ_EIXO:+r[4]||0, GUINCHO:+r[5]||0, COMANDO:+r[6]||0,
       VALVULA:+r[7]||0, KIT_HIDR:+r[8]||0
-    }))
-    .filter(r => /\d{2}\/\d{2}\/\d{4}/.test(r.DATA));
+    }));
 }
 function parseTransito(text) {
   const rows = parseCSV(text, ';');
@@ -1430,7 +1431,7 @@ function parseEstoque(text) {
     '800.010.020':'GUI','800.010.040':'GUI'
   };
   DATA.estoque = rows
-    .filter(r => /^[A-Z]{2}$/.test(String(r[2]||'').trim()))
+    .filter(r => { const uf = String(r[2]||'').trim(); return /^[A-Z]{2}$/.test(uf) && uf !== 'UF'; })
     .map(r => {
       const qtde_param_es = +r[8]||0;
       const qtde_abast    = +r[17]||0;
