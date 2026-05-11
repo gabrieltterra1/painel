@@ -928,10 +928,12 @@ function renderMontados() {
       </tr></thead>
       <tfoot>
         <tr class="tfoot-row" style="background:#1e2a4a;border-top:2px solid var(--green-dark)">
-          <td style="text-align:left">TOTAL</td>${cols.map(c=>`<td>${totals[c].toLocaleString('pt-BR')}</td>`).join('')}
+          <td style="text-align:left">TOTAL</td>
+          ${cols.map(c=>`<td>${totals[c].toLocaleString('pt-BR')}</td>`).join('')}
         </tr>
         <tr class="tfoot-row" style="background:#162a1e">
-          <td style="text-align:left;color:var(--green)">MÉDIA</td>${cols.map(c=>`<td style="color:var(--green)">${medias[c]}</td>`).join('')}
+          <td style="text-align:left;color:var(--green)">MÉDIA</td>
+          ${cols.map(c=>`<td style="color:var(--green)">${medias[c]}</td>`).join('')}
         </tr>
         <tr class="tfoot-row" style="background:#162a1e">
           <td style="text-align:left;color:var(--text-muted)">DIAS ÚTEIS</td>
@@ -1388,13 +1390,23 @@ function parseMontados(text) {
 function parseTransito(text) {
   const rows = parseCSV(text, ';');
   const empMap = {'2':'SP','3':'MG','8':'GO','9':'PE'};
-  const classToGroup = {'300.200.001':'TOM','300.200.100':'TOM','300.500.001':'BOM','300.400.001':'CIL','800.010.020':'GUI','800.010.040':'GUI'};
-  const classToLabel = {'300.200.001':'TOMADA DE FORCA','300.200.100':'TOMADA DE FORCA','300.500.001':'BOMBA HIDRAULICA','300.400.001':'CILINDRO HIDRAULICO','800.010.020':'GUINCHO OS-M','800.010.040':'GUINCHO OP'};
+  const classToGroup = {
+    '300.200.001':'TOM','300.200.100':'TOM',
+    '300.500.001':'BOM',
+    '300.400.001':'CIL',
+    '800.010.020':'GUI','800.010.040':'GUI'
+  };
+  const classToLabel = {
+    '300.200.001':'TOMADA DE FORCA','300.200.100':'TOMADA DE FORCA',
+    '300.500.001':'BOMBA HIDRAULICA',
+    '300.400.001':'CILINDRO HIDRAULICO',
+    '800.010.020':'GUINCHO OS-M','800.010.040':'GUINCHO OP'
+  };
   const pivot = {}; ['SP','MG','GO','PE'].forEach(e=>{pivot[e]={TOM:0,BOM:0,CIL:0,GUI:0};});
   const detail = [];
   rows.forEach(r => {
     const col1 = String(r[1]||'').trim();
-    if (!col1 || isNaN(+col1) && col1.toUpperCase().includes('CODIGO')) return;
+    if (!col1 || col1.toUpperCase().includes('CODIGO') || col1.toUpperCase().includes('ITEM')) return;
     const codigo = col1;
     const descricao = String(r[2]||'').trim();
     const empresaNum = String(r[3]||'').trim();
@@ -1411,35 +1423,57 @@ function parseTransito(text) {
 }
 function parseEstoque(text) {
   const rows = parseCSV(text, ';');
-  const clsToGroup = {'300.200.001':'TOM','300.200.100':'TOM','300.500.001':'BOM','300.400.001':'CIL','800.010.020':'GUI','800.010.040':'GUI'};
+  const clsToGroup = {
+    '300.200.001':'TOM','300.200.100':'TOM',
+    '300.500.001':'BOM',
+    '300.400.001':'CIL',
+    '800.010.020':'GUI','800.010.040':'GUI'
+  };
   DATA.estoque = rows
-    .filter(r => /^[A-Z]{2}$/.test(String(r[1]||'').trim()))
+    .filter(r => /^[A-Z]{2}$/.test(String(r[2]||'').trim()))
     .map(r => {
-      const qtde_param_es = +r[7]||0;
-      const qtde_abast = +r[16]||0;
-      const pct_es = qtde_param_es > 0 ? Math.round(qtde_abast/qtde_param_es*1000)/10 : 0;
+      const qtde_param_es = +r[8]||0;
+      const qtde_abast    = +r[17]||0;
+      // pct_es from last col "% ABASTECIMENTO REAL" — strip % and parse
+      const pctStr = String(r[18]||'').replace('%','').replace(',','.').trim();
+      const pct_es = parseFloat(pctStr)||0;
       return {
-        cod_emp:0, uf:String(r[1]||'').trim(), classificacao:String(r[2]||'').trim(),
-        descricao:String(r[3]||'').trim(), cod_almox:+r[4]||0, deposito:String(r[5]||'').trim(),
-        qtde_cod_es:+r[6]||0, qtde_param_es, custo_tdt:String(r[8]||'').trim(),
-        tot_falta:+r[9]||0, custo_abast:String(r[10]||'').trim(), cod_zerados:+r[11]||0,
-        estoque_total:+r[12]||0, custo_saldo:String(r[13]||'').trim(), estoque_excesso:+r[14]||0,
-        custo_exces:String(r[15]||'').trim(), qtde_abast, perc_abast_mtz:pct_es, pct_es,
+        cod_emp:        +r[1]||0,
+        uf:             String(r[2]||'').trim(),
+        classificacao:  String(r[3]||'').trim(),
+        descricao:      String(r[4]||'').trim(),
+        cod_almox:      +r[5]||0,
+        deposito:       String(r[6]||'').trim(),
+        qtde_cod_es:    +r[7]||0,
+        qtde_param_es,
+        custo_tdt:      String(r[9]||'').trim(),
+        tot_falta:      +r[10]||0,
+        custo_abast:    String(r[11]||'').trim(),
+        cod_zerados:    +r[12]||0,
+        estoque_total:  +r[13]||0,
+        custo_saldo:    String(r[14]||'').trim(),
+        estoque_excesso:+r[15]||0,
+        custo_exces:    String(r[16]||'').trim(),
+        qtde_abast,
+        perc_abast_mtz: pct_es,
+        pct_es,
       };
     });
+
+  // Recalculate NS from pct_es
   const nsMap = {};
   DATA.estoque.forEach(r => {
     const g = clsToGroup[r.classificacao];
-    if (!g||!r.uf||!r.pct_es) return;
-    if (!nsMap[r.uf]) nsMap[r.uf]={};
-    if (!nsMap[r.uf][g]) nsMap[r.uf][g]=[];
+    if (!g || !r.uf || !r.pct_es) return;
+    if (!nsMap[r.uf]) nsMap[r.uf] = {};
+    if (!nsMap[r.uf][g]) nsMap[r.uf][g] = [];
     nsMap[r.uf][g].push(r.pct_es);
   });
   DATA.ns = {};
-  Object.entries(nsMap).forEach(([uf,groups])=>{
-    DATA.ns[uf]={};
-    Object.entries(groups).forEach(([g,vals])=>{
-      DATA.ns[uf][g]=parseFloat((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1));
+  Object.entries(nsMap).forEach(([uf, groups]) => {
+    DATA.ns[uf] = {};
+    Object.entries(groups).forEach(([g, vals]) => {
+      DATA.ns[uf][g] = parseFloat((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1));
     });
   });
 }
@@ -1523,9 +1557,9 @@ function renderNSChart() {
 
   if (_nsProduct === 'cilindro' || _nsProduct === 'todos') {
     const cilData = empsNS.map(e => {
-      const rows = DATA.estoque.filter(r=>r.uf===e&&(r.classificacao==='300.300.005'||r.classificacao==='300.400.001'));
-      const tp=rows.reduce((s,r)=>s+r.qtde_param_es,0), ta=rows.reduce((s,r)=>s+r.qtde_abast,0);
-      return tp>0 ? Math.round(ta/tp*1000)/10 : 0;
+      const rows = DATA.estoque.filter(r=>r.uf===e&&(r.classificacao==='300.400.001'||r.classificacao==='300.300.005'));
+      const avg = rows.length > 0 ? rows.reduce((s,r)=>s+r.pct_es,0)/rows.length : 0;
+      return parseFloat(avg.toFixed(1));
     });
     if (cilData.some(v=>v>0)) datasets.push({label:'CILINDRO',data:cilData,backgroundColor:'#ff3b3bcc',borderRadius:4});
   }
@@ -1659,8 +1693,11 @@ async function startMonitor() {
 async function readSheets() {
   setStatus('active', 'Lendo planilha...');
   const parsers = {
-    'OF_ABERTAS':parseOF,'ITENS_MONTADOS':parseMontados,
-    'ESTOQUE_SEGURANCA':parseEstoque,'TRANSITO':parseTransito,'SERVICO_TERCEIROS':parseServico
+    'OF_ABERTAS':        parseOF,
+    'ITENS_MONTADOS':    parseMontados,
+    'ESTOQUE_SEGURANCA': parseEstoque,
+    'TRANSITO':          parseTransito,
+    'SERVICO_TERCEIROS': parseServico
   };
   let found=0, errors=[];
   for (const [aba, parser] of Object.entries(parsers)) {
@@ -1676,9 +1713,13 @@ async function readSheets() {
     renderAll();
     nextRead = new Date(Date.now()+READ_INTERVAL_MS);
     const t = new Date().toLocaleTimeString('pt-BR');
-    setStatus('active', errors.length?'Atualizado '+t+' ('+errors.length+' erros)':'Atualizado as '+t+' - prox. 5min');
+    setStatus('active', errors.length
+      ? 'Atualizado '+t+' ('+errors.length+' erros)'
+      : 'Atualizado as '+t+' - prox. 5min');
     startCountdown();
-  } else { setStatus('error','Erro ao ler planilha'); }
+  } else {
+    setStatus('error', 'Erro ao ler planilha');
+  }
 }
 
 function startCountdown() {
@@ -1686,7 +1727,9 @@ function startCountdown() {
   if (!nextRead) return;
   countdownTimer = setInterval(()=>{
     const rem=Math.max(0,nextRead-Date.now());
-    document.getElementById('countdown').textContent=rem>0?'prox. em '+Math.floor(rem/60000)+':'+String(Math.floor((rem%60000)/1000)).padStart(2,'0'):'lendo...';
+    document.getElementById('countdown').textContent=rem>0
+      ?'prox. em '+Math.floor(rem/60000)+':'+String(Math.floor((rem%60000)/1000)).padStart(2,'0')
+      :'lendo...';
   },1000);
 }
 
