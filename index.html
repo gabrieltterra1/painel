@@ -837,11 +837,17 @@ const DATA = {
 function normDate(s) {
   if (!s) return '';
   s = String(s).trim();
+  // Already DD/MM/YYYY
   if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
-  const j = s.match(/(\w{3}) (\w{3}) (\d{2}) (\d{4})/);
-  if (j) { const mo={Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'}; return j[3]+'/'+mo[j[2]]+'/'+j[4]; }
-  const d = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (d) return String(+d[2]).padStart(2,'0')+'/'+String(+d[1]).padStart(2,'0')+'/'+d[3];
+  // ISO date: 2026-06-05T03:00:00.000Z
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})T/);
+  if (iso) return iso[3]+'/'+iso[2]+'/'+iso[1];
+  // JS Date string: Fri Jun 05 2026 ...
+  const js = s.match(/(\w{3}) (\w{3}) (\d{2}) (\d{4})/);
+  if (js) { const mo={Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'}; return js[3]+'/'+mo[js[2]]+'/'+js[4]; }
+  // MM/DD/YYYY � DD/MM/YYYY
+  const mmdd = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (mmdd) return String(+mmdd[2]).padStart(2,'0')+'/'+String(+mmdd[1]).padStart(2,'0')+'/'+mmdd[3];
   return s;
 }
 // ===== HELPERS =====
@@ -1362,20 +1368,30 @@ function handleFiles(files) {
 
 function parseOF(text) {
   const rows = parseCSV(text);
-  const skip = s => { const u=(s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); return !s||u==='DT FIM OF'||u.includes('TOTAL')||u.includes('TOMADA E MULT'); };
-  DATA.of = rows.filter(r=>!skip(r[0])&&!skip(r[1])).map(r => {
-    const o = (/\d{2}\/\d{2}\/\d{4}/.test(r[1]||'')||(r[1]||'').includes('GMT')) ? 1 : 0;
-    return { DT_FIM_OF:normDate(r[o]), TOMADA_MULT:+r[o+1]||0, BOMBA:+r[o+2]||0, CILINDRO:+r[o+3]||0, CONJ_EIXO:+r[o+4]||0, GUINCHO_ENROL:+r[o+5]||0, COMANDO:+r[o+6]||0, VALVULA:+r[o+7]||0, KIT_HIDR:+r[o+8]||0 };
-  }).filter(r=>r.DT_FIM_OF);
+  const skip = s => { const u=(s||'').toString().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); return !s&&s!==0||u==='DT FIM OF'||u.includes('TOTAL')||u.includes('TOMADA E MULT'); };
+  DATA.of = rows
+    .filter(r => !skip(r[0]))
+    .map(r => ({
+      DT_FIM_OF: normDate(String(r[0])),
+      TOMADA_MULT:+r[1]||0, BOMBA:+r[2]||0, CILINDRO:+r[3]||0,
+      CONJ_EIXO:+r[4]||0, GUINCHO_ENROL:+r[5]||0, COMANDO:+r[6]||0,
+      VALVULA:+r[7]||0, KIT_HIDR:+r[8]||0
+    }))
+    .filter(r => r.DT_FIM_OF && r.DT_FIM_OF.match(/\d{2}\/\d{2}\/\d{4}/));
 }
 function parseMontados(text) {
   if (!text.trim()) { DATA.montados=[]; return; }
   const rows = parseCSV(text);
-  const skip = s => { const u=(s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); return !s||u==='DATA'||u.includes('TOTAL')||u.includes('MEDIA')||u.includes('DIAS')||u.includes('UTEIS')||u.includes('TOMADA E MULT'); };
-  DATA.montados = rows.filter(r=>!skip(r[0])&&!skip(r[1])).map(r => {
-    const o = (/\d{2}\/\d{2}\/\d{4}/.test(r[1]||'')||(r[1]||'').includes('GMT')) ? 1 : 0;
-    return { DATA:normDate(r[o]), TOMADA_MULT:+r[o+1]||0, BOMBA:+r[o+2]||0, CILINDRO:+r[o+3]||0, CONJ_EIXO:+r[o+4]||0, GUINCHO:+r[o+5]||0, COMANDO:+r[o+6]||0, VALVULA:+r[o+7]||0, KIT_HIDR:+r[o+8]||0 };
-  }).filter(r=>r.DATA);
+  const skip = s => { const u=(s||'').toString().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); return u==='DATA'||u.includes('TOTAL')||u.includes('MEDIA')||u.includes('DIAS')||u.includes('UTEIS')||u.includes('TOMADA E MULT'); };
+  DATA.montados = rows
+    .filter(r => r[0] && !skip(r[0]))
+    .map(r => ({
+      DATA: normDate(String(r[0])),
+      TOMADA_MULT:+r[1]||0, BOMBA:+r[2]||0, CILINDRO:+r[3]||0,
+      CONJ_EIXO:+r[4]||0, GUINCHO:+r[5]||0, COMANDO:+r[6]||0,
+      VALVULA:+r[7]||0, KIT_HIDR:+r[8]||0
+    }))
+    .filter(r => r.DATA && r.DATA.match(/\d{2}\/\d{2}\/\d{4}/));
 }
 function parseTransito(text) {
   const rows = parseCSV(text, ';');
@@ -1384,14 +1400,20 @@ function parseTransito(text) {
   const classToLabel = {'300.200.001':'TOMADA DE FORCA','300.200.100':'TOMADA DE FORCA','300.500.001':'BOMBA HIDRAULICA','300.400.001':'CILINDRO HIDRAULICO','800.010.020':'GUINCHO OS-M','800.010.040':'GUINCHO OP'};
   const pivot = {}; ['SP','MG','GO','PE'].forEach(e=>{pivot[e]={TOM:0,BOM:0,CIL:0,GUI:0};});
   const detail = [];
+  // Header: DATA, C�DIGO ITEM, DESCRI��O T�CNICA, EMPRESA, ESTQ TR�NSITO, CLASSIFICA��O
+  // Skip header row and rows where col1 is not numeric (codigo item)
   rows.forEach(r => {
-    const o = empMap[(r[2]||'').trim()] ? 0 : 1;
-    const emp = empMap[(r[o+2]||'').trim()];
-    const cls = (r[o+4]||'').trim();
-    const qty = +r[o+3]||0;
+    const codigo = String(r[1]||'').trim();
+    const descricao = String(r[2]||'').trim();
+    const empresaNum = String(r[3]||'').trim();
+    const qty = +r[4]||0;
+    const cls = String(r[5]||'').trim();
+    // Skip header
+    if (codigo.toUpperCase()==='C�DIGO ITEM'||codigo.toUpperCase()==='CODIGO ITEM') return;
+    const emp = empMap[empresaNum];
     if (!emp||qty<=0) return;
     const g = classToGroup[cls]; if (g) pivot[emp][g]+=qty;
-    detail.push({codigo:(r[o]||'').trim(), descricao:(r[o+1]||'').trim(), empresa:emp, quantidade:qty, classificacao:cls, produto:classToLabel[cls]||cls});
+    detail.push({codigo, descricao, empresa:emp, quantidade:qty, classificacao:cls, produto:classToLabel[cls]||cls});
   });
   DATA.transito = ['SP','MG','GO','PE'].map(k=>({EMPRESA:k,...pivot[k]}));
   DATA.transito_detail = detail;
@@ -1399,28 +1421,77 @@ function parseTransito(text) {
 function parseEstoque(text) {
   const rows = parseCSV(text, ';');
   const clsToGroup = {'300.200.001':'TOM','300.200.100':'TOM','300.500.001':'BOM','300.400.001':'CIL','800.010.020':'GUI','800.010.040':'GUI'};
-  DATA.estoque = rows.map(r => {
-    const o = (!isNaN(+r[0])&&+r[0]>0&&(r[0]||'').trim().length<=2) ? 0 : 1;
-    return { cod_emp:+r[o]||0, uf:(r[o+1]||'').trim(), classificacao:(r[o+2]||'').trim(), descricao:(r[o+3]||'').trim(), cod_almox:+r[o+4]||0, deposito:(r[o+5]||'').trim(), qtde_cod_es:+r[o+6]||0, qtde_param_es:+r[o+7]||0, custo_tdt:(r[o+8]||'').trim(), tot_falta:+r[o+9]||0, custo_abast:(r[o+10]||'').trim(), cod_zerados:+r[o+11]||0, estoque_total:+r[o+12]||0, custo_saldo:(r[o+13]||'').trim(), estoque_excesso:+r[o+14]||0, custo_exces:(r[o+15]||'').trim(), qtde_abast:+r[o+16]||0, perc_abast_mtz:parseFloat((r[o+17]||'').replace(',','.'))||0, pct_es:(+r[o+7]||0)>0?Math.round((+r[o+16]||0)/(+r[o+7]||0)*1000)/10:0 };
-  }).filter(r=>r.uf&&/^[A-Z]{2}$/.test(r.uf));
+  DATA.estoque = rows
+    .filter(r => {
+      const uf = String(r[1]||'').trim();
+      return /^[A-Z]{2}$/.test(uf); // only rows where col1 is a 2-letter state code
+    })
+    .map(r => ({
+      cod_emp:        0,
+      uf:             String(r[1]||'').trim(),
+      classificacao:  String(r[2]||'').trim(),
+      descricao:      String(r[3]||'').trim(),
+      cod_almox:      +r[4]||0,
+      deposito:       String(r[5]||'').trim(),
+      qtde_cod_es:    +r[6]||0,
+      qtde_param_es:  +r[7]||0,
+      custo_tdt:      String(r[8]||'').trim(),
+      tot_falta:      +r[9]||0,
+      custo_abast:    String(r[10]||'').trim(),
+      cod_zerados:    +r[11]||0,
+      estoque_total:  +r[12]||0,
+      custo_saldo:    String(r[13]||'').trim(),
+      estoque_excesso:+r[14]||0,
+      custo_exces:    String(r[15]||'').trim(),
+      qtde_abast:     +r[16]||0,
+      perc_abast_mtz: parseFloat(String(r[17]||'').replace(',','.'))||0,
+      pct_es: (+r[7]||0)>0 ? Math.round((+r[16]||0)/(+r[7]||0)*1000)/10 : 0,
+    }));
+
+  // Recalculate NS
   const nsMap = {};
-  DATA.estoque.forEach(r => { const g=clsToGroup[r.classificacao]; if(!g||!r.uf||!r.pct_es)return; if(!nsMap[r.uf])nsMap[r.uf]={}; if(!nsMap[r.uf][g])nsMap[r.uf][g]=[]; nsMap[r.uf][g].push(r.pct_es); });
+  DATA.estoque.forEach(r => {
+    const g = clsToGroup[r.classificacao];
+    if (!g||!r.uf||!r.pct_es) return;
+    if (!nsMap[r.uf]) nsMap[r.uf]={};
+    if (!nsMap[r.uf][g]) nsMap[r.uf][g]=[];
+    nsMap[r.uf][g].push(r.pct_es);
+  });
   DATA.ns = {};
-  Object.entries(nsMap).forEach(([uf,groups])=>{ DATA.ns[uf]={}; Object.entries(groups).forEach(([g,vals])=>{ DATA.ns[uf][g]=parseFloat((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1)); }); });
+  Object.entries(nsMap).forEach(([uf,groups])=>{
+    DATA.ns[uf]={};
+    Object.entries(groups).forEach(([g,vals])=>{
+      DATA.ns[uf][g]=parseFloat((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1));
+    });
+  });
 }
 function parseServico(text) {
   const rows = parseCSV(text, ';');
   const result = {};
   rows.forEach(r => {
-    const o = (r[0].trim()==='1'||r[0].trim()==='2') ? 0 : 1;
-    const empresa_num=(r[o]||'').trim(), dateStr=(r[o+7]||'').trim(), emp=(r[o+10]||'').trim();
-    const val=parseFloat((r[o+47]||'').replace(',','.'))||0;
-    if (!dateStr||!emp||!val||empresa_num!=='1'&&empresa_num!=='2') return;
-    const p=dateStr.split('/'); if(p.length<3) return;
-    const mes=p[2]+'-'+p[1].padStart(2,'0'), key=emp+'|'+empresa_num+'|'+mes;
-    result[key]=(result[key]||0)+val;
+    // col0=DATA ATUAL(skip), col1=EMP, col8=DT ENT, col11=FORNECEDOR, col48=TOT CONTABIL
+    const empresa_num = String(r[1]||'').trim();
+    const dtEnt = String(r[8]||'').trim();
+    const emp = String(r[11]||'').trim();
+    const val = parseFloat(String(r[48]||'').replace(',','.'))||0;
+    if (!dtEnt||!emp||!val) return;
+    if (empresa_num!=='1'&&empresa_num!=='2') return;
+    // DT ENT comes as ISO: 2026-01-04T03:00:00.000Z or DD/MM/YYYY
+    let mes;
+    const iso = dtEnt.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) { mes = iso[1]+'-'+iso[2]; }
+    else {
+      const p = dtEnt.split('/');
+      if (p.length<3) return;
+      mes = p[2]+'-'+p[1].padStart(2,'0');
+    }
+    const key = emp+'|'+empresa_num+'|'+mes;
+    result[key] = (result[key]||0)+val;
   });
-  DATA.servico=Object.entries(result).map(([k,v])=>{const[empresa,empresa_num,mes]=k.split('|');return{empresa,empresa_num,mes,valor:Math.round(v*100)/100};});
+  DATA.servico = Object.entries(result).map(([k,v])=>{
+    const [empresa,empresa_num,mes]=k.split('|');
+    return {empresa,empresa_num,mes,valor:Math.round(v*100)/100};
+  });
 }
 
 // ===== NS CHART — dynamic product selector =====
