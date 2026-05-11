@@ -640,8 +640,6 @@ document.addEventListener('DOMContentLoaded', () => {
       <span id="update-time" class="last-update">— Aguardando pasta…</span>
       <span class="countdown-ring" id="countdown"></span>
     </div>
-    
-    
     <input type="file" id="file-input" multiple accept=".csv,.CSV" onchange="handleFiles(this.files)">
   </div>
 </header>
@@ -836,28 +834,17 @@ const DATA = {
   transito_detail: [{"codigo":"100000","descricao":"TOMADA DE FORCA TK 100000  MP  01  T  P  100  04  H  600","empresa":"SP","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"100000","descricao":"TOMADA DE FORCA TK 100000  MP  01  T  P  100  04  H  600","empresa":"GO","quantidade":6,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10014","descricao":"TOMADA DE FORCA TK 902401  EC  01  L  P  110  01  H  350","empresa":"SP","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10014","descricao":"TOMADA DE FORCA TK 902401  EC  01  L  P  110  01  H  350","empresa":"GO","quantidade":21,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10018","descricao":"TOMADA DE FORCA TK 902403  EC  01  L  P  110  04  H  350","empresa":"SP","quantidade":14,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10018","descricao":"TOMADA DE FORCA TK 902403  EC  01  L  P  110  04  H  350","empresa":"MG","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10026","descricao":"TOMADA DE FORCA TK 902413  EC  01  L  P  135  04  H  350","empresa":"SP","quantidade":10,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10051","descricao":"TOMADA DE FORCA TK 906311  EC  01  L  P  135  06  H  350","empresa":"MG","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10079","descricao":"TOMADA DE FORCA TK 902011  EC  10  D  P  135  01  H  350","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"105000","descricao":"TOMADA DE FORCA TK 105000  ZF  05  T  P  100  04  H  600","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"106002","descricao":"TOMADA DE FORCA TK 106002  ZF  05  T  P  100  15  H  600","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10612","descricao":"TOMADA DE FORCA TK 901911  EC  02  L  P  135  01  H  350","empresa":"SP","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10612","descricao":"TOMADA DE FORCA TK 901911  EC  02  L  P  135  01  H  350","empresa":"GO","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10612","descricao":"TOMADA DE FORCA TK 901911  EC  02  L  P  135  01  H  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10626","descricao":"TOMADA DE FORCA TK 902823  EC  09  L  P  166  04  H  350","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10638","descricao":"TOMADA DE FORCA TK 901913  EC  02  L  P  135  04  H  350","empresa":"SP","quantidade":6,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10638","descricao":"TOMADA DE FORCA TK 901913  EC  02  L  P  135  04  H  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"107700","descricao":"TOMADA DE FORCA TK 107700  MB  02  T  P  100  04  H  600","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10782","descricao":"TOMADA DE FORCA TK 900311  ZF  13  L  P  135  01  H  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10894","descricao":"TOMADA DE FORCA TK 902111  EC  13  L  P  135  01  H  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"110000","descricao":"TOMADA DE FORCA TK 110000  ZF  03  T  P  100  04  H  600","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"11540","descricao":"TOMADA DE FORCA TK 9131  EC  24  D  P  135  01  H  350","empresa":"GO","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"11697","descricao":"TOMADA DE FORCA TK 903111  EC  04  D  P  135  01  H  350","empresa":"GO","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"11697","descricao":"TOMADA DE FORCA TK 903111  EC  04  D  P  135  01  H  350","empresa":"PE","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"11699","descricao":"TOMADA DE FORCA TK 903113  EC  04  D  P  135  04  H  350","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"11728","descricao":"TOMADA DE FORCA TK 9131  EC  25  D  P  084  01  H  S  350","empresa":"GO","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"11859","descricao":"TOMADA DE FORCA TK 9131  EC  25  D  P  084  04  H  S  350","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"120000","descricao":"TOMADA DE FORCA TK 120000  EC  02  D  P  100  04  A  350","empresa":"PE","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"120800","descricao":"TOMADA DE FORCA TK 120800  EC  01  D  P  100  04  A  350","empresa":"SP","quantidade":13,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"120800","descricao":"TOMADA DE FORCA TK 120800  EC  01  D  P  100  04  A  350","empresa":"GO","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"120800","descricao":"TOMADA DE FORCA TK 120800  EC  01  D  P  100  04  A  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"12190","descricao":"BOMBA HIDRAULICA BHT 9150 06 B 110 23 23 02 BP 20 210 230","empresa":"SP","quantidade":2,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"12212","descricao":"BOMBA HIDRAULICA BHT 9150 16 B 100 23 23 02 AG 20 225 250","empresa":"GO","quantidade":3,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"12364","descricao":"TOMADA DE FORCA TK 902526 EC 12 E M 166 01 H 350","empresa":"MG","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"12479","descricao":"TOMADA DE FORCA TK 9131  EC  26  E  P  135  01  H  250","empresa":"SP","quantidade":25,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"12659","descricao":"TOMADA DE FORCA TK 9131  EC  27  E  E  135  18  H  S  350","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13160","descricao":"TOMADA DE FORCA TK 9131  EC  27  E  E  135  04  H  S  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13173","descricao":"TOMADA DE FORCA TK 910302  MB  01  T  P  130  06  A  MC  350","empresa":"SP","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13175","descricao":"TOMADA DE FORCA TK 5960  MB  01  T  P  130  01  A  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13175","descricao":"TOMADA DE FORCA TK 5960  MB  01  T  P  130  01  A  350","empresa":"GO","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13236","descricao":"TOMADA DE FORCA TK 9131 EC 26 E P 110 04 H 250","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13238","descricao":"TOMADA DE FORCA TK 9131  EC  26  E  P  135  04  H  250","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13314","descricao":"TOMADA DE FORCA TK 9106 SC 12 DT P 100 06 A CS 600","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"14311","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 036 01 01 02 GU 35 300 325","empresa":"GO","quantidade":18,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14312","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 043 01 01 02 GU 35 280 305","empresa":"SP","quantidade":16,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14312","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 043 01 01 02 GU 35 280 305","empresa":"GO","quantidade":10,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14312","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 043 01 01 02 GU 35 280 305","empresa":"PE","quantidade":6,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14313","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 051 01 01 02 GU 30 250 275","empresa":"SP","quantidade":27,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14313","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 051 01 01 02 GU 30 250 275","empresa":"MG","quantidade":6,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14313","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 051 01 01 02 GU 30 250 275","empresa":"GO","quantidade":15,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14313","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 051 01 01 02 GU 30 250 275","empresa":"PE","quantidade":8,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14314","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 057 01 01 02 GU 25 240 265","empresa":"SP","quantidade":20,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14314","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 057 01 01 02 GU 25 240 265","empresa":"GO","quantidade":15,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14316","descricao":"BOMBA HIDRAULICA BHT 9105 06 B 043 01 01 02 GU 35 280 305","empresa":"SP","quantidade":3,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14658","descricao":"TOMADA DE FORCA TK 9131  EC  27  E  M  135  18  H  350","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"15601","descricao":"TOMADA DE FORCA TK 9131  EC  26  D  P  166  01  H  S  250","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"17214","descricao":"GUINCHO OP 5000/7000 M PC","empresa":"SP","quantidade":6,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17214","descricao":"GUINCHO OP 5000/7000 M PC","empresa":"GO","quantidade":3,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17229","descricao":"GUINCHO OS 303M 8T-1R PL �9,5X50M  (19X7) 8-9,5 V MH","empresa":"SP","quantidade":1,"classificacao":"800.010.020","produto":"GUINCHO OS-M"},{"codigo":"17237","descricao":"GUINCHO OP 19000 M MH  �16X25M  (8X31) PC G","empresa":"MG","quantidade":1,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17237","descricao":"GUINCHO OP 19000 M MH  �16X25M  (8X31) PC G","empresa":"PE","quantidade":2,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17245","descricao":"GUINCHO OP 10000 M MH  �14X25M  (6X25) PC G","empresa":"MG","quantidade":1,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17249","descricao":"GUINCHO OP 10000/15000/19000 M PC","empresa":"GO","quantidade":2,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17251","descricao":"GUINCHO OP 5000 M MH  �9,5X20M  (6X25) PC G","empresa":"GO","quantidade":2,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17251","descricao":"GUINCHO OP 5000 M MH  �9,5X20M  (6X25) PC G","empresa":"PE","quantidade":1,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"175600","descricao":"TOMADA DE FORCA TK 175600  MB  01  T  P  100  04  H  C  FM  600","empresa":"SP","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"17576","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 075 33 33 04 BC 85 210 230","empresa":"GO","quantidade":7,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"176600","descricao":"TOMADA DE FORCA TK 176600  MB  01  T  P  100  10  H  C  FM  600","empresa":"SP","quantidade":6,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"17693","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 065 01 01 04 BA 90 220 240","empresa":"SP","quantidade":2,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17693","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 065 01 01 04 BA 90 220 240","empresa":"GO","quantidade":21,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17693","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 065 01 01 04 BA 90 220 240","empresa":"PE","quantidade":4,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17694","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 075 01 01 04 BC 85 210 230","empresa":"SP","quantidade":4,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17694","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 075 01 01 04 BC 85 210 230","empresa":"GO","quantidade":1,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17694","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 075 01 01 04 BC 85 210 230","empresa":"PE","quantidade":5,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17695","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 085 22 22 04 BA 77 210 230","empresa":"GO","quantidade":3,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17699","descricao":"BOMBA HIDRAULICA BHT 9105 06 B 075 01 01 04 BC 85 210 230","empresa":"SP","quantidade":6,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17811","descricao":"BOMBA HIDRAULICA BHT 9105 06 B 085 22 22 04 RS BA 77 210 230","empresa":"GO","quantidade":4,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"18539","descricao":"TOMADA DE FORCA TK 9138  MB  03  T  P  200  05  A  FM  350","empresa":"SP","quantidade":1,"classificacao":"300.200.100","produto":"TOMADA DE FORCA"},{"codigo":"18770","descricao":"TOMADA DE FORCA TK 9162  SC  06  D  P  068  06  H  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"18771","descricao":"TOMADA DE FORCA TK 9162  SC  06  D  P  068  01  H  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"18789","descricao":"TOMADA DE FORCA TK 9162  EC  05  I  P  080  01  H  350","empresa":"PE","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"18791","descricao":"TOMADA DE FORCA TK 9162  EC  05  I  P  080  04  H  350","empresa":"GO","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"19689","descricao":"TOMADA DE FORCA TK 9131  EC  28  L  P  084  01  H  CA  300","empresa":"PE","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"19691","descricao":"TOMADA DE FORCA TK 9131  EC  28  L  P  084  04  H  CA  300","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"222000","descricao":"TOMADA DE FORCA TK 2220.00  IV  01  E  M  100  01  H  120","empresa":"SP","quantidade":9,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"22482","descricao":"TOMADA DE FORCA TK 5900 ZF 21 T P 130 01 A C 350","empresa":"SP","quantidade":15,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"22728","descricao":"TOMADA DE FORCA TK 5900 ZF 21 T P 130 06 A MC 300","empresa":"PE","quantidade":10,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"22730","descricao":"TOMADA DE FORCA TK 5900 ZF 21 T P 130 04 A 350","empresa":"PE","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"54560","descricao":"CILINDRO HIDRAULICO BP6\" X850 FIXACAO CENTRAL","empresa":"GO","quantidade":10,"classificacao":"300.400.001","produto":"CILINDRO HIDRAULICO"},{"codigo":"54560","descricao":"CILINDRO HIDRAULICO BP6\" X850 FIXACAO CENTRAL","empresa":"PE","quantidade":6,"classificacao":"300.400.001","produto":"CILINDRO HIDRAULICO"},{"codigo":"54564","descricao":"CILINDRO HIDRAULICO BP7\" X850 FIXACAO CENTRAL","empresa":"GO","quantidade":2,"classificacao":"300.400.001","produto":"CILINDRO HIDRAULICO"},{"codigo":"590000","descricao":"TOMADA DE FORCA TK 590000  MP  01  T  P  130  01  A  350","empresa":"SP","quantidade":16,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"590000","descricao":"TOMADA DE FORCA TK 590000  MP  01  T  P  130  01  A  350","empresa":"GO","quantidade":17,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"590700","descricao":"TOMADA DE FORCA TK 590700  MP  01  T  P  130  04  A  350","empresa":"MG","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"590800","descricao":"TOMADA DE FORCA TK 590800  MP  01  T  P  130  02  A  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"592000","descricao":"TOMADA DE FORCA TK 592000  ZF  05  T  P  130  01  A  C  350","empresa":"SP","quantidade":12,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"592601","descricao":"TOMADA DE FORCA TK 592601  ZF  05  T  P  130  10  A  C  350","empresa":"GO","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"595000","descricao":"TOMADA DE FORCA TK 595000  ZF  11  T  P  130  01  A  350","empresa":"PE","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"596000","descricao":"TOMADA DE FORCA TK 596000  MB  01  T  P  130  01  A  C  FM  350","empresa":"SP","quantidade":28,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"596000","descricao":"TOMADA DE FORCA TK 596000  MB  01  T  P  130  01  A  C  FM  350","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"596000","descricao":"TOMADA DE FORCA TK 596000  MB  01  T  P  130  01  A  C  FM  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"596701","descricao":"TOMADA DE FORCA TK 5967.01  MB  01  T  P  130  04  A  350","empresa":"GO","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"597000","descricao":"TOMADA DE FORCA TK 597000  MB  02  T  P  130  01  A  350","empresa":"SP","quantidade":14,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"597000","descricao":"TOMADA DE FORCA TK 597000  MB  02  T  P  130  01  A  350","empresa":"GO","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"597000","descricao":"TOMADA DE FORCA TK 597000  MB  02  T  P  130  01  A  350","empresa":"PE","quantidade":10,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"597700","descricao":"TOMADA DE FORCA TK 597700  MB  02  T  P  130  04  A  FM  350","empresa":"SP","quantidade":7,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"598000","descricao":"TOMADA DE FORCA TK 598000  ZF  03  T  P  130  01  A  350","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"599000","descricao":"TOMADA DE FORCA TK 599000  EC  18  T  P  130  01  A  350","empresa":"MG","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"599700","descricao":"TOMADA DE FORCA TK 599700  EC  18  T  P  130  04  A  350","empresa":"PE","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"7829","descricao":"TOMADA DE FORCA TK 902411  EC  01  L  P  135  01  H  350","empresa":"SP","quantidade":20,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"7829","descricao":"TOMADA DE FORCA TK 902411  EC  01  L  P  135  01  H  350","empresa":"MG","quantidade":10,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"7829","descricao":"TOMADA DE FORCA TK 902411  EC  01  L  P  135  01  H  350","empresa":"PE","quantidade":18,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"8675","descricao":"BOMBA HIDRAULICA BHT 9105 01 A 015 01 02 02 GU 65 300 325","empresa":"SP","quantidade":6,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"8689","descricao":"TOMADA DE FORCA TK 9006  MB  03  T  P  200  04  A  FM  350","empresa":"MG","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"901001","descricao":"TOMADA DE FORCA TK 901001  VV  01  T  P  130  01  A  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"901001","descricao":"TOMADA DE FORCA TK 901001  VV  01  T  P  130  01  A  350","empresa":"GO","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"901003","descricao":"TOMADA DE FORCA TK 9010.03  VV  01  T  P  130  04  A  C  FV  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"901003","descricao":"TOMADA DE FORCA TK 9010.03  VV  01  T  P  130  04  A  C  FV  350","empresa":"GO","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"901640","descricao":"BOMBA HIDRAULICA BHT 9016 01 H 065 22 21 02 P 03 BA 20 190 200","empresa":"MG","quantidade":1,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"901640","descricao":"BOMBA HIDRAULICA BHT 9016 01 H 065 22 21 02 P 03 BA 20 190 200","empresa":"GO","quantidade":2,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"901641","descricao":"BOMBA HIDRAULICA BHT 9016 01 H 065 22 21 02 M 03 BA 20 190 200","empresa":"PE","quantidade":1,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"901642","descricao":"BOMBA HIDRAULICA BHT 9016 01 A 065 22 21 02 P 03 BA 20 190 200","empresa":"GO","quantidade":4,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"901642","descricao":"BOMBA HIDRAULICA BHT 9016 01 A 065 22 21 02 P 03 BA 20 190 200","empresa":"PE","quantidade":3,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"901643","descricao":"BOMBA HIDRAULICA BHT 9016 01 A 065 22 21 02 M 03 BA 20 190 200","empresa":"PE","quantidade":1,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"903011","descricao":"TOMADA DE FORCA TK 903011  EC  19  I  P  069  13  H  350","empresa":"SP","quantidade":7,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"904501","descricao":"TOMADA DE FORCA TK 904501  ZF  16  T  P  130  01  A  C  350","empresa":"SP","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"904501","descricao":"TOMADA DE FORCA TK 904501  ZF  16  T  P  130  01  A  C  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"904504","descricao":"TOMADA DE FORCA TK 904504  ZF  16  T  P  130  02  A  C  350","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"904903","descricao":"TOMADA DE FORCA TK 904903  ZF  16  T  P  100  04  H  C  600","empresa":"SP","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"905910","descricao":"TOMADA DE FORCA TK 905910  MP  01  T  P  130  06  A  250","empresa":"GO","quantidade":8,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"910003","descricao":"TOMADA DE FORCA TK 910003  ZF  10  T  P  130  01  A  C  350","empresa":"PE","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"910302","descricao":"TOMADA DE FORCA TK 910302  MB  01  T  P  130  06  A  MC  C  FM  300","empresa":"SP","quantidade":20,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"910308","descricao":"TOMADA DE FORCA TK 910308  ZF  16  T  P  130  06  A  MC  C  300","empresa":"MG","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"910310","descricao":"TOMADA DE FORCA TK 9103.10  MP  01  T  P  130  06  A  MC  300","empresa":"SP","quantidade":11,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"910310","descricao":"TOMADA DE FORCA TK 9103.10  MP  01  T  P  130  06  A  MC  300","empresa":"GO","quantidade":8,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"9531","descricao":"BOMBA HIDRAULICA BHT 9101 01 H 085 13 12 06 P 01 A21 BA 15 210 210","empresa":"SP","quantidade":2,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9531","descricao":"BOMBA HIDRAULICA BHT 9101 01 H 085 13 12 06 P 01 A21 BA 15 210 210","empresa":"GO","quantidade":5,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9531","descricao":"BOMBA HIDRAULICA BHT 9101 01 H 085 13 12 06 P 01 A21 BA 15 210 210","empresa":"PE","quantidade":7,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9532","descricao":"BOMBA HIDRAULICA BHT 9101 01 H 065 13 12 06 P 01 A21 BA 20 210 210","empresa":"GO","quantidade":8,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9535","descricao":"BOMBA HIDRAULICA BHT 9101 01 A 065 12 12 06 P 01 A21 BA 20 210 210","empresa":"GO","quantidade":12,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9535","descricao":"BOMBA HIDRAULICA BHT 9101 01 A 065 12 12 06 P 01 A21 BA 20 210 210","empresa":"PE","quantidade":3,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9536","descricao":"BOMBA HIDRAULICA BHT 9101 01 A 085 13 12 06 P 01 A21 BA 15 210 210","empresa":"PE","quantidade":1,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9563","descricao":"BOMBA HIDRAULICA BHT 9101 06 H 085 12 12 06 P 01 A21 BA 15 210 210","empresa":"PE","quantidade":2,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9564","descricao":"BOMBA HIDRAULICA BHT 9101 06 A 085 12 12 06 P 01 A21 BA 15 210 210","empresa":"SP","quantidade":5,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"}],
 };
 
-// Normaliza datas do Sheets (JS Date string ou DD/MM/YYYY)
 function normDate(s) {
   if (!s) return '';
   s = String(s).trim();
-  // Already DD/MM/YYYY
   if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
-  // JS Date string from Sheets: 'Fri Jun 05 2026 00:00:00 GMT-0300'
   const jsDate = s.match(/(\w{3}) (\w{3}) (\d{2}) (\d{4})/);
   if (jsDate) {
     const mo = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
     return jsDate[3] + '/' + (mo[jsDate[2]]||'01') + '/' + jsDate[4];
   }
-  // MM/DD/YYYY (Sheets sometimes exports dates this way)
   const mmdd = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (mmdd) {
-    const month = +mmdd[1], day = +mmdd[2], year = +mmdd[3];
-    // If month > 12, it's actually DD/MM/YYYY already  but if day > 12 and month d 12 it's MM/DD
-    if (month > 12) return String(month).padStart(2,'0') + '/' + String(day).padStart(2,'0') + '/' + year;
-    if (day > 12) return String(day).padStart(2,'0') + '/' + String(month).padStart(2,'0') + '/' + year;
-    // Ambiguous  assume MM/DD/YYYY (Sheets default) � convert to DD/MM/YYYY
-    return String(day).padStart(2,'0') + '/' + String(month).padStart(2,'0') + '/' + year;
-  }
+  if (mmdd) return String(+mmdd[2]).padStart(2,'0') + '/' + String(+mmdd[1]).padStart(2,'0') + '/' + mmdd[3];
   return s;
 }
 
@@ -894,86 +881,48 @@ function renderOF() {
   const totals = {};
   cols.forEach(c => totals[c] = 0);
   rows.forEach(r => cols.forEach(c => totals[c] += r[c]));
-
   const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-
-  document.getElementById('of-foot').innerHTML = `<tr class="tfoot-row">
-    <td>TOTAL</td>
-    ${cols.map(c => `<td>${totals[c].toLocaleString('pt-BR')}</td>`).join('')}
-  </tr>`;
-
+  document.getElementById('of-foot').innerHTML = '<tr class="tfoot-row"><td>TOTAL</td>' + cols.map(c => '<td>' + totals[c].toLocaleString('pt-BR') + '</td>').join('') + '</tr>';
   document.getElementById('of-body').innerHTML = rows.map(r => {
     const d = parseDate(r.DT_FIM_OF);
-    const isLate = d < todayMidnight;
-    const style = isLate ? 'color:#ff4444;' : '';
-    return `<tr style="${style}">
-      <td style="text-align:left;${style}font-weight:${isLate?'600':'normal'}">${r.DT_FIM_OF}${isLate?' �':''}</td>
-      ${cols.map(c => `<td style="${style}">${r[c] ? r[c].toLocaleString('pt-BR') : '<span class="zero"></span>'}</td>`).join('')}
-    </tr>`;
+    const late = d < todayMidnight;
+    const s = late ? 'color:#ff4444;' : '';
+    return '<tr style="' + s + '"><td style="text-align:left;' + s + '">' + r.DT_FIM_OF + (late?' �':'') + '</td>' +
+      cols.map(c => '<td style="' + s + '">' + (r[c] ? r[c].toLocaleString('pt-BR') : '<span class="zero"></span>') + '</td>').join('') + '</tr>';
   }).join('');
 }
 
 function renderMontados() {
   const el = document.getElementById('montados-content');
   if (!DATA.montados || DATA.montados.length === 0) {
-    el.innerHTML = '<div class="no-data"><span>=�</span>Nenhum item montado registrado ainda.</div>';
+    el.innerHTML = '<div class="no-data">Nenhum item montado registrado ainda.</div>';
     return;
   }
   const cols = ['TOMADA_MULT','BOMBA','CILINDRO','CONJ_EIXO','GUINCHO','COMANDO','VALVULA','KIT_HIDR'];
   const colLabels = ['TOMADA E MULT','BOMBA','CILINDRO','CONJ. EIXO','GUINCHO','COMANDO','V�LVULA','KIT HIDR.'];
-
-  // Sort descending
-  const sorted = [...DATA.montados].sort((a,b) => parseDate(b.DATA||b.DT||'01/01/2000') - parseDate(a.DATA||a.DT||'01/01/2000'));
-
-  // Grand totals (ALL rows including today)
-  const totals = {};
-  cols.forEach(c => totals[c] = 0);
+  const sorted = [...DATA.montados].sort((a,b) => parseDate(b.DATA||'01/01/2000') - parseDate(a.DATA||'01/01/2000'));
+  const totals = {}; cols.forEach(c => totals[c] = 0);
   sorted.forEach(r => cols.forEach(c => totals[c] += (r[c]||0)));
-
-  // Past working days only (Mon-Fri, excluding today) for M�DIA
   const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const pastWorkingRows = sorted.filter(r => {
-    const d = parseDate(r.DATA||r.DT||'01/01/2000');
-    if (d >= todayDate) return false;
-    const dow = d.getDay();
-    return dow !== 0 && dow !== 6;
-  });
-  const workingDays = pastWorkingRows.length;
-
-  const avgTotals = {};
-  cols.forEach(c => avgTotals[c] = 0);
-  pastWorkingRows.forEach(r => cols.forEach(c => avgTotals[c] += (r[c]||0)));
-
-  const medias = {};
-  cols.forEach(c => medias[c] = workingDays > 0 ? (avgTotals[c]/workingDays).toFixed(1) : '');
-
-  el.innerHTML = `<div class="table-wrap"><div class="scrollable">
-    <table style="table-layout:auto;min-width:700px;">
-      <thead class="green"><tr>
-        <th style="text-align:left;min-width:100px">DATA</th>
-        ${colLabels.map(l=>`<th>${l}</th>`).join('')}
-      </tr></thead>
-      <tfoot>
-        <tr class="tfoot-row" style="background:#1e2a4a;border-top:2px solid var(--green-dark);border-bottom:3px solid var(--green-dark)">
-          <td style="text-align:left">TOTAL</td>${cols.map(c=>`<td>${totals[c].toLocaleString('pt-BR')}</td>`).join('')}
-        </tr>
-        <tr class="tfoot-row" style="background:#162a1e;border-bottom:1px solid var(--green-dark)">
-          <td style="text-align:left;color:var(--green)">M�DIA</td>${cols.map(c=>`<td style="color:var(--green)">${medias[c]}</td>`).join('')}
-        </tr>
-        <tr class="tfoot-row" style="background:#162a1e">
-          <td style="text-align:left;color:var(--text-muted)">DIAS �TEIS</td><td colspan="8" style="color:var(--text-muted);text-align:left">${workingDays}</td>
-        </tr>
-      </tfoot>
-      <tbody>${sorted.map(r => {
-        const isToday = parseDate(r.DATA||r.DT||'01/01/2000').getTime() === todayDate.getTime();
-        const dateStr = r.DATA||r.DT||'';
-        return `<tr style="${isToday?'background:rgba(26,109,255,0.08)':''}">
-          <td style="text-align:left${isToday?';color:var(--blue-light);font-weight:600':''}">${dateStr}${isToday?' (hoje)':''}</td>
-          ${cols.map(c=>`<td>${r[c]?r[c]:'<span class="zero"></span>'}</td>`).join('')}
-        </tr>`;
-      }).join('')}</tbody>
-    </table>
-  </div></div>`;
+  const past = sorted.filter(r => { const d = parseDate(r.DATA||'01/01/2000'); return d < todayDate && d.getDay()!==0 && d.getDay()!==6; });
+  const avgT = {}; cols.forEach(c => avgT[c] = 0);
+  past.forEach(r => cols.forEach(c => avgT[c] += (r[c]||0)));
+  const wd = past.length;
+  const medias = {}; cols.forEach(c => medias[c] = wd > 0 ? (avgT[c]/wd).toFixed(1) : '');
+  el.innerHTML = '<div class="table-wrap"><div class="scrollable"><table style="table-layout:auto;min-width:700px;">' +
+    '<thead class="green"><tr><th style="text-align:left;min-width:100px">DATA</th>' + colLabels.map(l=>'<th>'+l+'</th>').join('') + '</tr></thead>' +
+    '<tfoot>' +
+    '<tr class="tfoot-row" style="background:#1e2a4a;border-top:2px solid var(--green-dark)"><td style="text-align:left">TOTAL</td>' + cols.map(c=>'<td>'+totals[c].toLocaleString('pt-BR')+'</td>').join('') + '</tr>' +
+    '<tr class="tfoot-row" style="background:#162a1e"><td style="text-align:left;color:var(--green)">M�DIA</td>' + cols.map(c=>'<td style="color:var(--green)">'+medias[c]+'</td>').join('') + '</tr>' +
+    '<tr class="tfoot-row" style="background:#162a1e"><td style="text-align:left;color:var(--text-muted)">DIAS �TEIS</td><td colspan="8" style="color:var(--text-muted);text-align:left">'+wd+'</td></tr>' +
+    '</tfoot><tbody>' +
+    sorted.map(r => {
+      const isToday = parseDate(r.DATA||'01/01/2000').getTime() === todayDate.getTime();
+      return '<tr style="' + (isToday?'background:rgba(26,109,255,0.08)':'') + '">' +
+        '<td style="text-align:left' + (isToday?';color:var(--blue-light);font-weight:600':'') + '">' + (r.DATA||'') + (isToday?' (hoje)':'') + '</td>' +
+        cols.map(c => '<td>' + (r[c] ? r[c] : '<span class="zero"></span>') + '</td>').join('') + '</tr>';
+    }).join('') +
+    '</tbody></table></div></div>';
 }
 
 // ===== ESTOQUE & TRÂNSITO =====
@@ -1355,18 +1304,7 @@ function parseCSV(text, sep) {
     const first = lines[0];
     sep = first.includes(';') ? ';' : ',';
   }
-  return lines.map(l => {
-    const cells = [];
-    let cur = '', inQ = false;
-    for (let i = 0; i < l.length; i++) {
-      const ch = l[i];
-      if (ch === '"') { inQ = !inQ; }
-      else if (ch === sep[0] && !inQ) { cells.push(cur.trim()); cur = ''; }
-      else { cur += ch; }
-    }
-    cells.push(cur.trim());
-    return cells;
-  });
+  return lines.map(l => l.split(sep).map(c=>c.trim()));
 }
 
 function handleFiles(files) {
@@ -1389,111 +1327,79 @@ function handleFiles(files) {
 
 function parseOF(text) {
   const rows = parseCSV(text);
-  // Detect if first column is an extra date stamp (new column added to report)
-  // Header row: if col0 normalized != 'DT FIM OF', there's an extra col at start
-  const headerRow = rows.find(r => r.join(';').toUpperCase().includes('DT FIM OF') || r.join(';').toUpperCase().includes('TOMADA'));
-  const off = (headerRow && headerRow[0].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes('DT FIM OF')) ? 0 : 1;
-
+  // If col1 looks like a date, there's an extra leading date column (offset=1)
   DATA.of = rows
     .filter(r => {
-      const d = (r[off]||'');
-      const du = d.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-      if (!d || du === 'DT FIM OF' || du.includes('TOTAL') || du.includes('TOMADA')) return false;
-      return true;
+      const c = (r[0]||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const c1 = (r[1]||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      return c !== 'DT FIM OF' && c1 !== 'DT FIM OF' && !c.includes('TOTAL') && !c1.includes('TOTAL') && (r[0]||r[1]);
     })
-    .map(r => ({
-      DT_FIM_OF: normDate(r[off]),
-      TOMADA_MULT: +r[off+1]||0, BOMBA:       +r[off+2]||0, CILINDRO:    +r[off+3]||0,
-      CONJ_EIXO:   +r[off+4]||0, GUINCHO_ENROL:+r[off+5]||0, COMANDO:   +r[off+6]||0,
-      VALVULA:     +r[off+7]||0, KIT_HIDR:    +r[off+8]||0
-    }));
+    .map(r => {
+      const o = (/\d{2}\/\d{2}\/\d{4}/.test(r[1]||'') || (r[1]||'').includes('GMT')) ? 1 : 0;
+      return {
+        DT_FIM_OF: normDate(r[o]),
+        TOMADA_MULT:+r[o+1]||0, BOMBA:+r[o+2]||0, CILINDRO:+r[o+3]||0,
+        CONJ_EIXO:+r[o+4]||0, GUINCHO_ENROL:+r[o+5]||0, COMANDO:+r[o+6]||0,
+        VALVULA:+r[o+7]||0, KIT_HIDR:+r[o+8]||0
+      };
+    }).filter(r => r.DT_FIM_OF);
 }
 function parseMontados(text) {
   if (!text.trim()) { DATA.montados=[]; return; }
   const rows = parseCSV(text);
-  // Detect offset: if first column of header is 'DATA', offset=0; else offset=1
-  const headerRow = rows.find(r => r.join(';').toUpperCase().includes('TOMADA') || r.join(';').toUpperCase().includes('DATA'));
-  const off = (headerRow && headerRow[0].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'') === 'DATA') ? 0 : 1;
-
+  const skip = s => { const u = (s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); return !s||u==='DATA'||u.includes('TOTAL')||u.includes('MEDIA')||u.includes('DIAS')||u.includes('UTEIS')||u.includes('TOMADA'); };
   DATA.montados = rows
-    .filter(r => {
-      const d = (r[off]||'');
-      const du = d.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-      if (!d || du === 'DATA' || du.includes('TOTAL') || du.includes('MEDIA') || du.includes('DIAS') || du.includes('UTEIS') || du.includes('TOMADA')) return false;
-      return true;
-    })
-    .map(r => ({
-      DATA:        normDate(r[off]),
-      TOMADA_MULT: +r[off+1]||0, BOMBA:    +r[off+2]||0, CILINDRO: +r[off+3]||0,
-      CONJ_EIXO:   +r[off+4]||0, GUINCHO:  +r[off+5]||0, COMANDO:  +r[off+6]||0,
-      VALVULA:     +r[off+7]||0, KIT_HIDR: +r[off+8]||0
-    }));
+    .filter(r => !skip(r[0]) && !skip(r[1]))
+    .map(r => {
+      const o = (/\d{2}\/\d{2}\/\d{4}/.test(r[1]||'') || (r[1]||'').includes('GMT')) ? 1 : 0;
+      return {
+        DATA: normDate(r[o]),
+        TOMADA_MULT:+r[o+1]||0, BOMBA:+r[o+2]||0, CILINDRO:+r[o+3]||0,
+        CONJ_EIXO:+r[o+4]||0, GUINCHO:+r[o+5]||0, COMANDO:+r[o+6]||0,
+        VALVULA:+r[o+7]||0, KIT_HIDR:+r[o+8]||0
+      };
+    }).filter(r => r.DATA);
 }
 function parseTransito(text) {
   const rows = parseCSV(text, ';');
   const empMap = {'2':'SP','3':'MG','8':'GO','9':'PE'};
-  // Detect offset: empresa col should be '2','3','8' or '9'
-  const firstData = rows.find(r => r.length > 4 && r.some(c=>c.trim()));
-  const off = (firstData && empMap[firstData[2]]) ? 0 : 1;
-
   const classToGroup = {'300.200.001':'TOM','300.200.100':'TOM','300.500.001':'BOM','300.400.001':'CIL','800.010.020':'GUI','800.010.040':'GUI'};
   const classToLabel = {'300.200.001':'TOMADA DE FORCA','300.200.100':'TOMADA DE FORCA','300.500.001':'BOMBA HIDRAULICA','300.400.001':'CILINDRO HIDRAULICO','800.010.020':'GUINCHO OS-M','800.010.040':'GUINCHO OP'};
   const pivot = {};
   ['SP','MG','GO','PE'].forEach(e => { pivot[e] = {TOM:0,BOM:0,CIL:0,GUI:0}; });
   const detail = [];
-
   rows.forEach(r => {
-    const emp = empMap[(r[off+2]||'').trim()];
-    const classificacao = (r[off+4]||'').trim();
-    const qty = +r[off+3]||0;
+    // Detect offset: empresa col ('2','3','8','9') is at position 2 (no offset) or 3 (offset=1)
+    const o = empMap[(r[2]||'').trim()] ? 0 : 1;
+    const emp = empMap[(r[o+2]||'').trim()];
+    const classificacao = (r[o+4]||'').trim();
+    const qty = +r[o+3]||0;
     if (!emp || qty <= 0) return;
     const group = classToGroup[classificacao];
     if (group) pivot[emp][group] += qty;
-    detail.push({
-      codigo:     (r[off]||'').trim(),
-      descricao:  (r[off+1]||'').trim(),
-      empresa: emp, quantidade: qty, classificacao,
-      produto: classToLabel[classificacao]||classificacao
-    });
+    detail.push({ codigo:(r[o]||'').trim(), descricao:(r[o+1]||'').trim(), empresa:emp, quantidade:qty, classificacao, produto:classToLabel[classificacao]||classificacao });
   });
   DATA.transito = ['SP','MG','GO','PE'].map(k=>({EMPRESA:k,...pivot[k]}));
   DATA.transito_detail = detail;
 }
-
 function parseEstoque(text) {
   const rows = parseCSV(text, ';');
-  // Detect offset: cod_emp (first real col) should be numeric
-  // If first col of first data row is not numeric, there's an extra date col
-  const firstData = rows.find(r => r.length > 5 && r.some(c => c.trim()));
-  const off = (firstData && !isNaN(+firstData[0]) && +firstData[0] > 0) ? 0 : 1;
-
   const clsToGroup = {'300.200.001':'TOM','300.200.100':'TOM','300.500.001':'BOM','300.400.001':'CIL','800.010.020':'GUI','800.010.040':'GUI'};
-  DATA.estoque = rows
-    .filter(r => r.length > 5 && (r[off+1]||'').trim().length === 2) // uf = 2 chars
-    .map(r => ({
-      cod_emp:        +r[off]||0,
-      uf:              (r[off+1]||'').trim(),
-      classificacao:   (r[off+2]||'').trim(),
-      descricao:       (r[off+3]||'').trim(),
-      cod_almox:      +r[off+4]||0,
-      deposito:        (r[off+5]||'').trim(),
-      qtde_cod_es:    +r[off+6]||0,
-      qtde_param_es:  +r[off+7]||0,
-      custo_tdt:       (r[off+8]||'').trim(),
-      tot_falta:      +r[off+9]||0,
-      custo_abast:     (r[off+10]||'').trim(),
-      cod_zerados:    +r[off+11]||0,
-      estoque_total:  +r[off+12]||0,
-      custo_saldo:     (r[off+13]||'').trim(),
-      estoque_excesso:+r[off+14]||0,
-      custo_exces:     (r[off+15]||'').trim(),
-      qtde_abast:     +r[off+16]||0,
-      perc_abast_mtz:  parseFloat((r[off+17]||'').replace(',','.'))||0,
-      pct_es: (+r[off+7]||0) > 0 ? Math.round((+r[off+16]||0)/(+r[off+7]||0)*1000)/10 : 0,
-    }))
-    .filter(r => r.uf && r.uf.length === 2 && /^[A-Z]{2}$/.test(r.uf));
+  DATA.estoque = rows.map(r => {
+    // Detect offset: cod_emp (col0) should be a short number like 1,2,3
+    const o = (!isNaN(+r[0]) && +r[0] > 0 && (r[0]||'').trim().length <= 2) ? 0 : 1;
+    return {
+      cod_emp: +r[o]||0, uf: (r[o+1]||'').trim(), classificacao: (r[o+2]||'').trim(),
+      descricao: (r[o+3]||'').trim(), cod_almox: +r[o+4]||0, deposito: (r[o+5]||'').trim(),
+      qtde_cod_es: +r[o+6]||0, qtde_param_es: +r[o+7]||0, custo_tdt: (r[o+8]||'').trim(),
+      tot_falta: +r[o+9]||0, custo_abast: (r[o+10]||'').trim(), cod_zerados: +r[o+11]||0,
+      estoque_total: +r[o+12]||0, custo_saldo: (r[o+13]||'').trim(), estoque_excesso: +r[o+14]||0,
+      custo_exces: (r[o+15]||'').trim(), qtde_abast: +r[o+16]||0,
+      perc_abast_mtz: parseFloat((r[o+17]||'').replace(',','.'))||0,
+      pct_es: (+r[o+7]||0) > 0 ? Math.round((+r[o+16]||0)/(+r[o+7]||0)*1000)/10 : 0,
+    };
+  }).filter(r => r.uf && /^[A-Z]{2}$/.test(r.uf));
 
-  // Recalculate NS
   const nsMap = {};
   DATA.estoque.forEach(r => {
     const g = clsToGroup[r.classificacao];
@@ -1510,21 +1416,16 @@ function parseEstoque(text) {
     });
   });
 }
-
 function parseServico(text) {
   const rows = parseCSV(text, ';');
-  // Detect offset: empresa_num (col0) should be '1' or '2'
-  const firstData = rows.find(r => r.length > 10 && r.some(c=>c.trim()));
-  const off = (firstData && (firstData[0].trim()==='1' || firstData[0].trim()==='2')) ? 0 : 1;
-
   const result = {};
   rows.forEach(r => {
-    const empresa_num = (r[off]||'').trim();
-    const dateStr     = (r[off+7]||'').trim();
-    const emp         = (r[off+10]||'').trim();
-    const val         = parseFloat((r[off+47]||'').replace(',','.'))||0;
-    if (!dateStr || !emp || !val) return;
-    if (empresa_num !== '1' && empresa_num !== '2') return;
+    const o = (r[0].trim()==='1'||r[0].trim()==='2') ? 0 : 1;
+    const empresa_num = (r[o]||'').trim();
+    const dateStr = (r[o+7]||'').trim();
+    const emp = (r[o+10]||'').trim();
+    const val = parseFloat((r[o+47]||'').replace(',','.'))||0;
+    if (!dateStr || !emp || !val || (empresa_num!=='1'&&empresa_num!=='2')) return;
     const p = dateStr.split('/');
     if (p.length < 3) return;
     const mes = p[2]+'-'+p[1].padStart(2,'0');
@@ -1590,13 +1491,11 @@ function renderNSChart() {
   if (_nsProduct === 'todos') {
     const cilData = empsNS.map(e => {
       const rows = DATA.estoque.filter(r => r.uf === e && r.classificacao === '300.300.005');
-      const totParam = rows.reduce((s,r)=>s+r.qtde_param_es,0);
-      const totAbast = rows.reduce((s,r)=>s+r.qtde_abast,0);
-      return totParam>0 ? Math.round(totAbast/totParam*1000)/10 : 0;
+      const tp = rows.reduce((s,r)=>s+r.qtde_param_es,0), ta = rows.reduce((s,r)=>s+r.qtde_abast,0);
+      return tp>0 ? Math.round(ta/tp*1000)/10 : 0;
     });
     if (cilData.some(v=>v>0)) datasets.push({ label:'CILINDRO', data: cilData, backgroundColor:'#ff3b3bcc', borderRadius:4 });
   }
-
   datasets.push({ label:'META', data:[90,90,90,90,90], type:'line', borderColor:'#ff3b3b', borderWidth:2, pointRadius:0, fill:false, tension:0 });
 
   window._nsChart = new Chart(document.getElementById('ns-chart'), {
@@ -1629,7 +1528,7 @@ function renderNSChart() {
   nsTable.className = 'ns-data-table';
   nsTable.style.cssText = 'overflow-x:auto;margin-top:12px;';
   const dataRows = datasets.filter(d=>d.type!=='line');
-  const colors = {'TOMADA':'#3d8bff','BOMBA':'#ff8c3b','GUINCHO OS-M':'#00c97a','GUINCHO OP':'#ffaa00','ENROLADOR':'#c97aff','CILINDRO':'#ff3b3b'};
+  const colors = {'TOMADA':'#3d8bff','BOMBA':'#ff8c3b','GUINCHO OS-M':'#00c97a','GUINCHO OP':'#ffaa00','ENROLADOR':'#c97aff'};
   nsTable.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px;">
     <thead><tr style="background:#1a2a4a">
       <th style="padding:7px 14px;text-align:left;color:#7a8299;min-width:90px;font-family:var(--font-display);letter-spacing:1px"></th>
@@ -1703,104 +1602,49 @@ function renderAll() {
   renderTransito();
 }
 
-// ===== FOLDER MONITOR =====
+// ===== GOOGLE SHEETS MONITOR =====
+const WEBAPP = 'https://script.google.com/macros/s/AKfycbyFeoCDp-ROgWP_n8xImPFehmPbHlg0pjf5TiC7tW4O6BUAewqh9We0v6ROAiC0rnSn/exec';
+const READ_INTERVAL_MS = 5 * 60 * 1000;
+let monitorTimer = null, countdownTimer = null, nextRead = null, isMonitoring = false;
 
 function setStatus(state, msg) {
   const dot = document.getElementById('status-dot');
   const txt = document.getElementById('update-time');
-  dot.className = 'status-dot' + (state === 'active' ? ' active' : state === 'error' ? ' error' : '');
+  dot.className = 'status-dot' + (state==='active'?' active':state==='error'?' error':'');
   txt.textContent = msg;
-}
-
-// ===== GOOGLE SHEETS MONITOR =====
-const READ_INTERVAL_MS = 5 * 60 * 1000;  // leitura: 5 minutos
-
-// Sheets: aba � parser
-const SHEETS_MAP = {
-  'OF_ABERTAS':        parseOF,
-  'ITENS_MONTADOS':    parseMontados,
-  'ESTOQUE_SEGURANCA': parseEstoque,
-  'TRANSITO':          parseTransito,
-  'SERVICO_TERCEIROS': parseServico,
-};
-
-let monitorTimer   = null;
-let countdownTimer = null;
-let nextRead       = null;
-let isMonitoring   = false;
-let SHEET_ID       = localStorage.getItem('sheetId') || '1-aTDOoqf7L9v1rPK8K9KM8jWkg0EC6_eP0bsek4FajI';
-
-async function toggleMonitor() {
-  if (isMonitoring) {
-    stopMonitor();
-    return;
-  }
-
-  // ID j� configurado  salva no localStorage para persistir
-  localStorage.setItem('sheetId', SHEET_ID);
-
-  startMonitor();
 }
 
 async function startMonitor() {
   if (isMonitoring) return;
   isMonitoring = true;
-  setStatus('active', 'Conectando ao Sheets&');
+  setStatus('active', 'Conectando...');
   await readSheets();
   monitorTimer = setInterval(readSheets, READ_INTERVAL_MS);
   startCountdown();
 }
 
-function stopMonitor() {
-  isMonitoring = false;
-  clearInterval(monitorTimer);
-  clearInterval(countdownTimer);
-  monitorTimer = null;
-  nextRead     = null;
-  setStatus('idle', ' Monitor pausado');
-  document.getElementById('countdown').textContent = '';
-}
-
 async function readSheets() {
-  setStatus('active', 'Lendo planilha&');
-  const WEBAPP = 'https://script.google.com/macros/s/AKfycbyFeoCDp-ROgWP_n8xImPFehmPbHlg0pjf5TiC7tW4O6BUAewqh9We0v6ROAiC0rnSn/exec';
-  const abas = {
-    'OF_ABERTAS':        parseOF,
-    'ITENS_MONTADOS':    parseMontados,
-    'ESTOQUE_SEGURANCA': parseEstoque,
-    'TRANSITO':          parseTransito,
-    'SERVICO_TERCEIROS': parseServico,
-  };
-
-  let found = 0;
-  const errors = [];
-
-  for (const [aba, parser] of Object.entries(abas)) {
+  setStatus('active', 'Lendo planilha...');
+  const parsers = { 'OF_ABERTAS':parseOF, 'ITENS_MONTADOS':parseMontados, 'ESTOQUE_SEGURANCA':parseEstoque, 'TRANSITO':parseTransito, 'SERVICO_TERCEIROS':parseServico };
+  let found = 0, errors = [];
+  for (const [aba, parser] of Object.entries(parsers)) {
     try {
-      const url = WEBAPP + '?aba=' + encodeURIComponent(aba);
-      const res = await fetch(url);
+      const res = await fetch(WEBAPP + '?aba=' + encodeURIComponent(aba));
       if (!res.ok) { errors.push(aba); continue; }
       const text = await res.text();
       if (!text.trim()) { errors.push(aba); continue; }
       parser(text);
       found++;
-    } catch(e) {
-      errors.push(aba);
-      console.error('Erro ao ler aba ' + aba + ':', e);
-    }
+    } catch(e) { errors.push(aba); console.error(aba, e); }
   }
-
   if (found > 0) {
     renderAll();
     nextRead = new Date(Date.now() + READ_INTERVAL_MS);
-    const nowStr = new Date().toLocaleTimeString('pt-BR');
-    const status = errors.length
-      ? 'Atualizado ' + nowStr + ' (' + errors.length + ' aba(s) sem dados)'
-      : 'Atualizado �s ' + nowStr + '  pr�x. em 5min';
-    setStatus('active', status);
+    const t = new Date().toLocaleTimeString('pt-BR');
+    setStatus('active', errors.length ? 'Atualizado ' + t + ' (' + errors.length + ' erros)' : 'Atualizado as ' + t + ' - prox. em 5min');
     startCountdown();
   } else {
-    setStatus('error', 'Erro ao ler planilha  verifique a conex�o');
+    setStatus('error', 'Erro ao ler planilha');
   }
 }
 
@@ -1809,14 +1653,12 @@ function startCountdown() {
   if (!nextRead) return;
   countdownTimer = setInterval(() => {
     const rem = Math.max(0, nextRead - Date.now());
-    const m = Math.floor(rem / 60000);
-    const s = Math.floor((rem % 60000) / 1000);
-    document.getElementById('countdown').textContent =
-      rem > 0 ? 'pr�x. em ' + m + ':' + String(s).padStart(2,'0') : 'lendo...';
+    document.getElementById('countdown').textContent = rem > 0
+      ? 'prox. em ' + Math.floor(rem/60000) + ':' + String(Math.floor((rem%60000)/1000)).padStart(2,'0')
+      : 'lendo...';
   }, 1000);
 }
 
-// ===== INIT =====
 renderAll();
 startMonitor();
 
