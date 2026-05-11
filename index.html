@@ -916,19 +916,30 @@ function renderMontados() {
   const colLabels = ['TOMADA E MULT','BOMBA','CILINDRO','CONJ. EIXO','GUINCHO','COMANDO','VÁLVULA','KIT HIDR.'];
 
   // Separate special rows from data rows
-  const totalRow = DATA.montados.find(r => r.DATA.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes('TOTAL'));
-  const mediaRow = DATA.montados.find(r => r.DATA.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes('MEDIA'));
-  const diasRow  = DATA.montados.find(r => r.DATA.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes('DIAS'));
+  const norm = s => String(s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+  const totalRow = DATA.montados.find(r => norm(r.DATA).includes('TOTAL'));
+  const mediaRow = DATA.montados.find(r => norm(r.DATA).includes('MEDIA'));
+  const diasRow  = DATA.montados.find(r => norm(r.DATA).includes('DIAS'));
   const dataRows = DATA.montados.filter(r => {
-    const u = r.DATA.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    return !u.includes('TOTAL') && !u.includes('MEDIA') && !u.includes('DIAS') && !u.includes('UTEIS');
+    const u = norm(r.DATA);
+    return !u.includes('TOTAL') && !u.includes('MEDIA') && !u.includes('DIAS') && !u.includes('UTEIS') && r.DATA;
   });
   const sorted = dataRows.sort((a,b) => parseDate(b.DATA||'01/01/2000') - parseDate(a.DATA||'01/01/2000'));
 
-  const fmtRow = (r, style) => `<tr class="tfoot-row" style="${style}">
-    <td style="text-align:left">${r.DATA}</td>
-    ${cols.map(c => `<td>${r[c] ? r[c] : '<span class="zero">—</span>'}</td>`).join('')}
-  </tr>`;
+  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  // Format a footer row — uses raw string values (not computed)
+  const fmtFootRow = (label, r, style, color) => {
+    const cells = cols.map(c => {
+      const v = r ? r[c] : 0;
+      const display = (v || v === 0) && v !== '' ? v : '<span class="zero">—</span>';
+      return `<td style="color:${color||'inherit'}">${display}</td>`;
+    }).join('');
+    return `<tr class="tfoot-row" style="${style}">
+      <td style="text-align:left;color:${color||'inherit'}">${label}</td>${cells}
+    </tr>`;
+  };
 
   el.innerHTML = `<div class="table-wrap"><div class="scrollable">
     <table style="table-layout:auto;min-width:700px;">
@@ -937,13 +948,16 @@ function renderMontados() {
         ${colLabels.map(l=>`<th>${l}</th>`).join('')}
       </tr></thead>
       <tfoot>
-        ${totalRow ? fmtRow(totalRow, 'background:#1e2a4a;border-top:2px solid var(--green-dark)') : ''}
-        ${mediaRow ? fmtRow(mediaRow, 'background:#162a1e;color:var(--green)') : ''}
-        ${diasRow  ? `<tr class="tfoot-row" style="background:#162a1e"><td style="text-align:left;color:var(--text-muted)">${diasRow.DATA}</td><td colspan="8" style="color:var(--text-muted);text-align:left">${diasRow.TOMADA_MULT||''}</td></tr>` : ''}
+        ${totalRow ? fmtFootRow('TOTAL', totalRow, 'background:#1e2a4a;border-top:2px solid var(--green-dark)', '') : ''}
+        ${mediaRow ? fmtFootRow('MÉDIA', mediaRow, 'background:#162a1e', 'var(--green)') : ''}
+        ${diasRow  ? `<tr class="tfoot-row" style="background:#162a1e">
+          <td style="text-align:left;color:var(--text-muted)">DIAS ÚTEIS</td>
+          <td colspan="8" style="color:var(--text-muted);text-align:left">${diasRow.TOMADA_MULT||''}</td>
+        </tr>` : ''}
       </tfoot>
       <tbody>${sorted.map(r => {
-        const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const isToday = parseDate(r.DATA||'01/01/2000').getTime() === todayMidnight.getTime();
+        const d = parseDate(r.DATA||'01/01/2000');
+        const isToday = d.getTime() === todayMidnight.getTime();
         return `<tr style="${isToday?'background:rgba(26,109,255,0.08)':''}">
           <td style="text-align:left${isToday?';color:var(--blue-light);font-weight:600':''}">${r.DATA||''}${isToday?' (hoje)':''}</td>
           ${cols.map(c=>`<td>${r[c]?r[c]:'<span class="zero">—</span>'}</td>`).join('')}
