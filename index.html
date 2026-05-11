@@ -1395,12 +1395,18 @@ function parseMontados(text) {
       const u = v.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       return u !== 'DATA';
     })
-    .map(r => ({
-      DATA: normDate(r[0]),
-      TOMADA_MULT:+r[1]||0, BOMBA:+r[2]||0, CILINDRO:+r[3]||0,
-      CONJ_EIXO:+r[4]||0, GUINCHO:+r[5]||0, COMANDO:+r[6]||0,
-      VALVULA:+r[7]||0, KIT_HIDR:+r[8]||0
-    }));
+    .map(r => {
+      const u = String(r[0]||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const isSpecial = u.includes('TOTAL') || u.includes('MEDIA') || u.includes('DIAS');
+      // For special rows keep original string values; for data rows convert to numbers
+      const val = (v, i) => isSpecial ? (String(v||'').trim()||null) : (+v||0);
+      return {
+        DATA: isSpecial ? String(r[0]||'').trim() : normDate(r[0]),
+        TOMADA_MULT: val(r[1]), BOMBA: val(r[2]), CILINDRO: val(r[3]),
+        CONJ_EIXO: val(r[4]), GUINCHO: val(r[5]), COMANDO: val(r[6]),
+        VALVULA: val(r[7]), KIT_HIDR: val(r[8])
+      };
+    });
 }
 function parseTransito(text) {
   const rows = parseCSV(text, ';');
@@ -1424,7 +1430,7 @@ function parseTransito(text) {
     if (!col1 || col1.toUpperCase().includes('CODIGO') || col1.toUpperCase().includes('ITEM')) return;
     const codigo = col1;
     const descricao = String(r[2]||'').trim();
-    const empresaNum = String(r[3]||'').trim();
+    const empresaNum = String(+r[3]||'').trim() || String(r[3]||'').trim();
     const qty = +r[4]||0;
     const cls = String(r[5]||'').trim();
     const emp = empMap[empresaNum];
@@ -1506,17 +1512,25 @@ function parseServico(text) {
     const empresa_num = String(r[1]||'').trim();
     if (empresa_num === 'EMP' || empresa_num === '') return;
     if (empresa_num !== '1' && empresa_num !== '2') return;
-    const dtEnt = String(r[8]||'').trim();
+    // DT ENT can be Date object, ISO string, or DD/MM/YYYY
+    const dtRaw = r[8];
     const emp   = String(r[11]||'').trim();
     const val   = parseFloat(String(r[r.length-1]||'').replace(',','.'))||0;
-    if (!dtEnt || !emp || !val) return;
+    if (!dtRaw || !emp || !val) return;
     let mes;
-    const iso = dtEnt.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (iso) { mes = iso[1]+'-'+iso[2]; }
-    else {
-      const p = dtEnt.split('/');
-      if (p.length < 3) return;
-      mes = p[2]+'-'+p[1].padStart(2,'0');
+    if (dtRaw instanceof Date || (typeof dtRaw === 'object' && dtRaw !== null)) {
+      // Date object from Sheets
+      const d = new Date(dtRaw);
+      mes = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    } else {
+      const dtEnt = String(dtRaw).trim();
+      const iso = dtEnt.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (iso) { mes = iso[1]+'-'+iso[2]; }
+      else {
+        const p = dtEnt.split('/');
+        if (p.length < 3) return;
+        mes = p[2]+'-'+p[1].padStart(2,'0');
+      }
     }
     const key = emp+'|'+empresa_num+'|'+mes;
     result[key] = (result[key]||0)+val;
