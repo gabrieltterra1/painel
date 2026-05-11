@@ -697,6 +697,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <span style="font-size:11px;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-right:4px">Produto:</span>
       <button class="ns-btn active" onclick="setNSProduct('tomada_bomba')">TOMADA + BOMBA</button>
       <button class="ns-btn" onclick="setNSProduct('guincho_enrol')">GUINCHO + ENROL.</button>
+      <button class="ns-btn" onclick="setNSProduct('cilindro')">CILINDRO</button>
       <button class="ns-btn" onclick="setNSProduct('todos')">TODOS</button>
     </div>
   </div>
@@ -717,7 +718,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <option value="GUINCHO OS-M">Guincho OS-M</option>
       <option value="GUINCHO OP">Guincho OP</option>
       <option value="CONJUNTO EIXO">Conjunto Eixo</option>
-      <option value="CILINDRO HIDRAULICO">Cilindro Hidr�ulico</option>
+      <option value="CILINDRO HIDRAULICO">Cilindro Hidráulico</option>
     </select>
     <select class="filter-select" id="tr-empresa" onchange="renderTransito()">
       <option value="">Todas as empresas</option>
@@ -838,13 +839,10 @@ function normDate(s) {
   if (!s && s !== 0) return '';
   s = String(s).trim();
   if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
-  // ISO: 2026-06-05T03:00:00.000Z
   const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})T/);
   if (iso) return iso[3]+'/'+iso[2]+'/'+iso[1];
-  // JS Date string
   const js = s.match(/(\w{3}) (\w{3}) (\d{2}) (\d{4})/);
   if (js) { const mo={Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'}; return js[3]+'/'+mo[js[2]]+'/'+js[4]; }
-  // MM/DD/YYYY
   const mmdd = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (mmdd) return String(+mmdd[2]).padStart(2,'0')+'/'+String(+mmdd[1]).padStart(2,'0')+'/'+mmdd[3];
   return s;
@@ -903,40 +901,25 @@ function renderOF() {
 function renderMontados() {
   const el = document.getElementById('montados-content');
   if (!DATA.montados || DATA.montados.length === 0) {
-    el.innerHTML = `<div class="no-data"><span>📋</span>Nenhum item montado registrado ainda.<br>O arquivo ITENS_MONTADOS_POR_DIA__EPP_.CSV está vazio — atualize ao final do dia.</div>`;
+    el.innerHTML = '<div class="no-data">Nenhum item montado registrado ainda.</div>';
     return;
   }
   const cols = ['TOMADA_MULT','BOMBA','CILINDRO','CONJ_EIXO','GUINCHO','COMANDO','VALVULA','KIT_HIDR'];
   const colLabels = ['TOMADA E MULT','BOMBA','CILINDRO','CONJ. EIXO','GUINCHO','COMANDO','VÁLVULA','KIT HIDR.'];
-
-  // Sort by date descending (most recent first)
-  const sorted = [...DATA.montados].sort((a,b) => {
-    const da = parseDate(a.DATA||a.DT||'01/01/2000');
-    const db = parseDate(b.DATA||b.DT||'01/01/2000');
-    return db - da;
-  });
-
-  // Grand totals (all rows including today)
-  const totals = {};
-  cols.forEach(c => totals[c] = 0);
+  const sorted = [...DATA.montados].sort((a,b) => parseDate(b.DATA||'01/01/2000') - parseDate(a.DATA||'01/01/2000'));
+  const totals = {}; cols.forEach(c => totals[c] = 0);
   sorted.forEach(r => cols.forEach(c => totals[c] += (r[c]||0)));
-
-  // Past working days only (exclude today + weekends) for MEDIA
-  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const pastWorkingRows = sorted.filter(r => {
-    const d = parseDate(r.DATA||r.DT||'01/01/2000');
-    if (d >= todayDate) return false;
+  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const pastWorkDays = sorted.filter(r => {
+    const d = parseDate(r.DATA||'01/01/2000');
+    if (d >= todayMidnight) return false;
     const dow = d.getDay();
-    return dow !== 0 && dow !== 6;
+    return dow >= 1 && dow <= 5;
   });
-  const workingDays = pastWorkingRows.length;
-  const avgTotals = {};
-  cols.forEach(c => avgTotals[c] = 0);
-  pastWorkingRows.forEach(r => cols.forEach(c => avgTotals[c] += (r[c]||0)));
-
-  const medias = {};
-  cols.forEach(c => medias[c] = workingDays > 0 ? (avgTotals[c]/workingDays).toFixed(1) : '');
-
+  const workingDays = pastWorkDays.length;
+  const avgT = {}; cols.forEach(c => avgT[c] = 0);
+  pastWorkDays.forEach(r => cols.forEach(c => avgT[c] += (r[c]||0)));
+  const medias = {}; cols.forEach(c => medias[c] = workingDays > 0 ? (avgT[c]/workingDays).toFixed(1) : '—');
   el.innerHTML = `<div class="table-wrap"><div class="scrollable">
     <table style="table-layout:auto;min-width:700px;">
       <thead class="green"><tr>
@@ -944,20 +927,22 @@ function renderMontados() {
         ${colLabels.map(l=>`<th>${l}</th>`).join('')}
       </tr></thead>
       <tfoot>
-        <tr class="tfoot-row" style="background:#1e2a4a;border-top:2px solid var(--green-dark);border-bottom:3px solid var(--green-dark)">
+        <tr class="tfoot-row" style="background:#1e2a4a;border-top:2px solid var(--green-dark)">
           <td style="text-align:left">TOTAL</td>${cols.map(c=>`<td>${totals[c].toLocaleString('pt-BR')}</td>`).join('')}
         </tr>
-        <tr class="tfoot-row" style="background:#162a1e;border-bottom:1px solid var(--green-dark)">
+        <tr class="tfoot-row" style="background:#162a1e">
           <td style="text-align:left;color:var(--green)">MÉDIA</td>${cols.map(c=>`<td style="color:var(--green)">${medias[c]}</td>`).join('')}
         </tr>
         <tr class="tfoot-row" style="background:#162a1e">
-          <td style="text-align:left;color:var(--text-muted)">DIAS ÚTEIS</td><td colspan="8" style="color:var(--text-muted);text-align:left">${workingDays}</td>
+          <td style="text-align:left;color:var(--text-muted)">DIAS ÚTEIS</td>
+          <td colspan="8" style="color:var(--text-muted);text-align:left">${workingDays}</td>
         </tr>
       </tfoot>
       <tbody>${sorted.map(r => {
-        const isToday = parseDate(r.DATA||r.DT||'01/01/2000').getTime() === todayDate.getTime();
+        const d = parseDate(r.DATA||'01/01/2000');
+        const isToday = d.getTime() === todayMidnight.getTime();
         return `<tr style="${isToday?'background:rgba(26,109,255,0.08)':''}">
-          <td style="text-align:left${isToday?';color:var(--blue-light);font-weight:600':''}">${r.DATA||r.DT}${isToday?' (hoje)':''}</td>
+          <td style="text-align:left${isToday?';color:var(--blue-light);font-weight:600':''}">${r.DATA||''}${isToday?' (hoje)':''}</td>
           ${cols.map(c=>`<td>${r[c]?r[c]:'<span class="zero">—</span>'}</td>`).join('')}
         </tr>`;
       }).join('')}</tbody>
@@ -1367,11 +1352,12 @@ function handleFiles(files) {
 
 function parseOF(text) {
   const rows = parseCSV(text);
-  const skipWords = ['DT FIM OF','TOMADA','TOTAL'];
   DATA.of = rows
     .filter(r => {
-      const v = String(r[0]||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-      return v && !skipWords.some(w => v.includes(w));
+      const v = String(r[0]||'').trim();
+      if (!v) return false;
+      const u = v.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      return u !== 'DT FIM OF' && !u.includes('TOTAL');
     })
     .map(r => ({
       DT_FIM_OF: normDate(r[0]),
@@ -1384,9 +1370,13 @@ function parseOF(text) {
 function parseMontados(text) {
   if (!text.trim()) { DATA.montados=[]; return; }
   const rows = parseCSV(text);
-  const skip = s => { const u=String(s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); return !s||u==='DATA'||u.includes('TOTAL')||u.includes('MEDIA')||u.includes('DIAS')||u.includes('UTEIS')||u.includes('TOMADA'); };
   DATA.montados = rows
-    .filter(r => !skip(r[0]))
+    .filter(r => {
+      const v = String(r[0]||'').trim();
+      if (!v) return false;
+      const u = v.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      return u !== 'DATA' && !u.includes('TOTAL') && !u.includes('MEDIA') && !u.includes('DIAS') && !u.includes('UTEIS');
+    })
     .map(r => ({
       DATA: normDate(r[0]),
       TOMADA_MULT:+r[1]||0, BOMBA:+r[2]||0, CILINDRO:+r[3]||0,
@@ -1403,15 +1393,15 @@ function parseTransito(text) {
   const pivot = {}; ['SP','MG','GO','PE'].forEach(e=>{pivot[e]={TOM:0,BOM:0,CIL:0,GUI:0};});
   const detail = [];
   rows.forEach(r => {
-    // Skip header row
-    if (String(r[1]||'').toUpperCase().includes('CODIGO') || String(r[1]||'').toUpperCase().includes('ITEM')) return;
-    const codigo = String(r[1]||'').trim();
+    const col1 = String(r[1]||'').trim();
+    if (!col1 || isNaN(+col1) && col1.toUpperCase().includes('CODIGO')) return;
+    const codigo = col1;
     const descricao = String(r[2]||'').trim();
     const empresaNum = String(r[3]||'').trim();
     const qty = +r[4]||0;
     const cls = String(r[5]||'').trim();
     const emp = empMap[empresaNum];
-    if (!emp || qty <= 0 || !cls) return;
+    if (!emp || qty <= 0) return;
     const g = classToGroup[cls];
     if (g) pivot[emp][g] += qty;
     detail.push({codigo, descricao, empresa:emp, quantidade:qty, classificacao:cls, produto:classToLabel[cls]||cls});
@@ -1424,29 +1414,19 @@ function parseEstoque(text) {
   const clsToGroup = {'300.200.001':'TOM','300.200.100':'TOM','300.500.001':'BOM','300.400.001':'CIL','800.010.020':'GUI','800.010.040':'GUI'};
   DATA.estoque = rows
     .filter(r => /^[A-Z]{2}$/.test(String(r[1]||'').trim()))
-    .map(r => ({
-      cod_emp:        0,
-      uf:             String(r[1]||'').trim(),
-      classificacao:  String(r[2]||'').trim(),
-      descricao:      String(r[3]||'').trim(),
-      cod_almox:      +r[4]||0,
-      deposito:       String(r[5]||'').trim(),
-      qtde_cod_es:    +r[6]||0,
-      qtde_param_es:  +r[7]||0,
-      custo_tdt:      String(r[8]||'').trim(),
-      tot_falta:      +r[9]||0,
-      custo_abast:    String(r[10]||'').trim(),
-      cod_zerados:    +r[11]||0,
-      estoque_total:  +r[12]||0,
-      custo_saldo:    String(r[13]||'').trim(),
-      estoque_excesso:+r[14]||0,
-      custo_exces:    String(r[15]||'').trim(),
-      qtde_abast:     +r[16]||0,
-      perc_abast_mtz: parseFloat(String(r[17]||'').replace(',','.'))||0,
-      pct_es: (+r[7]||0)>0 ? Math.round((+r[16]||0)/(+r[7]||0)*1000)/10 : 0,
-    }));
-
-  // Recalculate NS
+    .map(r => {
+      const qtde_param_es = +r[7]||0;
+      const qtde_abast = +r[16]||0;
+      const pct_es = qtde_param_es > 0 ? Math.round(qtde_abast/qtde_param_es*1000)/10 : 0;
+      return {
+        cod_emp:0, uf:String(r[1]||'').trim(), classificacao:String(r[2]||'').trim(),
+        descricao:String(r[3]||'').trim(), cod_almox:+r[4]||0, deposito:String(r[5]||'').trim(),
+        qtde_cod_es:+r[6]||0, qtde_param_es, custo_tdt:String(r[8]||'').trim(),
+        tot_falta:+r[9]||0, custo_abast:String(r[10]||'').trim(), cod_zerados:+r[11]||0,
+        estoque_total:+r[12]||0, custo_saldo:String(r[13]||'').trim(), estoque_excesso:+r[14]||0,
+        custo_exces:String(r[15]||'').trim(), qtde_abast, perc_abast_mtz:pct_es, pct_es,
+      };
+    });
   const nsMap = {};
   DATA.estoque.forEach(r => {
     const g = clsToGroup[r.classificacao];
@@ -1467,17 +1447,13 @@ function parseServico(text) {
   const rows = parseCSV(text, ';');
   const result = {};
   rows.forEach(r => {
-    // Skip header
-    const col1 = String(r[1]||'').trim();
-    if (col1.toUpperCase() === 'EMP' || col1 === '') return;
-    const empresa_num = col1;
+    const empresa_num = String(r[1]||'').trim();
+    if (empresa_num === 'EMP' || empresa_num === '') return;
     if (empresa_num !== '1' && empresa_num !== '2') return;
-    // DT ENT = col8, FORNECEDOR = col11, TOT CONTABIL = last col (r.length-1)
     const dtEnt = String(r[8]||'').trim();
     const emp   = String(r[11]||'').trim();
     const val   = parseFloat(String(r[r.length-1]||'').replace(',','.'))||0;
     if (!dtEnt || !emp || !val) return;
-    // Parse DT ENT: ISO 2026-01-04T... � mes = 2026-01
     let mes;
     const iso = dtEnt.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (iso) { mes = iso[1]+'-'+iso[2]; }
@@ -1545,9 +1521,9 @@ function renderNSChart() {
     datasets.push({ label:'ENROLADOR', data: enrolData, backgroundColor:'#c97affcc', borderRadius:4 });
   }
 
-  if (_nsProduct === 'todos') {
+  if (_nsProduct === 'cilindro' || _nsProduct === 'todos') {
     const cilData = empsNS.map(e => {
-      const rows = DATA.estoque.filter(r=>r.uf===e&&r.classificacao==='300.300.005');
+      const rows = DATA.estoque.filter(r=>r.uf===e&&(r.classificacao==='300.300.005'||r.classificacao==='300.400.001'));
       const tp=rows.reduce((s,r)=>s+r.qtde_param_es,0), ta=rows.reduce((s,r)=>s+r.qtde_abast,0);
       return tp>0 ? Math.round(ta/tp*1000)/10 : 0;
     });
@@ -1683,45 +1659,35 @@ async function startMonitor() {
 async function readSheets() {
   setStatus('active', 'Lendo planilha...');
   const parsers = {
-    'OF_ABERTAS':        parseOF,
-    'ITENS_MONTADOS':    parseMontados,
-    'ESTOQUE_SEGURANCA': parseEstoque,
-    'TRANSITO':          parseTransito,
-    'SERVICO_TERCEIROS': parseServico
+    'OF_ABERTAS':parseOF,'ITENS_MONTADOS':parseMontados,
+    'ESTOQUE_SEGURANCA':parseEstoque,'TRANSITO':parseTransito,'SERVICO_TERCEIROS':parseServico
   };
   let found=0, errors=[];
   for (const [aba, parser] of Object.entries(parsers)) {
     try {
       const res = await fetch(WEBAPP+'?aba='+encodeURIComponent(aba));
-      if (!res.ok) { errors.push(aba); continue; }
+      if (!res.ok){errors.push(aba);continue;}
       const text = await res.text();
-      if (!text.trim()) { errors.push(aba); continue; }
-      parser(text);
-      found++;
-    } catch(e) { errors.push(aba); console.error(aba, e); }
+      if (!text.trim()){errors.push(aba);continue;}
+      parser(text); found++;
+    } catch(e){errors.push(aba);console.error(aba,e);}
   }
-  if (found > 0) {
+  if (found>0) {
     renderAll();
     nextRead = new Date(Date.now()+READ_INTERVAL_MS);
     const t = new Date().toLocaleTimeString('pt-BR');
-    setStatus('active', errors.length
-      ? 'Atualizado '+t+' ('+errors.length+' erros)'
-      : 'Atualizado as '+t+' - prox. 5min');
+    setStatus('active', errors.length?'Atualizado '+t+' ('+errors.length+' erros)':'Atualizado as '+t+' - prox. 5min');
     startCountdown();
-  } else {
-    setStatus('error', 'Erro ao ler planilha');
-  }
+  } else { setStatus('error','Erro ao ler planilha'); }
 }
 
 function startCountdown() {
   clearInterval(countdownTimer);
   if (!nextRead) return;
   countdownTimer = setInterval(()=>{
-    const rem = Math.max(0, nextRead-Date.now());
-    document.getElementById('countdown').textContent = rem > 0
-      ? 'prox. em '+Math.floor(rem/60000)+':'+String(Math.floor((rem%60000)/1000)).padStart(2,'0')
-      : 'lendo...';
-  }, 1000);
+    const rem=Math.max(0,nextRead-Date.now());
+    document.getElementById('countdown').textContent=rem>0?'prox. em '+Math.floor(rem/60000)+':'+String(Math.floor((rem%60000)/1000)).padStart(2,'0'):'lendo...';
+  },1000);
 }
 
 renderAll();
