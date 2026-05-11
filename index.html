@@ -1435,8 +1435,15 @@ function parseEstoque(text) {
       const qtde_param_es = +r[8]||0;
       const qtde_abast    = +r[17]||0;
       // pct_es from last col "% ABASTECIMENTO REAL" — strip % and parse
-      const pctStr = String(r[18]||'').replace('%','').replace(',','.').trim();
-      const pct_es = parseFloat(pctStr)||0;
+      const pctRaw = r[18];
+      let pct_es = 0;
+      if (typeof pctRaw === 'number') {
+        pct_es = pctRaw <= 1 ? Math.round(pctRaw*1000)/10 : Math.round(pctRaw*10)/10;
+      } else {
+        const pctStr = String(pctRaw||'').replace('%','').replace(',','.').trim();
+        const pctNum = parseFloat(pctStr)||0;
+        pct_es = pctNum <= 1 ? Math.round(pctNum*1000)/10 : Math.round(pctNum*10)/10;
+      }
       return {
         cod_emp:        +r[1]||0,
         uf:             String(r[2]||'').trim(),
