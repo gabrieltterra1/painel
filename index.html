@@ -835,17 +835,16 @@ const DATA = {
 };
 
 function normDate(s) {
-  if (!s) return '';
+  if (!s && s !== 0) return '';
   s = String(s).trim();
-  // Already DD/MM/YYYY
   if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
-  // ISO date: 2026-06-05T03:00:00.000Z
+  // ISO: 2026-06-05T03:00:00.000Z
   const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})T/);
   if (iso) return iso[3]+'/'+iso[2]+'/'+iso[1];
-  // JS Date string: Fri Jun 05 2026 ...
+  // JS Date string
   const js = s.match(/(\w{3}) (\w{3}) (\d{2}) (\d{4})/);
   if (js) { const mo={Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'}; return js[3]+'/'+mo[js[2]]+'/'+js[4]; }
-  // MM/DD/YYYY � DD/MM/YYYY
+  // MM/DD/YYYY
   const mmdd = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (mmdd) return String(+mmdd[2]).padStart(2,'0')+'/'+String(+mmdd[1]).padStart(2,'0')+'/'+mmdd[3];
   return s;
@@ -1368,30 +1367,33 @@ function handleFiles(files) {
 
 function parseOF(text) {
   const rows = parseCSV(text);
-  const skip = s => { const u=(s||'').toString().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); return !s&&s!==0||u==='DT FIM OF'||u.includes('TOTAL')||u.includes('TOMADA E MULT'); };
+  const skipWords = ['DT FIM OF','TOMADA','TOTAL'];
   DATA.of = rows
-    .filter(r => !skip(r[0]))
+    .filter(r => {
+      const v = String(r[0]||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      return v && !skipWords.some(w => v.includes(w));
+    })
     .map(r => ({
-      DT_FIM_OF: normDate(String(r[0])),
+      DT_FIM_OF: normDate(r[0]),
       TOMADA_MULT:+r[1]||0, BOMBA:+r[2]||0, CILINDRO:+r[3]||0,
       CONJ_EIXO:+r[4]||0, GUINCHO_ENROL:+r[5]||0, COMANDO:+r[6]||0,
       VALVULA:+r[7]||0, KIT_HIDR:+r[8]||0
     }))
-    .filter(r => r.DT_FIM_OF && r.DT_FIM_OF.match(/\d{2}\/\d{2}\/\d{4}/));
+    .filter(r => /\d{2}\/\d{2}\/\d{4}/.test(r.DT_FIM_OF));
 }
 function parseMontados(text) {
   if (!text.trim()) { DATA.montados=[]; return; }
   const rows = parseCSV(text);
-  const skip = s => { const u=(s||'').toString().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); return u==='DATA'||u.includes('TOTAL')||u.includes('MEDIA')||u.includes('DIAS')||u.includes('UTEIS')||u.includes('TOMADA E MULT'); };
+  const skip = s => { const u=String(s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); return !s||u==='DATA'||u.includes('TOTAL')||u.includes('MEDIA')||u.includes('DIAS')||u.includes('UTEIS')||u.includes('TOMADA'); };
   DATA.montados = rows
-    .filter(r => r[0] && !skip(r[0]))
+    .filter(r => !skip(r[0]))
     .map(r => ({
-      DATA: normDate(String(r[0])),
+      DATA: normDate(r[0]),
       TOMADA_MULT:+r[1]||0, BOMBA:+r[2]||0, CILINDRO:+r[3]||0,
       CONJ_EIXO:+r[4]||0, GUINCHO:+r[5]||0, COMANDO:+r[6]||0,
       VALVULA:+r[7]||0, KIT_HIDR:+r[8]||0
     }))
-    .filter(r => r.DATA && r.DATA.match(/\d{2}\/\d{2}\/\d{4}/));
+    .filter(r => /\d{2}\/\d{2}\/\d{4}/.test(r.DATA));
 }
 function parseTransito(text) {
   const rows = parseCSV(text, ';');
@@ -1400,19 +1402,18 @@ function parseTransito(text) {
   const classToLabel = {'300.200.001':'TOMADA DE FORCA','300.200.100':'TOMADA DE FORCA','300.500.001':'BOMBA HIDRAULICA','300.400.001':'CILINDRO HIDRAULICO','800.010.020':'GUINCHO OS-M','800.010.040':'GUINCHO OP'};
   const pivot = {}; ['SP','MG','GO','PE'].forEach(e=>{pivot[e]={TOM:0,BOM:0,CIL:0,GUI:0};});
   const detail = [];
-  // Header: DATA, C�DIGO ITEM, DESCRI��O T�CNICA, EMPRESA, ESTQ TR�NSITO, CLASSIFICA��O
-  // Skip header row and rows where col1 is not numeric (codigo item)
   rows.forEach(r => {
+    // Skip header row
+    if (String(r[1]||'').toUpperCase().includes('CODIGO') || String(r[1]||'').toUpperCase().includes('ITEM')) return;
     const codigo = String(r[1]||'').trim();
     const descricao = String(r[2]||'').trim();
     const empresaNum = String(r[3]||'').trim();
     const qty = +r[4]||0;
     const cls = String(r[5]||'').trim();
-    // Skip header
-    if (codigo.toUpperCase()==='C�DIGO ITEM'||codigo.toUpperCase()==='CODIGO ITEM') return;
     const emp = empMap[empresaNum];
-    if (!emp||qty<=0) return;
-    const g = classToGroup[cls]; if (g) pivot[emp][g]+=qty;
+    if (!emp || qty <= 0 || !cls) return;
+    const g = classToGroup[cls];
+    if (g) pivot[emp][g] += qty;
     detail.push({codigo, descricao, empresa:emp, quantidade:qty, classificacao:cls, produto:classToLabel[cls]||cls});
   });
   DATA.transito = ['SP','MG','GO','PE'].map(k=>({EMPRESA:k,...pivot[k]}));
@@ -1422,10 +1423,7 @@ function parseEstoque(text) {
   const rows = parseCSV(text, ';');
   const clsToGroup = {'300.200.001':'TOM','300.200.100':'TOM','300.500.001':'BOM','300.400.001':'CIL','800.010.020':'GUI','800.010.040':'GUI'};
   DATA.estoque = rows
-    .filter(r => {
-      const uf = String(r[1]||'').trim();
-      return /^[A-Z]{2}$/.test(uf); // only rows where col1 is a 2-letter state code
-    })
+    .filter(r => /^[A-Z]{2}$/.test(String(r[1]||'').trim()))
     .map(r => ({
       cod_emp:        0,
       uf:             String(r[1]||'').trim(),
@@ -1469,20 +1467,23 @@ function parseServico(text) {
   const rows = parseCSV(text, ';');
   const result = {};
   rows.forEach(r => {
-    // col0=DATA ATUAL(skip), col1=EMP, col8=DT ENT, col11=FORNECEDOR, col48=TOT CONTABIL
-    const empresa_num = String(r[1]||'').trim();
+    // Skip header
+    const col1 = String(r[1]||'').trim();
+    if (col1.toUpperCase() === 'EMP' || col1 === '') return;
+    const empresa_num = col1;
+    if (empresa_num !== '1' && empresa_num !== '2') return;
+    // DT ENT = col8, FORNECEDOR = col11, TOT CONTABIL = last col (r.length-1)
     const dtEnt = String(r[8]||'').trim();
-    const emp = String(r[11]||'').trim();
-    const val = parseFloat(String(r[48]||'').replace(',','.'))||0;
-    if (!dtEnt||!emp||!val) return;
-    if (empresa_num!=='1'&&empresa_num!=='2') return;
-    // DT ENT comes as ISO: 2026-01-04T03:00:00.000Z or DD/MM/YYYY
+    const emp   = String(r[11]||'').trim();
+    const val   = parseFloat(String(r[r.length-1]||'').replace(',','.'))||0;
+    if (!dtEnt || !emp || !val) return;
+    // Parse DT ENT: ISO 2026-01-04T... � mes = 2026-01
     let mes;
     const iso = dtEnt.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (iso) { mes = iso[1]+'-'+iso[2]; }
     else {
       const p = dtEnt.split('/');
-      if (p.length<3) return;
+      if (p.length < 3) return;
       mes = p[2]+'-'+p[1].padStart(2,'0');
     }
     const key = emp+'|'+empresa_num+'|'+mes;
@@ -1681,22 +1682,31 @@ async function startMonitor() {
 
 async function readSheets() {
   setStatus('active', 'Lendo planilha...');
-  const parsers = {'OF_ABERTAS':parseOF,'ITENS_MONTADOS':parseMontados,'ESTOQUE_SEGURANCA':parseEstoque,'TRANSITO':parseTransito,'SERVICO_TERCEIROS':parseServico};
+  const parsers = {
+    'OF_ABERTAS':        parseOF,
+    'ITENS_MONTADOS':    parseMontados,
+    'ESTOQUE_SEGURANCA': parseEstoque,
+    'TRANSITO':          parseTransito,
+    'SERVICO_TERCEIROS': parseServico
+  };
   let found=0, errors=[];
-  for (const [aba,parser] of Object.entries(parsers)) {
+  for (const [aba, parser] of Object.entries(parsers)) {
     try {
       const res = await fetch(WEBAPP+'?aba='+encodeURIComponent(aba));
-      if (!res.ok){errors.push(aba);continue;}
+      if (!res.ok) { errors.push(aba); continue; }
       const text = await res.text();
-      if (!text.trim()){errors.push(aba);continue;}
-      parser(text); found++;
-    } catch(e){errors.push(aba);console.error(aba,e);}
+      if (!text.trim()) { errors.push(aba); continue; }
+      parser(text);
+      found++;
+    } catch(e) { errors.push(aba); console.error(aba, e); }
   }
-  if (found>0) {
+  if (found > 0) {
     renderAll();
     nextRead = new Date(Date.now()+READ_INTERVAL_MS);
     const t = new Date().toLocaleTimeString('pt-BR');
-    setStatus('active', errors.length?'Atualizado '+t+' ('+errors.length+' erros)':'Atualizado as '+t+' - prox. 5min');
+    setStatus('active', errors.length
+      ? 'Atualizado '+t+' ('+errors.length+' erros)'
+      : 'Atualizado as '+t+' - prox. 5min');
     startCountdown();
   } else {
     setStatus('error', 'Erro ao ler planilha');
@@ -1707,9 +1717,11 @@ function startCountdown() {
   clearInterval(countdownTimer);
   if (!nextRead) return;
   countdownTimer = setInterval(()=>{
-    const rem = Math.max(0,nextRead-Date.now());
-    document.getElementById('countdown').textContent = rem>0?'prox. em '+Math.floor(rem/60000)+':'+String(Math.floor((rem%60000)/1000)).padStart(2,'0'):'lendo...';
-  },1000);
+    const rem = Math.max(0, nextRead-Date.now());
+    document.getElementById('countdown').textContent = rem > 0
+      ? 'prox. em '+Math.floor(rem/60000)+':'+String(Math.floor((rem%60000)/1000)).padStart(2,'0')
+      : 'lendo...';
+  }, 1000);
 }
 
 renderAll();
