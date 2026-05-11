@@ -843,11 +843,23 @@ const DATA = {
 function normDate(s) {
   if (!s) return '';
   s = String(s).trim();
+  // Already DD/MM/YYYY
   if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
-  const m = s.match(/(\w{3}) (\w{3}) (\d{2}) (\d{4})/);
-  if (m) {
+  // JS Date string from Sheets: 'Fri Jun 05 2026 00:00:00 GMT-0300'
+  const jsDate = s.match(/(\w{3}) (\w{3}) (\d{2}) (\d{4})/);
+  if (jsDate) {
     const mo = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
-    return m[3] + '/' + (mo[m[2]]||'01') + '/' + m[4];
+    return jsDate[3] + '/' + (mo[jsDate[2]]||'01') + '/' + jsDate[4];
+  }
+  // MM/DD/YYYY (Sheets sometimes exports dates this way)
+  const mmdd = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (mmdd) {
+    const month = +mmdd[1], day = +mmdd[2], year = +mmdd[3];
+    // If month > 12, it's actually DD/MM/YYYY already  but if day > 12 and month d 12 it's MM/DD
+    if (month > 12) return String(month).padStart(2,'0') + '/' + String(day).padStart(2,'0') + '/' + year;
+    if (day > 12) return String(day).padStart(2,'0') + '/' + String(month).padStart(2,'0') + '/' + year;
+    // Ambiguous  assume MM/DD/YYYY (Sheets default) � convert to DD/MM/YYYY
+    return String(day).padStart(2,'0') + '/' + String(month).padStart(2,'0') + '/' + year;
   }
   return s;
 }
@@ -886,45 +898,42 @@ function renderOF() {
   cols.forEach(c => totals[c] = 0);
   rows.forEach(r => cols.forEach(c => totals[c] += r[c]));
 
-  // Render TOTAL row first (it sits in tfoot which is between thead and tbody in DOM)
+  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
   document.getElementById('of-foot').innerHTML = `<tr class="tfoot-row">
     <td>TOTAL</td>
     ${cols.map(c => `<td>${totals[c].toLocaleString('pt-BR')}</td>`).join('')}
   </tr>`;
 
-  // Then render data rows
   document.getElementById('of-body').innerHTML = rows.map(r => {
-    const od = isOverdue(r.DT_FIM_OF);
-    return `<tr class="${od?'overdue':''}">
-      <td>${r.DT_FIM_OF}${od?' ⚑':''}</td>
-      ${cols.map(c => `<td>${r[c] ? r[c] : '<span class="zero">—</span>'}</td>`).join('')}
+    const d = parseDate(r.DT_FIM_OF);
+    const isLate = d < todayMidnight;
+    const style = isLate ? 'color:#ff4444;' : '';
+    return `<tr style="${style}">
+      <td style="text-align:left;${style}font-weight:${isLate?'600':'normal'}">${r.DT_FIM_OF}${isLate?' �':''}</td>
+      ${cols.map(c => `<td style="${style}">${r[c] ? r[c].toLocaleString('pt-BR') : '<span class="zero"></span>'}</td>`).join('')}
     </tr>`;
   }).join('');
 }
 
-// ===== MONTADOS =====
 function renderMontados() {
   const el = document.getElementById('montados-content');
   if (!DATA.montados || DATA.montados.length === 0) {
-    el.innerHTML = `<div class="no-data"><span>📋</span>Nenhum item montado registrado ainda.<br>O arquivo ITENS_MONTADOS_POR_DIA__EPP_.CSV está vazio — atualize ao final do dia.</div>`;
+    el.innerHTML = '<div class="no-data"><span>=�</span>Nenhum item montado registrado ainda.</div>';
     return;
   }
   const cols = ['TOMADA_MULT','BOMBA','CILINDRO','CONJ_EIXO','GUINCHO','COMANDO','VALVULA','KIT_HIDR'];
-  const colLabels = ['TOMADA E MULT','BOMBA','CILINDRO','CONJ. EIXO','GUINCHO','COMANDO','VÁLVULA','KIT HIDR.'];
+  const colLabels = ['TOMADA E MULT','BOMBA','CILINDRO','CONJ. EIXO','GUINCHO','COMANDO','V�LVULA','KIT HIDR.'];
 
-  // Sort by date descending (most recent first)
-  const sorted = [...DATA.montados].sort((a,b) => {
-    const da = parseDate(a.DATA||a.DT||'01/01/2000');
-    const db = parseDate(b.DATA||b.DT||'01/01/2000');
-    return db - da;
-  });
+  // Sort descending
+  const sorted = [...DATA.montados].sort((a,b) => parseDate(b.DATA||b.DT||'01/01/2000') - parseDate(a.DATA||a.DT||'01/01/2000'));
 
-  // Grand totals (all rows including today)
+  // Grand totals (ALL rows including today)
   const totals = {};
   cols.forEach(c => totals[c] = 0);
   sorted.forEach(r => cols.forEach(c => totals[c] += (r[c]||0)));
 
-  // Past working days only (exclude today + weekends) for MEDIA
+  // Past working days only (Mon-Fri, excluding today) for M�DIA
   const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const pastWorkingRows = sorted.filter(r => {
     const d = parseDate(r.DATA||r.DT||'01/01/2000');
@@ -933,6 +942,7 @@ function renderMontados() {
     return dow !== 0 && dow !== 6;
   });
   const workingDays = pastWorkingRows.length;
+
   const avgTotals = {};
   cols.forEach(c => avgTotals[c] = 0);
   pastWorkingRows.forEach(r => cols.forEach(c => avgTotals[c] += (r[c]||0)));
@@ -951,17 +961,18 @@ function renderMontados() {
           <td style="text-align:left">TOTAL</td>${cols.map(c=>`<td>${totals[c].toLocaleString('pt-BR')}</td>`).join('')}
         </tr>
         <tr class="tfoot-row" style="background:#162a1e;border-bottom:1px solid var(--green-dark)">
-          <td style="text-align:left;color:var(--green)">MÉDIA</td>${cols.map(c=>`<td style="color:var(--green)">${medias[c]}</td>`).join('')}
+          <td style="text-align:left;color:var(--green)">M�DIA</td>${cols.map(c=>`<td style="color:var(--green)">${medias[c]}</td>`).join('')}
         </tr>
         <tr class="tfoot-row" style="background:#162a1e">
-          <td style="text-align:left;color:var(--text-muted)">DIAS ÚTEIS</td><td colspan="8" style="color:var(--text-muted);text-align:left">${workingDays}</td>
+          <td style="text-align:left;color:var(--text-muted)">DIAS �TEIS</td><td colspan="8" style="color:var(--text-muted);text-align:left">${workingDays}</td>
         </tr>
       </tfoot>
       <tbody>${sorted.map(r => {
         const isToday = parseDate(r.DATA||r.DT||'01/01/2000').getTime() === todayDate.getTime();
+        const dateStr = r.DATA||r.DT||'';
         return `<tr style="${isToday?'background:rgba(26,109,255,0.08)':''}">
-          <td style="text-align:left${isToday?';color:var(--blue-light);font-weight:600':''}">${r.DATA||r.DT}${isToday?' (hoje)':''}</td>
-          ${cols.map(c=>`<td>${r[c]?r[c]:'<span class="zero">—</span>'}</td>`).join('')}
+          <td style="text-align:left${isToday?';color:var(--blue-light);font-weight:600':''}">${dateStr}${isToday?' (hoje)':''}</td>
+          ${cols.map(c=>`<td>${r[c]?r[c]:'<span class="zero"></span>'}</td>`).join('')}
         </tr>`;
       }).join('')}</tbody>
     </table>
