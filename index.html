@@ -1217,7 +1217,15 @@ function parseTermico(text) {
 
 // ===== RENDER TERMICO =====
 function renderTermico() {
-  if (!DATA.termico || !DATA.termico.polimento) return;
+  if (!DATA.termico || !DATA.termico.polimento || DATA.termico.polimento.length === 0) {
+    // Sem dados ainda — mostrar mensagem nos KPIs
+    const kp = document.getElementById('pol-kpis');
+    const kt = document.getElementById('term-kpis');
+    const msg = '<div class="kpi-card"><div class="kpi-label" style="color:var(--text-muted)">Clique em ↻ Atualizar para carregar os dados</div></div>';
+    if (kp) kp.innerHTML = msg;
+    if (kt) kt.innerHTML = msg;
+    return;
+  }
   renderPolimento();
   renderTermicoTable();
 }
@@ -2089,7 +2097,7 @@ async function readSheets() {
     'ITENS_MONTADOS':    parseMontados,
     'ESTOQUE_SEGURANCA': parseEstoque,
     'TRANSITO':          parseTransito,
-    'SERVICO_TERCEIROS': parseServico
+    'SERVICO_TERCEIROS': (text) => { parseServico(text); parseTermico(text); }
   };
   let found=0, errors=[];
   for (const [aba, parser] of Object.entries(parsers)) {
