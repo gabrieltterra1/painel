@@ -1705,7 +1705,7 @@ function renderAll() {
 
 // ===== GOOGLE SHEETS MONITOR =====
 const WEBAPP = 'https://script.google.com/macros/s/AKfycbyFeoCDp-ROgWP_n8xImPFehmPbHlg0pjf5TiC7tW4O6BUAewqh9We0v6ROAiC0rnSn/exec';
-const READ_INTERVAL_MS = 10 * 60 * 1000;
+const READ_INTERVAL_MS = 20 * 60 * 1000;
 let monitorTimer = null, countdownTimer = null, nextRead = null, isMonitoring = false;
 
 function setStatus(state, msg) {
@@ -1713,6 +1713,13 @@ function setStatus(state, msg) {
   const txt = document.getElementById('update-time');
   dot.className = 'status-dot'+(state==='active'?' active':state==='error'?' error':'');
   txt.textContent = msg;
+}
+
+async function forcarAtualizacao() {
+  const btn = document.getElementById('refresh-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '↻ Atualizando...'; }
+  await readSheets();
+  if (btn) { btn.disabled = false; btn.textContent = '↻ Atualizar'; }
 }
 
 async function startMonitor() {
