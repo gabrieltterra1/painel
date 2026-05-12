@@ -1514,20 +1514,23 @@ function parseServico(text) {
     const empresa_num = String(r[1]||'').trim();
     if (empresa_num === 'EMP' || empresa_num === '') return;
     if (empresa_num !== '1' && empresa_num !== '2') return;
-    const dtEnt = String(r[8]||'').trim();
-    const emp   = String(r[11]||'').trim();
-    const val   = parseFloat(String(r[r.length-1]||'').replace(',','.'))||0;
-    if (!dtEnt || !emp || !val) return;
+    const emp = String(r[11]||'').trim();
+    const val = parseFloat(String(r[r.length-1]||'').replace(',','.'))||0;
+    if (!emp || !val) return;
+
+    // Try DT ENT (col8) first, fallback to DT EMIS (col9)
     let mes;
-    // DD/MM/YYYY
-    const ddmm = dtEnt.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
-    if (ddmm) {
-      mes = ddmm[3]+'-'+ddmm[2];
-    } else {
-      const iso = dtEnt.match(/^(\d{4})-(\d{2})-(\d{2})/);
-      if (iso) { mes = iso[1]+'-'+iso[2]; }
-      else return;
-    }
+    const tryDate = d => {
+      const s = String(d||'').trim();
+      const ddmm = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+      if (ddmm) return ddmm[3]+'-'+ddmm[2];
+      const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (iso) return iso[1]+'-'+iso[2];
+      return null;
+    };
+    mes = tryDate(r[8]) || tryDate(r[9]);
+    if (!mes) return;
+
     const key = emp+'|'+empresa_num+'|'+mes;
     result[key] = (result[key]||0)+val;
   });
