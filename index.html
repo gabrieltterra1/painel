@@ -1771,7 +1771,7 @@ async function readSheets() {
   let found=0, errors=[];
   for (const [aba, parser] of Object.entries(parsers)) {
     try {
-      const res = await fetch(WEBAPP+'?aba='+encodeURIComponent(aba));
+      const res = await fetch(WEBAPP+'?aba='+encodeURIComponent(aba)+'&t='+Date.now());
       if (!res.ok){errors.push(aba);continue;}
       const text = await res.text();
       if (!text.trim()){errors.push(aba);continue;}
