@@ -640,6 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <span id="update-time" class="last-update">— Aguardando pasta…</span>
       <span class="countdown-ring" id="countdown"></span>
     </div>
+    <button class="upload-btn" id="refresh-btn" onclick="forcarAtualizacao()" title="Forçar atualização dos dados">↻ Atualizar</button>
     <input type="file" id="file-input" multiple accept=".csv,.CSV" onchange="handleFiles(this.files)">
   </div>
 </header>
@@ -930,14 +931,24 @@ function renderMontados() {
   const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
   // Format a footer row — uses raw string values (not computed)
-  const fmtFootRow = (label, r, style, color) => {
+  const fmtFootRow = (label, r, style, color, isMedia) => {
     const cells = cols.map(c => {
       const v = r ? r[c] : 0;
-      const display = (v || v === 0) && v !== '' ? v : '<span class="zero">—</span>';
+      const num = parseFloat(String(v||'').replace(',','.'));
+      let display;
+      if (v === '' || v === null || v === undefined) {
+        display = '<span class="zero">—</span>';
+      } else if (isMedia && !isNaN(num)) {
+        // MÉDIA: exibir com 1 casa decimal para indicar que é média
+        display = num === 0 ? '<span class="zero">—</span>' : num.toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1});
+      } else {
+        const n = +v;
+        display = (!isNaN(n) && n !== 0) ? n.toLocaleString('pt-BR') : (v || '<span class="zero">—</span>');
+      }
       return `<td style="color:${color||'inherit'}">${display}</td>`;
     }).join('');
     return `<tr class="tfoot-row" style="${style}">
-      <td style="text-align:left;color:${color||'inherit'}">${label}</td>${cells}
+      <td style="text-align:left;color:${color||'inherit'};font-style:${isMedia?'italic':''}">${label}</td>${cells}
     </tr>`;
   };
 
@@ -948,8 +959,8 @@ function renderMontados() {
         ${colLabels.map(l=>`<th>${l}</th>`).join('')}
       </tr></thead>
       <tfoot>
-        ${totalRow ? fmtFootRow('TOTAL', totalRow, 'background:#1e2a4a;border-top:2px solid var(--green-dark)', '') : ''}
-        ${mediaRow ? fmtFootRow('MÉDIA', mediaRow, 'background:#1e2a4a;border-top:1px solid var(--green-dark)', 'var(--green)') : ''}
+        ${totalRow ? fmtFootRow('TOTAL', totalRow, 'background:#1e2a4a;border-top:2px solid var(--green-dark)', '', false) : ''}
+        ${mediaRow ? fmtFootRow('MÉDIA', mediaRow, 'background:#162a1e;border-top:1px solid var(--green);border-left:3px solid var(--green)', 'var(--green)', true) : ''}
         ${diasRow  ? `<tr class="tfoot-row" style="background:#162a1e">
           <td style="text-align:left;color:var(--text-muted)">DIAS ÚTEIS</td>
           <td colspan="8" style="color:var(--text-muted);text-align:left">${diasRow.TOMADA_MULT||''}</td>
@@ -1516,7 +1527,7 @@ function parseServico(text) {
     if (empresa_num !== '1' && empresa_num !== '2') return;
     const emp = String(r[11]||'').trim();
     const val = parseFloat(String(r[r.length-1]||'').replace(',','.'))||0;
-    if (!emp || !val) return;
+    if (!emp || val <= 0) return;
 
     // Try DT ENT (col8) first, fallback to DT EMIS (col9)
     let mes;
