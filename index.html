@@ -321,7 +321,10 @@
     border: 1px solid var(--border);
     border-radius: 10px;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
+  .transit-card .transit-row { flex: 1; }
   .transit-card-header {
     background: linear-gradient(90deg, #1a3a6e, #1a4fcc);
     padding: 10px 16px;
@@ -720,6 +723,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <option value="GUINCHO OP">Guincho OP</option>
       <option value="CONJUNTO EIXO">Conjunto Eixo</option>
       <option value="CILINDRO HIDRAULICO">Cilindro Hidráulico</option>
+      <option value="OUTROS">Outros</option>
     </select>
     <select class="filter-select" id="tr-empresa" onchange="renderTransito()">
       <option value="">Todas as empresas</option>
@@ -987,12 +991,15 @@ function renderEstoque() {
   const emps = ['SP','MG','GO','PE'];
   tg.innerHTML = emps.map(emp => {
     const d = DATA.transito.find(r => r.EMPRESA === emp) || {TOM:0,BOM:0,CIL:0,GUI:0};
+    // OUTROS = total da empresa menos os grupos conhecidos
+    const totalEmp = DATA.transito_detail.filter(r => r.empresa === emp).reduce((s,r) => s+r.quantidade, 0);
+    const outros = Math.max(0, totalEmp - (d.TOM||0) - (d.BOM||0) - (d.CIL||0) - (d.GUI||0));
     return `<div class="transit-card">
       <div class="transit-card-header">${emp}</div>
-      ${[['TOM',d.TOM],['BOM',d.BOM],['CIL',d.CIL],['GUI',d.GUI]].map(([k,v])=>`
+      ${[['TOM',d.TOM],['BOM',d.BOM],['CIL',d.CIL],['GUI',d.GUI],['OUTROS',outros]].map(([k,v])=>`
       <div class="transit-row">
-        <span class="transit-label">${k}</span>
-        <span class="transit-val ${v===0?'zero':''}">${v===0?'—':v}</span>
+        <span class="transit-label" style="${k==='OUTROS'?'color:var(--text-muted);font-size:11px':''}">${k}</span>
+        <span class="transit-val ${v===0?'zero':''}" style="${k==='OUTROS'?'font-size:16px;color:var(--text-muted)':''}">${v===0?'—':v}</span>
       </div>`).join('')}
     </div>`;
   }).join('');
@@ -1690,7 +1697,14 @@ function renderTransito() {
   const empColors = {'SP':'#00c97a','MG':'#ffaa00','GO':'#ff6b3b','PE':'#c97aff'};
 
   let rows = DATA.transito_detail.filter(r => {
-    if (prodFilt && r.produto !== prodFilt) return false;
+    if (prodFilt) {
+      const gruposConhecidos = ['TOMADA DE FORCA','BOMBA HIDRAULICA','GUINCHO OS-M','GUINCHO OP','CONJUNTO EIXO','CILINDRO HIDRAULICO'];
+      if (prodFilt === 'OUTROS') {
+        if (gruposConhecidos.includes(r.produto)) return false;
+      } else {
+        if (r.produto !== prodFilt) return false;
+      }
+    }
     if (empFilt && r.empresa !== empFilt) return false;
     if (search && !r.codigo.toLowerCase().includes(search) && !r.descricao.toLowerCase().includes(search)) return false;
     return true;
