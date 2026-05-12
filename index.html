@@ -653,6 +653,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="tab" onclick="showTab('montados')">Itens Montados</div>
   <div class="tab" onclick="showTab('estoque')">Estoque & Trânsito</div>
   <div class="tab" onclick="showTab('servicos')">Serviços Terceiros</div>
+  <div class="tab" onclick="showTab('termico')">Térmico & Polimento</div>
 </nav>
 
 <!-- ======= OF ABERTAS ======= -->
@@ -821,6 +822,47 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 
+<div id="tab-termico" class="tab-content">
+  <div class="section-title">Polimento — Lucas Daniel Moreira</div>
+  <div class="kpi-bar" id="pol-kpis"></div>
+  <div class="section-title" style="margin-top:24px">Linha do Tempo — Polimento por Mês (Qtde Peças)</div>
+  <div class="filter-row" style="margin-bottom:16px">
+    <select class="filter-select" id="pol-mes" onchange="renderTermico()">
+      <option value="">Todos os meses</option>
+    </select>
+    <input class="search-input" type="text" id="pol-search" placeholder="Buscar código ou descrição..." oninput="renderTermico()">
+  </div>
+  <div class="table-wrap"><div class="scrollable">
+    <table id="pol-table" style="table-layout:fixed;min-width:700px;">
+      <thead class="blue"><tr id="pol-thead"></tr></thead>
+      <tfoot id="pol-foot"></tfoot>
+      <tbody id="pol-body"></tbody>
+    </table>
+  </div></div>
+
+  <div class="section-title" style="margin-top:36px">Tratamento Térmico — Thermix / Tecnohard / Metaltecnica</div>
+  <div class="kpi-bar" id="term-kpis"></div>
+  <div class="filter-row" style="margin-bottom:16px;margin-top:16px">
+    <select class="filter-select" id="term-mes" onchange="renderTermico()">
+      <option value="">Todos os meses</option>
+    </select>
+    <select class="filter-select" id="term-forn" onchange="renderTermico()">
+      <option value="">Todos os fornecedores</option>
+      <option value="THERMIX">Thermix</option>
+      <option value="TECNOHARD">Tecnohard</option>
+      <option value="METALTECNICA">Metaltecnica</option>
+    </select>
+    <input class="search-input" type="text" id="term-search" placeholder="Buscar código ou descrição..." oninput="renderTermico()">
+  </div>
+  <div class="table-wrap"><div class="scrollable">
+    <table id="term-table" style="table-layout:fixed;min-width:700px;">
+      <thead class="blue"><tr id="term-thead"></tr></thead>
+      <tfoot id="term-foot"></tfoot>
+      <tbody id="term-body"></tbody>
+    </table>
+  </div></div>
+</div>
+
 <script>
 // ===== DATA =====
 // Register datalabels globally — opt-in per chart
@@ -836,6 +878,7 @@ const DATA = {
   transito: [{"EMPRESA":"SP","TOM":290,"BOM":93,"CIL":0,"GUI":7},{"EMPRESA":"MG","TOM":33,"BOM":7,"CIL":0,"GUI":2},{"EMPRESA":"GO","TOM":105,"BOM":128,"CIL":12,"GUI":7},{"EMPRESA":"PE","TOM":90,"BOM":41,"CIL":6,"GUI":3}],
   estoque: [{"cod_emp":1,"uf":"RS","classificacao":"300.200.001","descricao":"TOMADA DE FORCA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":43,"qtde_param_es":439,"custo_tdt":"258835,53","tot_falta":-61,"custo_abast":"-38148,61","cod_zerados":1,"estoque_total":1182,"custo_saldo":"757119,65","estoque_excesso":804,"custo_exces":"536432,73","qtde_abast":378,"perc_abast_mtz":86.104783599088,"pct_es":87.040695377321},{"cod_emp":1,"uf":"RS","classificacao":"300.500.001","descricao":"BOMBA HIDRAULICA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":12,"qtde_param_es":283,"custo_tdt":"150282,99","tot_falta":-5,"custo_abast":"-3841,11","cod_zerados":0,"estoque_total":507,"custo_saldo":"270950,03","estoque_excesso":229,"custo_exces":"124508,15","qtde_abast":278,"perc_abast_mtz":98.233215547703,"pct_es":83.963963963963},{"cod_emp":1,"uf":"RS","classificacao":"800.010.020","descricao":"GUINCHO LINHA OS-M","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":6,"qtde_param_es":11,"custo_tdt":"78269,93","tot_falta":-9,"custo_abast":"-61282,01","cod_zerados":4,"estoque_total":4,"custo_saldo":"28433,35","estoque_excesso":2,"custo_exces":"11445,43","qtde_abast":2,"perc_abast_mtz":18.181818181818,"pct_es":18.181818181818},{"cod_emp":1,"uf":"RS","classificacao":"800.010.040","descricao":"GUINCHO LINHA OP","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":10,"qtde_param_es":16,"custo_tdt":"53324,16","tot_falta":-11,"custo_abast":"-37919,59","cod_zerados":6,"estoque_total":16,"custo_saldo":"45413,26","estoque_excesso":11,"custo_exces":"30008,68","qtde_abast":5,"perc_abast_mtz":31.25,"pct_es":31.25},{"cod_emp":1,"uf":"RS","classificacao":"800.050.010","descricao":"ENROLADOR DE MANGUEIRA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":1,"qtde_param_es":1,"custo_tdt":"7628,84","tot_falta":-1,"custo_abast":"-7628,84","cod_zerados":1,"estoque_total":0,"custo_saldo":"0","estoque_excesso":0,"custo_exces":"0","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":2,"uf":"SP","classificacao":"300.200.001","descricao":"TOMADA DE FORCA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":86,"qtde_param_es":663,"custo_tdt":"449435,2","tot_falta":-68,"custo_abast":"-46764,1","cod_zerados":1,"estoque_total":827,"custo_saldo":"557410,47","estoque_excesso":232,"custo_exces":"154739,38","qtde_abast":595,"perc_abast_mtz":89.743589743589,"pct_es":87.040695377321},{"cod_emp":2,"uf":"SP","classificacao":"300.500.001","descricao":"BOMBA HIDRAULICA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":23,"qtde_param_es":230,"custo_tdt":"132200,98","tot_falta":-14,"custo_abast":"-8479","cod_zerados":1,"estoque_total":272,"custo_saldo":"163273,45","estoque_excesso":56,"custo_exces":"39551,47","qtde_abast":216,"perc_abast_mtz":93.91304347826,"pct_es":83.963963963963},{"cod_emp":2,"uf":"SP","classificacao":"800.010.020","descricao":"GUINCHO LINHA OS-M","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":4,"qtde_param_es":4,"custo_tdt":"28250,78","tot_falta":-4,"custo_abast":"-28250,78","cod_zerados":4,"estoque_total":0,"custo_saldo":"0","estoque_excesso":0,"custo_exces":"0","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":2,"uf":"SP","classificacao":"800.010.040","descricao":"GUINCHO LINHA OP","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":4,"qtde_param_es":18,"custo_tdt":"50083,04","tot_falta":-12,"custo_abast":"-29085,08","cod_zerados":2,"estoque_total":8,"custo_saldo":"29048,63","estoque_excesso":2,"custo_exces":"8050,68","qtde_abast":6,"perc_abast_mtz":33.333333333333,"pct_es":33.333333333333},{"cod_emp":2,"uf":"SP","classificacao":"800.050.010","descricao":"ENROLADOR DE MANGUEIRA","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":0,"qtde_param_es":0,"custo_tdt":"0","tot_falta":0,"custo_abast":"0","cod_zerados":0,"estoque_total":0,"custo_saldo":"0","estoque_excesso":0,"custo_exces":"0","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":3,"uf":"MG","classificacao":"300.200.001","descricao":"TOMADA DE FORCA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":119,"qtde_param_es":324,"custo_tdt":"206950,43","tot_falta":-7,"custo_abast":"-4069,54","cod_zerados":1,"estoque_total":405,"custo_saldo":"254852,77","estoque_excesso":88,"custo_exces":"51971,89","qtde_abast":317,"perc_abast_mtz":97.839506172839,"pct_es":87.040695377321},{"cod_emp":3,"uf":"MG","classificacao":"300.500.001","descricao":"BOMBA HIDRAULICA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":27,"qtde_param_es":99,"custo_tdt":"58848,02","tot_falta":-10,"custo_abast":"-6495,75","cod_zerados":3,"estoque_total":114,"custo_saldo":"68537,17","estoque_excesso":25,"custo_exces":"16184,9","qtde_abast":89,"perc_abast_mtz":89.898989898989,"pct_es":83.963963963963},{"cod_emp":3,"uf":"MG","classificacao":"800.010.020","descricao":"GUINCHO LINHA OS-M","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":0,"qtde_param_es":0,"custo_tdt":"0","tot_falta":0,"custo_abast":"0","cod_zerados":0,"estoque_total":0,"custo_saldo":"0","estoque_excesso":0,"custo_exces":"0","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":3,"uf":"MG","classificacao":"800.010.040","descricao":"GUINCHO LINHA OP","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":6,"qtde_param_es":20,"custo_tdt":"48646,49","tot_falta":-18,"custo_abast":"-41757,93","cod_zerados":4,"estoque_total":3,"custo_saldo":"9365,41","estoque_excesso":1,"custo_exces":"2476,86","qtde_abast":2,"perc_abast_mtz":10,"pct_es":10},{"cod_emp":8,"uf":"GO","classificacao":"300.200.001","descricao":"TOMADA DE FORCA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":125,"qtde_param_es":466,"custo_tdt":"292513,99","tot_falta":-130,"custo_abast":"-79855,49","cod_zerados":10,"estoque_total":521,"custo_saldo":"327008,03","estoque_excesso":185,"custo_exces":"114349,53","qtde_abast":336,"perc_abast_mtz":72.103004291845,"pct_es":87.040695377321},{"cod_emp":8,"uf":"GO","classificacao":"300.500.001","descricao":"BOMBA HIDRAULICA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":37,"qtde_param_es":290,"custo_tdt":"182731,78","tot_falta":-119,"custo_abast":"-75355,01","cod_zerados":2,"estoque_total":237,"custo_saldo":"161442,13","estoque_excesso":66,"custo_exces":"54065,37","qtde_abast":171,"perc_abast_mtz":58.965517241379,"pct_es":83.963963963963},{"cod_emp":8,"uf":"GO","classificacao":"800.010.020","descricao":"GUINCHO LINHA OS-M","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":0,"qtde_param_es":0,"custo_tdt":"0","tot_falta":0,"custo_abast":"0","cod_zerados":0,"estoque_total":2,"custo_saldo":"13420,99","estoque_excesso":2,"custo_exces":"13420,99","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":8,"uf":"GO","classificacao":"800.010.040","descricao":"GUINCHO LINHA OP","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":6,"qtde_param_es":14,"custo_tdt":"20204,94","tot_falta":-13,"custo_abast":"-14063,86","cod_zerados":5,"estoque_total":1,"custo_saldo":"6141,08","estoque_excesso":0,"custo_exces":"0","qtde_abast":1,"perc_abast_mtz":7.1428571428571,"pct_es":7.1428571428571},{"cod_emp":9,"uf":"PE","classificacao":"300.200.001","descricao":"TOMADA DE FORCA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":98,"qtde_param_es":639,"custo_tdt":"396650,27","tot_falta":-62,"custo_abast":"-26743,74","cod_zerados":3,"estoque_total":698,"custo_saldo":"444991","estoque_excesso":121,"custo_exces":"75084,46","qtde_abast":577,"perc_abast_mtz":90.297339593114,"pct_es":87.040695377321},{"cod_emp":9,"uf":"PE","classificacao":"300.500.001","descricao":"BOMBA HIDRAULICA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":22,"qtde_param_es":208,"custo_tdt":"130145,67","tot_falta":-30,"custo_abast":"-21394,77","cod_zerados":0,"estoque_total":188,"custo_saldo":"114483,22","estoque_excesso":10,"custo_exces":"5732,32","qtde_abast":178,"perc_abast_mtz":85.576923076923,"pct_es":83.963963963963},{"cod_emp":9,"uf":"PE","classificacao":"800.010.020","descricao":"GUINCHO LINHA OS-M","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":0,"qtde_param_es":0,"custo_tdt":"0","tot_falta":0,"custo_abast":"0","cod_zerados":0,"estoque_total":1,"custo_saldo":"5822,17","estoque_excesso":1,"custo_exces":"5822,17","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":9,"uf":"PE","classificacao":"800.010.040","descricao":"GUINCHO LINHA OP","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":3,"qtde_param_es":15,"custo_tdt":"50755","tot_falta":-15,"custo_abast":"-50755","cod_zerados":3,"estoque_total":6,"custo_saldo":"29871,11","estoque_excesso":6,"custo_exces":"29871,11","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":9,"uf":"PE","classificacao":"800.050.010","descricao":"ENROLADOR DE MANGUEIRA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":0,"qtde_param_es":0,"custo_tdt":"0","tot_falta":0,"custo_abast":"0","cod_zerados":0,"estoque_total":0,"custo_saldo":"0","estoque_excesso":0,"custo_exces":"0","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0}],
   servico: [{"empresa":"62856 - HOVER COMPONENTES LTDA","empresa_num":"1","mes":"2026-01","valor":50680},{"empresa":"2003 - STAR SU INDUSTRIA DE FERRAMENTAS LTDA","empresa_num":"1","mes":"2026-01","valor":12882.04},{"empresa":"64793 - JCL MANUTEN��ES DE M�QUINAS LTDA","empresa_num":"1","mes":"2026-01","valor":4030},{"empresa":"66846 - DLP MANUTENCAO E INSTALACAO DE EQUIPAMENTOS INDUSTRIAIS LTDA","empresa_num":"2","mes":"2026-01","valor":39680},{"empresa":"51658 - BELUSSO INDUSTRIA METALURGICA LTDA","empresa_num":"1","mes":"2026-01","valor":46861.8},{"empresa":"64597 - ZINCAGEM MAQUINE LTDA","empresa_num":"1","mes":"2026-01","valor":1657.85},{"empresa":"64550 - ODAIR LAERCIO MELONI","empresa_num":"2","mes":"2026-01","valor":810},{"empresa":"29212 - THERMIX TRATAMENTO TERMICO LTDA","empresa_num":"1","mes":"2026-01","valor":53572.76},{"empresa":"63175 - METALURGICA MT LINE DRILL LTDA - ME","empresa_num":"1","mes":"2026-01","valor":30369},{"empresa":"59485 - VERGANI USINAGEM LTDA","empresa_num":"1","mes":"2026-01","valor":9993},{"empresa":"365 - TECNOHARD INDUSTRIA METALURGICA LTDA","empresa_num":"1","mes":"2026-01","valor":28783.39},{"empresa":"65865 - MARK AUTOMATION","empresa_num":"2","mes":"2026-01","valor":13500},{"empresa":"264 - MITEC INSTRUMENTOS INDUSTRIAIS LTDA","empresa_num":"1","mes":"2026-01","valor":2868},{"empresa":"59506 - VKASTA INDUSTRIA DE EQUIPAMENTOS HIDRAULICOS LTDA","empresa_num":"1","mes":"2026-01","valor":69814.8},{"empresa":"65184 - LUCAS DANIEL MOREIRA VELHO","empresa_num":"1","mes":"2026-01","valor":12942},{"empresa":"178 - INDUSTRIA  MECANICA GUSFAR LTDA ME","empresa_num":"1","mes":"2026-01","valor":6771.2},{"empresa":"12144 - CLEMAR CROMO DURO LTDA","empresa_num":"1","mes":"2026-01","valor":11815.46},{"empresa":"9883 - METALTECNICA METALURGICA LTDA","empresa_num":"1","mes":"2026-01","valor":1661.07},{"empresa":"20069 - IND MECANICA JAVER LTDA","empresa_num":"1","mes":"2026-01","valor":19636},{"empresa":"62788 - BRASIN SOLUCOES HIDRAULICAS LTDA","empresa_num":"1","mes":"2026-01","valor":11990},{"empresa":"60793 - CROMOFIX CROMO DURO LTDA","empresa_num":"1","mes":"2026-01","valor":3720},{"empresa":"64074 - AC FIORAVANTE ME","empresa_num":"2","mes":"2026-01","valor":2680},{"empresa":"65031 - ACVL SERVI�OS LTDA","empresa_num":"1","mes":"2026-01","valor":1232},{"empresa":"64554 - USINAGEM COSTA LTDA","empresa_num":"1","mes":"2026-01","valor":10600},{"empresa":"60496 - FORTUNA IND E COM. DE METAIS LTDA","empresa_num":"1","mes":"2026-01","valor":1231.72},{"empresa":"701185 - PICELLI MOTORES E BOMBAS LTDA EPP","empresa_num":"2","mes":"2026-01","valor":53947.52},{"empresa":"701173 - JL ZAPPE INDUSTRIA DE MOLAQSW LTDA","empresa_num":"1","mes":"2026-01","valor":2167},{"empresa":"63254 - KROMI LOG�STICA DO BRASIL LTDA","empresa_num":"1","mes":"2026-01","valor":2225.78},{"empresa":"59485 - VERGANI USINAGEM LTDA","empresa_num":"1","mes":"2026-02","valor":21833},{"empresa":"9883 - METALTECNICA METALURGICA LTDA","empresa_num":"1","mes":"2026-02","valor":8522.45},{"empresa":"51658 - BELUSSO INDUSTRIA METALURGICA LTDA","empresa_num":"1","mes":"2026-02","valor":80315},{"empresa":"365 - TECNOHARD INDUSTRIA METALURGICA LTDA","empresa_num":"1","mes":"2026-02","valor":45308.92},{"empresa":"29212 - THERMIX TRATAMENTO TERMICO LTDA","empresa_num":"1","mes":"2026-02","valor":80022.21},{"empresa":"64597 - ZINCAGEM MAQUINE LTDA","empresa_num":"1","mes":"2026-02","valor":4464.14},{"empresa":"62856 - HOVER COMPONENTES LTDA","empresa_num":"1","mes":"2026-02","valor":37768},{"empresa":"60793 - CROMOFIX CROMO DURO LTDA","empresa_num":"1","mes":"2026-02","valor":5400},{"empresa":"65184 - LUCAS DANIEL MOREIRA VELHO","empresa_num":"1","mes":"2026-02","valor":14338.8},{"empresa":"59506 - VKASTA INDUSTRIA DE EQUIPAMENTOS HIDRAULICOS LTDA","empresa_num":"1","mes":"2026-02","valor":91545.25},{"empresa":"178 - INDUSTRIA  MECANICA GUSFAR LTDA ME","empresa_num":"1","mes":"2026-02","valor":27285.31},{"empresa":"64554 - USINAGEM COSTA LTDA","empresa_num":"1","mes":"2026-02","valor":36160.12},{"empresa":"63175 - METALURGICA MT LINE DRILL LTDA - ME","empresa_num":"1","mes":"2026-02","valor":29059.18},{"empresa":"63616 - JRD USINAGEM EIRELI","empresa_num":"1","mes":"2026-02","valor":6207.2},{"empresa":"2003 - STAR SU INDUSTRIA DE FERRAMENTAS LTDA","empresa_num":"1","mes":"2026-02","valor":15919.03},{"empresa":"701173 - JL ZAPPE INDUSTRIA DE MOLAQSW LTDA","empresa_num":"1","mes":"2026-02","valor":11300},{"empresa":"12144 - CLEMAR CROMO DURO LTDA","empresa_num":"1","mes":"2026-02","valor":15237.6},{"empresa":"65865 - MARK AUTOMATION","empresa_num":"2","mes":"2026-02","valor":17160},{"empresa":"62788 - BRASIN SOLUCOES HIDRAULICAS LTDA","empresa_num":"1","mes":"2026-02","valor":575},{"empresa":"20069 - IND MECANICA JAVER LTDA","empresa_num":"1","mes":"2026-02","valor":21690},{"empresa":"63254 - KROMI LOG�STICA DO BRASIL LTDA","empresa_num":"1","mes":"2026-02","valor":3221.54},{"empresa":"66585 - JL PINTURAS A PO LTDA","empresa_num":"2","mes":"2026-02","valor":80},{"empresa":"65364 - C.J.C USINAGEM DE PECAS LTDA","empresa_num":"2","mes":"2026-02","valor":570},{"empresa":"138 - IMAP COMERCIO E SERVICOS INDUSTRIAIS LTDA","empresa_num":"1","mes":"2026-02","valor":680},{"empresa":"264 - MITEC INSTRUMENTOS INDUSTRIAIS LTDA","empresa_num":"1","mes":"2026-02","valor":1112},{"empresa":"64299 - METAL RIBAS LTDA","empresa_num":"1","mes":"2026-02","valor":920},{"empresa":"126 - HURTH INFER INDUSTRIA DE MAQUINAS E FERRAMENTAS LTDA","empresa_num":"1","mes":"2026-02","valor":1595},{"empresa":"65031 - ACVL SERVI�OS LTDA","empresa_num":"1","mes":"2026-02","valor":1530},{"empresa":"59506 - VKASTA INDUSTRIA DE EQUIPAMENTOS HIDRAULICOS LTDA","empresa_num":"1","mes":"2026-03","valor":106984.62},{"empresa":"62856 - HOVER COMPONENTES LTDA","empresa_num":"1","mes":"2026-03","valor":26458},{"empresa":"29212 - THERMIX TRATAMENTO TERMICO LTDA","empresa_num":"1","mes":"2026-03","valor":84572.22},{"empresa":"51658 - BELUSSO INDUSTRIA METALURGICA LTDA","empresa_num":"1","mes":"2026-03","valor":80521},{"empresa":"365 - TECNOHARD INDUSTRIA METALURGICA LTDA","empresa_num":"1","mes":"2026-03","valor":46785.76},{"empresa":"65184 - LUCAS DANIEL MOREIRA VELHO","empresa_num":"1","mes":"2026-03","valor":15814.8},{"empresa":"63175 - METALURGICA MT LINE DRILL LTDA - ME","empresa_num":"1","mes":"2026-03","valor":36687.42},{"empresa":"59485 - VERGANI USINAGEM LTDA","empresa_num":"1","mes":"2026-03","valor":17479},{"empresa":"701173 - JL ZAPPE INDUSTRIA DE MOLAQSW LTDA","empresa_num":"1","mes":"2026-03","valor":13385},{"empresa":"64554 - USINAGEM COSTA LTDA","empresa_num":"1","mes":"2026-03","valor":26777.08},{"empresa":"64597 - ZINCAGEM MAQUINE LTDA","empresa_num":"1","mes":"2026-03","valor":5368.69},{"empresa":"20069 - IND MECANICA JAVER LTDA","empresa_num":"1","mes":"2026-03","valor":19487},{"empresa":"178 - INDUSTRIA  MECANICA GUSFAR LTDA ME","empresa_num":"1","mes":"2026-03","valor":13985.2},{"empresa":"12144 - CLEMAR CROMO DURO LTDA","empresa_num":"1","mes":"2026-03","valor":16459.18},{"empresa":"65865 - MARK AUTOMATION","empresa_num":"2","mes":"2026-03","valor":12958.6},{"empresa":"63616 - JRD USINAGEM EIRELI","empresa_num":"1","mes":"2026-03","valor":20483.76},{"empresa":"264 - MITEC INSTRUMENTOS INDUSTRIAIS LTDA","empresa_num":"1","mes":"2026-03","valor":2289},{"empresa":"2003 - STAR SU INDUSTRIA DE FERRAMENTAS LTDA","empresa_num":"1","mes":"2026-03","valor":18650.57},{"empresa":"30972 - METALDIFFER INDUSTRIA E COMERCIO LTDA","empresa_num":"1","mes":"2026-03","valor":9127.4},{"empresa":"9883 - METALTECNICA METALURGICA LTDA","empresa_num":"1","mes":"2026-03","valor":2533},{"empresa":"64074 - AC FIORAVANTE ME","empresa_num":"2","mes":"2026-03","valor":2380},{"empresa":"62010 - GLEASON INDUSTRIA DE FERRAMENTAS LTDA","empresa_num":"1","mes":"2026-03","valor":2574.06},{"empresa":"67144 - SERGIO LUIZ LENZI LTDA","empresa_num":"1","mes":"2026-03","valor":1495},{"empresa":"138 - IMAP COMERCIO E SERVICOS INDUSTRIAIS LTDA","empresa_num":"1","mes":"2026-03","valor":200},{"empresa":"62788 - BRASIN SOLUCOES HIDRAULICAS LTDA","empresa_num":"1","mes":"2026-03","valor":7200},{"empresa":"59143 - CARL ZEISS DO BRASIL LTDA","empresa_num":"1","mes":"2026-03","valor":38220.67},{"empresa":"63254 - KROMI LOG�STICA DO BRASIL LTDA","empresa_num":"1","mes":"2026-03","valor":4088.72},{"empresa":"64348 - WIKA DO BRASIL IND COM LT","empresa_num":"2","mes":"2026-03","valor":1818.9},{"empresa":"65736 - HIDRAUTEC SAO PAULO EQUIP HIDRAULICOS LTDA","empresa_num":"2","mes":"2026-03","valor":5920},{"empresa":"62856 - HOVER COMPONENTES LTDA","empresa_num":"1","mes":"2026-04","valor":29550},{"empresa":"365 - TECNOHARD INDUSTRIA METALURGICA LTDA","empresa_num":"1","mes":"2026-04","valor":33479.01},{"empresa":"65184 - LUCAS DANIEL MOREIRA VELHO","empresa_num":"1","mes":"2026-04","valor":15300},{"empresa":"59506 - VKASTA INDUSTRIA DE EQUIPAMENTOS HIDRAULICOS LTDA","empresa_num":"1","mes":"2026-04","valor":115330.5},{"empresa":"63175 - METALURGICA MT LINE DRILL LTDA - ME","empresa_num":"1","mes":"2026-04","valor":42103.06},{"empresa":"29212 - THERMIX TRATAMENTO TERMICO LTDA","empresa_num":"1","mes":"2026-04","valor":66157.61},{"empresa":"51658 - BELUSSO INDUSTRIA METALURGICA LTDA","empresa_num":"1","mes":"2026-04","valor":65497.08},{"empresa":"12144 - CLEMAR CROMO DURO LTDA","empresa_num":"1","mes":"2026-04","valor":17326.4},{"empresa":"64554 - USINAGEM COSTA LTDA","empresa_num":"1","mes":"2026-04","valor":34609.8},{"empresa":"59485 - VERGANI USINAGEM LTDA","empresa_num":"1","mes":"2026-04","valor":9022},{"empresa":"701291 - TECH COAT REVESTIMENTO EM METAIS","empresa_num":"1","mes":"2026-04","valor":11592.9},{"empresa":"30972 - METALDIFFER INDUSTRIA E COMERCIO LTDA","empresa_num":"1","mes":"2026-04","valor":19935.02},{"empresa":"701173 - JL ZAPPE INDUSTRIA DE MOLAQSW LTDA","empresa_num":"1","mes":"2026-04","valor":8766},{"empresa":"65865 - MARK AUTOMATION","empresa_num":"2","mes":"2026-04","valor":12170},{"empresa":"178 - INDUSTRIA  MECANICA GUSFAR LTDA ME","empresa_num":"1","mes":"2026-04","valor":27937.99},{"empresa":"64597 - ZINCAGEM MAQUINE LTDA","empresa_num":"1","mes":"2026-04","valor":2740.3},{"empresa":"701319 - MARIA CARLINDA DA SILVA 24657959883","empresa_num":"2","mes":"2026-04","valor":5600},{"empresa":"264 - MITEC INSTRUMENTOS INDUSTRIAIS LTDA","empresa_num":"1","mes":"2026-04","valor":1218},{"empresa":"20069 - IND MECANICA JAVER LTDA","empresa_num":"1","mes":"2026-04","valor":16562},{"empresa":"67144 - SERGIO LUIZ LENZI LTDA","empresa_num":"1","mes":"2026-04","valor":3723},{"empresa":"9883 - METALTECNICA METALURGICA LTDA","empresa_num":"1","mes":"2026-04","valor":2531.5},{"empresa":"126 - HURTH INFER INDUSTRIA DE MAQUINAS E FERRAMENTAS LTDA","empresa_num":"1","mes":"2026-04","valor":3060},{"empresa":"2003 - STAR SU INDUSTRIA DE FERRAMENTAS LTDA","empresa_num":"1","mes":"2026-04","valor":8241.01},{"empresa":"63427 - ESCALA PRODUTOS E SERVI�OS DE CALIBRA��O","empresa_num":"2","mes":"2026-04","valor":4387.2},{"empresa":"63616 - JRD USINAGEM EIRELI","empresa_num":"1","mes":"2026-04","valor":11172.96},{"empresa":"701347 - 65287265 ABHNER EANES DUARTE BATISTA","empresa_num":"2","mes":"2026-04","valor":2000},{"empresa":"701337 - METALURGICA NEGRI LTDA","empresa_num":"1","mes":"2026-04","valor":7275.83},{"empresa":"63254 - KROMI LOG�STICA DO BRASIL LTDA","empresa_num":"1","mes":"2026-04","valor":3018.96},{"empresa":"60496 - FORTUNA IND E COM. DE METAIS LTDA","empresa_num":"1","mes":"2026-04","valor":540},{"empresa":"62856 - HOVER COMPONENTES LTDA","empresa_num":"1","mes":"2026-05","valor":8624},{"empresa":"51658 - BELUSSO INDUSTRIA METALURGICA LTDA","empresa_num":"1","mes":"2026-05","valor":19822.5},{"empresa":"365 - TECNOHARD INDUSTRIA METALURGICA LTDA","empresa_num":"1","mes":"2026-05","valor":7880.93},{"empresa":"12144 - CLEMAR CROMO DURO LTDA","empresa_num":"1","mes":"2026-05","valor":4569.6},{"empresa":"65184 - LUCAS DANIEL MOREIRA VELHO","empresa_num":"1","mes":"2026-05","valor":2372.4},{"empresa":"64554 - USINAGEM COSTA LTDA","empresa_num":"1","mes":"2026-05","valor":6067},{"empresa":"64597 - ZINCAGEM MAQUINE LTDA","empresa_num":"1","mes":"2026-05","valor":1008.56},{"empresa":"29212 - THERMIX TRATAMENTO TERMICO LTDA","empresa_num":"1","mes":"2026-05","valor":6268.12},{"empresa":"59506 - VKASTA INDUSTRIA DE EQUIPAMENTOS HIDRAULICOS LTDA","empresa_num":"1","mes":"2026-05","valor":10515},{"empresa":"62788 - BRASIN SOLUCOES HIDRAULICAS LTDA","empresa_num":"1","mes":"2026-05","valor":2670},{"empresa":"65865 - MARK AUTOMATION","empresa_num":"2","mes":"2026-05","valor":9300},{"empresa":"701291 - TECH COAT REVESTIMENTO EM METAIS","empresa_num":"1","mes":"2026-05","valor":450},{"empresa":"9883 - METALTECNICA METALURGICA LTDA","empresa_num":"1","mes":"2026-05","valor":797},{"empresa":"178 - INDUSTRIA  MECANICA GUSFAR LTDA ME","empresa_num":"1","mes":"2026-05","valor":2440.32},{"empresa":"20069 - IND MECANICA JAVER LTDA","empresa_num":"1","mes":"2026-05","valor":1100},{"empresa":"65031 - ACVL SERVI�OS LTDA","empresa_num":"1","mes":"2026-05","valor":2720}],
+  termico: [],
   ns: {"RS":{"TOM":86.1,"BOM":98.2,"GUI":24.7},"SP":{"TOM":89.7,"BOM":93.9,"GUI":33.3},"MG":{"TOM":97.8,"BOM":89.9,"GUI":10},"GO":{"TOM":72.1,"BOM":59,"GUI":7.1},"PE":{"TOM":90.3,"BOM":85.6}},
   transito_detail: [{"codigo":"100000","descricao":"TOMADA DE FORCA TK 100000  MP  01  T  P  100  04  H  600","empresa":"SP","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"100000","descricao":"TOMADA DE FORCA TK 100000  MP  01  T  P  100  04  H  600","empresa":"GO","quantidade":6,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10014","descricao":"TOMADA DE FORCA TK 902401  EC  01  L  P  110  01  H  350","empresa":"SP","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10014","descricao":"TOMADA DE FORCA TK 902401  EC  01  L  P  110  01  H  350","empresa":"GO","quantidade":21,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10018","descricao":"TOMADA DE FORCA TK 902403  EC  01  L  P  110  04  H  350","empresa":"SP","quantidade":14,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10018","descricao":"TOMADA DE FORCA TK 902403  EC  01  L  P  110  04  H  350","empresa":"MG","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10026","descricao":"TOMADA DE FORCA TK 902413  EC  01  L  P  135  04  H  350","empresa":"SP","quantidade":10,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10051","descricao":"TOMADA DE FORCA TK 906311  EC  01  L  P  135  06  H  350","empresa":"MG","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10079","descricao":"TOMADA DE FORCA TK 902011  EC  10  D  P  135  01  H  350","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"105000","descricao":"TOMADA DE FORCA TK 105000  ZF  05  T  P  100  04  H  600","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"106002","descricao":"TOMADA DE FORCA TK 106002  ZF  05  T  P  100  15  H  600","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10612","descricao":"TOMADA DE FORCA TK 901911  EC  02  L  P  135  01  H  350","empresa":"SP","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10612","descricao":"TOMADA DE FORCA TK 901911  EC  02  L  P  135  01  H  350","empresa":"GO","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10612","descricao":"TOMADA DE FORCA TK 901911  EC  02  L  P  135  01  H  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10626","descricao":"TOMADA DE FORCA TK 902823  EC  09  L  P  166  04  H  350","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10638","descricao":"TOMADA DE FORCA TK 901913  EC  02  L  P  135  04  H  350","empresa":"SP","quantidade":6,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10638","descricao":"TOMADA DE FORCA TK 901913  EC  02  L  P  135  04  H  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"107700","descricao":"TOMADA DE FORCA TK 107700  MB  02  T  P  100  04  H  600","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10782","descricao":"TOMADA DE FORCA TK 900311  ZF  13  L  P  135  01  H  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10894","descricao":"TOMADA DE FORCA TK 902111  EC  13  L  P  135  01  H  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"110000","descricao":"TOMADA DE FORCA TK 110000  ZF  03  T  P  100  04  H  600","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"11540","descricao":"TOMADA DE FORCA TK 9131  EC  24  D  P  135  01  H  350","empresa":"GO","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"11697","descricao":"TOMADA DE FORCA TK 903111  EC  04  D  P  135  01  H  350","empresa":"GO","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"11697","descricao":"TOMADA DE FORCA TK 903111  EC  04  D  P  135  01  H  350","empresa":"PE","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"11699","descricao":"TOMADA DE FORCA TK 903113  EC  04  D  P  135  04  H  350","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"11728","descricao":"TOMADA DE FORCA TK 9131  EC  25  D  P  084  01  H  S  350","empresa":"GO","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"11859","descricao":"TOMADA DE FORCA TK 9131  EC  25  D  P  084  04  H  S  350","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"120000","descricao":"TOMADA DE FORCA TK 120000  EC  02  D  P  100  04  A  350","empresa":"PE","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"120800","descricao":"TOMADA DE FORCA TK 120800  EC  01  D  P  100  04  A  350","empresa":"SP","quantidade":13,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"120800","descricao":"TOMADA DE FORCA TK 120800  EC  01  D  P  100  04  A  350","empresa":"GO","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"120800","descricao":"TOMADA DE FORCA TK 120800  EC  01  D  P  100  04  A  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"12190","descricao":"BOMBA HIDRAULICA BHT 9150 06 B 110 23 23 02 BP 20 210 230","empresa":"SP","quantidade":2,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"12212","descricao":"BOMBA HIDRAULICA BHT 9150 16 B 100 23 23 02 AG 20 225 250","empresa":"GO","quantidade":3,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"12364","descricao":"TOMADA DE FORCA TK 902526 EC 12 E M 166 01 H 350","empresa":"MG","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"12479","descricao":"TOMADA DE FORCA TK 9131  EC  26  E  P  135  01  H  250","empresa":"SP","quantidade":25,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"12659","descricao":"TOMADA DE FORCA TK 9131  EC  27  E  E  135  18  H  S  350","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13160","descricao":"TOMADA DE FORCA TK 9131  EC  27  E  E  135  04  H  S  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13173","descricao":"TOMADA DE FORCA TK 910302  MB  01  T  P  130  06  A  MC  350","empresa":"SP","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13175","descricao":"TOMADA DE FORCA TK 5960  MB  01  T  P  130  01  A  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13175","descricao":"TOMADA DE FORCA TK 5960  MB  01  T  P  130  01  A  350","empresa":"GO","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13236","descricao":"TOMADA DE FORCA TK 9131 EC 26 E P 110 04 H 250","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13238","descricao":"TOMADA DE FORCA TK 9131  EC  26  E  P  135  04  H  250","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13314","descricao":"TOMADA DE FORCA TK 9106 SC 12 DT P 100 06 A CS 600","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"14311","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 036 01 01 02 GU 35 300 325","empresa":"GO","quantidade":18,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14312","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 043 01 01 02 GU 35 280 305","empresa":"SP","quantidade":16,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14312","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 043 01 01 02 GU 35 280 305","empresa":"GO","quantidade":10,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14312","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 043 01 01 02 GU 35 280 305","empresa":"PE","quantidade":6,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14313","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 051 01 01 02 GU 30 250 275","empresa":"SP","quantidade":27,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14313","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 051 01 01 02 GU 30 250 275","empresa":"MG","quantidade":6,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14313","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 051 01 01 02 GU 30 250 275","empresa":"GO","quantidade":15,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14313","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 051 01 01 02 GU 30 250 275","empresa":"PE","quantidade":8,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14314","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 057 01 01 02 GU 25 240 265","empresa":"SP","quantidade":20,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14314","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 057 01 01 02 GU 25 240 265","empresa":"GO","quantidade":15,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14316","descricao":"BOMBA HIDRAULICA BHT 9105 06 B 043 01 01 02 GU 35 280 305","empresa":"SP","quantidade":3,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14658","descricao":"TOMADA DE FORCA TK 9131  EC  27  E  M  135  18  H  350","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"15601","descricao":"TOMADA DE FORCA TK 9131  EC  26  D  P  166  01  H  S  250","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"17214","descricao":"GUINCHO OP 5000/7000 M PC","empresa":"SP","quantidade":6,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17214","descricao":"GUINCHO OP 5000/7000 M PC","empresa":"GO","quantidade":3,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17229","descricao":"GUINCHO OS 303M 8T-1R PL �9,5X50M  (19X7) 8-9,5 V MH","empresa":"SP","quantidade":1,"classificacao":"800.010.020","produto":"GUINCHO OS-M"},{"codigo":"17237","descricao":"GUINCHO OP 19000 M MH  �16X25M  (8X31) PC G","empresa":"MG","quantidade":1,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17237","descricao":"GUINCHO OP 19000 M MH  �16X25M  (8X31) PC G","empresa":"PE","quantidade":2,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17245","descricao":"GUINCHO OP 10000 M MH  �14X25M  (6X25) PC G","empresa":"MG","quantidade":1,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17249","descricao":"GUINCHO OP 10000/15000/19000 M PC","empresa":"GO","quantidade":2,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17251","descricao":"GUINCHO OP 5000 M MH  �9,5X20M  (6X25) PC G","empresa":"GO","quantidade":2,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17251","descricao":"GUINCHO OP 5000 M MH  �9,5X20M  (6X25) PC G","empresa":"PE","quantidade":1,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"175600","descricao":"TOMADA DE FORCA TK 175600  MB  01  T  P  100  04  H  C  FM  600","empresa":"SP","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"17576","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 075 33 33 04 BC 85 210 230","empresa":"GO","quantidade":7,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"176600","descricao":"TOMADA DE FORCA TK 176600  MB  01  T  P  100  10  H  C  FM  600","empresa":"SP","quantidade":6,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"17693","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 065 01 01 04 BA 90 220 240","empresa":"SP","quantidade":2,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17693","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 065 01 01 04 BA 90 220 240","empresa":"GO","quantidade":21,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17693","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 065 01 01 04 BA 90 220 240","empresa":"PE","quantidade":4,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17694","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 075 01 01 04 BC 85 210 230","empresa":"SP","quantidade":4,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17694","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 075 01 01 04 BC 85 210 230","empresa":"GO","quantidade":1,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17694","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 075 01 01 04 BC 85 210 230","empresa":"PE","quantidade":5,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17695","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 085 22 22 04 BA 77 210 230","empresa":"GO","quantidade":3,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17699","descricao":"BOMBA HIDRAULICA BHT 9105 06 B 075 01 01 04 BC 85 210 230","empresa":"SP","quantidade":6,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17811","descricao":"BOMBA HIDRAULICA BHT 9105 06 B 085 22 22 04 RS BA 77 210 230","empresa":"GO","quantidade":4,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"18539","descricao":"TOMADA DE FORCA TK 9138  MB  03  T  P  200  05  A  FM  350","empresa":"SP","quantidade":1,"classificacao":"300.200.100","produto":"TOMADA DE FORCA"},{"codigo":"18770","descricao":"TOMADA DE FORCA TK 9162  SC  06  D  P  068  06  H  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"18771","descricao":"TOMADA DE FORCA TK 9162  SC  06  D  P  068  01  H  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"18789","descricao":"TOMADA DE FORCA TK 9162  EC  05  I  P  080  01  H  350","empresa":"PE","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"18791","descricao":"TOMADA DE FORCA TK 9162  EC  05  I  P  080  04  H  350","empresa":"GO","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"19689","descricao":"TOMADA DE FORCA TK 9131  EC  28  L  P  084  01  H  CA  300","empresa":"PE","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"19691","descricao":"TOMADA DE FORCA TK 9131  EC  28  L  P  084  04  H  CA  300","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"222000","descricao":"TOMADA DE FORCA TK 2220.00  IV  01  E  M  100  01  H  120","empresa":"SP","quantidade":9,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"22482","descricao":"TOMADA DE FORCA TK 5900 ZF 21 T P 130 01 A C 350","empresa":"SP","quantidade":15,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"22728","descricao":"TOMADA DE FORCA TK 5900 ZF 21 T P 130 06 A MC 300","empresa":"PE","quantidade":10,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"22730","descricao":"TOMADA DE FORCA TK 5900 ZF 21 T P 130 04 A 350","empresa":"PE","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"54560","descricao":"CILINDRO HIDRAULICO BP6\" X850 FIXACAO CENTRAL","empresa":"GO","quantidade":10,"classificacao":"300.400.001","produto":"CILINDRO HIDRAULICO"},{"codigo":"54560","descricao":"CILINDRO HIDRAULICO BP6\" X850 FIXACAO CENTRAL","empresa":"PE","quantidade":6,"classificacao":"300.400.001","produto":"CILINDRO HIDRAULICO"},{"codigo":"54564","descricao":"CILINDRO HIDRAULICO BP7\" X850 FIXACAO CENTRAL","empresa":"GO","quantidade":2,"classificacao":"300.400.001","produto":"CILINDRO HIDRAULICO"},{"codigo":"590000","descricao":"TOMADA DE FORCA TK 590000  MP  01  T  P  130  01  A  350","empresa":"SP","quantidade":16,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"590000","descricao":"TOMADA DE FORCA TK 590000  MP  01  T  P  130  01  A  350","empresa":"GO","quantidade":17,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"590700","descricao":"TOMADA DE FORCA TK 590700  MP  01  T  P  130  04  A  350","empresa":"MG","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"590800","descricao":"TOMADA DE FORCA TK 590800  MP  01  T  P  130  02  A  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"592000","descricao":"TOMADA DE FORCA TK 592000  ZF  05  T  P  130  01  A  C  350","empresa":"SP","quantidade":12,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"592601","descricao":"TOMADA DE FORCA TK 592601  ZF  05  T  P  130  10  A  C  350","empresa":"GO","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"595000","descricao":"TOMADA DE FORCA TK 595000  ZF  11  T  P  130  01  A  350","empresa":"PE","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"596000","descricao":"TOMADA DE FORCA TK 596000  MB  01  T  P  130  01  A  C  FM  350","empresa":"SP","quantidade":28,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"596000","descricao":"TOMADA DE FORCA TK 596000  MB  01  T  P  130  01  A  C  FM  350","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"596000","descricao":"TOMADA DE FORCA TK 596000  MB  01  T  P  130  01  A  C  FM  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"596701","descricao":"TOMADA DE FORCA TK 5967.01  MB  01  T  P  130  04  A  350","empresa":"GO","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"597000","descricao":"TOMADA DE FORCA TK 597000  MB  02  T  P  130  01  A  350","empresa":"SP","quantidade":14,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"597000","descricao":"TOMADA DE FORCA TK 597000  MB  02  T  P  130  01  A  350","empresa":"GO","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"597000","descricao":"TOMADA DE FORCA TK 597000  MB  02  T  P  130  01  A  350","empresa":"PE","quantidade":10,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"597700","descricao":"TOMADA DE FORCA TK 597700  MB  02  T  P  130  04  A  FM  350","empresa":"SP","quantidade":7,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"598000","descricao":"TOMADA DE FORCA TK 598000  ZF  03  T  P  130  01  A  350","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"599000","descricao":"TOMADA DE FORCA TK 599000  EC  18  T  P  130  01  A  350","empresa":"MG","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"599700","descricao":"TOMADA DE FORCA TK 599700  EC  18  T  P  130  04  A  350","empresa":"PE","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"7829","descricao":"TOMADA DE FORCA TK 902411  EC  01  L  P  135  01  H  350","empresa":"SP","quantidade":20,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"7829","descricao":"TOMADA DE FORCA TK 902411  EC  01  L  P  135  01  H  350","empresa":"MG","quantidade":10,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"7829","descricao":"TOMADA DE FORCA TK 902411  EC  01  L  P  135  01  H  350","empresa":"PE","quantidade":18,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"8675","descricao":"BOMBA HIDRAULICA BHT 9105 01 A 015 01 02 02 GU 65 300 325","empresa":"SP","quantidade":6,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"8689","descricao":"TOMADA DE FORCA TK 9006  MB  03  T  P  200  04  A  FM  350","empresa":"MG","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"901001","descricao":"TOMADA DE FORCA TK 901001  VV  01  T  P  130  01  A  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"901001","descricao":"TOMADA DE FORCA TK 901001  VV  01  T  P  130  01  A  350","empresa":"GO","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"901003","descricao":"TOMADA DE FORCA TK 9010.03  VV  01  T  P  130  04  A  C  FV  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"901003","descricao":"TOMADA DE FORCA TK 9010.03  VV  01  T  P  130  04  A  C  FV  350","empresa":"GO","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"901640","descricao":"BOMBA HIDRAULICA BHT 9016 01 H 065 22 21 02 P 03 BA 20 190 200","empresa":"MG","quantidade":1,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"901640","descricao":"BOMBA HIDRAULICA BHT 9016 01 H 065 22 21 02 P 03 BA 20 190 200","empresa":"GO","quantidade":2,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"901641","descricao":"BOMBA HIDRAULICA BHT 9016 01 H 065 22 21 02 M 03 BA 20 190 200","empresa":"PE","quantidade":1,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"901642","descricao":"BOMBA HIDRAULICA BHT 9016 01 A 065 22 21 02 P 03 BA 20 190 200","empresa":"GO","quantidade":4,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"901642","descricao":"BOMBA HIDRAULICA BHT 9016 01 A 065 22 21 02 P 03 BA 20 190 200","empresa":"PE","quantidade":3,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"901643","descricao":"BOMBA HIDRAULICA BHT 9016 01 A 065 22 21 02 M 03 BA 20 190 200","empresa":"PE","quantidade":1,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"903011","descricao":"TOMADA DE FORCA TK 903011  EC  19  I  P  069  13  H  350","empresa":"SP","quantidade":7,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"904501","descricao":"TOMADA DE FORCA TK 904501  ZF  16  T  P  130  01  A  C  350","empresa":"SP","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"904501","descricao":"TOMADA DE FORCA TK 904501  ZF  16  T  P  130  01  A  C  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"904504","descricao":"TOMADA DE FORCA TK 904504  ZF  16  T  P  130  02  A  C  350","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"904903","descricao":"TOMADA DE FORCA TK 904903  ZF  16  T  P  100  04  H  C  600","empresa":"SP","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"905910","descricao":"TOMADA DE FORCA TK 905910  MP  01  T  P  130  06  A  250","empresa":"GO","quantidade":8,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"910003","descricao":"TOMADA DE FORCA TK 910003  ZF  10  T  P  130  01  A  C  350","empresa":"PE","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"910302","descricao":"TOMADA DE FORCA TK 910302  MB  01  T  P  130  06  A  MC  C  FM  300","empresa":"SP","quantidade":20,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"910308","descricao":"TOMADA DE FORCA TK 910308  ZF  16  T  P  130  06  A  MC  C  300","empresa":"MG","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"910310","descricao":"TOMADA DE FORCA TK 9103.10  MP  01  T  P  130  06  A  MC  300","empresa":"SP","quantidade":11,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"910310","descricao":"TOMADA DE FORCA TK 9103.10  MP  01  T  P  130  06  A  MC  300","empresa":"GO","quantidade":8,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"9531","descricao":"BOMBA HIDRAULICA BHT 9101 01 H 085 13 12 06 P 01 A21 BA 15 210 210","empresa":"SP","quantidade":2,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9531","descricao":"BOMBA HIDRAULICA BHT 9101 01 H 085 13 12 06 P 01 A21 BA 15 210 210","empresa":"GO","quantidade":5,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9531","descricao":"BOMBA HIDRAULICA BHT 9101 01 H 085 13 12 06 P 01 A21 BA 15 210 210","empresa":"PE","quantidade":7,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9532","descricao":"BOMBA HIDRAULICA BHT 9101 01 H 065 13 12 06 P 01 A21 BA 20 210 210","empresa":"GO","quantidade":8,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9535","descricao":"BOMBA HIDRAULICA BHT 9101 01 A 065 12 12 06 P 01 A21 BA 20 210 210","empresa":"GO","quantidade":12,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9535","descricao":"BOMBA HIDRAULICA BHT 9101 01 A 065 12 12 06 P 01 A21 BA 20 210 210","empresa":"PE","quantidade":3,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9536","descricao":"BOMBA HIDRAULICA BHT 9101 01 A 085 13 12 06 P 01 A21 BA 15 210 210","empresa":"PE","quantidade":1,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9563","descricao":"BOMBA HIDRAULICA BHT 9101 06 H 085 12 12 06 P 01 A21 BA 15 210 210","empresa":"PE","quantidade":2,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9564","descricao":"BOMBA HIDRAULICA BHT 9101 06 A 085 12 12 06 P 01 A21 BA 15 210 210","empresa":"SP","quantidade":5,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"}],
 };
@@ -871,7 +914,7 @@ function isOverdue(str) {
 // ===== TABS =====
 function showTab(id) {
   document.querySelectorAll('.tab').forEach((t,i) => {
-    const ids = ['of','montados','estoque','servicos'];
+    const ids = ['of','montados','estoque','servicos','termico'];
     t.classList.toggle('active', ids[i] === id);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -1084,6 +1127,266 @@ const pctOk = pctCalc !== null && pctCalc >= 90;
 
 // ===== SERVICOS =====
 let servicoCharts = [];
+
+// ===== PARSE TERMICO (lê mesmo CSV do SERVICO_TERCEIROS) =====
+function parseTermico(text) {
+  const rows = parseCSV(text, ';');
+  const tryMes = d => {
+    const s = String(d||'').trim();
+    const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (m) return m[3]+'-'+m[2];
+    const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) return iso[1]+'-'+iso[2];
+    return null;
+  };
+  const normForn = s => String(s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+  // Fornecedores de Polimento e Tratamento Térmico
+  const isPolimento   = s => normForn(s).includes('LUCAS DANIEL') || normForn(s).includes('MOREIRA');
+  const isTermico     = s => normForn(s).includes('THERMIX') || normForn(s).includes('TECNOHARD') || normForn(s).includes('METALTECNICA');
+  const fornTermLabel = s => {
+    const n = normForn(s);
+    if (n.includes('THERMIX')) return 'THERMIX';
+    if (n.includes('TECNOHARD')) return 'TECNOHARD';
+    if (n.includes('METALTECNICA')) return 'METALTECNICA';
+    return 'OUTRO';
+  };
+
+  const resultPol  = {}; // key: cod|desc|mes
+  const resultTerm = {}; // key: cod|desc|forn|mes
+  // dias uteis por mês: será calculado como número de dias úteis (seg-sex) do mês
+  const diasUteisMap = {};
+
+  rows.forEach(r => {
+    const emp = String(r[1]||'').trim();
+    if (emp === 'EMP' || emp === '') return;
+
+    const forn  = String(r[11]||'').trim();
+    const cod   = String(r[2]||'').trim();
+    const desc  = String(r[3]||'').trim();
+    const qtde  = parseFloat(String(r[12]||'').replace(',','.'))||0;
+    const mes   = tryMes(r[9]); // DT EMIS = col9
+    if (!mes || qtde <= 0 || !cod) return;
+
+    // Pré-calcular dias úteis do mês se ainda não calculado
+    if (!diasUteisMap[mes]) {
+      const [ano, m] = mes.split('-').map(Number);
+      let du = 0;
+      const dias = new Date(ano, m, 0).getDate();
+      for (let d = 1; d <= dias; d++) {
+        const dw = new Date(ano, m-1, d).getDay();
+        if (dw !== 0 && dw !== 6) du++;
+      }
+      diasUteisMap[mes] = du;
+    }
+
+    if (isPolimento(forn)) {
+      const key = cod+'|||'+desc+'|||'+mes;
+      resultPol[key]  = (resultPol[key]||0) + qtde;
+    }
+
+    if (isTermico(forn)) {
+      // Filtros Tratamento Térmico:
+      // 1. Descartar se descrição começa com "Garfo" (case-insensitive)
+      // 2. Descartar se código termina com "S" (case-insensitive)
+      const descUp = desc.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const codUp  = cod.toUpperCase();
+      if (descUp.startsWith('GARFO')) return;
+      if (codUp.endsWith('S')) return;
+
+      const fl = fornTermLabel(forn);
+      const key = cod+'|||'+desc+'|||'+fl+'|||'+mes;
+      resultTerm[key] = (resultTerm[key]||0) + qtde;
+    }
+  });
+
+  DATA.termico = {
+    polimento: Object.entries(resultPol).map(([k,v]) => {
+      const [cod, desc, mes] = k.split('|||');
+      return {cod, desc, mes, qtde: v, du: diasUteisMap[mes]||1};
+    }),
+    termico: Object.entries(resultTerm).map(([k,v]) => {
+      const [cod, desc, forn, mes] = k.split('|||');
+      return {cod, desc, forn, mes, qtde: v, du: diasUteisMap[mes]||1};
+    }),
+    diasUteis: diasUteisMap
+  };
+}
+
+// ===== RENDER TERMICO =====
+function renderTermico() {
+  if (!DATA.termico || !DATA.termico.polimento) return;
+  renderPolimento();
+  renderTermicoTable();
+}
+
+function _termMeses(arr) {
+  return [...new Set(arr.map(r=>r.mes))].sort();
+}
+
+function _fillMesSelect(selId, arr) {
+  const sel = document.getElementById(selId);
+  if (!sel) return;
+  const cur = sel.value;
+  const meses = _termMeses(arr);
+  sel.innerHTML = '<option value="">Todos os meses</option>' +
+    meses.map(m => {
+      const [a,mo] = m.split('-');
+      const label = new Date(+a, +mo-1, 1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}).toUpperCase();
+      return `<option value="${m}" ${m===cur?'selected':''}>${label}</option>`;
+    }).join('');
+}
+
+function renderPolimento() {
+  const data = DATA.termico.polimento;
+  _fillMesSelect('pol-mes', data);
+
+  const mesFilt  = document.getElementById('pol-mes').value;
+  const search   = (document.getElementById('pol-search').value||'').trim().toUpperCase();
+  const meses    = _termMeses(data);
+  const mesCols  = mesFilt ? [mesFilt] : meses;
+
+  // Filtrar itens
+  let itens = [...new Set(data.map(r=>r.cod+'|||'+r.desc))];
+  if (search) itens = itens.filter(k => k.toUpperCase().includes(search));
+
+  // Cabeçalho
+  const thead = document.getElementById('pol-thead');
+  thead.innerHTML = '<th style="width:100px">CÓDIGO</th><th>DESCRIÇÃO</th>' +
+    mesCols.map(m => {
+      const [a,mo] = m.split('-');
+      const label = new Date(+a,+mo-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}).toUpperCase();
+      return `<th style="width:90px;text-align:right">${label}</th>`;
+    }).join('') + '<th style="width:80px;text-align:right">TOTAL</th><th style="width:80px;text-align:right">MÉDIA/DU</th>';
+
+  // Totais por mês
+  const totMes = {};
+  const totDu  = {};
+  mesCols.forEach(m => {
+    totMes[m] = data.filter(r=>r.mes===m).reduce((s,r)=>s+r.qtde,0);
+    totDu[m]  = DATA.termico.diasUteis[m]||1;
+  });
+
+  // Body
+  const tbody = document.getElementById('pol-body');
+  tbody.innerHTML = itens.map(k => {
+    const [cod, desc] = k.split('|||');
+    let total = 0;
+    const cells = mesCols.map(m => {
+      const v = data.filter(r=>r.cod===cod&&r.desc===desc&&r.mes===m).reduce((s,r)=>s+r.qtde,0);
+      total += v;
+      return `<td style="text-align:right">${v > 0 ? v.toLocaleString('pt-BR') : '<span class="zero">—</span>'}</td>`;
+    }).join('');
+    const media = mesCols.reduce((s,m) => {
+      const v = data.filter(r=>r.cod===cod&&r.desc===desc&&r.mes===m).reduce((a,r)=>a+r.qtde,0);
+      return s + (v > 0 ? v / (DATA.termico.diasUteis[m]||1) : 0);
+    }, 0) / (mesCols.length||1);
+    return `<tr><td style="font-family:monospace">${cod}</td><td>${desc}</td>${cells}
+      <td style="text-align:right;font-weight:600">${total.toLocaleString('pt-BR')}</td>
+      <td style="text-align:right;color:var(--green)">${media.toFixed(1)}</td></tr>`;
+  }).join('');
+
+  // Foot totais
+  const totalGeral = Object.values(totMes).reduce((s,v)=>s+v,0);
+  const mediaGeral = mesCols.reduce((s,m)=>s+(totMes[m]/(totDu[m]||1)),0)/(mesCols.length||1);
+  const tfoot = document.getElementById('pol-foot');
+  tfoot.innerHTML = `<tr class="tfoot-row" style="background:#1e2a4a;border-top:2px solid var(--blue)">
+    <td colspan="2" style="text-align:left;color:var(--text-muted)">TOTAL</td>
+    ${mesCols.map(m=>`<td style="text-align:right;font-weight:700">${totMes[m].toLocaleString('pt-BR')}</td>`).join('')}
+    <td style="text-align:right;font-weight:700">${totalGeral.toLocaleString('pt-BR')}</td>
+    <td style="text-align:right;color:var(--green);font-weight:700">${mediaGeral.toFixed(1)}</td>
+  </tr>`;
+
+  // KPIs
+  const kpis = document.getElementById('pol-kpis');
+  const mesAtual = mesCols[mesCols.length-1]||'';
+  const totAtual = totMes[mesAtual]||0;
+  const duAtual  = totDu[mesAtual]||1;
+  kpis.innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">TOTAL GERAL (QTDE)</div><div class="kpi-value blue">${totalGeral.toLocaleString('pt-BR')}</div></div>
+    <div class="kpi-card"><div class="kpi-label">${mesAtual ? new Date(+mesAtual.split('-')[0],+mesAtual.split('-')[1]-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).toUpperCase() : '—'}</div><div class="kpi-value" style="color:var(--orange)">${totAtual.toLocaleString('pt-BR')}</div></div>
+    <div class="kpi-card"><div class="kpi-label">MÉDIA DIÁRIA (ÚLTIMO MÊS)</div><div class="kpi-value" style="color:var(--green)">${(totAtual/duAtual).toFixed(1)}</div></div>
+  `;
+}
+
+function renderTermicoTable() {
+  const data = DATA.termico.termico;
+  _fillMesSelect('term-mes', data);
+
+  const mesFilt   = document.getElementById('term-mes').value;
+  const fornFilt  = document.getElementById('term-forn').value;
+  const search    = (document.getElementById('term-search').value||'').trim().toUpperCase();
+  const meses     = _termMeses(data);
+  const mesCols   = mesFilt ? [mesFilt] : meses;
+
+  let itens = [...new Set(data.map(r=>r.cod+'|||'+r.desc+'|||'+r.forn))];
+  if (fornFilt) itens = itens.filter(k => k.split('|||')[2] === fornFilt);
+  if (search) itens = itens.filter(k => k.toUpperCase().includes(search));
+
+  const thead = document.getElementById('term-thead');
+  thead.innerHTML = '<th style="width:100px">CÓDIGO</th><th>DESCRIÇÃO</th><th style="width:110px">FORNECEDOR</th>' +
+    mesCols.map(m => {
+      const [a,mo] = m.split('-');
+      const label = new Date(+a,+mo-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}).toUpperCase();
+      return `<th style="width:90px;text-align:right">${label}</th>`;
+    }).join('') + '<th style="width:80px;text-align:right">TOTAL</th><th style="width:80px;text-align:right">MÉDIA/DU</th>';
+
+  const totMes = {};
+  const totDu  = {};
+  mesCols.forEach(m => {
+    const fdata = fornFilt ? data.filter(r=>r.forn===fornFilt) : data;
+    totMes[m] = fdata.filter(r=>r.mes===m).reduce((s,r)=>s+r.qtde,0);
+    totDu[m]  = DATA.termico.diasUteis[m]||1;
+  });
+
+  const FORN_COLORS = {THERMIX:'#ff8c3b', TECNOHARD:'#3d8bff', METALTECNICA:'#00c97a'};
+
+  const tbody = document.getElementById('term-body');
+  tbody.innerHTML = itens.map(k => {
+    const [cod, desc, forn] = k.split('|||');
+    let total = 0;
+    const cells = mesCols.map(m => {
+      const v = data.filter(r=>r.cod===cod&&r.desc===desc&&r.forn===forn&&r.mes===m).reduce((s,r)=>s+r.qtde,0);
+      total += v;
+      return `<td style="text-align:right">${v > 0 ? v.toLocaleString('pt-BR') : '<span class="zero">—</span>'}</td>`;
+    }).join('');
+    const media = mesCols.reduce((s,m) => {
+      const v = data.filter(r=>r.cod===cod&&r.desc===desc&&r.forn===forn&&r.mes===m).reduce((a,r)=>a+r.qtde,0);
+      return s + (v > 0 ? v / (DATA.termico.diasUteis[m]||1) : 0);
+    }, 0) / (mesCols.length||1);
+    const color = FORN_COLORS[forn]||'var(--text)';
+    return `<tr>
+      <td style="font-family:monospace">${cod}</td>
+      <td>${desc}</td>
+      <td style="color:${color};font-size:11px;font-weight:600">${forn}</td>
+      ${cells}
+      <td style="text-align:right;font-weight:600">${total.toLocaleString('pt-BR')}</td>
+      <td style="text-align:right;color:var(--green)">${media.toFixed(1)}</td>
+    </tr>`;
+  }).join('');
+
+  const totalGeral = Object.values(totMes).reduce((s,v)=>s+v,0);
+  const mediaGeral = mesCols.reduce((s,m)=>s+(totMes[m]/(totDu[m]||1)),0)/(mesCols.length||1);
+  const tfoot = document.getElementById('term-foot');
+  tfoot.innerHTML = `<tr class="tfoot-row" style="background:#1e2a4a;border-top:2px solid var(--blue)">
+    <td colspan="3" style="text-align:left;color:var(--text-muted)">TOTAL</td>
+    ${mesCols.map(m=>`<td style="text-align:right;font-weight:700">${totMes[m].toLocaleString('pt-BR')}</td>`).join('')}
+    <td style="text-align:right;font-weight:700">${totalGeral.toLocaleString('pt-BR')}</td>
+    <td style="text-align:right;color:var(--green);font-weight:700">${mediaGeral.toFixed(1)}</td>
+  </tr>`;
+
+  // KPIs
+  const kpis = document.getElementById('term-kpis');
+  const mesAtual = mesCols[mesCols.length-1]||'';
+  const totAtual = totMes[mesAtual]||0;
+  const duAtual  = totDu[mesAtual]||1;
+  kpis.innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">TOTAL GERAL (QTDE)</div><div class="kpi-value blue">${totalGeral.toLocaleString('pt-BR')}</div></div>
+    <div class="kpi-card"><div class="kpi-label">${mesAtual ? new Date(+mesAtual.split('-')[0],+mesAtual.split('-')[1]-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).toUpperCase() : '—'}</div><div class="kpi-value" style="color:var(--orange)">${totAtual.toLocaleString('pt-BR')}</div></div>
+    <div class="kpi-card"><div class="kpi-label">MÉDIA DIÁRIA (ÚLTIMO MÊS)</div><div class="kpi-value" style="color:var(--green)">${(totAtual/duAtual).toFixed(1)}</div></div>
+  `;
+}
+
 function renderServico() {
   const search = document.getElementById('servico-search').value.toLowerCase();
   const empFilt = document.getElementById('servico-empresa').value; // '1', '2', or ''
@@ -1393,7 +1696,7 @@ function handleFiles(files) {
       else if (name.includes('ITENS_MONTADOS')) parseMontados(text);
       else if (name.includes('TRANSITO')) parseTransito(text);
       else if (name.includes('ESTOQUE_SEGURANCA')) parseEstoque(text);
-      else if (name.includes('SERVICO_TERCEIROS')) parseServico(text);
+      else if (name.includes('SERVICO_TERCEIROS')) { parseServico(text); parseTermico(text); }
       document.getElementById('update-time').textContent = 'Atualizado: ' + new Date().toLocaleTimeString('pt-BR');
       renderAll();
     };
@@ -1745,6 +2048,7 @@ function renderAll() {
   renderMontados();
   renderEstoque();
   renderServico();
+  renderTermico();
   renderTransito();
 }
 
