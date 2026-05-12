@@ -996,10 +996,10 @@ function renderEstoque() {
     const outros = Math.max(0, totalEmp - (d.TOM||0) - (d.BOM||0) - (d.CIL||0) - (d.GUI||0));
     return `<div class="transit-card">
       <div class="transit-card-header">${emp}</div>
-      ${[['TOM',d.TOM],['BOM',d.BOM],['CIL',d.CIL],['GUI',d.GUI],['OUTROS',outros]].map(([k,v])=>`
+      ${[['TOMADA',d.TOM],['BOMBA',d.BOM],['CILINDRO',d.CIL],['GUINCHO',d.GUI],['OUTROS',outros]].map(([k,v])=>`
       <div class="transit-row">
         <span class="transit-label" style="${k==='OUTROS'?'color:var(--text-muted);font-size:11px':''}">${k}</span>
-        <span class="transit-val ${v===0?'zero':''}" style="${k==='OUTROS'?'font-size:16px;color:var(--text-muted)':''}">${v===0?'—':v}</span>
+        <span class="transit-val ${v===0?'zero':''}">${v===0?'—':v}</span>
       </div>`).join('')}
     </div>`;
   }).join('');
