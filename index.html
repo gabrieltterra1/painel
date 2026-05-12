@@ -968,7 +968,10 @@ function renderMontados() {
         ${mediaRow ? fmtFootRow('MÉDIA', mediaRow, 'background:#162a1e;border-top:1px solid var(--green);border-left:3px solid var(--green)', 'var(--green)', true) : ''}
         ${diasRow  ? `<tr class="tfoot-row" style="background:#162a1e">
           <td style="text-align:left;color:var(--text-muted)">DIAS ÚTEIS</td>
-          <td colspan="8" style="color:var(--text-muted);text-align:left">${diasRow.TOMADA_MULT||''}</td>
+          <td colspan="8" style="color:var(--text-muted);text-align:left">${
+            // O valor pode estar em qualquer campo — busca o primeiro número encontrado
+            (Object.values(diasRow).join(' ').match(/\d+/) || [''])[0]
+          }</td>
         </tr>` : ''}
       </tfoot>
       <tbody>${sorted.map(r => {
