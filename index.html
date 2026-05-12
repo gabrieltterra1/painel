@@ -1139,16 +1139,18 @@ function parseTermico(text) {
     if (iso) return iso[1]+'-'+iso[2];
     return null;
   };
-  const normForn = s => String(s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  // Identifica fornecedor pelo código numérico no início do campo (ex: "29212 - THERMIX...")
+  const fornCod = s => String(s||'').trim().split(/[\s\-]/)[0].trim();
 
-  // Fornecedores de Polimento e Tratamento Térmico
-  const isPolimento   = s => normForn(s).includes('LUCAS DANIEL') || normForn(s).includes('MOREIRA');
-  const isTermico     = s => normForn(s).includes('THERMIX') || normForn(s).includes('TECNOHARD') || normForn(s).includes('METALTECNICA');
+  // Polimento: código 65184 (Lucas Daniel Moreira)
+  // Térmico:   29212=THERMIX, 365=TECNOHARD, 9883=METALTECNICA
+  const isPolimento   = s => fornCod(s) === '65184';
+  const isTermico     = s => ['29212','365','9883'].includes(fornCod(s));
   const fornTermLabel = s => {
-    const n = normForn(s);
-    if (n.includes('THERMIX')) return 'THERMIX';
-    if (n.includes('TECNOHARD')) return 'TECNOHARD';
-    if (n.includes('METALTECNICA')) return 'METALTECNICA';
+    const c = fornCod(s);
+    if (c === '29212') return 'THERMIX';
+    if (c === '365')   return 'TECNOHARD';
+    if (c === '9883')  return 'METALTECNICA';
     return 'OUTRO';
   };
 
