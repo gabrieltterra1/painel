@@ -1541,13 +1541,9 @@ function parseServico(text) {
     if (empresa_num === 'EMP' || empresa_num === '') return;
     if (empresa_num !== '1' && empresa_num !== '2') return;
     const emp = String(r[11]||'').trim();
-    // TOT CONTABIL: busca a última coluna não-vazia com valor numérico positivo
-    // (a última linha às vezes vem com colunas vazias extras, ou o índice pode variar)
-    let val = 0;
-    for (let i = r.length - 1; i >= 40; i--) {
-      const v = parseFloat(String(r[i]||'').replace(',','.'));
-      if (!isNaN(v) && v > 0) { val = v; break; }
-    }
+    // TOT CONTABIL: índice fixo 48 (col49 do Sheets) se linha tem >=49 cols, senão r[r.length-1]
+    const colTot = r.length >= 49 ? r[48] : r[r.length-1];
+    const val = parseFloat(String(colTot||'').replace(',','.'))||0;
     if (!emp || val <= 0) return;
 
     // Try DT ENT (col8) first, fallback to DT EMIS (col9)
