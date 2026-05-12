@@ -917,14 +917,15 @@ function renderMontados() {
   const colLabels = ['TOMADA E MULT','BOMBA','CILINDRO','CONJ. EIXO','GUINCHO','COMANDO','VÁLVULA','KIT HIDR.'];
 
   // Separate special rows from data rows
+  // norm: strip accents; isMediaLabel uses regex to handle encoding corruption (M◆DIA, MEDIA, MÉDIA)
   const norm = s => String(s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const isMediaLabel = s => { const n = norm(s); return /M.DIA/.test(n) && !n.includes('TOTAL'); };
 
   const totalRow = DATA.montados.find(r => norm(r.DATA).includes('TOTAL'));
-  const mediaRow = DATA.montados.find(r => norm(r.DATA).includes('MEDIA'));
+  const mediaRow = DATA.montados.find(r => isMediaLabel(r.DATA));
   const diasRow  = DATA.montados.find(r => norm(r.DATA).includes('DIAS'));
   const dataRows = DATA.montados.filter(r => {
-    const u = norm(r.DATA);
-    return !u.includes('TOTAL') && !u.includes('MEDIA') && !u.includes('DIAS') && !u.includes('UTEIS') && r.DATA;
+    return !norm(r.DATA).includes('TOTAL') && !isMediaLabel(r.DATA) && !norm(r.DATA).includes('DIAS') && !norm(r.DATA).includes('UTEIS') && r.DATA;
   });
   const sorted = dataRows.sort((a,b) => parseDate(b.DATA||'01/01/2000') - parseDate(a.DATA||'01/01/2000'));
 
@@ -1357,7 +1358,19 @@ function parseCSV(text, sep) {
     const first = lines[0];
     sep = first.includes(';') ? ';' : ',';
   }
-  return lines.map(l => l.split(sep).map(c=>c.trim()));
+  // Handle quoted fields containing the separator
+  return lines.map(l => {
+    const fields = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < l.length; i++) {
+      const ch = l[i];
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === sep && !inQ) { fields.push(cur.trim()); cur = ''; }
+      else { cur += ch; }
+    }
+    fields.push(cur.trim());
+    return fields;
+  });
 }
 
 function handleFiles(files) {
@@ -1408,7 +1421,9 @@ function parseMontados(text) {
     })
     .map(r => {
       const u = String(r[0]||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-      const isSpecial = u.includes('TOTAL') || u.includes('MEDIA') || u.includes('DIAS');
+      // isMediaLike: regex M.DIA handles encoding corruption (M◆DIA, MÉDIA, MEDIA)
+      const isMediaLike = /M.DIA/.test(u) && !u.includes('TOTAL');
+      const isSpecial = u.includes('TOTAL') || isMediaLike || u.includes('DIAS');
       // Parse number handling both "195,80" and "195.80" and plain numbers
       const parseNum = v => { const s = String(v||'').replace(',','.').trim(); return parseFloat(s)||0; };
       // For special rows keep display string; for data rows convert to numbers
@@ -1526,7 +1541,13 @@ function parseServico(text) {
     if (empresa_num === 'EMP' || empresa_num === '') return;
     if (empresa_num !== '1' && empresa_num !== '2') return;
     const emp = String(r[11]||'').trim();
-    const val = parseFloat(String(r[r.length-1]||'').replace(',','.'))||0;
+    // TOT CONTABIL: busca a última coluna não-vazia com valor numérico positivo
+    // (a última linha às vezes vem com colunas vazias extras, ou o índice pode variar)
+    let val = 0;
+    for (let i = r.length - 1; i >= 40; i--) {
+      const v = parseFloat(String(r[i]||'').replace(',','.'));
+      if (!isNaN(v) && v > 0) { val = v; break; }
+    }
     if (!emp || val <= 0) return;
 
     // Try DT ENT (col8) first, fallback to DT EMIS (col9)
