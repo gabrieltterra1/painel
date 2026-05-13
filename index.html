@@ -867,11 +867,11 @@ document.addEventListener('DOMContentLoaded', () => {
 <div id="tab-ife" class="tab-content">
   <div class="section-title">Indicador IFE — Índice de Fornecimento no Prazo</div>
 
-  <!-- KPI cards -->
-  <div class="kpi-bar" id="ife-kpis" style="margin-bottom:28px"></div>
+  <!-- Quadro resumo mês atual -->
+  <div id="ife-resumo" style="margin-bottom:28px"></div>
 
   <!-- Filtros -->
-  <div class="filter-row" style="margin-bottom:20px">
+  <div class="filter-row" style="margin-bottom:16px">
     <select class="filter-select" id="ife-emp" onchange="renderIFE()">
       <option value="CONSOLIDADO">Consolidado (Matriz + Filial)</option>
       <option value="1">Matriz</option>
@@ -880,22 +880,36 @@ document.addEventListener('DOMContentLoaded', () => {
     <select class="filter-select" id="ife-view" onchange="renderIFE()">
       <option value="mensal">Visão Mensal</option>
       <option value="classe">Por Classificação</option>
+      <option value="comp">Comparativo Ano a Ano</option>
+    </select>
+    <select class="filter-select" id="ife-ano" onchange="renderIFE()" style="display:none">
+      <option value="">Todos os anos</option>
     </select>
   </div>
 
-  <!-- Gráfico de linha IFE mensal -->
-  <div style="position:relative;height:280px;margin-bottom:28px">
+  <!-- KPI bar -->
+  <div class="kpi-bar" id="ife-kpis" style="margin-bottom:20px"></div>
+
+  <!-- Gráfico principal -->
+  <div style="position:relative;height:300px;margin-bottom:28px">
     <canvas id="ife-chart"></canvas>
   </div>
 
+  <!-- Gráfico comparativo ano a ano (oculto por padrão) -->
+  <div id="ife-comp-wrap" style="display:none;position:relative;height:300px;margin-bottom:28px">
+    <canvas id="ife-comp-chart"></canvas>
+  </div>
+
   <!-- Tabela -->
-  <div class="table-wrap"><div class="scrollable">
-    <table style="min-width:600px">
-      <thead class="blue"><tr id="ife-thead"></tr></thead>
-      <tfoot id="ife-foot"></tfoot>
-      <tbody id="ife-tbody"></tbody>
-    </table>
-  </div></div>
+  <div class="table-wrap">
+    <div class="scrollable">
+      <table style="min-width:600px">
+        <thead class="blue" style="position:sticky;top:0;z-index:2"><tr id="ife-thead"></tr></thead>
+        <tfoot id="ife-foot"></tfoot>
+        <tbody id="ife-tbody"></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -1492,194 +1506,327 @@ function parseIFE(text) {
 }
 
 // ===== RENDER IFE =====
-let ifeChart = null;
+let ifeChart = null, ifeCompChart = null;
+
+// Helpers
+const _ifeFmt   = m => { if(!m)return'—'; const[a,mo]=m.split('-'); return new Date(+a,+mo-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}).toUpperCase(); };
+const _ifeFmtLg = m => { if(!m)return'—'; const[a,mo]=m.split('-'); return new Date(+a,+mo-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).toUpperCase(); };
+const _ifeColor = v => v>=95?'var(--green)':v>=85?'var(--orange)':'#e74c3c';
+const _ifeHex   = v => v>=95?'#00c97a':v>=85?'#ff8c3b':'#e74c3c';
+
+function _ifeCalc(linhas) {
+  const atrasado = linhas.reduce((s,r)=>s+r.atrasado,0);
+  const total    = linhas.reduce((s,r)=>s+r.total,0);
+  return { atrasado, total, ife: total>0?(1-atrasado/total)*100:null };
+}
+
+function _ifeFiltrar(empFilt) {
+  return r => {
+    if (empFilt==='1') return r.emp==='1';
+    if (empFilt==='2') return r.emp==='2';
+    if (r.emp==='1') return true;
+    if (r.emp==='2') return r.clas.startsWith('7');
+    return false;
+  };
+}
+
+// Classificação por marca: prefixo da classificação
+function _ifeMarca(clas) {
+  const c = String(clas||'');
+  if (c.startsWith('1')) return 'MP / COMPONENTES';
+  if (c.startsWith('3')) return 'PRODUTO ACABADO';
+  if (c.startsWith('7')) return 'FILIAL SP';
+  if (c.startsWith('8')) return 'GUINCHO / GUI';
+  return 'OUTROS';
+}
 
 function renderIFE() {
-  if (!DATA.ife || DATA.ife.length === 0) {
-    const kpis = document.getElementById('ife-kpis');
-    if (kpis) kpis.innerHTML = '<div class="kpi-card"><div class="kpi-label" style="color:var(--text-muted)">Clique em ↻ Atualizar para carregar os dados</div></div>';
+  if (!DATA.ife || DATA.ife.length===0) {
+    const kpis=document.getElementById('ife-kpis');
+    if(kpis) kpis.innerHTML='<div class="kpi-card"><div class="kpi-label" style="color:var(--text-muted)">Clique em ↻ Atualizar para carregar os dados</div></div>';
     return;
   }
 
   const empFilt = document.getElementById('ife-emp').value;
   const view    = document.getElementById('ife-view').value;
 
-  // Filtrar linhas conforme empresa selecionada
-  const filtrar = row => {
-    if (empFilt === '1') return row.emp === '1';
-    if (empFilt === '2') return row.emp === '2';
-    // CONSOLIDADO: EMP=1 todas + EMP=2 só classificações iniciadas com '7'
-    if (row.emp === '1') return true;
-    if (row.emp === '2') return row.clas.startsWith('7');
-    return false;
-  };
+  // Mostrar/ocultar filtro de ano
+  const anoSel = document.getElementById('ife-ano');
+  anoSel.style.display = view==='comp' ? '' : 'none';
 
-  const dados = DATA.ife.filter(filtrar);
-  const meses = [...new Set(dados.map(r => r.mesKey))].sort();
+  const dados = DATA.ife.filter(_ifeFiltrar(empFilt));
+  const meses = [...new Set(dados.map(r=>r.mesKey))].sort();
+  const anos  = [...new Set(meses.map(m=>m.split('-')[0]))].sort();
 
-  // Calcular IFE por mês
+  // Popular filtro de ano
+  const anoAtual = anoSel.value || '';
+  anoSel.innerHTML = '<option value="">Todos os anos</option>' +
+    anos.map(a=>`<option value="${a}" ${a===anoAtual?'selected':''}>${a}</option>`).join('');
+
+  // IFE por mês
   const ifeByMes = {};
-  meses.forEach(m => {
-    const linhas = dados.filter(r => r.mesKey === m);
-    const atrasado = linhas.reduce((s,r) => s+r.atrasado, 0);
-    const total    = linhas.reduce((s,r) => s+r.total, 0);
-    ifeByMes[m] = total > 0 ? (1 - atrasado/total)*100 : 0;
-  });
+  meses.forEach(m => { ifeByMes[m] = _ifeCalc(dados.filter(r=>r.mesKey===m)); });
 
-  // KPIs
   const mesAtual = meses[meses.length-1];
   const mesAnt   = meses[meses.length-2];
-  const ifeAtual = ifeByMes[mesAtual] || 0;
-  const ifeAnt   = ifeByMes[mesAnt]   || 0;
-  const diff     = ifeAtual - ifeAnt;
-  const fmtMes = m => {
-    if (!m) return '—';
-    const [a,mo] = m.split('-');
-    return new Date(+a,+mo-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).toUpperCase();
+  const vAtual   = ifeByMes[mesAtual]?.ife||0;
+  const vAnt     = ifeByMes[mesAnt]?.ife||0;
+  const diff     = vAtual-vAnt;
+  const empLabel = empFilt==='1'?'MATRIZ':empFilt==='2'?'FILIAL SP':'CONSOLIDADO';
+
+  // ── QUADRO RESUMO MÊS ATUAL ─────────────────────────────────────────────
+  const calcEmp = emp => {
+    const d = DATA.ife.filter(_ifeFiltrar(emp)).filter(r=>r.mesKey===mesAtual);
+    return _ifeCalc(d).ife;
   };
-  const empLabel = empFilt === '1' ? 'MATRIZ' : empFilt === '2' ? 'FILIAL SP' : 'CONSOLIDADO';
+  const ifeConsolidado = calcEmp('CONSOLIDADO');
+  const ifeMatriz      = calcEmp('1');
+  const ifeFilial      = calcEmp('2');
 
-  document.getElementById('ife-kpis').innerHTML = `
-    <div class="kpi-card">
-      <div class="kpi-label">IFE ${fmtMes(mesAtual)}</div>
-      <div class="kpi-value" style="color:${ifeAtual>=95?'var(--green)':ifeAtual>=85?'var(--orange)':'#e74c3c'}">${ifeAtual.toFixed(2)}%</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">MÊS ANTERIOR</div>
-      <div class="kpi-value" style="color:var(--text-muted)">${ifeAnt.toFixed(2)}%</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">VARIAÇÃO</div>
-      <div class="kpi-value" style="color:${diff>=0?'var(--green)':'#e74c3c'}">${diff>=0?'+':''}${diff.toFixed(2)}%</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">EMPRESA</div>
-      <div class="kpi-value blue" style="font-size:20px">${empLabel}</div>
-    </div>
-  `;
-
-  // Gráfico de linha
-  const ctx = document.getElementById('ife-chart').getContext('2d');
-  if (ifeChart) ifeChart.destroy();
-  ifeChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: meses.map(m => { const [a,mo]=m.split('-'); return new Date(+a,+mo-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}).toUpperCase(); }),
-      datasets: [{
-        label: 'IFE %',
-        data: meses.map(m => +ifeByMes[m].toFixed(2)),
-        borderColor: '#3d8bff',
-        backgroundColor: 'rgba(61,139,255,0.1)',
-        borderWidth: 2,
-        pointRadius: 4,
-        pointBackgroundColor: meses.map(m => ifeByMes[m]>=95?'#00c97a':ifeByMes[m]>=85?'#ff8c3b':'#e74c3c'),
-        tension: 0.3,
-        fill: true
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        datalabels: {
-          color: ctx => ctx.dataset.data[ctx.dataIndex] >= 95 ? '#00c97a' : ctx.dataset.data[ctx.dataIndex] >= 85 ? '#ff8c3b' : '#e74c3c',
-          anchor: 'end', align: 'top', font: { size: 11, weight: 'bold' },
-          formatter: v => v.toFixed(2)+'%'
-        }
-      },
-      scales: {
-        y: { min: 0, max: 100, ticks: { callback: v => v+'%', color: 'var(--text-muted)' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-        x: { ticks: { color: 'var(--text-muted)' }, grid: { display: false } }
-      }
-    },
-    plugins: [ChartDataLabels]
+  // IFE por marca (consolidado)
+  const marcas = {};
+  DATA.ife.filter(_ifeFiltrar('CONSOLIDADO')).filter(r=>r.mesKey===mesAtual).forEach(r => {
+    const m = _ifeMarca(r.clas);
+    if (!marcas[m]) marcas[m] = {atrasado:0,total:0};
+    marcas[m].atrasado += r.atrasado;
+    marcas[m].total    += r.total;
   });
 
-  // Tabela
-  if (view === 'mensal') {
-    _renderIFEMensal(dados, meses, ifeByMes);
-  } else {
-    _renderIFEClasse(dados, meses);
-  }
+  const resumoMarcas = Object.entries(marcas).map(([m,v]) => {
+    const ife = v.total>0?(1-v.atrasado/v.total)*100:null;
+    return `<div style="text-align:center;padding:8px 16px;border-right:1px solid var(--border)">
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">${m}</div>
+      <div style="font-size:18px;font-weight:700;color:${ife!==null?_ifeColor(ife):'var(--text-muted)'}">${ife!==null?ife.toFixed(2)+'%':'—'}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('ife-resumo').innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+      <div style="background:#1e2a4a;padding:10px 20px;font-size:11px;letter-spacing:1px;color:var(--text-muted)">
+        IFE ${_ifeFmtLg(mesAtual)} — RESUMO
+      </div>
+      <div style="display:flex;flex-wrap:wrap">
+        <div style="text-align:center;padding:16px 28px;border-right:1px solid var(--border)">
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">CONSOLIDADO</div>
+          <div style="font-size:32px;font-weight:700;color:${_ifeColor(ifeConsolidado||0)}">${ifeConsolidado!==null?ifeConsolidado.toFixed(2)+'%':'—'}</div>
+        </div>
+        <div style="text-align:center;padding:16px 28px;border-right:1px solid var(--border)">
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">MATRIZ</div>
+          <div style="font-size:28px;font-weight:700;color:${_ifeColor(ifeMatriz||0)}">${ifeMatriz!==null?ifeMatriz.toFixed(2)+'%':'—'}</div>
+        </div>
+        <div style="text-align:center;padding:16px 28px;border-right:1px solid var(--border)">
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">FILIAL SP</div>
+          <div style="font-size:28px;font-weight:700;color:${_ifeColor(ifeFilial||0)}">${ifeFilial!==null?ifeFilial.toFixed(2)+'%':'—'}</div>
+        </div>
+        <div style="display:flex;flex:1;flex-wrap:wrap;align-items:center">${resumoMarcas}</div>
+      </div>
+    </div>`;
+
+  // ── KPIs ─────────────────────────────────────────────────────────────────
+  document.getElementById('ife-kpis').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">IFE ${_ifeFmtLg(mesAtual)}</div>
+      <div class="kpi-value" style="color:${_ifeColor(vAtual)}">${vAtual.toFixed(2)}%</div></div>
+    <div class="kpi-card"><div class="kpi-label">MÊS ANTERIOR (${_ifeFmt(mesAnt)})</div>
+      <div class="kpi-value" style="color:var(--text-muted)">${vAnt.toFixed(2)}%</div></div>
+    <div class="kpi-card"><div class="kpi-label">VARIAÇÃO</div>
+      <div class="kpi-value" style="color:${diff>=0?'var(--green)':'#e74c3c'}">${diff>=0?'+':''}${diff.toFixed(2)}%</div></div>
+    <div class="kpi-card"><div class="kpi-label">META</div>
+      <div class="kpi-value" style="color:${vAtual>=95?'var(--green)':'#e74c3c'}">${vAtual>=95?'✓ ATINGIDA':'✗ ABAIXO'}</div></div>
+    <div class="kpi-card"><div class="kpi-label">EMPRESA</div>
+      <div class="kpi-value blue" style="font-size:18px">${empLabel}</div></div>`;
+
+  // ── GRÁFICO LINHA ─────────────────────────────────────────────────────────
+  const ctx = document.getElementById('ife-chart').getContext('2d');
+  if (ifeChart) ifeChart.destroy();
+
+  // Linha de meta 95%
+  const metaPlugin = {
+    id:'metaLine',
+    afterDraw(chart) {
+      const {ctx,chartArea:{left,right},scales:{y}} = chart;
+      if(!y) return;
+      const yMeta = y.getPixelForValue(95);
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(left,yMeta); ctx.lineTo(right,yMeta);
+      ctx.strokeStyle='rgba(255,140,59,0.6)';
+      ctx.lineWidth=1.5; ctx.setLineDash([6,4]);
+      ctx.stroke();
+      ctx.fillStyle='rgba(255,140,59,0.8)';
+      ctx.font='10px Arial'; ctx.fillText('META 95%',right-58,yMeta-4);
+      ctx.restore();
+    }
+  };
+
+  const ifeVals = meses.map(m=>ifeByMes[m]?.ife!=null?+ifeByMes[m].ife.toFixed(2):null);
+  ifeChart = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels: meses.map(_ifeFmt),
+      datasets:[{
+        label:'IFE %', data:ifeVals,
+        borderColor:'#3d8bff', backgroundColor:'rgba(61,139,255,0.08)',
+        borderWidth:2, pointRadius:5,
+        pointBackgroundColor: ifeVals.map(v=>v!=null?_ifeHex(v):'#888'),
+        tension:0.3, fill:true, spanGaps:true
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        datalabels:{
+          color: ctx => { const v=ctx.dataset.data[ctx.dataIndex]; return v!=null?_ifeHex(v):'#888'; },
+          anchor:'end', align:'top', font:{size:10,weight:'bold'},
+          formatter: v => v!=null?v.toFixed(2)+'%':''
+        }
+      },
+      scales:{
+        y:{ min:75, max:100, ticks:{callback:v=>v+'%',color:'var(--text-muted)'},
+            grid:{color:'rgba(255,255,255,0.05)'} },
+        x:{ ticks:{color:'var(--text-muted)',maxRotation:45}, grid:{display:false} }
+      }
+    },
+    plugins:[ChartDataLabels, metaPlugin]
+  });
+
+  // ── COMPARATIVO ANO A ANO ─────────────────────────────────────────────────
+  const compWrap = document.getElementById('ife-comp-wrap');
+  compWrap.style.display = view==='comp' ? '' : 'none';
+  if (view==='comp') _renderIFEComp(dados, anos, anoAtual);
+
+  // ── TABELA ────────────────────────────────────────────────────────────────
+  if (view==='mensal' || view==='comp') _renderIFEMensal(dados, meses, ifeByMes);
+  else _renderIFEClasse(dados, meses);
+}
+
+function _renderIFEComp(dados, anos, anoFilt) {
+  // Agrupar por mês do ano (01-12) e ano
+  const mesesNum = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const mesesLabel = mesesNum.map(m => new Date(2024,+m-1,1).toLocaleDateString('pt-BR',{month:'short'}).toUpperCase());
+
+  const CORES = ['#3d8bff','#00c97a','#ff8c3b','#e74c3c','#a855f7','#06b6d4'];
+  const anosVis = anoFilt ? anos.filter(a=>a===anoFilt) : anos;
+
+  const datasets = anosVis.map((ano,i) => ({
+    label: ano,
+    data: mesesNum.map(mm => {
+      const key = `${ano}-${mm}`;
+      const linhas = dados.filter(r=>r.mesKey===key);
+      const {ife} = _ifeCalc(linhas);
+      return ife!=null?+ife.toFixed(2):null;
+    }),
+    borderColor: CORES[i%CORES.length],
+    backgroundColor: 'transparent',
+    borderWidth: 2, pointRadius: 4, tension: 0.3, spanGaps: true
+  }));
+
+  const ctx2 = document.getElementById('ife-comp-chart').getContext('2d');
+  if (ifeCompChart) ifeCompChart.destroy();
+  ifeCompChart = new Chart(ctx2, {
+    type:'line',
+    data:{ labels:mesesLabel, datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ display:true, labels:{color:'var(--text-muted)',boxWidth:12} },
+        datalabels:{
+          color: ctx => { const v=ctx.dataset.data[ctx.dataIndex]; return v!=null?_ifeHex(v):'transparent'; },
+          anchor:'end', align:'top', font:{size:9,weight:'bold'},
+          formatter: v => v!=null?v.toFixed(1)+'%':''
+        }
+      },
+      scales:{
+        y:{ min:75, max:100, ticks:{callback:v=>v+'%',color:'var(--text-muted)'},
+            grid:{color:'rgba(255,255,255,0.05)'} },
+        x:{ ticks:{color:'var(--text-muted)'}, grid:{display:false} }
+      }
+    },
+    plugins:[ChartDataLabels]
+  });
 }
 
 function _renderIFEMensal(dados, meses, ifeByMes) {
-  const fmtMesShort = m => { const [a,mo]=m.split('-'); return new Date(+a,+mo-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}).toUpperCase(); };
-
+  // Detectar se tem comparativo mesmo mês ano anterior
   document.getElementById('ife-thead').innerHTML =
-    '<th>MÊS</th><th style="text-align:right">QTDE ATRASADO</th><th style="text-align:right">QTDE TOTAL</th><th style="text-align:right">IFE</th>';
+    '<th style="position:sticky;left:0;background:#1a2a4a;z-index:1">MÊS</th>' +
+    '<th style="text-align:right">QTDE ATRASADO</th>' +
+    '<th style="text-align:right">QTDE TOTAL</th>' +
+    '<th style="text-align:right">IFE</th>' +
+    '<th style="text-align:right">VS ANO ANT.</th>';
 
   const rows = meses.map(m => {
-    const linhas = dados.filter(r => r.mesKey === m);
-    const atrasado = linhas.reduce((s,r)=>s+r.atrasado,0);
-    const total    = linhas.reduce((s,r)=>s+r.total,0);
-    const ife = total>0 ? (1-atrasado/total)*100 : 0;
-    const color = ife>=95?'var(--green)':ife>=85?'var(--orange)':'#e74c3c';
+    const {atrasado,total,ife} = ifeByMes[m];
+    // Mesmo mês ano anterior
+    const [ano,mm] = m.split('-');
+    const mAnt = `${+ano-1}-${mm}`;
+    const vAnt = ifeByMes[mAnt]?.ife;
+    const diffAno = ife!=null&&vAnt!=null ? ife-vAnt : null;
+    const color = ife!=null?_ifeColor(ife):'var(--text-muted)';
     return `<tr>
-      <td>${fmtMesShort(m)}</td>
+      <td style="position:sticky;left:0;background:var(--surface);z-index:1">${_ifeFmt(m)}</td>
       <td style="text-align:right">${atrasado.toLocaleString('pt-BR')}</td>
       <td style="text-align:right">${total.toLocaleString('pt-BR')}</td>
-      <td style="text-align:right;font-weight:700;color:${color}">${ife.toFixed(2)}%</td>
+      <td style="text-align:right;font-weight:700;color:${color}">${ife!=null?ife.toFixed(2)+'%':'—'}</td>
+      <td style="text-align:right;color:${diffAno!=null?(diffAno>=0?'var(--green)':'#e74c3c'):'var(--text-muted)'}">
+        ${diffAno!=null?(diffAno>=0?'+':'')+diffAno.toFixed(2)+'%':'—'}
+      </td>
     </tr>`;
   });
 
   document.getElementById('ife-tbody').innerHTML = rows.join('');
 
-  const totAtrasado = dados.reduce((s,r)=>s+r.atrasado,0);
-  const totTotal    = dados.reduce((s,r)=>s+r.total,0);
-  const totIFE = totTotal>0?(1-totAtrasado/totTotal)*100:0;
+  const {atrasado:tA,total:tT,ife:tIFE} = _ifeCalc(dados);
   document.getElementById('ife-foot').innerHTML = `
     <tr class="tfoot-row" style="background:#1e2a4a;border-top:2px solid var(--blue)">
-      <td style="text-align:left;color:var(--text-muted)">TOTAL PERÍODO</td>
-      <td style="text-align:right;font-weight:700">${totAtrasado.toLocaleString('pt-BR')}</td>
-      <td style="text-align:right;font-weight:700">${totTotal.toLocaleString('pt-BR')}</td>
-      <td style="text-align:right;font-weight:700;color:${totIFE>=95?'var(--green)':totIFE>=85?'var(--orange)':'#e74c3c'}">${totIFE.toFixed(2)}%</td>
+      <td style="position:sticky;left:0;background:#1e2a4a;text-align:left;color:var(--text-muted)">TOTAL PERÍODO</td>
+      <td style="text-align:right;font-weight:700">${tA.toLocaleString('pt-BR')}</td>
+      <td style="text-align:right;font-weight:700">${tT.toLocaleString('pt-BR')}</td>
+      <td style="text-align:right;font-weight:700;color:${tIFE!=null?_ifeColor(tIFE):'var(--text-muted)'}">${tIFE!=null?tIFE.toFixed(2)+'%':'—'}</td>
+      <td></td>
     </tr>`;
 }
 
 function _renderIFEClasse(dados, meses) {
-  const fmtMesShort = m => { const [a,mo]=m.split('-'); return new Date(+a,+mo-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}).toUpperCase(); };
-  const mesCols = meses.length > 6 ? meses.slice(-6) : meses; // últimos 6 meses
-
-  document.getElementById('ife-thead').innerHTML =
-    '<th>CLASSIFICAÇÃO</th>' +
-    mesCols.map(m=>`<th style="text-align:right;width:80px">${fmtMesShort(m)}</th>`).join('') +
-    '<th style="text-align:right;width:80px">PERÍODO</th>';
-
+  const mesCols = meses.length>6 ? meses.slice(-6) : meses;
   const classes = [...new Set(dados.map(r=>r.clas))].sort();
 
-  const calcIFE = linhas => {
-    const atrasado = linhas.reduce((s,r)=>s+r.atrasado,0);
-    const total    = linhas.reduce((s,r)=>s+r.total,0);
-    return total>0 ? (1-atrasado/total)*100 : null;
-  };
-  const fmtIFE = v => v===null ? '<span class="zero">—</span>' :
-    `<span style="color:${v>=95?'var(--green)':v>=85?'var(--orange)':'#e74c3c'};font-weight:600">${v.toFixed(2)}%</span>`;
+  document.getElementById('ife-thead').innerHTML =
+    '<th style="position:sticky;left:0;background:#1a2a4a;z-index:1;min-width:200px">CLASSIFICAÇÃO</th>' +
+    mesCols.map(m=>`<th style="text-align:right;width:80px">${_ifeFmt(m)}</th>`).join('') +
+    '<th style="text-align:right;width:80px">PERÍODO</th>';
+
+  const fmtIFE = v => v==null?'<span class="zero">—</span>':
+    `<span style="color:${_ifeColor(v)};font-weight:600">${v.toFixed(2)}%</span>`;
 
   const rows = classes.map(cls => {
     const cells = mesCols.map(m => {
-      const linhas = dados.filter(r=>r.clas===cls&&r.mesKey===m);
-      return `<td style="text-align:right">${fmtIFE(calcIFE(linhas))}</td>`;
+      const {ife} = _ifeCalc(dados.filter(r=>r.clas===cls&&r.mesKey===m));
+      return `<td style="text-align:right">${fmtIFE(ife)}</td>`;
     }).join('');
-    const periodo = calcIFE(dados.filter(r=>r.clas===cls));
-    return `<tr><td style="font-size:11px">${cls}</td>${cells}<td style="text-align:right">${fmtIFE(periodo)}</td></tr>`;
+    const {ife:periodo} = _ifeCalc(dados.filter(r=>r.clas===cls));
+    return `<tr>
+      <td style="position:sticky;left:0;background:var(--surface);z-index:1;font-size:11px">${cls}</td>
+      ${cells}
+      <td style="text-align:right">${fmtIFE(periodo)}</td>
+    </tr>`;
   });
 
   document.getElementById('ife-tbody').innerHTML = rows.join('');
 
-  // Linha total
   const totCells = mesCols.map(m => {
-    const v = calcIFE(dados.filter(r=>r.mesKey===m));
-    return `<td style="text-align:right;font-weight:700">${fmtIFE(v)}</td>`;
+    const {ife} = _ifeCalc(dados.filter(r=>r.mesKey===m));
+    return `<td style="text-align:right;font-weight:700">${fmtIFE(ife)}</td>`;
   }).join('');
-  const totPeriodo = calcIFE(dados);
+  const {ife:totP} = _ifeCalc(dados);
   document.getElementById('ife-foot').innerHTML = `
     <tr class="tfoot-row" style="background:#1e2a4a;border-top:2px solid var(--blue)">
-      <td style="text-align:left;color:var(--text-muted)">TOTAL</td>
+      <td style="position:sticky;left:0;background:#1e2a4a;text-align:left;color:var(--text-muted)">TOTAL</td>
       ${totCells}
-      <td style="text-align:right;font-weight:700">${fmtIFE(totPeriodo)}</td>
+      <td style="text-align:right;font-weight:700">${fmtIFE(totP)}</td>
     </tr>`;
 }
+
 
 function renderServico() {
   const search = document.getElementById('servico-search').value.toLowerCase();
