@@ -801,6 +801,19 @@ document.addEventListener('DOMContentLoaded', () => {
         <option value="1">Matriz</option>
         <option value="2">Filial SP</option>
       </select>
+      <select class="filter-select" id="servico-processo" onchange="renderServico()">
+        <option value="">Todos os processos</option>
+        <option value="TORNO">Torno</option>
+        <option value="RETÍFICA">Retífica</option>
+        <option value="POLIMENTO">Polimento</option>
+        <option value="TRATAMENTO SUPERFICIAL">Tratamento Superficial</option>
+        <option value="TRATAMENTO TÉRMICO">Tratamento Térmico</option>
+        <option value="GERADORA">Geradora</option>
+        <option value="CENTRO DE USINAGEM">Centro de Usinagem</option>
+        <option value="MANUTENÇÃO">Manutenção</option>
+        <option value="FILIAL SP">Filial SP</option>
+        <option value="OUTROS">Outros</option>
+      </select>
       <select class="filter-select" id="servico-mes" onchange="renderServico()">
         <option value="">Todos os meses</option>
       </select>
@@ -891,7 +904,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="kpi-bar" id="ife-kpis" style="margin-bottom:20px"></div>
 
   <!-- Gráfico principal -->
-  <div style="position:relative;height:300px;margin-bottom:28px">
+  <div style="position:relative;height:340px;margin-bottom:28px">
     <canvas id="ife-chart"></canvas>
   </div>
 
@@ -1676,13 +1689,20 @@ function renderIFE() {
       plugins:{
         legend:{display:false},
         datalabels:{
-          color: ctx => { const v=ctx.dataset.data[ctx.dataIndex]; return v!=null?_ifeHex(v):'#888'; },
-          anchor:'end', align:'top', font:{size:10,weight:'bold'},
-          formatter: v => v!=null?v.toFixed(2)+'%':''
+          color: ctx => { const v=ctx.dataset.data[ctx.dataIndex]; return v!=null?_ifeHex(v):'transparent'; },
+          anchor:'center', align:'bottom', offset:12,
+          font:{size:11,weight:'bold'},
+          backgroundColor: ctx => { const v=ctx.dataset.data[ctx.dataIndex]; return v!=null?'rgba(0,0,0,0.55)':'transparent'; },
+          borderRadius:4, padding:{top:3,bottom:3,left:6,right:6},
+          formatter: (v,ctx) => {
+            if(v==null) return '';
+            const label = ctx.chart.data.labels[ctx.dataIndex];
+            return label + '\n' + v.toFixed(2)+'%';
+          }
         }
       },
       scales:{
-        y:{ min:75, max:100, ticks:{callback:v=>v+'%',color:'var(--text-muted)'},
+        y:{ min:70, max:100, ticks:{callback:v=>v+'%',color:'var(--text-muted)'},
             grid:{color:'rgba(255,255,255,0.05)'} },
         x:{ ticks:{color:'var(--text-muted)',maxRotation:45}, grid:{display:false} }
       }
@@ -1832,6 +1852,7 @@ function renderServico() {
   const search = document.getElementById('servico-search').value.toLowerCase();
   const empFilt = document.getElementById('servico-empresa').value; // '1', '2', or ''
   const mesFilt = document.getElementById('servico-mes').value;
+  const procFilt = document.getElementById('servico-processo')?.value || '';
 
   const meses = [...new Set(DATA.servico.map(r=>r.mes))].sort();
   const mesSelect = document.getElementById('servico-mes');
@@ -1897,6 +1918,7 @@ function renderServico() {
   const filtMeses = mesFilt ? [mesFilt] : meses;
   let dataFilt = DATA.servico.filter(r => {
     if (empFilt && r.empresa_num !== empFilt) return false;
+    if (procFilt && r.processo !== procFilt) return false;
     if (!r.empresa.toLowerCase().includes(search)) return false;
     return true;
   });
@@ -2287,6 +2309,93 @@ function parseEstoque(text) {
     });
   });
 }
+
+// ===== MAPA PROCESSO × FORNECEDOR (código numérico do Sheets) =====
+const FORN_PROCESSO = {
+  // TORNO
+  '1455':  'TORNO', // BELUSSO INDUSTRIA METALURGICA LTDA
+  '29':    'TORNO', // BRASIN SOLUCOES HIDRAULICAS LTDA
+  '2655':  'TORNO', // FIXSOU PARAFUSOS E ACESSÓRIOS LTDA
+  '1151':  'TORNO', // FORTUNA IND E COM. DE METAIS LTDA
+  '4507':  'TORNO', // HOVER COMPONENTES LTDA
+  '60040': 'TORNO', // IND MECANICA JAVER LTDA
+  '1350':  'TORNO', // JRD USINAGEM EIRELI
+  '29220': 'TORNO', // VERGANI USINAGEM LTDA
+  '180':   'TORNO', // VKASTA INDUSTRIA DE EQUIPAMENTOS HIDRAULICOS LTDA
+  // RETÍFICA
+  '3060':  'RETÍFICA', // JCL MANUTENÇÕES DE MÁQUINAS LTDA
+  '65319': 'RETÍFICA', // JL ZAPPE INDUSTRIA DE MOLAQSW LTDA
+  // POLIMENTO
+  '65184': 'POLIMENTO', // LUCAS DANIEL MOREIRA VELHO
+  // TRATAMENTO SUPERFICIAL
+  '65288': 'TRATAMENTO SUPERFICIAL', // CLEMAR CROMO DURO LTDA
+  '65222': 'TRATAMENTO SUPERFICIAL', // CROMOFIX CROMO DURO LTDA
+  '65193': 'TRATAMENTO SUPERFICIAL', // CELVI REVESTIMENTOS GALVANOTECNICOS LTDA
+  '65341': 'TRATAMENTO SUPERFICIAL', // MAGNUM METALURGICA LTDA
+  '65302': 'TRATAMENTO SUPERFICIAL', // METALDIFFER INDUSTRIA E COMERCIO LTDA
+  '65340': 'TRATAMENTO SUPERFICIAL', // TECH COAT REVESTIMENTO EM METAIS
+  '65345': 'TRATAMENTO SUPERFICIAL', // ZINCAGEM MAQUINE LTDA
+  // TRATAMENTO TÉRMICO
+  '9883':  'TRATAMENTO TÉRMICO', // METALTECNICA METALURGICA LTDA
+  '365':   'TRATAMENTO TÉRMICO', // TECNOHARD INDUSTRIA METALURGICA LTDA
+  '29212': 'TRATAMENTO TÉRMICO', // THERMIX TRATAMENTO TERMICO LTDA
+  // GERADORA
+  '65330': 'GERADORA', // INDUSTRIA MECANICA GUSFAR LTDA ME
+  '65355': 'GERADORA', // TAVELLI INDUSTRIA METALURGICA LTDA
+  // CENTRO DE USINAGEM
+  '65282': 'CENTRO DE USINAGEM', // IMAP COMERCIO E SERVICOS INDUSTRIAIS LTDA
+  '65320': 'CENTRO DE USINAGEM', // METALURGICA NEGRI LTDA
+  '65337': 'CENTRO DE USINAGEM', // METALURGICA MT LINE DRILL LTDA - ME
+  '65308': 'CENTRO DE USINAGEM', // USINAGEM COSTA LTDA
+  // MANUTENÇÃO
+  '65178': 'MANUTENÇÃO', // CLEITON DOS SANTOS RIBAS
+  // OUTROS — já mapeados mas sem processo definido
+  '1':     'OUTROS', // A RIEPING CIA LTDA
+  '65186': 'OUTROS', // ACVL SERVIÇOS LTDA
+  '65352': 'OUTROS', // CARL ZEISS DO BRASIL LTDA
+  '65294': 'OUTROS', // DITADI USINAGEM LTDA
+  '65327': 'OUTROS', // FORJAS CAXIENSE LTDA
+  '65310': 'OUTROS', // IMAP COMERCIO E SERVICOS INDUSTRIAIS LTDA
+  '65313': 'OUTROS', // SCORT MAQUINAS LTDA
+  '65326': 'OUTROS', // STAR TEC INDUSTRIA DE MATRIZES LTDA
+  '65265': 'OUTROS', // ZS INDUSTRIA DE FERRAMENTAS LTDA
+  '65356': 'OUTROS', // G6 FERRAMENTAS LTDA
+  '65357': 'OUTROS', // GLEASON INDUSTRIA DE FERRAMENTAS LTDA
+  '65358': 'OUTROS', // HURTH INFER INDUSTRIA DE MAQUINAS E FERRAMENTAS LTDA
+  '65359': 'OUTROS', // KROMI LOGÍSTICA DO BRASIL LTDA
+  '65360': 'OUTROS', // MITEC INSTRUMENTOS INDUSTRIAIS LTDA
+  '65361': 'OUTROS', // MTQ SERVICOS DE METROLOGIA LTDA EPP
+  '65362': 'OUTROS', // SOLDATECH SERVICOS ESPECIAS LTDA
+  '65363': 'OUTROS', // STAR SU INDUSTRIA DE FERRAMENTAS LTDA
+  '65364': 'OUTROS', // SERGIO LUIZ LENZI LTDA
+  '65365': 'OUTROS', // TSM TOOLS INDUSTRIA E COMERCIO LTDA
+  // FILIAL SP
+  '65366': 'FILIAL SP', // ABHNER EANES DUARTE BATISTA
+  '65367': 'FILIAL SP', // AC FIORAVANTE ME
+  '65368': 'FILIAL SP', // BS GRAVAÇÃO A LASER E SERVIÇOS EM METAIS LTDA
+  '65369': 'FILIAL SP', // C.J.C USINAGEM DE PECAS LTDA
+  '65370': 'FILIAL SP', // DBD FILTROS E SERVIÇOS LTDA
+  '65371': 'FILIAL SP', // DLP MANUTENCAO E INSTALACAO DE EQUIPAMENTOS INDUSTRIAIS LTDA
+  '65372': 'FILIAL SP', // DURAMAIS METALIZACAO LTDA
+  '65373': 'FILIAL SP', // ENGELTECH INDUSTRIA E USINAGEM DE PECAS AUTOMOTIVAS LTDA
+  '65374': 'FILIAL SP', // ESCALA PRODUTOS E SERVIÇOS DE CALIBRAÇÃO
+  '65375': 'FILIAL SP', // HIDRAUTEC SAO PAULO EQUIP HIDRAULICOS LTDA
+  '65376': 'FILIAL SP', // JL PINTURAS A PO LTDA
+  '65377': 'FILIAL SP', // MARK AUTOMATION
+  '65378': 'FILIAL SP', // MARIA CARLINDA DA SILVA 24657959883
+  '65379': 'FILIAL SP', // ODAIR LAERCIO MELONI
+  '65380': 'FILIAL SP', // PICELLI MOTORES E BOMBAS LTDA EPP
+  '65381': 'FILIAL SP', // QUALISOLDAS SERVICOS DE SOLDAS ESPECIAIS LTDA EPP
+  '65382': 'FILIAL SP', // SELA- POLIMENTO EM METAIS LTDA ME
+  '65383': 'FILIAL SP', // WIKA DO BRASIL IND COM LT
+};
+
+// Retorna o processo de um fornecedor pelo código numérico
+function getFornProcesso(fornStr) {
+  const cod = String(fornStr||'').trim().split(/[\s\-]/)[0].trim();
+  return FORN_PROCESSO[cod] || '';
+}
+
 function parseServico(text) {
   const rows = parseCSV(text, ';');
   const result = {};
@@ -2318,7 +2427,7 @@ function parseServico(text) {
   });
   DATA.servico = Object.entries(result).map(([k,v]) => {
     const [empresa,empresa_num,mes] = k.split('|');
-    return {empresa, empresa_num, mes, valor: Math.round(v*100)/100};
+    return {empresa, empresa_num, mes, valor: Math.round(v*100)/100, processo: getFornProcesso(empresa)};
   });
 }
 // ===== NS CHART — dynamic product selector =====
