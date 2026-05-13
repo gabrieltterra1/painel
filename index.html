@@ -2383,7 +2383,7 @@ async function readSheets() {
     'ESTOQUE_SEGURANCA': parseEstoque,
     'TRANSITO':          parseTransito,
     'SERVICO_TERCEIROS': (text) => { parseServico(text); parseTermico(text); },
-    'IFE (TABELA SIMPLES)':  parseIFE
+    'IFE':  parseIFE
   };
   let found=0, errors=[];
   for (const [aba, parser] of Object.entries(parsers)) {
