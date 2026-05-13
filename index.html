@@ -1104,7 +1104,6 @@ function renderEstoque() {
   const emps = ['SP','MG','GO','PE'];
   tg.innerHTML = emps.map(emp => {
     const d = DATA.transito.find(r => r.EMPRESA === emp) || {TOM:0,BOM:0,CIL:0,GUI:0};
-    '67329': 'GERADORA', // TAVELLI INDUSTRIA METALURGICA LTDA
 
   // OUTROS = total da empresa menos os grupos conhecidos
     const totalEmp = DATA.transito_detail.filter(r => r.empresa === emp).reduce((s,r) => s+r.quantidade, 0);
@@ -2432,6 +2431,8 @@ const FORN_PROCESSO = {
   '64550': 'FILIAL SP', // ODAIR LAERCIO MELONI
   '701185':'FILIAL SP', // PICELLI MOTORES E BOMBAS LTDA EPP
   '66846': 'FILIAL SP', // DLP MANUTENCAO E INSTALACAO DE EQUIPAMENTOS INDUSTRIAIS LTDA
+
+  '67329': 'GERADORA', // TAVELLI INDUSTRIA METALURGICA LTDA
 
   // OUTROS
   '65031': 'OUTROS', // ACVL SERVIÇOS LTDA
