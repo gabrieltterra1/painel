@@ -793,6 +793,10 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="chart-fixed-tall"><canvas id="servico-top-chart"></canvas></div>
     </div>
   </div>
+  <div class="chart-card" style="margin-bottom:24px;">
+    <div class="chart-title">Gastos por Processo (seleção atual)</div>
+    <div style="position:relative;height:260px"><canvas id="servico-processo-chart"></canvas></div>
+  </div>
   <div class="servico-header">
     <div class="filter-row">
       <input class="search-input" type="text" id="servico-search" placeholder="Filtrar fornecedor…" oninput="renderServico()">
@@ -1100,7 +1104,9 @@ function renderEstoque() {
   const emps = ['SP','MG','GO','PE'];
   tg.innerHTML = emps.map(emp => {
     const d = DATA.transito.find(r => r.EMPRESA === emp) || {TOM:0,BOM:0,CIL:0,GUI:0};
-    // OUTROS = total da empresa menos os grupos conhecidos
+    '67329': 'GERADORA', // TAVELLI INDUSTRIA METALURGICA LTDA
+
+  // OUTROS = total da empresa menos os grupos conhecidos
     const totalEmp = DATA.transito_detail.filter(r => r.empresa === emp).reduce((s,r) => s+r.quantidade, 0);
     const outros = Math.max(0, totalEmp - (d.TOM||0) - (d.BOM||0) - (d.CIL||0) - (d.GUI||0));
     return `<div class="transit-card">
@@ -1953,6 +1959,7 @@ function renderServico() {
   thead.innerHTML = `
     <th style="width:200px;text-align:left">Fornecedor</th>
     <th style="width:50px;text-align:center;font-size:10px">EMP</th>
+    <th style="width:120px;text-align:left;font-size:10px">PROCESSO</th>
     ${filtMeses.map(m=>`<th style="width:${mesWidth}">${mesLabel(m)}</th>`).join('')}
     <th style="width:120px">Total</th>`;
 
@@ -1975,16 +1982,23 @@ function renderServico() {
       return `<td class="money">${v ? fmtMoney(v) : '<span class="zero">—</span>'}</td>`;
     }).join('');
     grandTotal += rowTotal;
+    const proc = (dataFilt.find(r=>r.empresa===emp)||{}).processo||'';
+    const PROC_COLORS = {'TORNO':'#3d8bff','RETÍFICA':'#a855f7','POLIMENTO':'#00c97a',
+      'TRATAMENTO SUPERFICIAL':'#06b6d4','TRATAMENTO TÉRMICO':'#ff8c3b',
+      'GERADORA':'#f59e0b','CENTRO DE USINAGEM':'#e74c3c','MANUTENÇÃO':'#64748b',
+      'FILIAL SP':'#ff8c3b','OUTROS':'#475569'};
+    const procColor = PROC_COLORS[proc]||'var(--text-muted)';
     return `<tr>
       <td style="text-align:left;padding:9px 10px;"><span class="fornecedor-cell" title="${emp}">${nomeClean}</span></td>
       <td style="text-align:center">${badge}</td>
+      <td style="font-size:10px;font-weight:600;color:${procColor};white-space:nowrap">${proc||'—'}</td>
       ${cells}
       <td class="money" style="color:var(--blue-light);font-weight:600">${fmtMoney(rowTotal)}</td>
     </tr>`;
   }).join('');
 
   document.getElementById('servico-foot').innerHTML = `<tr class="tfoot-row">
-    <td style="text-align:left">TOTAL</td><td></td>
+    <td style="text-align:left">TOTAL</td><td></td><td></td>
     ${filtMeses.map(m=>`<td class="money">${fmtMoney(mesTotals[m])}</td>`).join('')}
     <td class="money" style="color:var(--amber)">${fmtMoney(grandTotal)}</td>
   </tr>`;
@@ -2125,6 +2139,62 @@ function renderServico() {
     }
   });
   servicoCharts.push(c2);
+
+  // ── GRÁFICO POR PROCESSO ──────────────────────────────────────────────────
+  const PROC_COLORS = {
+    'TORNO':'#3d8bff','RETÍFICA':'#a855f7','POLIMENTO':'#00c97a',
+    'TRATAMENTO SUPERFICIAL':'#06b6d4','TRATAMENTO TÉRMICO':'#ff8c3b',
+    'GERADORA':'#f59e0b','CENTRO DE USINAGEM':'#e74c3c','MANUTENÇÃO':'#64748b',
+    'FILIAL SP':'#ff6b35','OUTROS':'#475569',''  :'#334155'
+  };
+
+  // Agrupar dataFilt por processo
+  const procTotals = {};
+  dataFilt.filter(r => !mesFilt || r.mes === mesFilt).forEach(r => {
+    const p = r.processo || 'SEM PROCESSO';
+    procTotals[p] = (procTotals[p]||0) + r.valor;
+  });
+  const procEntries = Object.entries(procTotals).sort((a,b)=>b[1]-a[1]);
+
+  const canvasProc = document.getElementById('servico-processo-chart');
+  if (canvasProc) {
+    // Destruir gráfico anterior se existir
+    const existingChart = Chart.getChart(canvasProc);
+    if (existingChart) existingChart.destroy();
+
+    new Chart(canvasProc, {
+      type: 'bar',
+      data: {
+        labels: procEntries.map(([p])=>p),
+        datasets: [{
+          label: 'Total (R$)',
+          data: procEntries.map(([,v])=>v),
+          backgroundColor: procEntries.map(([p])=>(PROC_COLORS[p]||'#475569')+'bb'),
+          borderColor:     procEntries.map(([p])=> PROC_COLORS[p]||'#475569'),
+          borderWidth: 1, borderRadius: 5,
+          datalabels: {
+            color: procEntries.map(([p])=> PROC_COLORS[p]||'#aaa'),
+            anchor: 'end', align: 'top', offset: 2,
+            font: { size: 11, weight: '700' },
+            formatter: v => 'R$' + (v>=1000000 ? (v/1000000).toFixed(1)+'M' : Math.round(v/1000)+'k')
+          }
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          datalabels: { display: true }
+        },
+        scales: {
+          x: { ticks: { color: '#7a8299', font:{size:10} }, grid: { display: false } },
+          y: { ticks: { color: '#7a8299', callback: v => 'R$'+Math.round(v/1000)+'k' }, grid: { color: '#1e2334' } }
+        },
+        layout: { padding: { top: 32 } }
+      },
+      plugins: [ChartDataLabels]
+    });
+  }
 }
 
 // ===== CSV PARSER =====
