@@ -1461,16 +1461,16 @@ function parseIFE(text) {
           .replace(/\s+/g, ' ').trim();
         cells.push(cell);
       }
-      if (cells.length >= 9) rows.push(cells);
+      if (cells.length >= 8) rows.push(cells);
     });
   } else {
-    rows = parseCSV(text, ';').filter(r => r.length >= 9);
+    rows = parseCSV(text, ';').filter(r => r.length >= 8);
   }
 
   DATA.ife = [];
   rows.forEach(r => {
-    // col0=ID (ignorar), col1=REFERENCIA, col2=EMPRESA, col3=CLASSIFICAÇÃO,
-    // col4=CLIENTE, col5=QTDE ATRASADO, col6=QTDE EM DIA, col7=QTDE ADIANTADO, col8=QTDE TOTAL
+    // CSV agrupado pelo doGet: DATA_ATUAL(0), MES_ANO(1), EMPRESA(2), CLASSIFICACAO(3),
+    // QTDE_ATRASADO(4), QTDE_EM_DIA(5), QTDE_ADIANTADO(6), QTDE_TOTAL(7)
     const ref  = String(r[1]||'').trim(); // MM/YYYY
     const emp  = String(r[2]||'').trim();
     const clas = String(r[3]||'').trim();
@@ -1479,8 +1479,8 @@ function parseIFE(text) {
     if (!ref.match(/^\d{2}\/\d{4}$/)) return;
     if (emp !== '1' && emp !== '2') return;
 
-    const atrasado = parseNum(r[5]);
-    const total    = parseNum(r[8]);
+    const atrasado = parseNum(r[4]);
+    const total    = parseNum(r[7]);
     if (total <= 0) return;
 
     // Converter referência para YYYY-MM para ordenação
