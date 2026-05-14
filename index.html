@@ -1809,13 +1809,15 @@ function renderIFE() {
       plugins:{
         legend:{display:false},
         datalabels:{
-          color: ctx => { const v=ctx.dataset.data[ctx.dataIndex]; return v!=null?_ifeHex(v):'transparent'; },
-          anchor:'end', align:'top', offset:4,
+          display: ctx => ctx.dataset.data[ctx.dataIndex] != null,
+          color: ctx => _ifeHex(ctx.dataset.data[ctx.dataIndex]||0),
+          anchor:'end', align:'top', offset:6,
           font:{size:11,weight:'bold'},
-          backgroundColor: 'rgba(14,18,36,0.82)',
+          backgroundColor: ctx => _ifeHex(ctx.dataset.data[ctx.dataIndex]||0)+'22',
+          borderColor: ctx => _ifeHex(ctx.dataset.data[ctx.dataIndex]||0),
+          borderWidth:1,
           borderRadius:4, padding:{top:3,bottom:3,left:6,right:6},
           formatter: (v,ctx) => {
-            if(v==null) return '';
             const label = ctx.chart.data.labels[ctx.dataIndex];
             return label + '\n' + v.toFixed(2)+'%';
           }
@@ -2434,7 +2436,7 @@ function parseTransito(text) {
     '300.400.001':'CIL','300.400.010':'CIL',
     // CONJUNTO EIXO E ADAPTADORES
     '300.200.002':'CON','300.200.005':'CON',
-    '100.200.260':'CON','100.100.060':'CON','300.700.010':'CON','300.200.003':'CON',
+    '100.200.260':'CON','100.100.060':'CON','300.700.010':'CON',
     // GUINCHO E ENROLADOR
     '800.010.020':'GUI','800.010.040':'GUI','800.050.010':'GUI',
     // KIT HIDRÁULICO
