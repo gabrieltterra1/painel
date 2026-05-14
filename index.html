@@ -316,6 +316,24 @@
     gap: 16px;
     margin-bottom: 28px;
   }
+  /* ── Custom multi-select dropdown ── */
+  .ms-wrap { position:relative; display:inline-block; min-width:180px; }
+  .ms-btn { background:var(--surface); border:1px solid var(--border); border-radius:6px;
+    color:var(--text); padding:7px 12px; cursor:pointer; width:100%;
+    display:flex; justify-content:space-between; align-items:center; font-size:13px; user-select:none; }
+  .ms-btn:hover { border-color:var(--blue); }
+  .ms-dropdown { display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:999;
+    background:#1e2334; border:1px solid var(--border); border-radius:8px;
+    min-width:220px; box-shadow:0 8px 24px rgba(0,0,0,.5); overflow:hidden; }
+  .ms-wrap.open .ms-dropdown { display:block; }
+  .ms-all { padding:8px 14px; border-bottom:1px solid var(--border); display:flex;
+    align-items:center; gap:8px; font-size:12px; color:var(--text-muted); cursor:pointer; }
+  .ms-all:hover { background:rgba(255,255,255,.05); }
+  .ms-item { padding:7px 14px; display:flex; align-items:center; gap:8px;
+    font-size:13px; cursor:pointer; transition:background .15s; }
+  .ms-item:hover { background:rgba(61,139,255,.12); }
+  .ms-item input[type=checkbox] { accent-color:var(--blue); width:14px; height:14px; }
+
   .transit-card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -713,47 +731,67 @@ document.addEventListener('DOMContentLoaded', () => {
 
   <div class="section-title">Análise Gráfica — Estoque Atual vs. Segurança</div>
   <div class="filter-row" style="margin-bottom:16px;flex-wrap:wrap;gap:8px">
-    <select class="filter-select" id="est-uf" onchange="renderEstoque()" multiple size="1" style="min-width:130px" title="Ctrl+clique para múltiplos">
-      <option value="RS" selected>RS</option>
-      <option value="SP" selected>SP</option>
-      <option value="MG" selected>MG</option>
-      <option value="GO" selected>GO</option>
-      <option value="PE" selected>PE</option>
-    </select>
-    <select class="filter-select" id="est-class" onchange="renderEstoque()" multiple size="1" style="min-width:180px" title="Ctrl+clique para múltiplos">
-      <option value="300.200" selected>Tomada de Força</option>
-      <option value="300.300" selected>Conjunto Eixo</option>
-      <option value="300.400" selected>Cilindro</option>
-      <option value="300.500" selected>Bomba</option>
-      <option value="300.600" selected>Adaptador</option>
-      <option value="300.700" selected>Válvula</option>
-      <option value="300.800" selected>Kit Hidráulico</option>
-      <option value="800.010" selected>Guincho</option>
-      <option value="800.050" selected>Enrolador</option>
-    </select>
+    <div class="ms-wrap" id="ms-est-uf">
+      <div class="ms-btn" onclick="toggleMsDropdown('ms-est-uf')">
+        <span id="ms-est-uf-label">Todas as filiais</span><span>▾</span>
+      </div>
+      <div class="ms-dropdown">
+        <div class="ms-all" onclick="msToggleAll('ms-est-uf')">
+          <input type="checkbox" id="ms-est-uf-all" checked> Selecionar / Desmarcar Todos
+        </div>
+        <label class="ms-item"><input type="checkbox" value="RS" checked onchange="msChange('ms-est-uf')"> RS</label>
+        <label class="ms-item"><input type="checkbox" value="SP" checked onchange="msChange('ms-est-uf')"> SP</label>
+        <label class="ms-item"><input type="checkbox" value="MG" checked onchange="msChange('ms-est-uf')"> MG</label>
+        <label class="ms-item"><input type="checkbox" value="GO" checked onchange="msChange('ms-est-uf')"> GO</label>
+        <label class="ms-item"><input type="checkbox" value="PE" checked onchange="msChange('ms-est-uf')"> PE</label>
+      </div>
+    </div>
+    <div class="ms-wrap" id="ms-est-class">
+      <div class="ms-btn" onclick="toggleMsDropdown('ms-est-class')">
+        <span id="ms-est-class-label">Todos os produtos</span><span>▾</span>
+      </div>
+      <div class="ms-dropdown">
+        <div class="ms-all" onclick="msToggleAll('ms-est-class')">
+          <input type="checkbox" id="ms-est-class-all" checked> Selecionar / Desmarcar Todos
+        </div>
+        <label class="ms-item"><input type="checkbox" value="300.200" checked onchange="msChange('ms-est-class')"> Tomada de Força</label>
+        <label class="ms-item"><input type="checkbox" value="300.300" checked onchange="msChange('ms-est-class')"> Conjunto Eixo</label>
+        <label class="ms-item"><input type="checkbox" value="300.400" checked onchange="msChange('ms-est-class')"> Cilindro</label>
+        <label class="ms-item"><input type="checkbox" value="300.500" checked onchange="msChange('ms-est-class')"> Bomba</label>
+        <label class="ms-item"><input type="checkbox" value="300.600" checked onchange="msChange('ms-est-class')"> Adaptador</label>
+        <label class="ms-item"><input type="checkbox" value="300.700" checked onchange="msChange('ms-est-class')"> Válvula</label>
+        <label class="ms-item"><input type="checkbox" value="300.800" checked onchange="msChange('ms-est-class')"> Kit Hidráulico</label>
+        <label class="ms-item"><input type="checkbox" value="800.010" checked onchange="msChange('ms-est-class')"> Guincho</label>
+        <label class="ms-item"><input type="checkbox" value="800.050" checked onchange="msChange('ms-est-class')"> Enrolador</label>
+      </div>
+    </div>
     <input class="search-input" type="text" id="est-search" placeholder="Buscar descrição ou depósito..." oninput="renderEstoque()" style="width:240px">
-    <span style="font-size:10px;color:var(--text-muted);align-self:center">Ctrl+clique p/ múltiplos</span>
   </div>
   <div id="estoque-charts"></div>
 
   <div class="section-title">Estoque em Trânsito — Detalhe por Item</div>
   <div class="transito-filters">
     <input class="search-input" type="text" id="tr-search" placeholder="Buscar código ou descrição…" oninput="renderTransito()" style="width:260px">
-    <select class="filter-select" id="tr-produto" onchange="renderTransito()" multiple size="1"
-      style="min-width:200px;height:auto"
-      title="Ctrl+clique para múltiplos">
-      <option value="TOMADA DE FORCA">Tomada de Força</option>
-      <option value="BOMBA HIDRAULICA">Bomba Hidráulica</option>
-      <option value="GUINCHO OS-M">Guincho OS-M</option>
-      <option value="GUINCHO OP">Guincho OP</option>
-      <option value="CONJUNTO EIXO">Conjunto Eixo</option>
-      <option value="CILINDRO HIDRAULICO">Cilindro Hidráulico</option>
-      <option value="ADAPTADOR">Adaptador</option>
-      <option value="VALVULA">Válvula</option>
-      <option value="KIT HIDRAULICO">Kit Hidráulico</option>
-      <option value="OUTROS">Outros</option>
-    </select>
-    <span style="font-size:10px;color:var(--text-muted);align-self:center">Ctrl+clique p/ múltiplos</span>
+    <div class="ms-wrap" id="ms-produto">
+      <div class="ms-btn" onclick="toggleMsDropdown('ms-produto')">
+        <span id="ms-produto-label">Todos os produtos</span><span>▾</span>
+      </div>
+      <div class="ms-dropdown">
+        <div class="ms-all" onclick="msToggleAll('ms-produto')">
+          <input type="checkbox" id="ms-produto-all" checked> Selecionar / Desmarcar Todos
+        </div>
+        <label class="ms-item"><input type="checkbox" value="TOMADA DE FORCA" checked onchange="msChange('ms-produto')"> Tomada de Força</label>
+        <label class="ms-item"><input type="checkbox" value="BOMBA HIDRAULICA" checked onchange="msChange('ms-produto')"> Bomba Hidráulica</label>
+        <label class="ms-item"><input type="checkbox" value="GUINCHO OS-M" checked onchange="msChange('ms-produto')"> Guincho OS-M</label>
+        <label class="ms-item"><input type="checkbox" value="GUINCHO OP" checked onchange="msChange('ms-produto')"> Guincho OP</label>
+        <label class="ms-item"><input type="checkbox" value="CONJUNTO EIXO" checked onchange="msChange('ms-produto')"> Conjunto Eixo</label>
+        <label class="ms-item"><input type="checkbox" value="CILINDRO HIDRAULICO" checked onchange="msChange('ms-produto')"> Cilindro Hidráulico</label>
+        <label class="ms-item"><input type="checkbox" value="ADAPTADOR" checked onchange="msChange('ms-produto')"> Adaptador</label>
+        <label class="ms-item"><input type="checkbox" value="VALVULA" checked onchange="msChange('ms-produto')"> Válvula</label>
+        <label class="ms-item"><input type="checkbox" value="KIT HIDRAULICO" checked onchange="msChange('ms-produto')"> Kit Hidráulico</label>
+        <label class="ms-item"><input type="checkbox" value="OUTROS" checked onchange="msChange('ms-produto')"> Outros</label>
+      </div>
+    </div>
     <select class="filter-select" id="tr-empresa" onchange="renderTransito()">
       <option value="">Todas as empresas</option>
       <option value="SP">SP</option>
@@ -1006,6 +1044,49 @@ function isOverdue(str) {
 }
 
 // ===== TABS =====
+// ── Multi-select dropdown helpers ──────────────────────────────────────────
+function toggleMsDropdown(id) {
+  const wrap = document.getElementById(id);
+  const isOpen = wrap.classList.contains('open');
+  document.querySelectorAll('.ms-wrap.open').forEach(w => w.classList.remove('open'));
+  if (!isOpen) wrap.classList.add('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.ms-wrap')) {
+    document.querySelectorAll('.ms-wrap.open').forEach(w => w.classList.remove('open'));
+  }
+});
+function getMsValues(id) {
+  const wrap = document.getElementById(id);
+  if (!wrap) return [];
+  return [...wrap.querySelectorAll('.ms-item input[type=checkbox]:checked')].map(cb=>cb.value);
+}
+function msChange(id) {
+  const vals = getMsValues(id);
+  const allCbs = [...document.querySelectorAll(`#${id} .ms-item input`)];
+  const allChecked = vals.length === allCbs.length;
+  const allCb = document.getElementById(id+'-all');
+  if (allCb) allCb.checked = allChecked;
+  // label
+  const label = document.getElementById(id+'-label');
+  if (label) {
+    if (vals.length === 0) label.textContent = 'Nenhum selecionado';
+    else if (allChecked) label.textContent = 'Todos';
+    else label.textContent = vals.length + ' selecionados';
+  }
+  // trigger render
+  if (id === 'ms-produto') renderTransito();
+  else if (id.startsWith('ms-est')) renderEstoque();
+}
+function msToggleAll(id) {
+  const allCb = document.getElementById(id+'-all');
+  const checked = allCb ? !allCb.checked : false; // toggle
+  if (allCb) allCb.checked = !allCb.checked;
+  const newVal = allCb ? allCb.checked : true;
+  document.querySelectorAll(`#${id} .ms-item input[type=checkbox]`).forEach(cb => { cb.checked = newVal; });
+  msChange(id);
+}
+
 function showTab(id) {
   document.querySelectorAll('.tab').forEach((t,i) => {
     const ids = ['of','montados','estoque','servicos','termico','ife'];
@@ -1184,8 +1265,8 @@ function renderEstoque() {
         </thead>
         <tbody>
           ${(() => {
-            const ufSel   = [...document.getElementById('est-uf').selectedOptions].map(o=>o.value);
-            const clsSel  = [...document.getElementById('est-class').selectedOptions].map(o=>o.value);
+            const ufSel   = getMsValues('ms-est-uf');
+            const clsSel  = getMsValues('ms-est-class');
             const estSrch = (document.getElementById('est-search').value||'').toLowerCase();
             return DATA.estoque.filter(r => {
               if (ufSel.length && !ufSel.includes(r.uf)) return false;
@@ -1704,10 +1785,10 @@ function renderIFE() {
       ctx.save();
       ctx.beginPath();
       ctx.moveTo(left,yMeta); ctx.lineTo(right,yMeta);
-      ctx.strokeStyle='rgba(255,140,59,0.6)';
+      ctx.strokeStyle='rgba(0,201,122,0.7)';
       ctx.lineWidth=1.5; ctx.setLineDash([6,4]);
       ctx.stroke();
-      ctx.fillStyle='rgba(255,140,59,0.8)';
+      ctx.fillStyle='rgba(0,201,122,0.9)';
       ctx.font='10px Arial'; ctx.fillText('META 95%',right-58,yMeta-4);
       ctx.restore();
     }
@@ -2072,7 +2153,7 @@ function renderServico() {
           datalabels:{
             color:'#fff', font:{size:11,weight:'700'},
             anchor:'center', align:'center',
-            formatter: v => v>5000 ? 'R$'+Math.round(v/1000)+'k' : ''
+            formatter: v => v>5000 ? 'R$'+(v/1000).toFixed(1)+'k' : ''
           }
         },
         {
@@ -2082,7 +2163,18 @@ function renderServico() {
           datalabels:{
             color:'#fff', font:{size:11,weight:'700'},
             anchor:'center', align:'center',
-            formatter: v => v>2000 ? 'R$'+Math.round(v/1000)+'k' : ''
+            formatter: v => v>2000 ? 'R$'+(v/1000).toFixed(1)+'k' : ''
+          }
+        },
+        {
+          label:'Total', data:meses.map(m=>mTotal(m)), type:'line',
+          borderColor:'#ffaa00', borderWidth:2.5, borderDash:[],
+          pointRadius:6, pointBackgroundColor:'#ffaa00', pointBorderColor:'#1a2334', pointBorderWidth:2,
+          fill:false, tension:0.3, order:0,
+          datalabels:{
+            color:'#ffaa00', font:{size:12,weight:'700'},
+            anchor:'end', align:'top', offset:6,
+            formatter: v => 'R$'+(v/1000).toFixed(1)+'k'
           }
         }
       ]
@@ -2094,18 +2186,15 @@ function renderServico() {
         datalabels:{
           display: true,
           formatter: (v,ctx) => {
-            // Mostrar total no topo da última barra empilhada
-            if (ctx.datasetIndex === 1) {
-              const total = mTotal(meses[ctx.dataIndex]);
-              return 'R$'+Math.round(total/1000)+'k';
-            }
-            return v > 5000 ? 'R$'+Math.round(v/1000)+'k' : '';
+            // linha de total: usa datalabels do dataset
+            if (ctx.dataset.type === 'line') return 'R$'+(v/1000).toFixed(1)+'k';
+            return v > 5000 ? 'R$'+(v/1000).toFixed(1)+'k' : '';
           },
-          color: (ctx) => ctx.datasetIndex === 1 ? '#ffaa00' : '#fff',
-          anchor: (ctx) => ctx.datasetIndex === 1 ? 'end' : 'center',
-          align: (ctx) => ctx.datasetIndex === 1 ? 'top' : 'center',
-          font: (ctx) => ctx.datasetIndex === 1 ? {size:13,weight:'700'} : {size:11,weight:'600'},
-          offset: (ctx) => ctx.datasetIndex === 1 ? 6 : 0
+          color: (ctx) => ctx.dataset.type === 'line' ? '#ffaa00' : '#fff',
+          anchor: (ctx) => ctx.dataset.type === 'line' ? 'end' : 'center',
+          align: (ctx) => ctx.dataset.type === 'line' ? 'top' : 'center',
+          font: (ctx) => ctx.dataset.type === 'line' ? {size:13,weight:'700'} : {size:11,weight:'600'},
+          offset: (ctx) => ctx.dataset.type === 'line' ? 6 : 0
         }
       },
       scales:{
@@ -2140,7 +2229,7 @@ function renderServico() {
           display: true,
           color:'#fff', font:{size:12,weight:'700'},
           anchor:'end', align:'top', offset:2,
-          formatter: v => 'R$'+Math.round(v/1000)+'k'
+          formatter: v => 'R$'+(v/1000).toFixed(1)+'k'
         }
       },
       scales:{
@@ -2169,7 +2258,7 @@ function renderServico() {
         datalabels:{
           color:'#7aa8ff', font:{size:10,weight:'700'},
           anchor:'end', align:'right', offset:4,
-          formatter: v => 'R$'+Math.round(v/1000)+'k'
+          formatter: v => 'R$'+(v/1000).toFixed(1)+'k'
         }
       }]
     },
@@ -2181,7 +2270,7 @@ function renderServico() {
           display: true,
           color:'#7aa8ff', font:{size:10,weight:'700'},
           anchor:'end', align:'right', offset:4,
-          formatter: v => 'R$'+Math.round(v/1000)+'k'
+          formatter: v => 'R$'+(v/1000).toFixed(1)+'k'
         }
       },
       scales:{
@@ -2338,27 +2427,28 @@ function parseMontados(text) {
 function parseTransito(text) {
   const rows = parseCSV(text, ';');
   const empMap = {'2':'SP','3':'MG','8':'GO','9':'PE'};
-  const classToGroup = {
-    '300.200.001':'TOM','300.200.100':'TOM','300.200.002':'TOM','300.200.003':'TOM',
-    '300.500.001':'BOM','300.500.002':'BOM',
-    '300.400.001':'CIL','300.400.002':'CIL',
-    '800.010.020':'GUI','800.010.040':'GUI',
-    '300.300.001':'CON','300.300.002':'CON',
-    '300.600.001':'ADP','300.600.002':'ADP',
-    '300.700.001':'VAL','300.700.002':'VAL',
-    '300.800.001':'KIT','300.800.002':'KIT'
+  // Mapeamento por PREFIXO de classificação — mais robusto que código exato
+  const clsPrefix = cls => {
+    if (!cls) return '';
+    if (cls.startsWith('300.200')) return 'TOM';
+    if (cls.startsWith('300.500')) return 'BOM';
+    if (cls.startsWith('300.400')) return 'CIL';
+    if (cls.startsWith('800.010')) return 'GUI';
+    if (cls.startsWith('800.050')) return 'GUI'; // enrolador
+    if (cls.startsWith('300.300')) return 'CON'; // conjunto eixo / multiplicador
+    if (cls.startsWith('300.600')) return 'ADP';
+    if (cls.startsWith('300.700')) return 'VAL';
+    if (cls.startsWith('300.800')) return 'KIT';
+    return '';
   };
-  const classToLabel = {
-    '300.200.001':'TOMADA DE FORCA','300.200.100':'TOMADA DE FORCA',
-    '300.200.002':'TOMADA DE FORCA','300.200.003':'TOMADA DE FORCA',
-    '300.500.001':'BOMBA HIDRAULICA','300.500.002':'BOMBA HIDRAULICA',
-    '300.400.001':'CILINDRO HIDRAULICO','300.400.002':'CILINDRO HIDRAULICO',
-    '800.010.020':'GUINCHO OS-M','800.010.040':'GUINCHO OP',
-    '300.300.001':'CONJUNTO EIXO','300.300.002':'CONJUNTO EIXO',
-    '300.600.001':'ADAPTADOR','300.600.002':'ADAPTADOR',
-    '300.700.001':'VALVULA','300.700.002':'VALVULA',
-    '300.800.001':'KIT HIDRAULICO','300.800.002':'KIT HIDRAULICO'
+  const clsLabel = cls => {
+    const g = clsPrefix(cls);
+    const map = {TOM:'TOMADA DE FORCA',BOM:'BOMBA HIDRAULICA',CIL:'CILINDRO HIDRAULICO',
+      GUI:'GUINCHO',CON:'CONJUNTO EIXO',ADP:'ADAPTADOR',VAL:'VALVULA',KIT:'KIT HIDRAULICO'};
+    return map[g] || cls;
   };
+  // Compat shims (não usados mas mantidos para evitar erros)
+  const classToGroup = {}; const classToLabel = {};
   const pivot = {}; ['SP','MG','GO','PE'].forEach(e=>{pivot[e]={TOM:0,BOM:0,CIL:0,GUI:0,CON:0,ADP:0,VAL:0,KIT:0};});
   const detail = [];
   rows.forEach(r => {
@@ -2371,9 +2461,9 @@ function parseTransito(text) {
     const cls = String(r[5]||'').trim();
     const emp = empMap[empresaNum];
     if (!emp || qty <= 0) return;
-    const g = classToGroup[cls];
-    if (g) pivot[emp][g] += qty;
-    detail.push({codigo, descricao, empresa:emp, quantidade:qty, classificacao:cls, produto:classToLabel[cls]||cls});
+    const g = clsPrefix(cls);
+    if (g) pivot[emp][g] = (pivot[emp][g]||0) + qty;
+    detail.push({codigo, descricao, empresa:emp, quantidade:qty, classificacao:cls, produto:clsLabel(cls)});
   });
   DATA.transito = ['SP','MG','GO','PE'].map(k=>({EMPRESA:k,...pivot[k]}));
   DATA.transito_detail = detail;
@@ -2584,7 +2674,7 @@ function renderNSChart() {
       const totAbast = rows.reduce((s,r)=>s+r.qtde_abast,0);
       return totParam>0 ? Math.round(totAbast/totParam*1000)/10 : 0;
     });
-    datasets.push({ label:'GUINCHO OS-M', data: guinchoOSM, backgroundColor:'#00c97acc', borderRadius:4 });
+    datasets.push({ label:'GUINCHO OS-M', data: guinchoOSM, backgroundColor:'#f59e0bcc', borderRadius:4 });
     const guinchoOP = empsNS.map(e => {
       const rows = DATA.estoque.filter(r => r.uf === e && r.classificacao === '800.010.040');
       const totParam = rows.reduce((s,r)=>s+r.qtde_param_es,0);
@@ -2641,7 +2731,7 @@ function renderNSChart() {
   nsTable.className = 'ns-data-table';
   nsTable.style.cssText = 'overflow-x:auto;margin-top:12px;';
   const dataRows = datasets.filter(d=>d.type!=='line');
-  const colors = {'TOMADA':'#3d8bff','BOMBA':'#ff8c3b','GUINCHO OS-M':'#00c97a','GUINCHO OP':'#ffaa00','ENROLADOR':'#c97aff'};
+  const colors = {'TOMADA':'#3d8bff','BOMBA':'#ff8c3b','GUINCHO OS-M':'#f59e0b','GUINCHO OP':'#fb923c','ENROLADOR':'#c97aff'};
   nsTable.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px;">
     <thead><tr style="background:#1a2a4a">
       <th style="padding:7px 14px;text-align:left;color:#7a8299;min-width:90px;font-family:var(--font-display);letter-spacing:1px"></th>
@@ -2668,8 +2758,7 @@ function renderNSChart() {
 // ===== TRÂNSITO DETALHE =====
 function renderTransito() {
   const search = document.getElementById('tr-search').value.toLowerCase();
-  const prodSel = document.getElementById('tr-produto');
-  const prodFilt = [...prodSel.selectedOptions].map(o=>o.value).filter(Boolean);
+  const prodFilt = getMsValues('ms-produto');
   const empFilt = document.getElementById('tr-empresa').value;
   const sortSel = document.getElementById('tr-sort').value;
   const empColors = {'SP':'#00c97a','MG':'#ffaa00','GO':'#ff6b3b','PE':'#c97aff'};
