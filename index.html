@@ -55,7 +55,7 @@
   }
   .login-btn:hover { background: #3d8bff; }
   .login-error {
-    color: #ff3b3b; font-size: 12px;
+    color: #00c97a; font-size: 12px;
     margin-top: 12px; letter-spacing: 1px;
     min-height: 18px;
   }
@@ -78,7 +78,7 @@
     --blue-light: #3d8bff;
     --green: #00c97a;
     --green-dark: #007a4a;
-    --red: #ff3b3b;
+    --red: #00c97a;
     --amber: #ffaa00;
     --text: #e8ecf4;
     --text-muted: #7a8299;
@@ -1785,10 +1785,10 @@ function renderIFE() {
       ctx.save();
       ctx.beginPath();
       ctx.moveTo(left,yMeta); ctx.lineTo(right,yMeta);
-      ctx.strokeStyle='rgba(0,201,122,0.7)';
+      ctx.strokeStyle='rgba(0,201,122,0.85)';
       ctx.lineWidth=1.5; ctx.setLineDash([6,4]);
       ctx.stroke();
-      ctx.fillStyle='rgba(0,201,122,0.9)';
+      ctx.fillStyle='#00c97a';
       ctx.font='10px Arial'; ctx.fillText('META 95%',right-58,yMeta-4);
       ctx.restore();
     }
@@ -2147,23 +2147,23 @@ function renderServico() {
       labels: meses.map(mesLabel),
       datasets:[
         {
-          label:'Matriz',
-          data: meses.map(m=>matrizByMes[m]),
-          backgroundColor:'#3d8bffcc', borderColor:'#3d8bff', borderWidth:1,
-          datalabels:{
-            color:'#fff', font:{size:11,weight:'700'},
-            anchor:'center', align:'center',
-            formatter: v => v>5000 ? 'R$'+(v/1000).toFixed(1)+'k' : ''
-          }
-        },
-        {
           label:'Filial SP',
           data: meses.map(m=>filialByMes[m]),
           backgroundColor:'#ff8c3bcc', borderColor:'#ff8c3b', borderWidth:1,
           datalabels:{
             color:'#fff', font:{size:11,weight:'700'},
             anchor:'center', align:'center',
-            formatter: v => v>2000 ? 'R$'+(v/1000).toFixed(1)+'k' : ''
+            formatter: v => v>2000 ? 'R$'+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) : ''
+          }
+        },
+        {
+          label:'Matriz',
+          data: meses.map(m=>matrizByMes[m]),
+          backgroundColor:'#3d8bffcc', borderColor:'#3d8bff', borderWidth:1,
+          datalabels:{
+            color:'#fff', font:{size:11,weight:'700'},
+            anchor:'center', align:'center',
+            formatter: v => v>5000 ? 'R$'+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) : ''
           }
         },
         {
@@ -2174,7 +2174,7 @@ function renderServico() {
           datalabels:{
             color:'#ffaa00', font:{size:12,weight:'700'},
             anchor:'end', align:'top', offset:6,
-            formatter: v => 'R$'+(v/1000).toFixed(1)+'k'
+            formatter: v => 'R$'+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})
           }
         }
       ]
@@ -2187,7 +2187,7 @@ function renderServico() {
           display: true,
           formatter: (v,ctx) => {
             // linha de total: usa datalabels do dataset
-            if (ctx.dataset.type === 'line') return 'R$'+(v/1000).toFixed(1)+'k';
+            if (ctx.dataset.type === 'line') return 'R$'+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
             return v > 5000 ? 'R$'+(v/1000).toFixed(1)+'k' : '';
           },
           color: (ctx) => ctx.dataset.type === 'line' ? '#ffaa00' : '#fff',
@@ -2229,7 +2229,7 @@ function renderServico() {
           display: true,
           color:'#fff', font:{size:12,weight:'700'},
           anchor:'end', align:'top', offset:2,
-          formatter: v => 'R$'+(v/1000).toFixed(1)+'k'
+          formatter: v => 'R$'+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})
         }
       },
       scales:{
@@ -2258,7 +2258,7 @@ function renderServico() {
         datalabels:{
           color:'#7aa8ff', font:{size:10,weight:'700'},
           anchor:'end', align:'right', offset:4,
-          formatter: v => 'R$'+(v/1000).toFixed(1)+'k'
+          formatter: v => 'R$'+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})
         }
       }]
     },
@@ -2270,7 +2270,7 @@ function renderServico() {
           display: true,
           color:'#7aa8ff', font:{size:10,weight:'700'},
           anchor:'end', align:'right', offset:4,
-          formatter: v => 'R$'+(v/1000).toFixed(1)+'k'
+          formatter: v => 'R$'+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})
         }
       },
       scales:{
@@ -2330,7 +2330,7 @@ function renderServico() {
         },
         scales: {
           x: { ticks: { color: '#7a8299', font:{size:10} }, grid: { display: false } },
-          y: { ticks: { color: '#7a8299', callback: v => 'R$'+Math.round(v/1000)+'k' }, grid: { color: '#1e2334' } }
+          y: { ticks: { color: '#7a8299', callback: v => 'R$'+v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}) }, grid: { color: '#1e2334' } }
         },
         layout: { padding: { top: 32 } }
       },
@@ -2697,9 +2697,9 @@ function renderNSChart() {
       const avg = rows.length > 0 ? rows.reduce((s,r)=>s+r.pct_es,0)/rows.length : 0;
       return parseFloat(avg.toFixed(1));
     });
-    if (cilData.some(v=>v>0)) datasets.push({label:'CILINDRO',data:cilData,backgroundColor:'#ff3b3bcc',borderRadius:4});
+    if (cilData.some(v=>v>0)) datasets.push({label:'CILINDRO',data:cilData,backgroundColor:'#00c97acc',borderRadius:4});
   }
-  datasets.push({ label:'META', data:[90,90,90,90,90], type:'line', borderColor:'#ff3b3b', borderWidth:2, pointRadius:0, fill:false, tension:0 });
+  datasets.push({ label:'META', data:[90,90,90,90,90], type:'line', borderColor:'#00c97a', borderWidth:2, borderDash:[6,4], pointRadius:0, fill:false, tension:0 });
 
   window._nsChart = new Chart(document.getElementById('ns-chart'), {
     type: 'bar',
@@ -2746,9 +2746,9 @@ function renderNSChart() {
       </tr>`).join('')}
       <tr>
         <td style="padding:6px 14px;white-space:nowrap">
-          <span style="display:inline-block;width:12px;height:2px;background:#ff3b3b;margin-right:6px;vertical-align:middle"></span>META
+          <span style="display:inline-block;width:12px;height:2px;background:#00c97a;margin-right:6px;vertical-align:middle"></span>META
         </td>
-        ${nsLabels.map(()=>`<td style="text-align:center;color:#ff3b3b;font-weight:700;padding:6px 14px">90%</td>`).join('')}
+        ${nsLabels.map(()=>`<td style="text-align:center;color:#00c97a;font-weight:700;padding:6px 14px">90%</td>`).join('')}
       </tr>
     </tbody>
   </table>`;
@@ -2765,10 +2765,16 @@ function renderTransito() {
 
   let rows = DATA.transito_detail.filter(r => {
     if (prodFilt.length > 0) {
-      const gruposConhecidos = ['TOMADA DE FORCA','BOMBA HIDRAULICA','GUINCHO OS-M','GUINCHO OP','CONJUNTO EIXO','CILINDRO HIDRAULICO','ADAPTADOR','VALVULA','KIT HIDRAULICO'];
+      const gruposConhecidos = ['TOMADA DE FORCA','BOMBA HIDRAULICA','GUINCHO OS-M','GUINCHO OP','GUINCHO','CONJUNTO EIXO','CILINDRO HIDRAULICO','ADAPTADOR','VALVULA','KIT HIDRAULICO'];
       const matchOtros = prodFilt.includes('OUTROS');
       const outros = matchOtros && !gruposConhecidos.includes(r.produto);
-      const direto = prodFilt.some(p => p !== 'OUTROS' && r.produto === p);
+      const direto = prodFilt.some(p => {
+        if (p === 'OUTROS') return false;
+        if (r.produto === p) return true;
+        // GUINCHO OS-M e GUINCHO OP casam também com produto='GUINCHO'
+        if ((p === 'GUINCHO OS-M' || p === 'GUINCHO OP') && r.produto === 'GUINCHO') return true;
+        return false;
+      });
       if (!outros && !direto) return false;
     }
     if (empFilt && r.empresa !== empFilt) return false;
