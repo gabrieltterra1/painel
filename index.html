@@ -2529,9 +2529,10 @@ function renderPvPrioridades() {
     g.proj         = r.projetado; // projetado acumula por código
     g.saldo        = r.projetado;
     // Concatenar strings de OF para processar as OFs individuais juntas
-    g.of_sem_str   = [g.of_sem_str, r.of_sem].filter(Boolean).join(',').replace(/\d+\s*\(([^)]+)\)/g, '$1').replace(/^,|,$/g,'');
-    g.of_comp_str  = [g.of_comp_str, r.of_comp].filter(Boolean).join(',').replace(/\d+\s*\(([^)]+)\)/g, '$1').replace(/^,|,$/g,'');
-    g.of_parc_str  = [g.of_parc_str, r.of_parc].filter(Boolean).join(',').replace(/\d+\s*\(([^)]+)\)/g, '$1').replace(/^,|,$/g,'');
+    // Preservar formato original "N (OF1=qty,...)" — _pvParseOfs aceita múltiplas concatenadas
+    if (r.of_sem  && r.of_sem  !== '0') g.of_sem_str  = [g.of_sem_str,  r.of_sem ].filter(Boolean).join('|');
+    if (r.of_comp && r.of_comp !== '0') g.of_comp_str = [g.of_comp_str, r.of_comp].filter(Boolean).join('|');
+    if (r.of_parc && r.of_parc !== '0') g.of_parc_str = [g.of_parc_str, r.of_parc].filter(Boolean).join('|');
     g.of_sem       = _pvParseOfQtde(r.of_sem);
     g.of_comp      = _pvParseOfQtde(r.of_comp);
     g.of_parc      = _pvParseOfQtde(r.of_parc);
@@ -2685,32 +2686,36 @@ function renderPvPrioridades() {
   </tr>`;
 }
 
-// Extrai OFs individuais: "32 (171502453=8,171502454=8)" → [{of,qty},...]
-// Suporta parênteses aninhados: "16 (171787704=8/ (4072),171787707=8/ (4072))"
+// Extrai OFs individuais de uma string ou múltiplas strings separadas por '|'
+// Suporta: "32 (171502453=8,171502454=8)" e "16 (171787704=8/ (4072),171787707=8/ (4072))"
 function _pvParseOfs(s) {
   if (!s || s === '0') return [];
-  const str = String(s).trim();
-  const first = str.indexOf('(');
-  const last  = str.lastIndexOf(')');
-  if (first < 0 || last < 0) return [];
-  // Separar por vírgula respeitando parênteses aninhados
-  const inner = str.slice(first+1, last);
-  const parts = [];
-  let depth = 0, cur = '';
-  for (const ch of inner) {
-    if (ch === '(')                   { depth++; cur += ch; }
-    else if (ch === ')')              { depth--; cur += ch; }
-    else if (ch === ',' && depth===0) { parts.push(cur.trim()); cur = ''; }
-    else                              { cur += ch; }
-  }
-  if (cur.trim()) parts.push(cur.trim());
+  // Suporte a múltiplas strings concatenadas com '|'
+  const segments = String(s).split('|');
   const ofs = [];
-  for (const part of parts) {
-    const clean = part.split('/')[0].trim(); // remove sufixo "/ (4072)"
-    if (clean.includes('=')) {
-      const [num, qty] = clean.split('=');
-      const q = parseInt(qty?.trim());
-      if (!isNaN(q) && q > 0) ofs.push({ of: num.trim(), qty: q });
+  for (const seg of segments) {
+    const str = seg.trim();
+    const first = str.indexOf('(');
+    const last  = str.lastIndexOf(')');
+    if (first < 0 || last < 0) continue;
+    // Separar por vírgula respeitando parênteses aninhados
+    const inner = str.slice(first+1, last);
+    const parts = [];
+    let depth = 0, cur = '';
+    for (const ch of inner) {
+      if (ch === '(')                   { depth++; cur += ch; }
+      else if (ch === ')')              { depth--; cur += ch; }
+      else if (ch === ',' && depth===0) { parts.push(cur.trim()); cur = ''; }
+      else                              { cur += ch; }
+    }
+    if (cur.trim()) parts.push(cur.trim());
+    for (const part of parts) {
+      const clean = part.split('/')[0].trim(); // remove sufixo "/ (4072)"
+      if (clean.includes('=')) {
+        const [num, qty] = clean.split('=');
+        const q = parseInt(qty?.trim());
+        if (!isNaN(q) && q > 0) ofs.push({ of: num.trim(), qty: q });
+      }
     }
   }
   return ofs;
