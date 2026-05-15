@@ -673,6 +673,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="tab" onclick="showTab('servicos')">Serviços Terceiros</div>
   <div class="tab" onclick="showTab('termico')">Térmico & Polimento</div>
   <div class="tab" onclick="showTab('ife')">IFE</div>
+  <div class="tab" onclick="showTab('pedidos')">Pedidos de Venda</div>
 </nav>
 
 <!-- ======= OF ABERTAS ======= -->
@@ -991,6 +992,149 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 
+<div id="tab-pedidos" class="tab-content">
+  <div class="section-title">Pedidos de Venda — Carteira e Prioridades</div>
+
+  <!-- KPIs atraso -->
+  <div class="kpi-bar" id="pv-kpis" style="margin-bottom:20px"></div>
+
+  <!-- Gráfico atrasos por família -->
+  <div class="charts-grid" style="margin-bottom:24px">
+    <div class="chart-card">
+      <div class="chart-title">Itens em Atraso por Família</div>
+      <div style="position:relative;height:220px"><canvas id="pv-atraso-chart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Peças em Atraso por Família</div>
+      <div style="position:relative;height:220px"><canvas id="pv-pecas-chart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Painel de Prioridades por Produto -->
+  <div class="section-title" style="margin-top:8px">Painel de Prioridades — Agrupado por Produto</div>
+  <div class="filter-row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <div class="ms-wrap" id="ms-pv-dias">
+      <div class="ms-btn" onclick="toggleMsDropdown('ms-pv-dias')">
+        <span id="ms-pv-dias-label">Selecionar dias</span><span>▾</span>
+      </div>
+      <div class="ms-dropdown" id="ms-pv-dias-list" style="max-height:260px;overflow-y:auto">
+        <div class="ms-all" onclick="msToggleAll('ms-pv-dias')">
+          <input type="checkbox" id="ms-pv-dias-all"> Selecionar / Desmarcar Todos
+        </div>
+        <!-- populado dinamicamente -->
+      </div>
+    </div>
+    <div class="ms-wrap" id="ms-pv-fam2">
+      <div class="ms-btn" onclick="toggleMsDropdown('ms-pv-fam2')">
+        <span id="ms-pv-fam2-label">Todas as famílias</span><span>▾</span>
+      </div>
+      <div class="ms-dropdown">
+        <div class="ms-all" onclick="msToggleAll('ms-pv-fam2')">
+          <input type="checkbox" id="ms-pv-fam2-all" checked> Selecionar / Desmarcar Todos
+        </div>
+        <label class="ms-item"><input type="checkbox" value="TOMADA+MULT" checked onchange="msChange('ms-pv-fam2')"> Tomada + Mult</label>
+        <label class="ms-item"><input type="checkbox" value="BOMBA" checked onchange="msChange('ms-pv-fam2')"> Bomba</label>
+        <label class="ms-item"><input type="checkbox" value="CILINDRO" checked onchange="msChange('ms-pv-fam2')"> Cilindro</label>
+        <label class="ms-item"><input type="checkbox" value="CONJ EIXO" checked onchange="msChange('ms-pv-fam2')"> Conjunto Eixo</label>
+        <label class="ms-item"><input type="checkbox" value="GUINCHO" checked onchange="msChange('ms-pv-fam2')"> Guincho</label>
+        <label class="ms-item"><input type="checkbox" value="WALVOIL" checked onchange="msChange('ms-pv-fam2')"> Walvoil</label>
+        <label class="ms-item"><input type="checkbox" value="OUTROS" checked onchange="msChange('ms-pv-fam2')"> Outros</label>
+      </div>
+    </div>
+    <input class="search-input" type="text" id="pv-search2" placeholder="Buscar código ou descrição..." oninput="renderPvPrioridades()" style="width:240px">
+  </div>
+
+  <!-- Resumo por família (tipo "75 tomadas, 13 bombas...") -->
+  <div id="pv-resumo-fam" style="margin-bottom:16px"></div>
+
+  <!-- Tabela agrupada por produto -->
+  <div class="table-wrap" style="margin-bottom:28px"><div class="scrollable" style="max-height:360px">
+    <table style="min-width:900px">
+      <thead class="blue" style="position:sticky;top:0;z-index:2">
+        <tr>
+          <th style="width:90px">CÓDIGO</th>
+          <th>DESCRIÇÃO</th>
+          <th style="width:80px">FAMÍLIA</th>
+          <th style="text-align:right;width:70px">PV (qtde)</th>
+          <th style="text-align:right;width:70px">SALDO</th>
+          <th style="text-align:right;width:80px">OF SEM REQ</th>
+          <th style="text-align:right;width:80px">OF COMPLETA</th>
+          <th style="text-align:right;width:80px">OF PARCIAL</th>
+          <th style="text-align:right;width:90px;color:#f59e0b">A MONTAR</th>
+          <th style="width:90px">STATUS</th>
+          <th style="width:180px">DETALHE OF</th>
+        </tr>
+      </thead>
+      <tbody id="pv-prior-tbody"></tbody>
+      <tfoot id="pv-prior-foot"></tfoot>
+    </table>
+  </div></div>
+
+  <!-- Carteira completa -->
+  <div class="section-title" style="margin-top:8px">Prioridades por Data de Entrega</div>
+  <div class="filter-row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <select class="filter-select" id="pv-data" onchange="renderPedidos()">
+      <option value="">Todas as datas</option>
+    </select>
+    <div class="ms-wrap" id="ms-pv-status">
+      <div class="ms-btn" onclick="toggleMsDropdown('ms-pv-status')">
+        <span id="ms-pv-status-label">Todos os status</span><span>▾</span>
+      </div>
+      <div class="ms-dropdown">
+        <div class="ms-all" onclick="msToggleAll('ms-pv-status')">
+          <input type="checkbox" id="ms-pv-status-all" checked> Selecionar / Desmarcar Todos
+        </div>
+        <label class="ms-item"><input type="checkbox" value="FATURAR" checked onchange="msChange('ms-pv-status')"> ✓ Faturar (estoque ok)</label>
+        <label class="ms-item"><input type="checkbox" value="POSSUI OF" checked onchange="msChange('ms-pv-status')"> ⚙ Possui OF</label>
+        <label class="ms-item"><input type="checkbox" value="SEM OF" checked onchange="msChange('ms-pv-status')"> ✗ Sem OF</label>
+        <label class="ms-item"><input type="checkbox" value="ATRASADO" checked onchange="msChange('ms-pv-status')"> ⚠ Atrasados</label>
+      </div>
+    </div>
+    <div class="ms-wrap" id="ms-pv-familia">
+      <div class="ms-btn" onclick="toggleMsDropdown('ms-pv-familia')">
+        <span id="ms-pv-familia-label">Todas as famílias</span><span>▾</span>
+      </div>
+      <div class="ms-dropdown">
+        <div class="ms-all" onclick="msToggleAll('ms-pv-familia')">
+          <input type="checkbox" id="ms-pv-familia-all" checked> Selecionar / Desmarcar Todos
+        </div>
+        <label class="ms-item"><input type="checkbox" value="FORCA" checked onchange="msChange('ms-pv-familia')"> Força</label>
+        <label class="ms-item"><input type="checkbox" value="GUINCHO" checked onchange="msChange('ms-pv-familia')"> Guincho</label>
+        <label class="ms-item"><input type="checkbox" value="WALVOIL" checked onchange="msChange('ms-pv-familia')"> Walvoil</label>
+      </div>
+    </div>
+    <input class="search-input" type="text" id="pv-search" placeholder="Buscar código, descrição ou pedido..." oninput="renderPedidos()" style="width:280px">
+  </div>
+
+  <!-- Resumo do dia selecionado -->
+  <div id="pv-resumo-dia" style="margin-bottom:16px"></div>
+
+  <!-- Tabela principal -->
+  <div class="table-wrap"><div class="scrollable">
+    <table style="min-width:1200px">
+      <thead class="blue" style="position:sticky;top:0;z-index:2">
+        <tr>
+          <th style="width:60px;position:sticky;left:0;background:#1a2a4a;z-index:3">PEDIDO</th>
+          <th style="width:80px">CÓDIGO</th>
+          <th>DESCRIÇÃO</th>
+          <th style="width:70px;text-align:right">QTDE</th>
+          <th style="width:90px">ENTREGA</th>
+          <th style="width:80px">STATUS</th>
+          <th style="width:70px;text-align:right">PROJETADO</th>
+          <th style="width:100px">OF SEM REQ</th>
+          <th style="width:100px">OF COMPLETA</th>
+          <th style="width:100px">OF PARCIAL</th>
+          <th style="width:80px">FAMÍLIA</th>
+          <th style="width:150px">CLIENTE</th>
+          <th style="width:80px;text-align:right">VALOR</th>
+        </tr>
+      </thead>
+      <tbody id="pv-tbody"></tbody>
+      <tfoot id="pv-foot"></tfoot>
+    </table>
+  </div></div>
+</div>
+
 <script>
 // ===== DATA =====
 // Register datalabels globally — opt-in per chart
@@ -1008,6 +1152,7 @@ const DATA = {
   servico: [{"empresa":"62856 - HOVER COMPONENTES LTDA","empresa_num":"1","mes":"2026-01","valor":50680},{"empresa":"2003 - STAR SU INDUSTRIA DE FERRAMENTAS LTDA","empresa_num":"1","mes":"2026-01","valor":12882.04},{"empresa":"64793 - JCL MANUTEN��ES DE M�QUINAS LTDA","empresa_num":"1","mes":"2026-01","valor":4030},{"empresa":"66846 - DLP MANUTENCAO E INSTALACAO DE EQUIPAMENTOS INDUSTRIAIS LTDA","empresa_num":"2","mes":"2026-01","valor":39680},{"empresa":"51658 - BELUSSO INDUSTRIA METALURGICA LTDA","empresa_num":"1","mes":"2026-01","valor":46861.8},{"empresa":"64597 - ZINCAGEM MAQUINE LTDA","empresa_num":"1","mes":"2026-01","valor":1657.85},{"empresa":"64550 - ODAIR LAERCIO MELONI","empresa_num":"2","mes":"2026-01","valor":810},{"empresa":"29212 - THERMIX TRATAMENTO TERMICO LTDA","empresa_num":"1","mes":"2026-01","valor":53572.76},{"empresa":"63175 - METALURGICA MT LINE DRILL LTDA - ME","empresa_num":"1","mes":"2026-01","valor":30369},{"empresa":"59485 - VERGANI USINAGEM LTDA","empresa_num":"1","mes":"2026-01","valor":9993},{"empresa":"365 - TECNOHARD INDUSTRIA METALURGICA LTDA","empresa_num":"1","mes":"2026-01","valor":28783.39},{"empresa":"65865 - MARK AUTOMATION","empresa_num":"2","mes":"2026-01","valor":13500},{"empresa":"264 - MITEC INSTRUMENTOS INDUSTRIAIS LTDA","empresa_num":"1","mes":"2026-01","valor":2868},{"empresa":"59506 - VKASTA INDUSTRIA DE EQUIPAMENTOS HIDRAULICOS LTDA","empresa_num":"1","mes":"2026-01","valor":69814.8},{"empresa":"65184 - LUCAS DANIEL MOREIRA VELHO","empresa_num":"1","mes":"2026-01","valor":12942},{"empresa":"178 - INDUSTRIA  MECANICA GUSFAR LTDA ME","empresa_num":"1","mes":"2026-01","valor":6771.2},{"empresa":"12144 - CLEMAR CROMO DURO LTDA","empresa_num":"1","mes":"2026-01","valor":11815.46},{"empresa":"9883 - METALTECNICA METALURGICA LTDA","empresa_num":"1","mes":"2026-01","valor":1661.07},{"empresa":"20069 - IND MECANICA JAVER LTDA","empresa_num":"1","mes":"2026-01","valor":19636},{"empresa":"62788 - BRASIN SOLUCOES HIDRAULICAS LTDA","empresa_num":"1","mes":"2026-01","valor":11990},{"empresa":"60793 - CROMOFIX CROMO DURO LTDA","empresa_num":"1","mes":"2026-01","valor":3720},{"empresa":"64074 - AC FIORAVANTE ME","empresa_num":"2","mes":"2026-01","valor":2680},{"empresa":"65031 - ACVL SERVI�OS LTDA","empresa_num":"1","mes":"2026-01","valor":1232},{"empresa":"64554 - USINAGEM COSTA LTDA","empresa_num":"1","mes":"2026-01","valor":10600},{"empresa":"60496 - FORTUNA IND E COM. DE METAIS LTDA","empresa_num":"1","mes":"2026-01","valor":1231.72},{"empresa":"701185 - PICELLI MOTORES E BOMBAS LTDA EPP","empresa_num":"2","mes":"2026-01","valor":53947.52},{"empresa":"701173 - JL ZAPPE INDUSTRIA DE MOLAQSW LTDA","empresa_num":"1","mes":"2026-01","valor":2167},{"empresa":"63254 - KROMI LOG�STICA DO BRASIL LTDA","empresa_num":"1","mes":"2026-01","valor":2225.78},{"empresa":"59485 - VERGANI USINAGEM LTDA","empresa_num":"1","mes":"2026-02","valor":21833},{"empresa":"9883 - METALTECNICA METALURGICA LTDA","empresa_num":"1","mes":"2026-02","valor":8522.45},{"empresa":"51658 - BELUSSO INDUSTRIA METALURGICA LTDA","empresa_num":"1","mes":"2026-02","valor":80315},{"empresa":"365 - TECNOHARD INDUSTRIA METALURGICA LTDA","empresa_num":"1","mes":"2026-02","valor":45308.92},{"empresa":"29212 - THERMIX TRATAMENTO TERMICO LTDA","empresa_num":"1","mes":"2026-02","valor":80022.21},{"empresa":"64597 - ZINCAGEM MAQUINE LTDA","empresa_num":"1","mes":"2026-02","valor":4464.14},{"empresa":"62856 - HOVER COMPONENTES LTDA","empresa_num":"1","mes":"2026-02","valor":37768},{"empresa":"60793 - CROMOFIX CROMO DURO LTDA","empresa_num":"1","mes":"2026-02","valor":5400},{"empresa":"65184 - LUCAS DANIEL MOREIRA VELHO","empresa_num":"1","mes":"2026-02","valor":14338.8},{"empresa":"59506 - VKASTA INDUSTRIA DE EQUIPAMENTOS HIDRAULICOS LTDA","empresa_num":"1","mes":"2026-02","valor":91545.25},{"empresa":"178 - INDUSTRIA  MECANICA GUSFAR LTDA ME","empresa_num":"1","mes":"2026-02","valor":27285.31},{"empresa":"64554 - USINAGEM COSTA LTDA","empresa_num":"1","mes":"2026-02","valor":36160.12},{"empresa":"63175 - METALURGICA MT LINE DRILL LTDA - ME","empresa_num":"1","mes":"2026-02","valor":29059.18},{"empresa":"63616 - JRD USINAGEM EIRELI","empresa_num":"1","mes":"2026-02","valor":6207.2},{"empresa":"2003 - STAR SU INDUSTRIA DE FERRAMENTAS LTDA","empresa_num":"1","mes":"2026-02","valor":15919.03},{"empresa":"701173 - JL ZAPPE INDUSTRIA DE MOLAQSW LTDA","empresa_num":"1","mes":"2026-02","valor":11300},{"empresa":"12144 - CLEMAR CROMO DURO LTDA","empresa_num":"1","mes":"2026-02","valor":15237.6},{"empresa":"65865 - MARK AUTOMATION","empresa_num":"2","mes":"2026-02","valor":17160},{"empresa":"62788 - BRASIN SOLUCOES HIDRAULICAS LTDA","empresa_num":"1","mes":"2026-02","valor":575},{"empresa":"20069 - IND MECANICA JAVER LTDA","empresa_num":"1","mes":"2026-02","valor":21690},{"empresa":"63254 - KROMI LOG�STICA DO BRASIL LTDA","empresa_num":"1","mes":"2026-02","valor":3221.54},{"empresa":"66585 - JL PINTURAS A PO LTDA","empresa_num":"2","mes":"2026-02","valor":80},{"empresa":"65364 - C.J.C USINAGEM DE PECAS LTDA","empresa_num":"2","mes":"2026-02","valor":570},{"empresa":"138 - IMAP COMERCIO E SERVICOS INDUSTRIAIS LTDA","empresa_num":"1","mes":"2026-02","valor":680},{"empresa":"264 - MITEC INSTRUMENTOS INDUSTRIAIS LTDA","empresa_num":"1","mes":"2026-02","valor":1112},{"empresa":"64299 - METAL RIBAS LTDA","empresa_num":"1","mes":"2026-02","valor":920},{"empresa":"126 - HURTH INFER INDUSTRIA DE MAQUINAS E FERRAMENTAS LTDA","empresa_num":"1","mes":"2026-02","valor":1595},{"empresa":"65031 - ACVL SERVI�OS LTDA","empresa_num":"1","mes":"2026-02","valor":1530},{"empresa":"59506 - VKASTA INDUSTRIA DE EQUIPAMENTOS HIDRAULICOS LTDA","empresa_num":"1","mes":"2026-03","valor":106984.62},{"empresa":"62856 - HOVER COMPONENTES LTDA","empresa_num":"1","mes":"2026-03","valor":26458},{"empresa":"29212 - THERMIX TRATAMENTO TERMICO LTDA","empresa_num":"1","mes":"2026-03","valor":84572.22},{"empresa":"51658 - BELUSSO INDUSTRIA METALURGICA LTDA","empresa_num":"1","mes":"2026-03","valor":80521},{"empresa":"365 - TECNOHARD INDUSTRIA METALURGICA LTDA","empresa_num":"1","mes":"2026-03","valor":46785.76},{"empresa":"65184 - LUCAS DANIEL MOREIRA VELHO","empresa_num":"1","mes":"2026-03","valor":15814.8},{"empresa":"63175 - METALURGICA MT LINE DRILL LTDA - ME","empresa_num":"1","mes":"2026-03","valor":36687.42},{"empresa":"59485 - VERGANI USINAGEM LTDA","empresa_num":"1","mes":"2026-03","valor":17479},{"empresa":"701173 - JL ZAPPE INDUSTRIA DE MOLAQSW LTDA","empresa_num":"1","mes":"2026-03","valor":13385},{"empresa":"64554 - USINAGEM COSTA LTDA","empresa_num":"1","mes":"2026-03","valor":26777.08},{"empresa":"64597 - ZINCAGEM MAQUINE LTDA","empresa_num":"1","mes":"2026-03","valor":5368.69},{"empresa":"20069 - IND MECANICA JAVER LTDA","empresa_num":"1","mes":"2026-03","valor":19487},{"empresa":"178 - INDUSTRIA  MECANICA GUSFAR LTDA ME","empresa_num":"1","mes":"2026-03","valor":13985.2},{"empresa":"12144 - CLEMAR CROMO DURO LTDA","empresa_num":"1","mes":"2026-03","valor":16459.18},{"empresa":"65865 - MARK AUTOMATION","empresa_num":"2","mes":"2026-03","valor":12958.6},{"empresa":"63616 - JRD USINAGEM EIRELI","empresa_num":"1","mes":"2026-03","valor":20483.76},{"empresa":"264 - MITEC INSTRUMENTOS INDUSTRIAIS LTDA","empresa_num":"1","mes":"2026-03","valor":2289},{"empresa":"2003 - STAR SU INDUSTRIA DE FERRAMENTAS LTDA","empresa_num":"1","mes":"2026-03","valor":18650.57},{"empresa":"30972 - METALDIFFER INDUSTRIA E COMERCIO LTDA","empresa_num":"1","mes":"2026-03","valor":9127.4},{"empresa":"9883 - METALTECNICA METALURGICA LTDA","empresa_num":"1","mes":"2026-03","valor":2533},{"empresa":"64074 - AC FIORAVANTE ME","empresa_num":"2","mes":"2026-03","valor":2380},{"empresa":"62010 - GLEASON INDUSTRIA DE FERRAMENTAS LTDA","empresa_num":"1","mes":"2026-03","valor":2574.06},{"empresa":"67144 - SERGIO LUIZ LENZI LTDA","empresa_num":"1","mes":"2026-03","valor":1495},{"empresa":"138 - IMAP COMERCIO E SERVICOS INDUSTRIAIS LTDA","empresa_num":"1","mes":"2026-03","valor":200},{"empresa":"62788 - BRASIN SOLUCOES HIDRAULICAS LTDA","empresa_num":"1","mes":"2026-03","valor":7200},{"empresa":"59143 - CARL ZEISS DO BRASIL LTDA","empresa_num":"1","mes":"2026-03","valor":38220.67},{"empresa":"63254 - KROMI LOG�STICA DO BRASIL LTDA","empresa_num":"1","mes":"2026-03","valor":4088.72},{"empresa":"64348 - WIKA DO BRASIL IND COM LT","empresa_num":"2","mes":"2026-03","valor":1818.9},{"empresa":"65736 - HIDRAUTEC SAO PAULO EQUIP HIDRAULICOS LTDA","empresa_num":"2","mes":"2026-03","valor":5920},{"empresa":"62856 - HOVER COMPONENTES LTDA","empresa_num":"1","mes":"2026-04","valor":29550},{"empresa":"365 - TECNOHARD INDUSTRIA METALURGICA LTDA","empresa_num":"1","mes":"2026-04","valor":33479.01},{"empresa":"65184 - LUCAS DANIEL MOREIRA VELHO","empresa_num":"1","mes":"2026-04","valor":15300},{"empresa":"59506 - VKASTA INDUSTRIA DE EQUIPAMENTOS HIDRAULICOS LTDA","empresa_num":"1","mes":"2026-04","valor":115330.5},{"empresa":"63175 - METALURGICA MT LINE DRILL LTDA - ME","empresa_num":"1","mes":"2026-04","valor":42103.06},{"empresa":"29212 - THERMIX TRATAMENTO TERMICO LTDA","empresa_num":"1","mes":"2026-04","valor":66157.61},{"empresa":"51658 - BELUSSO INDUSTRIA METALURGICA LTDA","empresa_num":"1","mes":"2026-04","valor":65497.08},{"empresa":"12144 - CLEMAR CROMO DURO LTDA","empresa_num":"1","mes":"2026-04","valor":17326.4},{"empresa":"64554 - USINAGEM COSTA LTDA","empresa_num":"1","mes":"2026-04","valor":34609.8},{"empresa":"59485 - VERGANI USINAGEM LTDA","empresa_num":"1","mes":"2026-04","valor":9022},{"empresa":"701291 - TECH COAT REVESTIMENTO EM METAIS","empresa_num":"1","mes":"2026-04","valor":11592.9},{"empresa":"30972 - METALDIFFER INDUSTRIA E COMERCIO LTDA","empresa_num":"1","mes":"2026-04","valor":19935.02},{"empresa":"701173 - JL ZAPPE INDUSTRIA DE MOLAQSW LTDA","empresa_num":"1","mes":"2026-04","valor":8766},{"empresa":"65865 - MARK AUTOMATION","empresa_num":"2","mes":"2026-04","valor":12170},{"empresa":"178 - INDUSTRIA  MECANICA GUSFAR LTDA ME","empresa_num":"1","mes":"2026-04","valor":27937.99},{"empresa":"64597 - ZINCAGEM MAQUINE LTDA","empresa_num":"1","mes":"2026-04","valor":2740.3},{"empresa":"701319 - MARIA CARLINDA DA SILVA 24657959883","empresa_num":"2","mes":"2026-04","valor":5600},{"empresa":"264 - MITEC INSTRUMENTOS INDUSTRIAIS LTDA","empresa_num":"1","mes":"2026-04","valor":1218},{"empresa":"20069 - IND MECANICA JAVER LTDA","empresa_num":"1","mes":"2026-04","valor":16562},{"empresa":"67144 - SERGIO LUIZ LENZI LTDA","empresa_num":"1","mes":"2026-04","valor":3723},{"empresa":"9883 - METALTECNICA METALURGICA LTDA","empresa_num":"1","mes":"2026-04","valor":2531.5},{"empresa":"126 - HURTH INFER INDUSTRIA DE MAQUINAS E FERRAMENTAS LTDA","empresa_num":"1","mes":"2026-04","valor":3060},{"empresa":"2003 - STAR SU INDUSTRIA DE FERRAMENTAS LTDA","empresa_num":"1","mes":"2026-04","valor":8241.01},{"empresa":"63427 - ESCALA PRODUTOS E SERVI�OS DE CALIBRA��O","empresa_num":"2","mes":"2026-04","valor":4387.2},{"empresa":"63616 - JRD USINAGEM EIRELI","empresa_num":"1","mes":"2026-04","valor":11172.96},{"empresa":"701347 - 65287265 ABHNER EANES DUARTE BATISTA","empresa_num":"2","mes":"2026-04","valor":2000},{"empresa":"701337 - METALURGICA NEGRI LTDA","empresa_num":"1","mes":"2026-04","valor":7275.83},{"empresa":"63254 - KROMI LOG�STICA DO BRASIL LTDA","empresa_num":"1","mes":"2026-04","valor":3018.96},{"empresa":"60496 - FORTUNA IND E COM. DE METAIS LTDA","empresa_num":"1","mes":"2026-04","valor":540},{"empresa":"62856 - HOVER COMPONENTES LTDA","empresa_num":"1","mes":"2026-05","valor":8624},{"empresa":"51658 - BELUSSO INDUSTRIA METALURGICA LTDA","empresa_num":"1","mes":"2026-05","valor":19822.5},{"empresa":"365 - TECNOHARD INDUSTRIA METALURGICA LTDA","empresa_num":"1","mes":"2026-05","valor":7880.93},{"empresa":"12144 - CLEMAR CROMO DURO LTDA","empresa_num":"1","mes":"2026-05","valor":4569.6},{"empresa":"65184 - LUCAS DANIEL MOREIRA VELHO","empresa_num":"1","mes":"2026-05","valor":2372.4},{"empresa":"64554 - USINAGEM COSTA LTDA","empresa_num":"1","mes":"2026-05","valor":6067},{"empresa":"64597 - ZINCAGEM MAQUINE LTDA","empresa_num":"1","mes":"2026-05","valor":1008.56},{"empresa":"29212 - THERMIX TRATAMENTO TERMICO LTDA","empresa_num":"1","mes":"2026-05","valor":6268.12},{"empresa":"59506 - VKASTA INDUSTRIA DE EQUIPAMENTOS HIDRAULICOS LTDA","empresa_num":"1","mes":"2026-05","valor":10515},{"empresa":"62788 - BRASIN SOLUCOES HIDRAULICAS LTDA","empresa_num":"1","mes":"2026-05","valor":2670},{"empresa":"65865 - MARK AUTOMATION","empresa_num":"2","mes":"2026-05","valor":9300},{"empresa":"701291 - TECH COAT REVESTIMENTO EM METAIS","empresa_num":"1","mes":"2026-05","valor":450},{"empresa":"9883 - METALTECNICA METALURGICA LTDA","empresa_num":"1","mes":"2026-05","valor":797},{"empresa":"178 - INDUSTRIA  MECANICA GUSFAR LTDA ME","empresa_num":"1","mes":"2026-05","valor":2440.32},{"empresa":"20069 - IND MECANICA JAVER LTDA","empresa_num":"1","mes":"2026-05","valor":1100},{"empresa":"65031 - ACVL SERVI�OS LTDA","empresa_num":"1","mes":"2026-05","valor":2720}],
   termico: [],
   ife: [],
+  pedidos: [],
   ns: {"RS":{"TOM":86.1,"BOM":98.2,"GUI":24.7},"SP":{"TOM":89.7,"BOM":93.9,"GUI":33.3},"MG":{"TOM":97.8,"BOM":89.9,"GUI":10},"GO":{"TOM":72.1,"BOM":59,"GUI":7.1},"PE":{"TOM":90.3,"BOM":85.6}},
   transito_detail: [{"codigo":"100000","descricao":"TOMADA DE FORCA TK 100000  MP  01  T  P  100  04  H  600","empresa":"SP","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"100000","descricao":"TOMADA DE FORCA TK 100000  MP  01  T  P  100  04  H  600","empresa":"GO","quantidade":6,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10014","descricao":"TOMADA DE FORCA TK 902401  EC  01  L  P  110  01  H  350","empresa":"SP","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10014","descricao":"TOMADA DE FORCA TK 902401  EC  01  L  P  110  01  H  350","empresa":"GO","quantidade":21,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10018","descricao":"TOMADA DE FORCA TK 902403  EC  01  L  P  110  04  H  350","empresa":"SP","quantidade":14,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10018","descricao":"TOMADA DE FORCA TK 902403  EC  01  L  P  110  04  H  350","empresa":"MG","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10026","descricao":"TOMADA DE FORCA TK 902413  EC  01  L  P  135  04  H  350","empresa":"SP","quantidade":10,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10051","descricao":"TOMADA DE FORCA TK 906311  EC  01  L  P  135  06  H  350","empresa":"MG","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10079","descricao":"TOMADA DE FORCA TK 902011  EC  10  D  P  135  01  H  350","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"105000","descricao":"TOMADA DE FORCA TK 105000  ZF  05  T  P  100  04  H  600","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"106002","descricao":"TOMADA DE FORCA TK 106002  ZF  05  T  P  100  15  H  600","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10612","descricao":"TOMADA DE FORCA TK 901911  EC  02  L  P  135  01  H  350","empresa":"SP","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10612","descricao":"TOMADA DE FORCA TK 901911  EC  02  L  P  135  01  H  350","empresa":"GO","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10612","descricao":"TOMADA DE FORCA TK 901911  EC  02  L  P  135  01  H  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10626","descricao":"TOMADA DE FORCA TK 902823  EC  09  L  P  166  04  H  350","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10638","descricao":"TOMADA DE FORCA TK 901913  EC  02  L  P  135  04  H  350","empresa":"SP","quantidade":6,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10638","descricao":"TOMADA DE FORCA TK 901913  EC  02  L  P  135  04  H  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"107700","descricao":"TOMADA DE FORCA TK 107700  MB  02  T  P  100  04  H  600","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10782","descricao":"TOMADA DE FORCA TK 900311  ZF  13  L  P  135  01  H  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"10894","descricao":"TOMADA DE FORCA TK 902111  EC  13  L  P  135  01  H  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"110000","descricao":"TOMADA DE FORCA TK 110000  ZF  03  T  P  100  04  H  600","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"11540","descricao":"TOMADA DE FORCA TK 9131  EC  24  D  P  135  01  H  350","empresa":"GO","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"11697","descricao":"TOMADA DE FORCA TK 903111  EC  04  D  P  135  01  H  350","empresa":"GO","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"11697","descricao":"TOMADA DE FORCA TK 903111  EC  04  D  P  135  01  H  350","empresa":"PE","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"11699","descricao":"TOMADA DE FORCA TK 903113  EC  04  D  P  135  04  H  350","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"11728","descricao":"TOMADA DE FORCA TK 9131  EC  25  D  P  084  01  H  S  350","empresa":"GO","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"11859","descricao":"TOMADA DE FORCA TK 9131  EC  25  D  P  084  04  H  S  350","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"120000","descricao":"TOMADA DE FORCA TK 120000  EC  02  D  P  100  04  A  350","empresa":"PE","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"120800","descricao":"TOMADA DE FORCA TK 120800  EC  01  D  P  100  04  A  350","empresa":"SP","quantidade":13,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"120800","descricao":"TOMADA DE FORCA TK 120800  EC  01  D  P  100  04  A  350","empresa":"GO","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"120800","descricao":"TOMADA DE FORCA TK 120800  EC  01  D  P  100  04  A  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"12190","descricao":"BOMBA HIDRAULICA BHT 9150 06 B 110 23 23 02 BP 20 210 230","empresa":"SP","quantidade":2,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"12212","descricao":"BOMBA HIDRAULICA BHT 9150 16 B 100 23 23 02 AG 20 225 250","empresa":"GO","quantidade":3,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"12364","descricao":"TOMADA DE FORCA TK 902526 EC 12 E M 166 01 H 350","empresa":"MG","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"12479","descricao":"TOMADA DE FORCA TK 9131  EC  26  E  P  135  01  H  250","empresa":"SP","quantidade":25,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"12659","descricao":"TOMADA DE FORCA TK 9131  EC  27  E  E  135  18  H  S  350","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13160","descricao":"TOMADA DE FORCA TK 9131  EC  27  E  E  135  04  H  S  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13173","descricao":"TOMADA DE FORCA TK 910302  MB  01  T  P  130  06  A  MC  350","empresa":"SP","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13175","descricao":"TOMADA DE FORCA TK 5960  MB  01  T  P  130  01  A  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13175","descricao":"TOMADA DE FORCA TK 5960  MB  01  T  P  130  01  A  350","empresa":"GO","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13236","descricao":"TOMADA DE FORCA TK 9131 EC 26 E P 110 04 H 250","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13238","descricao":"TOMADA DE FORCA TK 9131  EC  26  E  P  135  04  H  250","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"13314","descricao":"TOMADA DE FORCA TK 9106 SC 12 DT P 100 06 A CS 600","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"14311","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 036 01 01 02 GU 35 300 325","empresa":"GO","quantidade":18,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14312","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 043 01 01 02 GU 35 280 305","empresa":"SP","quantidade":16,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14312","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 043 01 01 02 GU 35 280 305","empresa":"GO","quantidade":10,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14312","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 043 01 01 02 GU 35 280 305","empresa":"PE","quantidade":6,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14313","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 051 01 01 02 GU 30 250 275","empresa":"SP","quantidade":27,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14313","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 051 01 01 02 GU 30 250 275","empresa":"MG","quantidade":6,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14313","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 051 01 01 02 GU 30 250 275","empresa":"GO","quantidade":15,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14313","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 051 01 01 02 GU 30 250 275","empresa":"PE","quantidade":8,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14314","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 057 01 01 02 GU 25 240 265","empresa":"SP","quantidade":20,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14314","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 057 01 01 02 GU 25 240 265","empresa":"GO","quantidade":15,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14316","descricao":"BOMBA HIDRAULICA BHT 9105 06 B 043 01 01 02 GU 35 280 305","empresa":"SP","quantidade":3,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"14658","descricao":"TOMADA DE FORCA TK 9131  EC  27  E  M  135  18  H  350","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"15601","descricao":"TOMADA DE FORCA TK 9131  EC  26  D  P  166  01  H  S  250","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"17214","descricao":"GUINCHO OP 5000/7000 M PC","empresa":"SP","quantidade":6,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17214","descricao":"GUINCHO OP 5000/7000 M PC","empresa":"GO","quantidade":3,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17229","descricao":"GUINCHO OS 303M 8T-1R PL �9,5X50M  (19X7) 8-9,5 V MH","empresa":"SP","quantidade":1,"classificacao":"800.010.020","produto":"GUINCHO OS-M"},{"codigo":"17237","descricao":"GUINCHO OP 19000 M MH  �16X25M  (8X31) PC G","empresa":"MG","quantidade":1,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17237","descricao":"GUINCHO OP 19000 M MH  �16X25M  (8X31) PC G","empresa":"PE","quantidade":2,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17245","descricao":"GUINCHO OP 10000 M MH  �14X25M  (6X25) PC G","empresa":"MG","quantidade":1,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17249","descricao":"GUINCHO OP 10000/15000/19000 M PC","empresa":"GO","quantidade":2,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17251","descricao":"GUINCHO OP 5000 M MH  �9,5X20M  (6X25) PC G","empresa":"GO","quantidade":2,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"17251","descricao":"GUINCHO OP 5000 M MH  �9,5X20M  (6X25) PC G","empresa":"PE","quantidade":1,"classificacao":"800.010.040","produto":"GUINCHO OP"},{"codigo":"175600","descricao":"TOMADA DE FORCA TK 175600  MB  01  T  P  100  04  H  C  FM  600","empresa":"SP","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"17576","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 075 33 33 04 BC 85 210 230","empresa":"GO","quantidade":7,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"176600","descricao":"TOMADA DE FORCA TK 176600  MB  01  T  P  100  10  H  C  FM  600","empresa":"SP","quantidade":6,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"17693","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 065 01 01 04 BA 90 220 240","empresa":"SP","quantidade":2,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17693","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 065 01 01 04 BA 90 220 240","empresa":"GO","quantidade":21,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17693","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 065 01 01 04 BA 90 220 240","empresa":"PE","quantidade":4,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17694","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 075 01 01 04 BC 85 210 230","empresa":"SP","quantidade":4,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17694","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 075 01 01 04 BC 85 210 230","empresa":"GO","quantidade":1,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17694","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 075 01 01 04 BC 85 210 230","empresa":"PE","quantidade":5,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17695","descricao":"BOMBA HIDRAULICA BHT 9105 01 B 085 22 22 04 BA 77 210 230","empresa":"GO","quantidade":3,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17699","descricao":"BOMBA HIDRAULICA BHT 9105 06 B 075 01 01 04 BC 85 210 230","empresa":"SP","quantidade":6,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"17811","descricao":"BOMBA HIDRAULICA BHT 9105 06 B 085 22 22 04 RS BA 77 210 230","empresa":"GO","quantidade":4,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"18539","descricao":"TOMADA DE FORCA TK 9138  MB  03  T  P  200  05  A  FM  350","empresa":"SP","quantidade":1,"classificacao":"300.200.100","produto":"TOMADA DE FORCA"},{"codigo":"18770","descricao":"TOMADA DE FORCA TK 9162  SC  06  D  P  068  06  H  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"18771","descricao":"TOMADA DE FORCA TK 9162  SC  06  D  P  068  01  H  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"18789","descricao":"TOMADA DE FORCA TK 9162  EC  05  I  P  080  01  H  350","empresa":"PE","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"18791","descricao":"TOMADA DE FORCA TK 9162  EC  05  I  P  080  04  H  350","empresa":"GO","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"19689","descricao":"TOMADA DE FORCA TK 9131  EC  28  L  P  084  01  H  CA  300","empresa":"PE","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"19691","descricao":"TOMADA DE FORCA TK 9131  EC  28  L  P  084  04  H  CA  300","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"222000","descricao":"TOMADA DE FORCA TK 2220.00  IV  01  E  M  100  01  H  120","empresa":"SP","quantidade":9,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"22482","descricao":"TOMADA DE FORCA TK 5900 ZF 21 T P 130 01 A C 350","empresa":"SP","quantidade":15,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"22728","descricao":"TOMADA DE FORCA TK 5900 ZF 21 T P 130 06 A MC 300","empresa":"PE","quantidade":10,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"22730","descricao":"TOMADA DE FORCA TK 5900 ZF 21 T P 130 04 A 350","empresa":"PE","quantidade":5,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"54560","descricao":"CILINDRO HIDRAULICO BP6\" X850 FIXACAO CENTRAL","empresa":"GO","quantidade":10,"classificacao":"300.400.001","produto":"CILINDRO HIDRAULICO"},{"codigo":"54560","descricao":"CILINDRO HIDRAULICO BP6\" X850 FIXACAO CENTRAL","empresa":"PE","quantidade":6,"classificacao":"300.400.001","produto":"CILINDRO HIDRAULICO"},{"codigo":"54564","descricao":"CILINDRO HIDRAULICO BP7\" X850 FIXACAO CENTRAL","empresa":"GO","quantidade":2,"classificacao":"300.400.001","produto":"CILINDRO HIDRAULICO"},{"codigo":"590000","descricao":"TOMADA DE FORCA TK 590000  MP  01  T  P  130  01  A  350","empresa":"SP","quantidade":16,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"590000","descricao":"TOMADA DE FORCA TK 590000  MP  01  T  P  130  01  A  350","empresa":"GO","quantidade":17,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"590700","descricao":"TOMADA DE FORCA TK 590700  MP  01  T  P  130  04  A  350","empresa":"MG","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"590800","descricao":"TOMADA DE FORCA TK 590800  MP  01  T  P  130  02  A  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"592000","descricao":"TOMADA DE FORCA TK 592000  ZF  05  T  P  130  01  A  C  350","empresa":"SP","quantidade":12,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"592601","descricao":"TOMADA DE FORCA TK 592601  ZF  05  T  P  130  10  A  C  350","empresa":"GO","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"595000","descricao":"TOMADA DE FORCA TK 595000  ZF  11  T  P  130  01  A  350","empresa":"PE","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"596000","descricao":"TOMADA DE FORCA TK 596000  MB  01  T  P  130  01  A  C  FM  350","empresa":"SP","quantidade":28,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"596000","descricao":"TOMADA DE FORCA TK 596000  MB  01  T  P  130  01  A  C  FM  350","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"596000","descricao":"TOMADA DE FORCA TK 596000  MB  01  T  P  130  01  A  C  FM  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"596701","descricao":"TOMADA DE FORCA TK 5967.01  MB  01  T  P  130  04  A  350","empresa":"GO","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"597000","descricao":"TOMADA DE FORCA TK 597000  MB  02  T  P  130  01  A  350","empresa":"SP","quantidade":14,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"597000","descricao":"TOMADA DE FORCA TK 597000  MB  02  T  P  130  01  A  350","empresa":"GO","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"597000","descricao":"TOMADA DE FORCA TK 597000  MB  02  T  P  130  01  A  350","empresa":"PE","quantidade":10,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"597700","descricao":"TOMADA DE FORCA TK 597700  MB  02  T  P  130  04  A  FM  350","empresa":"SP","quantidade":7,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"598000","descricao":"TOMADA DE FORCA TK 598000  ZF  03  T  P  130  01  A  350","empresa":"GO","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"599000","descricao":"TOMADA DE FORCA TK 599000  EC  18  T  P  130  01  A  350","empresa":"MG","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"599700","descricao":"TOMADA DE FORCA TK 599700  EC  18  T  P  130  04  A  350","empresa":"PE","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"7829","descricao":"TOMADA DE FORCA TK 902411  EC  01  L  P  135  01  H  350","empresa":"SP","quantidade":20,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"7829","descricao":"TOMADA DE FORCA TK 902411  EC  01  L  P  135  01  H  350","empresa":"MG","quantidade":10,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"7829","descricao":"TOMADA DE FORCA TK 902411  EC  01  L  P  135  01  H  350","empresa":"PE","quantidade":18,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"8675","descricao":"BOMBA HIDRAULICA BHT 9105 01 A 015 01 02 02 GU 65 300 325","empresa":"SP","quantidade":6,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"8689","descricao":"TOMADA DE FORCA TK 9006  MB  03  T  P  200  04  A  FM  350","empresa":"MG","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"901001","descricao":"TOMADA DE FORCA TK 901001  VV  01  T  P  130  01  A  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"901001","descricao":"TOMADA DE FORCA TK 901001  VV  01  T  P  130  01  A  350","empresa":"GO","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"901003","descricao":"TOMADA DE FORCA TK 9010.03  VV  01  T  P  130  04  A  C  FV  350","empresa":"SP","quantidade":2,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"901003","descricao":"TOMADA DE FORCA TK 9010.03  VV  01  T  P  130  04  A  C  FV  350","empresa":"GO","quantidade":3,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"901640","descricao":"BOMBA HIDRAULICA BHT 9016 01 H 065 22 21 02 P 03 BA 20 190 200","empresa":"MG","quantidade":1,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"901640","descricao":"BOMBA HIDRAULICA BHT 9016 01 H 065 22 21 02 P 03 BA 20 190 200","empresa":"GO","quantidade":2,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"901641","descricao":"BOMBA HIDRAULICA BHT 9016 01 H 065 22 21 02 M 03 BA 20 190 200","empresa":"PE","quantidade":1,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"901642","descricao":"BOMBA HIDRAULICA BHT 9016 01 A 065 22 21 02 P 03 BA 20 190 200","empresa":"GO","quantidade":4,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"901642","descricao":"BOMBA HIDRAULICA BHT 9016 01 A 065 22 21 02 P 03 BA 20 190 200","empresa":"PE","quantidade":3,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"901643","descricao":"BOMBA HIDRAULICA BHT 9016 01 A 065 22 21 02 M 03 BA 20 190 200","empresa":"PE","quantidade":1,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"903011","descricao":"TOMADA DE FORCA TK 903011  EC  19  I  P  069  13  H  350","empresa":"SP","quantidade":7,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"904501","descricao":"TOMADA DE FORCA TK 904501  ZF  16  T  P  130  01  A  C  350","empresa":"SP","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"904501","descricao":"TOMADA DE FORCA TK 904501  ZF  16  T  P  130  01  A  C  350","empresa":"PE","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"904504","descricao":"TOMADA DE FORCA TK 904504  ZF  16  T  P  130  02  A  C  350","empresa":"SP","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"904903","descricao":"TOMADA DE FORCA TK 904903  ZF  16  T  P  100  04  H  C  600","empresa":"SP","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"905910","descricao":"TOMADA DE FORCA TK 905910  MP  01  T  P  130  06  A  250","empresa":"GO","quantidade":8,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"910003","descricao":"TOMADA DE FORCA TK 910003  ZF  10  T  P  130  01  A  C  350","empresa":"PE","quantidade":1,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"910302","descricao":"TOMADA DE FORCA TK 910302  MB  01  T  P  130  06  A  MC  C  FM  300","empresa":"SP","quantidade":20,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"910308","descricao":"TOMADA DE FORCA TK 910308  ZF  16  T  P  130  06  A  MC  C  300","empresa":"MG","quantidade":4,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"910310","descricao":"TOMADA DE FORCA TK 9103.10  MP  01  T  P  130  06  A  MC  300","empresa":"SP","quantidade":11,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"910310","descricao":"TOMADA DE FORCA TK 9103.10  MP  01  T  P  130  06  A  MC  300","empresa":"GO","quantidade":8,"classificacao":"300.200.001","produto":"TOMADA DE FORCA"},{"codigo":"9531","descricao":"BOMBA HIDRAULICA BHT 9101 01 H 085 13 12 06 P 01 A21 BA 15 210 210","empresa":"SP","quantidade":2,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9531","descricao":"BOMBA HIDRAULICA BHT 9101 01 H 085 13 12 06 P 01 A21 BA 15 210 210","empresa":"GO","quantidade":5,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9531","descricao":"BOMBA HIDRAULICA BHT 9101 01 H 085 13 12 06 P 01 A21 BA 15 210 210","empresa":"PE","quantidade":7,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9532","descricao":"BOMBA HIDRAULICA BHT 9101 01 H 065 13 12 06 P 01 A21 BA 20 210 210","empresa":"GO","quantidade":8,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9535","descricao":"BOMBA HIDRAULICA BHT 9101 01 A 065 12 12 06 P 01 A21 BA 20 210 210","empresa":"GO","quantidade":12,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9535","descricao":"BOMBA HIDRAULICA BHT 9101 01 A 065 12 12 06 P 01 A21 BA 20 210 210","empresa":"PE","quantidade":3,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9536","descricao":"BOMBA HIDRAULICA BHT 9101 01 A 085 13 12 06 P 01 A21 BA 15 210 210","empresa":"PE","quantidade":1,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9563","descricao":"BOMBA HIDRAULICA BHT 9101 06 H 085 12 12 06 P 01 A21 BA 15 210 210","empresa":"PE","quantidade":2,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"},{"codigo":"9564","descricao":"BOMBA HIDRAULICA BHT 9101 06 A 085 12 12 06 P 01 A21 BA 15 210 210","empresa":"SP","quantidade":5,"classificacao":"300.500.001","produto":"BOMBA HIDRAULICA"}],
 };
@@ -1074,6 +1219,8 @@ function msChange(id) {
   // trigger render
   if (id === 'ms-produto') renderTransito();
   else if (id.startsWith('ms-est')) renderEstoque();
+  else if (id === 'ms-pv-dias' || id === 'ms-pv-fam2') renderPvPrioridades();
+  else if (id.startsWith('ms-pv')) renderPedidos();
 }
 function msToggleAll(id) {
   const allCb = document.getElementById(id+'-all');
@@ -1086,7 +1233,7 @@ function msToggleAll(id) {
 
 function showTab(id) {
   document.querySelectorAll('.tab').forEach((t,i) => {
-    const ids = ['of','montados','estoque','servicos','termico','ife'];
+    const ids = ['of','montados','estoque','servicos','termico','ife','pedidos'];
     t.classList.toggle('active', ids[i] === id);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -1970,6 +2117,540 @@ function _renderIFEClasse(dados, meses) {
 }
 
 
+
+// ===== PARSE PEDIDOS DE VENDA =====
+function parsePedidos(text) {
+  const rows = parseCSV(text, ';');
+  if (rows.length < 2) return;
+  // Header na linha 1 (índice 0) ou linha 2 (índice 1)?
+  // Detectar pelo conteúdo
+  let hIdx = 0;
+  for (let i = 0; i < Math.min(3, rows.length); i++) {
+    if (rows[i].some(c => c.includes('CODIGO ITEM') || c.includes('PEDIDO'))) { hIdx = i; break; }
+  }
+  const h = rows[hIdx];
+  const ci = k => h.findIndex(c => c.toUpperCase().includes(k.toUpperCase()));
+
+  const iChave  = ci('CHAVE');
+  const iQtde   = ci('QTDE PENDENTE');
+  const iCodigo = ci('CODIGO ITEM');
+  const iDesc   = ci('DESCRICAO ITEM');
+  const iDataEm = ci('DATA EMISSAO');
+  const iDataEnt= ci('DATA ENTREGA');
+  const iPedido = ci('PEDIDO');
+  const iProj   = ci('PROJETADO');
+  const iDisp   = ci('DISPONIBILIDADE');
+  const iTotOf  = ci('TOTAL OF PENDENTE');
+  const iPossOf = ci('POSSUI OF');
+  const iOfSem  = ci('OF SEM REQUISICAO');
+  const iOfComp = ci('OF COMPLETA');
+  const iOfParc = ci('OF REQ PARCIAL');
+  const iCliente= ci('DESCRICAO CLIENTE');
+  const iClass  = ci('CLASSIFICACAO');
+  const iValor  = ci('VALOR LIQUIDO PENDEN');
+
+  const parseNum = v => parseFloat(String(v||'').replace(',','.'))||0;
+  const parseDateStr = s => {
+    if (!s) return null;
+    // "2026-05-08 00:00:00" ou "DD/MM/YYYY"
+    const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) return iso[1]+'-'+iso[2]+'-'+iso[3];
+    const br  = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (br)  return br[3]+'-'+br[2]+'-'+br[1];
+    return null;
+  };
+  const familia = cls => {
+    const s = String(cls||'');
+    if (s.startsWith('8')) return 'GUINCHO';
+    if (s.startsWith('6')) return 'WALVOIL';
+    return 'FORCA';
+  };
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+
+  DATA.pedidos = [];
+  for (let i = hIdx+1; i < rows.length; i++) {
+    const r = rows[i];
+    const codigo = String(r[iCodigo]||'').trim();
+    if (!codigo) continue;
+    const dataEntStr = parseDateStr(r[iDataEnt]);
+    const dataEnt = dataEntStr ? new Date(dataEntStr+'T00:00:00') : null;
+    const projetado = parseNum(r[iProj]);
+    const disp = String(r[iDisp]||'').trim();
+    const possOf = String(r[iPossOf]||'').trim();
+
+    let status;
+    if (disp === 'FATURAR') status = 'FATURAR';
+    else if (possOf === 'POSSUI OF') status = 'POSSUI OF';
+    else status = 'SEM OF';
+
+    DATA.pedidos.push({
+      chave:    String(r[iChave]||'').trim(),
+      qtde:     parseNum(r[iQtde]),
+      codigo,
+      descricao: String(r[iDesc]||'').trim(),
+      pedido:   String(r[iPedido]||'').trim(),
+      dataEnt,
+      dataEntStr,
+      projetado,
+      status,
+      atrasado: dataEnt && dataEnt < hoje,
+      of_sem:   String(r[iOfSem]||'').trim(),
+      of_comp:  String(r[iOfComp]||'').trim(),
+      of_parc:  String(r[iOfParc]||'').trim(),
+      total_of: parseNum(r[iTotOf]),
+      cliente:  String(r[iCliente]||'').trim(),
+      classificacao: String(r[iClass]||'').trim(),
+      familia:  familia(r[iClass]),
+      valor:    parseNum(r[iValor]),
+    });
+  }
+}
+
+// ===== RENDER PEDIDOS =====
+let pvCharts = [];
+
+function renderPedidos() {
+  if (!DATA.pedidos || DATA.pedidos.length === 0) {
+    const kpis = document.getElementById('pv-kpis');
+    if (kpis) kpis.innerHTML = '<div class="kpi-card"><div class="kpi-label" style="color:var(--text-muted)">Clique em ↻ Atualizar para carregar os dados</div></div>';
+    return;
+  }
+
+  const todos = DATA.pedidos;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+
+  // ── KPIs ────────────────────────────────────────────────────────────────
+  const atrasados  = todos.filter(r => r.atrasado);
+  const faturar    = todos.filter(r => r.status === 'FATURAR');
+  const semOf      = todos.filter(r => r.status === 'SEM OF' && !r.atrasado);
+  const totalPedidos= new Set(todos.map(r=>r.pedido)).size;
+  const valorTotal = todos.reduce((s,r)=>s+r.valor,0);
+
+  document.getElementById('pv-kpis').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">TOTAL DE ITENS</div>
+      <div class="kpi-value blue">${todos.length.toLocaleString('pt-BR')}</div></div>
+    <div class="kpi-card"><div class="kpi-label">PEDIDOS</div>
+      <div class="kpi-value blue">${totalPedidos.toLocaleString('pt-BR')}</div></div>
+    <div class="kpi-card"><div class="kpi-label">ITENS EM ATRASO</div>
+      <div class="kpi-value" style="color:var(--red)">${atrasados.length}</div></div>
+    <div class="kpi-card"><div class="kpi-label">PRONTO P/ FATURAR</div>
+      <div class="kpi-value" style="color:var(--green)">${faturar.length}</div></div>
+    <div class="kpi-card"><div class="kpi-label">SEM OF</div>
+      <div class="kpi-value" style="color:var(--orange)">${semOf.length}</div></div>
+    <div class="kpi-card"><div class="kpi-label">VALOR EM CARTEIRA</div>
+      <div class="kpi-value" style="color:var(--blue-light);font-size:18px">R$ ${valorTotal.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
+  `;
+
+  // Popular dropdown de dias no ms-pv-dias
+  _pvPopularDias();
+  renderPvPrioridades();
+
+  // ── GRÁFICOS ATRASO ──────────────────────────────────────────────────────
+  pvCharts.forEach(c => { try { c.destroy(); } catch(e){} });
+  pvCharts = [];
+
+  const FAMS = ['FORCA','GUINCHO','WALVOIL'];
+  const FAM_COLORS = {'FORCA':'#3d8bff','GUINCHO':'#f59e0b','WALVOIL':'#a855f7'};
+
+  const atrasoItens = FAMS.map(f => atrasados.filter(r=>r.familia===f).length);
+  const atrasoPecas = FAMS.map(f => atrasados.filter(r=>r.familia===f).reduce((s,r)=>s+r.qtde,0));
+
+  const mkChart = (id, data, label) => {
+    const ctx = document.getElementById(id)?.getContext('2d');
+    if (!ctx) return;
+    const c = new Chart(ctx, {
+      type:'bar',
+      data:{ labels:['Força','Guincho','Walvoil'], datasets:[{
+        label, data, backgroundColor:FAMS.map(f=>FAM_COLORS[f]+'cc'),
+        borderRadius:5,
+        datalabels:{ color:'#fff', anchor:'center', align:'center', font:{size:13,weight:'700'}, formatter:v=>v||'' }
+      }]},
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, datalabels:{display:true} },
+        scales:{ x:{ticks:{color:'#7a8299'},grid:{display:false}}, y:{ticks:{color:'#7a8299'},grid:{color:'#1e2334'}} }
+      }, plugins:[ChartDataLabels]
+    });
+    pvCharts.push(c);
+  };
+  mkChart('pv-atraso-chart', atrasoItens, 'Itens');
+  mkChart('pv-pecas-chart', atrasoPecas, 'Peças');
+
+  // ── FILTROS ──────────────────────────────────────────────────────────────
+  const dataFilt    = document.getElementById('pv-data').value;
+  const statusFilt  = getMsValues('ms-pv-status');
+  const familiaFilt = getMsValues('ms-pv-familia');
+  const search      = (document.getElementById('pv-search').value||'').trim().toLowerCase();
+
+  // Popular select de datas
+  const datas = [...new Set(todos.map(r=>r.dataEntStr).filter(Boolean))].sort();
+  const selData = document.getElementById('pv-data');
+  const curData = selData.value;
+  selData.innerHTML = '<option value="">Todas as datas</option>' +
+    datas.map(d => {
+      const [a,m,dia] = d.split('-');
+      const dt = new Date(d+'T00:00:00');
+      const isHoje = dt.getTime() === hoje.getTime();
+      const isAt   = dt < hoje;
+      const label = `${dia}/${m}/${a}${isHoje?' (HOJE)':''}${isAt?' ⚠':''}`;
+      return `<option value="${d}" ${d===curData?'selected':''}>${label}</option>`;
+    }).join('');
+
+  // Aplicar filtros
+  let filtrados = todos.filter(r => {
+    if (dataFilt && r.dataEntStr !== dataFilt) return false;
+    if (familiaFilt.length && !familiaFilt.includes(r.familia)) return false;
+    if (statusFilt.length) {
+      const match =
+        (statusFilt.includes('FATURAR')   && r.status==='FATURAR') ||
+        (statusFilt.includes('POSSUI OF') && r.status==='POSSUI OF') ||
+        (statusFilt.includes('SEM OF')    && r.status==='SEM OF') ||
+        (statusFilt.includes('ATRASADO')  && r.atrasado);
+      if (!match) return false;
+    }
+    if (search && !r.codigo.toLowerCase().includes(search) &&
+        !r.descricao.toLowerCase().includes(search) &&
+        !r.pedido.toLowerCase().includes(search) &&
+        !r.cliente.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  // ── RESUMO DO DIA ────────────────────────────────────────────────────────
+  const resumoDiv = document.getElementById('pv-resumo-dia');
+  if (dataFilt) {
+    const dia = filtrados;
+    const sFaturar  = dia.filter(r=>r.status==='FATURAR').length;
+    const sOf       = dia.filter(r=>r.status==='POSSUI OF').length;
+    const sSemOf    = dia.filter(r=>r.status==='SEM OF').length;
+    const sAtrasado = dia.filter(r=>r.atrasado).length;
+
+    // Contagem de montagens necessárias (usando OF sem req — monta a OF inteira)
+    let totalMontar = 0;
+    dia.forEach(r => {
+      if (r.status === 'FATURAR') return; // já tem estoque
+      const ofSemQtde = _pvParseOfQtde(r.of_sem);
+      const ofCompQtde= _pvParseOfQtde(r.of_comp);
+      const ofParcQtde= _pvParseOfQtde(r.of_parc);
+      // Se tem OF sem req, monta a OF inteira (não parcial)
+      if (ofSemQtde > 0) totalMontar += ofSemQtde;
+      else if (ofParcQtde > 0) totalMontar += ofParcQtde;
+    });
+
+    const [a,m,dia_] = dataFilt.split('-');
+    const dtObj = new Date(dataFilt+'T00:00:00');
+    const isHoje = dtObj.getTime() === hoje.getTime();
+    resumoDiv.innerHTML = `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 20px;display:flex;gap:24px;flex-wrap:wrap;align-items:center">
+        <div style="font-size:11px;letter-spacing:1px;color:var(--text-muted)">${isHoje?'PRIORIDADES DE HOJE':'ENTREGA '+dia_+'/'+m+'/'+a}</div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap">
+          <span style="color:var(--green);font-weight:700">✓ ${sFaturar} p/ faturar</span>
+          <span style="color:#3d8bff;font-weight:700">⚙ ${sOf} tem OF</span>
+          <span style="color:var(--orange);font-weight:700">✗ ${sSemOf} sem OF</span>
+          ${sAtrasado?`<span style="color:var(--red);font-weight:700">⚠ ${sAtrasado} atrasados</span>`:''}
+          ${totalMontar?`<span style="color:#a855f7;font-weight:700">🔧 ${totalMontar} peças a montar (OF inteira)</span>`:''}
+        </div>
+      </div>`;
+  } else {
+    resumoDiv.innerHTML = '';
+  }
+
+  // ── TABELA ────────────────────────────────────────────────────────────────
+  const STATUS_STYLE = {
+    'FATURAR':   { color:'var(--green)',  icon:'✓', bg:'rgba(0,201,122,0.1)' },
+    'POSSUI OF': { color:'#3d8bff',       icon:'⚙', bg:'rgba(61,139,255,0.1)' },
+    'SEM OF':    { color:'var(--orange)', icon:'✗', bg:'rgba(255,140,59,0.1)' },
+  };
+  const FAM_LABEL = { FORCA:'Força', GUINCHO:'Guincho', WALVOIL:'Walvoil' };
+
+  document.getElementById('pv-tbody').innerHTML = filtrados.map(r => {
+    const st = STATUS_STYLE[r.status] || STATUS_STYLE['SEM OF'];
+    const rowBg = r.atrasado ? 'background:rgba(255,59,59,0.06)' : '';
+    const projColor = r.projetado >= 0 ? 'var(--green)' : 'var(--red)';
+    const entrega = r.dataEnt ? r.dataEnt.toLocaleDateString('pt-BR') : '—';
+    const fmtOf = s => s ? `<span style="font-size:10px;color:var(--text-muted)">${s}</span>` : '<span class="zero">—</span>';
+    return `<tr style="${rowBg}${r.atrasado?';border-left:3px solid var(--red)':''}">
+      <td style="position:sticky;left:0;background:${r.atrasado?'rgba(30,20,20,0.95)':'var(--surface)'};font-weight:600">${r.pedido}</td>
+      <td style="font-family:monospace;font-size:12px">${r.codigo}</td>
+      <td style="font-size:12px">${r.descricao}</td>
+      <td style="text-align:right;font-weight:600">${r.qtde}</td>
+      <td style="color:${r.atrasado?'var(--red)':'var(--text)'};font-weight:${r.atrasado?'700':'400'}">${entrega}${r.atrasado?' ⚠':''}</td>
+      <td style="background:${st.bg};color:${st.color};font-weight:700;font-size:11px;text-align:center">${st.icon} ${r.status}</td>
+      <td style="text-align:right;color:${projColor};font-weight:600">${r.projetado}</td>
+      <td>${fmtOf(r.of_sem)}</td>
+      <td>${fmtOf(r.of_comp)}</td>
+      <td>${fmtOf(r.of_parc)}</td>
+      <td style="font-size:11px;color:${FAM_COLORS[r.familia]||'var(--text)'};font-weight:600">${FAM_LABEL[r.familia]||r.familia}</td>
+      <td style="font-size:11px">${r.cliente.split(' ').slice(0,4).join(' ')}</td>
+      <td style="text-align:right;font-size:11px">R$ ${r.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+    </tr>`;
+  }).join('');
+
+  // Totais
+  const totQtde = filtrados.reduce((s,r)=>s+r.qtde,0);
+  const totValor = filtrados.reduce((s,r)=>s+r.valor,0);
+  document.getElementById('pv-foot').innerHTML = `
+    <tr class="tfoot-row" style="background:#1e2a4a;border-top:2px solid var(--blue)">
+      <td style="position:sticky;left:0;background:#1e2a4a;text-align:left;color:var(--text-muted)" colspan="3">TOTAL (${filtrados.length} itens)</td>
+      <td style="text-align:right;font-weight:700">${totQtde.toLocaleString('pt-BR')}</td>
+      <td colspan="8"></td>
+      <td style="text-align:right;font-weight:700">R$ ${totValor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+    </tr>`;
+}
+
+// ── Popular dropdown de dias com datas únicas ────────────────────────────
+function _pvPopularDias() {
+  if (!DATA.pedidos || DATA.pedidos.length === 0) return;
+  const listEl = document.getElementById('ms-pv-dias-list');
+  if (!listEl) return;
+  const datas = [...new Set(DATA.pedidos.map(r=>r.dataEntStr).filter(Boolean))].sort();
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  // Manter seleções existentes
+  const jaChecked = getMsValues('ms-pv-dias');
+  const existingDatas = new Set([...listEl.querySelectorAll('.ms-item input')].map(i=>i.value));
+  if (existingDatas.size === datas.length) return; // já populado e igual
+  // Limpar e repopular (mantendo o botão "Todos")
+  const allBtn = listEl.querySelector('.ms-all');
+  listEl.innerHTML = '';
+  listEl.appendChild(allBtn);
+  datas.forEach(d => {
+    const [a,m,dia] = d.split('-');
+    const dt = new Date(d+'T00:00:00');
+    const isHoje = dt.getTime() === hoje.getTime();
+    const isAt   = dt < hoje;
+    const label  = `${dia}/${m}/${a}${isHoje?' (HOJE)':''}${isAt?' ⚠':''}`;
+    const el = document.createElement('label');
+    el.className = 'ms-item';
+    const wasChecked = jaChecked.includes(d);
+    el.innerHTML = `<input type="checkbox" value="${d}" ${wasChecked?'checked':''} onchange="msChange('ms-pv-dias')"> ${label}`;
+    listEl.appendChild(el);
+  });
+}
+
+// ── Família por classificação (sem pontos, ex: '300200001') ──────────────
+function pvFamilia(cls) {
+  const s = String(cls||'').replace(/\./g,'');
+  if (s.startsWith('3002000') || s.startsWith('3003000')) return 'TOMADA+MULT';
+  if (s.startsWith('3005')) return 'BOMBA';
+  if (s.startsWith('4001')) return 'BOMBA';   // bomba pistão hydrocar
+  if (s.startsWith('3004')) return 'CILINDRO';
+  if (s.startsWith('3002002') || s.startsWith('3002005')) return 'CONJ EIXO';
+  if (s.startsWith('8')) return 'GUINCHO';
+  if (s.startsWith('6')) return 'WALVOIL';
+  return 'OUTROS';
+}
+
+const FAM_COLORS_PV = {
+  'TOMADA+MULT':'#3d8bff','BOMBA':'#ff8c3b','CILINDRO':'#e74c3c',
+  'CONJ EIXO':'#06b6d4','GUINCHO':'#f59e0b','WALVOIL':'#a855f7','OUTROS':'#475569'
+};
+
+// ── Renderizar painel de prioridades agrupado ─────────────────────────────
+function renderPvPrioridades() {
+  if (!DATA.pedidos || DATA.pedidos.length === 0) return;
+
+  const diasSel  = getMsValues('ms-pv-dias');
+  const famSel   = getMsValues('ms-pv-fam2');
+  const search   = (document.getElementById('pv-search2')?.value||'').trim().toLowerCase();
+
+  // Filtrar pelo período selecionado
+  const base = diasSel.length
+    ? DATA.pedidos.filter(r => diasSel.includes(r.dataEntStr||''))
+    : DATA.pedidos;
+
+  // Agrupar por código
+  const grupos = {};
+  base.forEach(r => {
+    const cod = r.codigo;
+    if (!grupos[cod]) grupos[cod] = {
+      codigo: cod, descricao: r.descricao, familia: pvFamilia(r.classificacao),
+      qtde_pv:0, proj:0, saldo:0,
+      of_sem:0, of_comp:0, of_parc:0,
+      of_sem_str:'', of_comp_str:'', of_parc_str:'',
+      a_montar:0, statusOf:'', faturar:false
+    };
+    const g = grupos[cod];
+    g.qtde_pv     += r.qtde;
+    g.proj         = r.projetado; // projetado acumula por código
+    g.saldo        = r.projetado;
+    // Concatenar strings de OF para processar as OFs individuais juntas
+    g.of_sem_str   = [g.of_sem_str, r.of_sem].filter(Boolean).join(',').replace(/\d+\s*\(([^)]+)\)/g, '$1').replace(/^,|,$/g,'');
+    g.of_comp_str  = [g.of_comp_str, r.of_comp].filter(Boolean).join(',').replace(/\d+\s*\(([^)]+)\)/g, '$1').replace(/^,|,$/g,'');
+    g.of_parc_str  = [g.of_parc_str, r.of_parc].filter(Boolean).join(',').replace(/\d+\s*\(([^)]+)\)/g, '$1').replace(/^,|,$/g,'');
+    g.of_sem       = _pvParseOfQtde(r.of_sem);
+    g.of_comp      = _pvParseOfQtde(r.of_comp);
+    g.of_parc      = _pvParseOfQtde(r.of_parc);
+  });
+
+  // Calcular "a montar" por produto
+  // Lógica: se tem OF sem req → usa essa qtde inteira
+  //         senão se tem parcial → usa parcial
+  //         senão se sem saldo → usa completa (já em prod mas precisa montar)
+  Object.values(grupos).forEach(g => {
+    const rv = _pvCalcMontar(g.proj, g.of_sem_str, g.of_comp_str, g.of_parc_str);
+    g.a_montar = rv.montar === 'FATURAR' ? 0 : rv.montar;
+    g.statusOf = rv.statusOf;
+    g.faturar  = rv.montar === 'FATURAR';
+  });
+
+  // Filtrar
+  let lista = Object.values(grupos)
+    .filter(g => !famSel.length || famSel.includes(g.familia))
+    .filter(g => !search || g.codigo.toLowerCase().includes(search) || g.descricao.toLowerCase().includes(search))
+    .sort((a,b) => b.a_montar - a.a_montar || b.qtde_pv - a.qtde_pv);
+
+  // ── Resumo por família ────────────────────────────────────────────────────
+  const famTotals = {};
+  Object.values(grupos).forEach(g => {
+    if (!famTotals[g.familia]) famTotals[g.familia] = {pv:0, montar:0};
+    famTotals[g.familia].pv     += g.qtde_pv;
+    famTotals[g.familia].montar += g.a_montar;
+  });
+
+  const FAM_LABEL = {'TOMADA+MULT':'tomadas','BOMBA':'bombas','CILINDRO':'cilindros',
+    'CONJ EIXO':'conj. eixo','GUINCHO':'guinchos','WALVOIL':'walvoil','OUTROS':'outros'};
+  const FAM_ORDER = ['TOMADA+MULT','BOMBA','CILINDRO','CONJ EIXO','GUINCHO','WALVOIL','OUTROS'];
+
+  const resumoHtml = FAM_ORDER
+    .filter(f => famTotals[f] && famTotals[f].montar > 0)
+    .map(f => {
+      const v = famTotals[f];
+      const color = FAM_COLORS_PV[f]||'#475569';
+      return `<div style="background:var(--surface);border:1px solid ${color}44;border-left:3px solid ${color};border-radius:8px;padding:10px 18px;min-width:130px">
+        <div style="font-size:10px;color:${color};font-weight:700;letter-spacing:1px">${FAM_LABEL[f].toUpperCase()}</div>
+        <div style="font-size:24px;font-weight:800;color:${color}">${v.montar}</div>
+        <div style="font-size:10px;color:var(--text-muted)">a montar · ${v.pv} PV</div>
+      </div>`;
+    }).join('');
+
+  const resumoDiv = document.getElementById('pv-resumo-fam');
+  if (resumoDiv) resumoDiv.innerHTML = `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:4px">${resumoHtml}</div>`;
+
+  // ── Tabela agrupada ───────────────────────────────────────────────────────
+  const tbody = document.getElementById('pv-prior-tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = lista.map(g => {
+    const color = FAM_COLORS_PV[g.familia]||'#475569';
+    const saldoColor = g.saldo >= 0 ? 'var(--green)' : 'var(--red)';
+    let statusBadge;
+    const sof = g.statusOf || '';
+    if (g.faturar)
+      statusBadge = '<span style="background:rgba(0,201,122,0.12);color:var(--green);font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px">✓ FATURAR</span>';
+    else if (sof.includes('ABRIR OF'))
+      statusBadge = '<span style="background:rgba(255,59,59,0.12);color:var(--red);font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px">✗ ABRIR OF</span>';
+    else if (sof.includes('FALTA SEPARAR') && sof.includes('SEPARADO'))
+      statusBadge = '<span style="background:rgba(168,85,247,0.12);color:#a855f7;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px">◑ MISTO</span>';
+    else if (sof.includes('FALTA SEPARAR'))
+      statusBadge = '<span style="background:rgba(245,158,11,0.12);color:#f59e0b;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px">⚙ FALTA SEP.</span>';
+    else if (sof.includes('PARCIAL'))
+      statusBadge = '<span style="background:rgba(6,182,212,0.12);color:#06b6d4;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px">◑ PARCIAL</span>';
+    else if (sof.includes('SEPARADO'))
+      statusBadge = '<span style="background:rgba(61,139,255,0.12);color:var(--blue);font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px">▣ SEPARADO</span>';
+    else
+      statusBadge = '<span style="background:rgba(255,59,59,0.12);color:var(--red);font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px">✗ SEM OF</span>';
+    const aMontar = g.a_montar > 0 ? `<span style="color:#f59e0b;font-weight:800">${g.a_montar}</span>` : '<span class="zero">—</span>';
+    return `<tr>
+      <td style="font-family:monospace;font-size:12px">${g.codigo}</td>
+      <td style="font-size:12px">${g.descricao}</td>
+      <td style="color:${color};font-size:11px;font-weight:700">${g.familia}</td>
+      <td style="text-align:right;font-weight:700">${g.qtde_pv}</td>
+      <td style="text-align:right;color:${saldoColor};font-weight:600">${g.saldo}</td>
+      <td style="text-align:right;color:#f59e0b">${g.of_sem||'<span class="zero">—</span>'}</td>
+      <td style="text-align:right;color:var(--blue)">${g.of_comp||'<span class="zero">—</span>'}</td>
+      <td style="text-align:right;color:#06b6d4">${g.of_parc||'<span class="zero">—</span>'}</td>
+      <td style="text-align:right">${aMontar}</td>
+      <td>${statusBadge}</td>
+      <td style="font-size:10px;color:var(--text-muted);max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${g.faturar?'—':(g.statusOf||'—')}">${g.faturar?'—':(g.statusOf||'—')}</td>
+    </tr>`;
+  }).join('');
+
+  // Totais
+  const totPv = lista.reduce((s,g)=>s+g.qtde_pv,0);
+  const totMontar = lista.reduce((s,g)=>s+g.a_montar,0);
+  const foot = document.getElementById('pv-prior-foot');
+  if (foot) foot.innerHTML = `<tr class="tfoot-row" style="background:#1e2a4a;border-top:2px solid var(--blue)">
+    <td colspan="2" style="text-align:left;color:var(--text-muted)">TOTAL (${lista.length} produtos)</td>
+    <td></td>
+    <td style="text-align:right;font-weight:700">${totPv}</td>
+    <td colspan="4"></td>
+    <td style="text-align:right;font-weight:800;color:#f59e0b">${totMontar}</td>
+    <td colspan="2"></td>
+  </tr>`;
+}
+
+// Extrai OFs individuais: "32 (171502453=8,171502454=8)" → [{of,qty},...]
+function _pvParseOfs(s) {
+  if (!s || s === '0') return [];
+  const m = String(s).match(/\(([^)]+)\)/);
+  if (!m) return [];
+  const ofs = [];
+  m[1].split(',').forEach(part => {
+    part = part.trim().split('/')[0];
+    if (part.includes('=')) {
+      const [num, qty] = part.split('=');
+      const q = parseInt(qty?.trim());
+      if (!isNaN(q)) ofs.push({ of: num.trim(), qty: q });
+    }
+  });
+  return ofs;
+}
+
+// Extrai quantidade total de uma string de OF (compat)
+function _pvParseOfQtde(s) {
+  return _pvParseOfs(s).reduce((sum, o) => sum + o.qty, 0);
+}
+
+// Calcula A_MONTAR seguindo regra exata com OFs individuais:
+// 1. proj >= 0 → FATURAR
+// 2. proj < 0: soma OFs inteiras (COMP → PARC → SEM) até cobrir abs(proj)
+//    Cada OF é usada inteira (não monta parcial de OF)
+// 3. Sem nenhuma OF → abs(proj) + statusOf "ABRIR OF"
+function _pvCalcMontar(proj, ofSemStr, ofCompStr, ofParcStr) {
+  if (proj >= 0) return { montar: 'FATURAR', statusOf: 'FATURAR' };
+
+  const necessidade = Math.abs(proj);
+  const ofsComp = _pvParseOfs(ofCompStr);
+  const ofsParc = _pvParseOfs(ofParcStr);
+  const ofsSem  = _pvParseOfs(ofSemStr);
+
+  const somarOfs = ofs => {
+    let acum = 0;
+    for (const of_ of ofs) {
+      if (acum >= necessidade) break;
+      acum += of_.qty;
+    }
+    return acum;
+  };
+
+  if (ofsComp.length > 0 || ofsSem.length > 0 || ofsParc.length > 0) {
+    // Ordem: COMP primeiro, depois SEM, depois PARC
+    const total = somarOfs([...ofsComp, ...ofsSem, ...ofsParc]);
+    const qtComp = somarOfs(ofsComp);
+    const qtSem  = somarOfs(ofsSem.filter((_,i) => {
+      let a=qtComp; for(let j=0;j<i;j++) a+=ofsSem[j].qty; return a < necessidade;
+    }));
+    const qtParc = total - qtComp - qtSem;
+
+    let statusOf = '';
+    if (qtComp > 0 && total > qtComp)
+      statusOf = `${qtComp} SEPARADO + ${total-qtComp} FALTA SEPARAR`;
+    else if (qtComp > 0)
+      statusOf = `${total} SEPARADO`;
+    else if (ofsParc.length > 0 && qtParc > 0)
+      statusOf = `${total} SEPARADO PARCIAL`;
+    else if (ofsSem.length > 0)
+      statusOf = `${total} FALTA SEPARAR`;
+    else
+      statusOf = `${total} ABRIR OF`;
+
+    return { montar: total, statusOf };
+  }
+
+  return { montar: necessidade, statusOf: `${necessidade} ABRIR OF` };
+}
+
+// Registrar msChange para pedidos
+const _msChangePvOrig = msChange;
+
 function renderServico() {
   const search = document.getElementById('servico-search').value.toLowerCase();
   const empFilt = document.getElementById('servico-empresa').value; // '1', '2', or ''
@@ -2817,6 +3498,7 @@ function renderAll() {
   renderServico();
   renderTermico();
   renderIFE();
+  renderPedidos();
   renderTransito();
 }
 
@@ -2856,7 +3538,8 @@ async function readSheets() {
     'ESTOQUE_SEGURANCA': parseEstoque,
     'TRANSITO':          parseTransito,
     'SERVICO_TERCEIROS': (text) => { parseServico(text); parseTermico(text); },
-    'IFE':  parseIFE
+    'IFE':  parseIFE,
+    'PEDIDOS_DE_VENDA': parsePedidos
   };
   let found=0, errors=[];
   for (const [aba, parser] of Object.entries(parsers)) {
