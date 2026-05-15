@@ -1047,16 +1047,36 @@ document.addEventListener('DOMContentLoaded', () => {
       <option value="neg">Somente negativos (necessita montar)</option>
       <option value="pos">Somente positivos (faturar)</option>
     </select>
-    <input class="search-input" type="text" id="pv-search2" placeholder="Buscar código ou descrição..." oninput="renderPvPrioridades()" style="width:220px">
+    <input class="search-input" type="text" id="pv-search2" placeholder="Buscar código ou descrição..." oninput="renderPvPrioridades()" style="width:200px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button onclick="pvFiltroRapido('atraso')"
+        style="background:rgba(255,59,59,0.15);border:1px solid var(--red);color:var(--red);padding:7px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">
+        ⚠ Atrasos (proj &lt; 0)
+      </button>
+      <button onclick="pvFiltroRapido('hoje')"
+        style="background:rgba(245,158,11,0.15);border:1px solid #f59e0b;color:#f59e0b;padding:7px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">
+        📅 Atrasos + Hoje (proj &lt; 0)
+      </button>
+      <button onclick="pvGerarPDF()"
+        style="background:rgba(61,139,255,0.15);border:1px solid var(--blue);color:var(--blue);padding:7px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">
+        🖨 Gerar PDF
+      </button>
+    </div>
   </div>
 
   <!-- Resumo por família (tipo "75 tomadas, 13 bombas...") -->
   <div id="pv-resumo-fam" style="margin-bottom:16px"></div>
 
-  <!-- Gráfico contagem por família -->
-  <div class="chart-card" style="margin-bottom:16px">
-    <div class="chart-title">PEÇAS A MONTAR NO PERÍODO — POR FAMÍLIA</div>
-    <div style="position:relative;height:220px"><canvas id="pv-prior-chart"></canvas></div>
+  <!-- Gráficos lado a lado -->
+  <div class="charts-grid" style="margin-bottom:16px">
+    <div class="chart-card">
+      <div class="chart-title">PEÇAS A MONTAR — POR FAMÍLIA (período)</div>
+      <div style="position:relative;height:220px"><canvas id="pv-prior-chart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">PRODUTOS FILTRADOS — CONTAGEM POR STATUS</div>
+      <div style="position:relative;height:220px"><canvas id="pv-status-chart"></canvas></div>
+    </div>
   </div>
 
   <!-- Tabela agrupada por produto -->
@@ -2584,6 +2604,57 @@ function renderPvPrioridades() {
   const resumoDiv = document.getElementById('pv-resumo-fam');
   if (resumoDiv) resumoDiv.innerHTML = `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:4px">${resumoHtml}</div>`;
 
+  // ── Gráfico de status dos produtos filtrados ────────────────────────────────
+  const statusChart = document.getElementById('pv-status-chart');
+  if (statusChart) {
+    const existingS = Chart.getChart(statusChart);
+    if (existingS) existingS.destroy();
+
+    const statusCounts = {
+      'FATURAR': 0, '▣ SEPARADO': 0, '◑ SEP. PARCIAL': 0,
+      '⚙ FALTA SEPARAR': 0, '◑ MISTO': 0, '✗ ABRIR OF': 0
+    };
+    lista.forEach(g => {
+      const sof = g.statusOf || '';
+      if (g.faturar)                                            statusCounts['FATURAR']++;
+      else if (sof.includes('FALTA SEPARAR') && sof.includes('SEPARADO')) statusCounts['◑ MISTO']++;
+      else if (sof.includes('▣ SEPARADO'))                     statusCounts['▣ SEPARADO']++;
+      else if (sof.includes('◑ SEP. PARCIAL'))                 statusCounts['◑ SEP. PARCIAL']++;
+      else if (sof.includes('FALTA SEPARAR'))                  statusCounts['⚙ FALTA SEPARAR']++;
+      else                                                      statusCounts['✗ ABRIR OF']++;
+    });
+
+    const statusLabels = Object.keys(statusCounts).filter(k => statusCounts[k] > 0);
+    const statusColors = {
+      'FATURAR':'#00c97a','▣ SEPARADO':'#3d8bff','◑ SEP. PARCIAL':'#06b6d4',
+      '⚙ FALTA SEPARAR':'#f59e0b','◑ MISTO':'#a855f7','✗ ABRIR OF':'#ff3b3b'
+    };
+
+    new Chart(statusChart, {
+      type: 'doughnut',
+      data: {
+        labels: statusLabels,
+        datasets: [{
+          data: statusLabels.map(k => statusCounts[k]),
+          backgroundColor: statusLabels.map(k => statusColors[k]+'cc'),
+          borderColor: statusLabels.map(k => statusColors[k]),
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'right', labels: { color: '#7a8299', font: { size: 11 }, boxWidth: 12 } },
+          datalabels: {
+            display: true, color: '#fff', font: { size: 12, weight: '700' },
+            formatter: (v, ctx) => v > 0 ? v : ''
+          }
+        }
+      },
+      plugins: [ChartDataLabels]
+    });
+  }
+
   // ── Gráfico por família ─────────────────────────────────────────────────────
   const famParaGrafico = FAM_ORDER.filter(f => famTotals[f] && famTotals[f].montar > 0);
   const chartCanvas = document.getElementById('pv-prior-chart');
@@ -2790,6 +2861,90 @@ function _pvCalcMontar(proj, ofSemStr, ofCompStr, ofParcStr) {
 
 // Registrar msChange para pedidos
 const _msChangePvOrig = msChange;
+
+// ── Filtros rápidos ──────────────────────────────────────────────────────────
+function pvFiltroRapido(tipo) {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const hojeStr = hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0')+'-'+String(hoje.getDate()).padStart(2,'0');
+
+  // Selecionar dias no ms-pv-dias
+  const diasList = document.querySelectorAll('#ms-pv-dias-list .ms-item input');
+  diasList.forEach(cb => {
+    if (tipo === 'atraso') {
+      // Marcar apenas dias em atraso (antes de hoje)
+      cb.checked = cb.value < hojeStr;
+    } else if (tipo === 'hoje') {
+      // Marcar atrasos + hoje
+      cb.checked = cb.value <= hojeStr;
+    }
+  });
+  msChange('ms-pv-dias');
+
+  // Filtrar apenas projetado negativo
+  const projFilt = document.getElementById('pv-proj-filt');
+  if (projFilt) { projFilt.value = 'neg'; }
+
+  renderPvPrioridades();
+}
+
+// ── Gerar PDF ────────────────────────────────────────────────────────────────
+function pvGerarPDF() {
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  const diasSel = getMsValues('ms-pv-dias');
+  const periodoLabel = diasSel.length === 0 ? 'Todos os períodos'
+    : diasSel.length === 1 ? diasSel[0].split('-').reverse().join('/')
+    : diasSel[0].split('-').reverse().join('/') + ' a ' + diasSel[diasSel.length-1].split('-').reverse().join('/');
+
+  // Capturar o canvas do gráfico de status
+  const statusCanvas = document.getElementById('pv-status-chart');
+  const statusImg = statusCanvas ? statusCanvas.toDataURL('image/png') : null;
+
+  // Capturar o canvas do gráfico de famílias
+  const famCanvas = document.getElementById('pv-prior-chart');
+  const famImg = famCanvas ? famCanvas.toDataURL('image/png') : null;
+
+  // Capturar tabela atual
+  const tbody = document.getElementById('pv-prior-tbody');
+  const tfoot = document.getElementById('pv-prior-foot');
+  const thead = document.querySelector('#pv-prior-tbody')?.closest('table')?.querySelector('thead');
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head>
+    <meta charset="UTF-8">
+    <title>Prioridades PV — ${hoje}</title>
+    <style>
+      body { font-family: Arial, sans-serif; font-size: 11px; color: #222; margin: 20px; }
+      h2 { font-size: 16px; margin-bottom: 4px; }
+      .sub { font-size: 11px; color: #666; margin-bottom: 16px; }
+      .graficos { display: flex; gap: 20px; margin-bottom: 20px; }
+      .graficos img { height: 200px; border: 1px solid #ddd; border-radius: 6px; }
+      table { width: 100%; border-collapse: collapse; font-size: 10px; }
+      th { background: #1a2a4a; color: #fff; padding: 6px 8px; text-align: left; }
+      td { padding: 5px 8px; border-bottom: 1px solid #eee; }
+      tr:nth-child(even) td { background: #f8f8f8; }
+      .badge-fat { color: #00a060; font-weight: 700; }
+      .badge-sep { color: #1a6fcc; font-weight: 700; }
+      .badge-fal { color: #cc7700; font-weight: 700; }
+      .badge-abr { color: #cc2200; font-weight: 700; }
+      .total-row { background: #e8eef8 !important; font-weight: 700; }
+      @media print { body { margin: 10px; } }
+    </style>
+  </head><body>
+    <h2>📋 Painel Industrial — Prioridades de Venda</h2>
+    <div class="sub">Gerado em ${hoje} &nbsp;|&nbsp; Período: ${periodoLabel} &nbsp;|&nbsp; Filtro: projetado negativo</div>
+    <div class="graficos">
+      ${famImg ? `<img src="${famImg}" alt="Peças por família">` : ''}
+      ${statusImg ? `<img src="${statusImg}" alt="Status dos produtos">` : ''}
+    </div>
+    <table>
+      <thead>${thead ? thead.innerHTML : ''}</thead>
+      <tbody>${tbody ? tbody.innerHTML : ''}</tbody>
+      <tfoot>${tfoot ? tfoot.innerHTML : ''}</tfoot>
+    </table>
+    <script>window.onload=()=>window.print();<\/script>
+  </body></html>`);
+  win.document.close();
+}
 
 function renderServico() {
   const search = document.getElementById('servico-search').value.toLowerCase();
