@@ -2142,29 +2142,31 @@ function parsePedidos(text) {
   // Mapear índices — baseado no layout real: col0=CHAVE, col1=QTDE, col2=CODIGO, col3=DESC,
   // col7=DATA EMISSAO, col8=DATA ENTREGA, col10=PEDIDO, col11=PROJETADO, col12=DISP,
   // col17=OF SEM REQ, col18=OF COMP, col19=OF PARC, col21=CLIENTE, col24=CLASS, col26=VALOR
-  // Mapeamento com fallback para nomes originais (sem tradução do Chrome)
-  // O Apps Script lê o email diretamente sem tradução automática
-  const _ci = (...keys) => { for (const k of keys) { const i = ci(k); if (i >= 0) return i; } return -1; };
-
-  const iChave  = _ci('CHAVE UNICA','CHAVE');
-  const iQtde   = _ci('QTDE PENDENTE PV','QTDE PENDENTE');
-  const iCodigo = _ci('CODIGO ITEM','ITEM CODIGO');
-  const iDesc   = _ci('DESCRICAO ITEM','DESCRI');
-  const iDataEm = _ci('DATA EMISSAO','EMISS');
-  const iDataEnt= _ci('DATA ENTREGA','ENTREGA');
-  const iPedido = _ci('PEDIDO');
-  const iProj   = _ci('PROJETADO');
-  const iDisp   = _ci('DISPONIBILIDADE','DISPONIB');
-  const iTotOf  = _ci('TOTAL OF PENDENTE','TOTAL DE PENDENTE');
-  const iPossOf = _ci('POSSUI OF','POSSUI DE');
-  const iOfSem  = _ci('OF SEM REQUISICAO','DE SEM REQUISICAO');
-  const iOfComp = _ci('OF COMPLETA','DE COMPLETA');
-  const iOfParc = _ci('OF REQ PARCIAL','DE REQ PARCIAL');
-  const _iClienteDesc = _ci('DESCRICAO CLIENTE','DESCRI');
-  const iCliente = _iClienteDesc >= 0 ? _iClienteDesc : -1;
-  const iClass  = _ci('CLASSIFICACAO','CLASSIF');
-  const iValor  = _ci('VALOR LIQUIDO PENDEN','VALOR PENDEN');
-  console.log('[parsePedidos] hIdx='+hIdx+' iDataEnt='+iDataEnt+' iCodigo='+iCodigo+' iTotOf='+iTotOf);
+  // Índices fixos por posição — imunes a tradução automática do Chrome
+  // Baseado no layout real do relatório Focco (Pasta1.xlsx confirmado)
+  const iChave  = 0;   // ITEM CHAVE UNICA
+  const iQtde   = 1;   // QTDE PENDENTE PV
+  const iCodigo = 2;   // ITEM CODIGO
+  const iDesc   = 3;   // DESCRIÇÃO DO ITEM
+  // col4=UN, col5=QTDE PV TOTAL, col6=SALDO
+  const iDataEm = 7;   // EMISSÃO DE DADOS
+  const iDataEnt= 8;   // DADOS ENTREGA ← DATA DE ENTREGA DO PEDIDO
+  // col9=NOVO PRAZO
+  const iPedido = 10;  // PEDIDO
+  const iProj   = 11;  // PROJETADO
+  const iDisp   = 12;  // DISPONIBILIDADE
+  // col13=FILHOS NEG FABRICADO, col14=OBSERVAÇÃO
+  const iTotOf  = 15;  // TOTAL DE PENDENTE
+  const iPossOf = 16;  // POSSUI DE (= POSSUI OF)
+  const iOfSem  = 17;  // DE SEM REQUISICAO
+  const iOfComp = 18;  // DE COMPLETA
+  const iOfParc = 19;  // DE REQ PARCIAL
+  // col20=CÓDIGO DO CLIENTE
+  const iCliente= 21;  // DESCRIÇÃO DO CLIENTE
+  // col22=CÓDIGO REPRESENTANTE, col23=DESCRIÇÃO REPRESENTANTE
+  const iClass  = 24;  // CLASSIFICAÇÃO
+  // col25=VALOR LÍQUIDO
+  const iValor  = 26;  // VALOR LIQUIDO PENDEN
 
   const parseNum = v => parseFloat(String(v||'').replace(',','.'))||0;
   const parseDateStr = s => {
