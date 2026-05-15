@@ -1042,7 +1042,12 @@ document.addEventListener('DOMContentLoaded', () => {
         <label class="ms-item"><input type="checkbox" value="OUTROS" checked onchange="msChange('ms-pv-fam2')"> Outros</label>
       </div>
     </div>
-    <input class="search-input" type="text" id="pv-search2" placeholder="Buscar código ou descrição..." oninput="renderPvPrioridades()" style="width:240px">
+    <select class="filter-select" id="pv-proj-filt" onchange="renderPvPrioridades()">
+      <option value="">Todos os projetados</option>
+      <option value="neg">Somente negativos (necessita montar)</option>
+      <option value="pos">Somente positivos (faturar)</option>
+    </select>
+    <input class="search-input" type="text" id="pv-search2" placeholder="Buscar código ou descrição..." oninput="renderPvPrioridades()" style="width:220px">
   </div>
 
   <!-- Resumo por família (tipo "75 tomadas, 13 bombas...") -->
@@ -1063,7 +1068,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <th>DESCRIÇÃO</th>
           <th style="width:80px">FAMÍLIA</th>
           <th style="text-align:right;width:70px">PV (qtde)</th>
-          <th style="text-align:right;width:70px">SALDO</th>
+          <th style="text-align:right;width:80px">PROJETADO</th>
           <th style="text-align:right;width:80px">OF SEM REQ</th>
           <th style="text-align:right;width:80px">OF COMPLETA</th>
           <th style="text-align:right;width:80px">OF PARCIAL</th>
@@ -2544,8 +2549,10 @@ function renderPvPrioridades() {
   });
 
   // Filtrar
+  const projFilt = document.getElementById('pv-proj-filt')?.value || '';
   let lista = Object.values(grupos)
     .filter(g => !famSel.length || famSel.includes(g.familia))
+    .filter(g => projFilt === 'neg' ? g.proj < 0 : projFilt === 'pos' ? g.proj >= 0 : true)
     .filter(g => !search || g.codigo.toLowerCase().includes(search) || g.descricao.toLowerCase().includes(search))
     .sort((a,b) => b.a_montar - a.a_montar || b.qtde_pv - a.qtde_pv);
 
@@ -2632,20 +2639,22 @@ function renderPvPrioridades() {
     const saldoColor = g.saldo >= 0 ? 'var(--green)' : 'var(--red)';
     let statusBadge;
     const sof = g.statusOf || '';
+    const _badge = (bg, color, txt) =>
+      `<span style="background:${bg};color:${color};font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px">${txt}</span>`;
     if (g.faturar)
-      statusBadge = '<span style="background:rgba(0,201,122,0.12);color:var(--green);font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px">✓ FATURAR</span>';
+      statusBadge = _badge('rgba(0,201,122,0.12)','var(--green)','✓ FATURAR');
     else if (sof.includes('ABRIR OF'))
-      statusBadge = '<span style="background:rgba(255,59,59,0.12);color:var(--red);font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px">✗ ABRIR OF</span>';
+      statusBadge = _badge('rgba(255,59,59,0.12)','var(--red)','✗ ABRIR OF');
     else if (sof.includes('FALTA SEPARAR') && sof.includes('SEPARADO'))
-      statusBadge = '<span style="background:rgba(168,85,247,0.12);color:#a855f7;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px">◑ MISTO</span>';
+      statusBadge = _badge('rgba(168,85,247,0.12)','#a855f7','◑ MISTO');
     else if (sof.includes('FALTA SEPARAR'))
-      statusBadge = '<span style="background:rgba(245,158,11,0.12);color:#f59e0b;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px">⚙ FALTA SEP.</span>';
-    else if (sof.includes('PARCIAL'))
-      statusBadge = '<span style="background:rgba(6,182,212,0.12);color:#06b6d4;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px">◑ PARCIAL</span>';
+      statusBadge = _badge('rgba(245,158,11,0.12)','#f59e0b','⚙ FALTA SEPARAR');
+    else if (sof.includes('SEP. PARCIAL'))
+      statusBadge = _badge('rgba(6,182,212,0.12)','#06b6d4','◑ SEP. PARCIAL');
     else if (sof.includes('SEPARADO'))
-      statusBadge = '<span style="background:rgba(61,139,255,0.12);color:var(--blue);font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px">▣ SEPARADO</span>';
+      statusBadge = _badge('rgba(61,139,255,0.12)','var(--blue)','▣ SEPARADO');
     else
-      statusBadge = '<span style="background:rgba(255,59,59,0.12);color:var(--red);font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px">✗ SEM OF</span>';
+      statusBadge = _badge('rgba(255,59,59,0.12)','var(--red)','✗ SEM OF');
     const aMontar = g.a_montar > 0 ? `<span style="color:#f59e0b;font-weight:800">${g.a_montar}</span>` : '<span class="zero">—</span>';
     return `<tr>
       <td style="font-family:monospace;font-size:12px">${g.codigo}</td>
@@ -2711,40 +2720,80 @@ function _pvCalcMontar(proj, ofSemStr, ofCompStr, ofParcStr) {
   const ofsParc = _pvParseOfs(ofParcStr);
   const ofsSem  = _pvParseOfs(ofSemStr);
 
-  const somarOfs = ofs => {
+  // Regra: percorre OFs em ordem (COMP→PARC→SEM), cada OF usada inteira
+  // Quando uma OF sozinha cobre a necessidade restante → usa ela inteira (sem cap)
+  // Exceto: se a soma total supera necessidade E não há OF individual menor
+  //         que cubra exatamente → aplica min(total, necessidade) como teto
+  const calcMontar = ofs => {
     let acum = 0;
     for (const of_ of ofs) {
       if (acum >= necessidade) break;
+      const rest = necessidade - acum;
+      if (of_.qty >= rest) {
+        // Esta OF cobre o restante — usa inteira
+        acum += of_.qty;
+        break;
+      }
       acum += of_.qty;
     }
-    return acum;
+    // Teto: min(acum, necessidade) quando nenhuma OF individual cobre sozinha
+    // mas a soma supera (ex: [1,3] nec=3 → acum=4 → teto=3)
+    return Math.min(acum, necessidade * 1.5) > necessidade
+      ? (acum > necessidade && ofsComp.concat(ofsParc,ofsSem).every(o => o.qty < necessidade)
+          ? necessidade : acum)
+      : acum;
   };
 
-  if (ofsComp.length > 0 || ofsSem.length > 0 || ofsParc.length > 0) {
-    // Ordem: COMP primeiro, depois SEM, depois PARC
-    const total = somarOfs([...ofsComp, ...ofsSem, ...ofsParc]);
-    const qtComp = somarOfs(ofsComp);
-    const qtSem  = somarOfs(ofsSem.filter((_,i) => {
-      let a=qtComp; for(let j=0;j<i;j++) a+=ofsSem[j].qty; return a < necessidade;
-    }));
-    const qtParc = total - qtComp - qtSem;
+  // Calcular total e identificar quais tipos de OF contribuem
+  let total = 0, qtComp = 0, qtParc = 0, qtSem = 0;
 
-    let statusOf = '';
-    if (qtComp > 0 && total > qtComp)
-      statusOf = `${qtComp} SEPARADO + ${total-qtComp} FALTA SEPARAR`;
-    else if (qtComp > 0)
-      statusOf = `${total} SEPARADO`;
-    else if (ofsParc.length > 0 && qtParc > 0)
-      statusOf = `${total} SEPARADO PARCIAL`;
-    else if (ofsSem.length > 0)
-      statusOf = `${total} FALTA SEPARAR`;
-    else
-      statusOf = `${total} ABRIR OF`;
-
-    return { montar: total, statusOf };
+  if (ofsComp.length > 0) {
+    qtComp = calcMontar(ofsComp);
+    if (qtComp < necessidade && (ofsParc.length > 0 || ofsSem.length > 0)) {
+      // Precisa complementar
+      const resto = necessidade - qtComp;
+      const ofsExtra = [...ofsParc, ...ofsSem];
+      let acumExtra = 0;
+      for (const of_ of ofsExtra) {
+        if (acumExtra >= resto) break;
+        const r2 = resto - acumExtra;
+        if (of_.qty >= r2) { acumExtra += of_.qty; break; }
+        acumExtra += of_.qty;
+      }
+      // Complemento não deve ultrapassar o restante necessário (teto)
+      const complemento = Math.min(acumExtra, resto + (ofsExtra.every(o=>o.qty>resto) ? ofsExtra[0]?.qty - resto : 0));
+      qtSem = Math.min(acumExtra, acumExtra); // usa inteiro da OF
+      total = qtComp + acumExtra;
+    } else {
+      total = qtComp;
+    }
+  } else if (ofsParc.length > 0) {
+    qtParc = calcMontar(ofsParc);
+    total = qtParc;
+    if (total < necessidade && ofsSem.length > 0) {
+      let acumSem = 0, resto = necessidade - total;
+      for (const of_ of ofsSem) {
+        if (acumSem >= resto) break;
+        acumSem += of_.qty;
+      }
+      qtSem = acumSem; total += acumSem;
+    }
+  } else if (ofsSem.length > 0) {
+    total = calcMontar(ofsSem);
+    qtSem = total;
+  } else {
+    return { montar: necessidade, statusOf: `${necessidade} ✗ ABRIR OF` };
   }
 
-  return { montar: necessidade, statusOf: `${necessidade} ABRIR OF` };
+  // Status descritivo
+  let statusOf = '';
+  const partes = [];
+  if (qtComp > 0) partes.push(`${qtComp} ▣ SEPARADO`);
+  if (qtParc > 0) partes.push(`${qtParc} ◑ SEP. PARCIAL`);
+  if (qtSem  > 0) partes.push(`${qtSem} ⚙ FALTA SEPARAR`);
+  statusOf = partes.join(' + ') || `${total} ABRIR OF`;
+
+  return { montar: total, statusOf };
 }
 
 // Registrar msChange para pedidos
