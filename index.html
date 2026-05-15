@@ -2686,19 +2686,33 @@ function renderPvPrioridades() {
 }
 
 // Extrai OFs individuais: "32 (171502453=8,171502454=8)" → [{of,qty},...]
+// Suporta parênteses aninhados: "16 (171787704=8/ (4072),171787707=8/ (4072))"
 function _pvParseOfs(s) {
   if (!s || s === '0') return [];
-  const m = String(s).match(/\(([^)]+)\)/);
-  if (!m) return [];
+  const str = String(s).trim();
+  const first = str.indexOf('(');
+  const last  = str.lastIndexOf(')');
+  if (first < 0 || last < 0) return [];
+  // Separar por vírgula respeitando parênteses aninhados
+  const inner = str.slice(first+1, last);
+  const parts = [];
+  let depth = 0, cur = '';
+  for (const ch of inner) {
+    if (ch === '(')                   { depth++; cur += ch; }
+    else if (ch === ')')              { depth--; cur += ch; }
+    else if (ch === ',' && depth===0) { parts.push(cur.trim()); cur = ''; }
+    else                              { cur += ch; }
+  }
+  if (cur.trim()) parts.push(cur.trim());
   const ofs = [];
-  m[1].split(',').forEach(part => {
-    part = part.trim().split('/')[0];
-    if (part.includes('=')) {
-      const [num, qty] = part.split('=');
+  for (const part of parts) {
+    const clean = part.split('/')[0].trim(); // remove sufixo "/ (4072)"
+    if (clean.includes('=')) {
+      const [num, qty] = clean.split('=');
       const q = parseInt(qty?.trim());
-      if (!isNaN(q)) ofs.push({ of: num.trim(), qty: q });
+      if (!isNaN(q) && q > 0) ofs.push({ of: num.trim(), qty: q });
     }
-  });
+  }
   return ofs;
 }
 
