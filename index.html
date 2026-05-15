@@ -1035,7 +1035,8 @@ document.addEventListener('DOMContentLoaded', () => {
         <label class="ms-item"><input type="checkbox" value="TOMADA+MULT" checked onchange="msChange('ms-pv-fam2')"> Tomada + Mult</label>
         <label class="ms-item"><input type="checkbox" value="BOMBA" checked onchange="msChange('ms-pv-fam2')"> Bomba</label>
         <label class="ms-item"><input type="checkbox" value="CILINDRO" checked onchange="msChange('ms-pv-fam2')"> Cilindro</label>
-        <label class="ms-item"><input type="checkbox" value="CONJ EIXO" checked onchange="msChange('ms-pv-fam2')"> Conjunto Eixo</label>
+        <label class="ms-item"><input type="checkbox" value="CONJ EIXO" checked onchange="msChange('ms-pv-fam2')"> Conj. Eixo + Adap.</label>
+        <label class="ms-item"><input type="checkbox" value="KIT HIDRAULICO" checked onchange="msChange('ms-pv-fam2')"> Kit Hidráulico</label>
         <label class="ms-item"><input type="checkbox" value="GUINCHO" checked onchange="msChange('ms-pv-fam2')"> Guincho</label>
         <label class="ms-item"><input type="checkbox" value="WALVOIL" checked onchange="msChange('ms-pv-fam2')"> Walvoil</label>
         <label class="ms-item"><input type="checkbox" value="OUTROS" checked onchange="msChange('ms-pv-fam2')"> Outros</label>
@@ -1046,6 +1047,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   <!-- Resumo por família (tipo "75 tomadas, 13 bombas...") -->
   <div id="pv-resumo-fam" style="margin-bottom:16px"></div>
+
+  <!-- Gráfico contagem por família -->
+  <div class="chart-card" style="margin-bottom:16px">
+    <div class="chart-title">PEÇAS A MONTAR NO PERÍODO — POR FAMÍLIA</div>
+    <div style="position:relative;height:220px"><canvas id="pv-prior-chart"></canvas></div>
+  </div>
 
   <!-- Tabela agrupada por produto -->
   <div class="table-wrap" style="margin-bottom:28px"><div class="scrollable" style="max-height:360px">
@@ -2135,34 +2142,45 @@ function parsePedidos(text) {
   // Mapear índices — baseado no layout real: col0=CHAVE, col1=QTDE, col2=CODIGO, col3=DESC,
   // col7=DATA EMISSAO, col8=DATA ENTREGA, col10=PEDIDO, col11=PROJETADO, col12=DISP,
   // col17=OF SEM REQ, col18=OF COMP, col19=OF PARC, col21=CLIENTE, col24=CLASS, col26=VALOR
-  const iChave  = ci('CHAVE');
-  const iQtde   = ci('QTDE PENDENTE PV') >= 0 ? ci('QTDE PENDENTE PV') : ci('QTDE PENDENTE');
-  const iCodigo = ci('CODIGO ITEM');
-  const iDesc   = ci('DESCRICAO ITEM');
-  const iDataEm = ci('DATA EMISSAO') >= 0 ? ci('DATA EMISSAO') : 7;  // col8 (1-idx)
-  const iDataEnt= ci('DATA ENTREGA') >= 0 ? ci('DATA ENTREGA') : 8;  // col9 (1-idx) = DATA ENTREGA
-  const iPedido = ci('PEDIDO');
-  const iProj   = ci('PROJETADO');
-  const iDisp   = ci('DISPONIBILIDADE');
-  const iTotOf  = ci('TOTAL OF PENDENTE');
-  const iPossOf = ci('POSSUI OF');
-  const iOfSem  = ci('OF SEM REQUISICAO');
-  const iOfComp = ci('OF COMPLETA');
-  const iOfParc = ci('OF REQ PARCIAL');
-  const iCliente= ci('DESCRICAO CLIENTE');
-  const iClass  = ci('CLASSIFICACAO');
-  const iValor  = ci('VALOR LIQUIDO PENDEN');
-  // Log de debug para verificar mapeamento
-  if (hIdx > 0) console.log('[parsePedidos] hIdx='+hIdx+' iDataEnt='+iDataEnt+' header='+JSON.stringify(h.slice(0,12)));
+  // Mapeamento com fallback para nomes originais (sem tradução do Chrome)
+  // O Apps Script lê o email diretamente sem tradução automática
+  const _ci = (...keys) => { for (const k of keys) { const i = ci(k); if (i >= 0) return i; } return -1; };
+
+  const iChave  = _ci('CHAVE UNICA','CHAVE');
+  const iQtde   = _ci('QTDE PENDENTE PV','QTDE PENDENTE');
+  const iCodigo = _ci('CODIGO ITEM','ITEM CODIGO');
+  const iDesc   = _ci('DESCRICAO ITEM','DESCRI');
+  const iDataEm = _ci('DATA EMISSAO','EMISS');
+  const iDataEnt= _ci('DATA ENTREGA','ENTREGA');
+  const iPedido = _ci('PEDIDO');
+  const iProj   = _ci('PROJETADO');
+  const iDisp   = _ci('DISPONIBILIDADE','DISPONIB');
+  const iTotOf  = _ci('TOTAL OF PENDENTE','TOTAL DE PENDENTE');
+  const iPossOf = _ci('POSSUI OF','POSSUI DE');
+  const iOfSem  = _ci('OF SEM REQUISICAO','DE SEM REQUISICAO');
+  const iOfComp = _ci('OF COMPLETA','DE COMPLETA');
+  const iOfParc = _ci('OF REQ PARCIAL','DE REQ PARCIAL');
+  const _iClienteDesc = _ci('DESCRICAO CLIENTE','DESCRI');
+  const iCliente = _iClienteDesc >= 0 ? _iClienteDesc : -1;
+  const iClass  = _ci('CLASSIFICACAO','CLASSIF');
+  const iValor  = _ci('VALOR LIQUIDO PENDEN','VALOR PENDEN');
+  console.log('[parsePedidos] hIdx='+hIdx+' iDataEnt='+iDataEnt+' iCodigo='+iCodigo+' iTotOf='+iTotOf);
 
   const parseNum = v => parseFloat(String(v||'').replace(',','.'))||0;
   const parseDateStr = s => {
-    if (!s) return null;
+    if (!s || s === '0' || s === 'null') return null;
     // "2026-05-08 00:00:00" ou "DD/MM/YYYY"
     const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (iso) return iso[1]+'-'+iso[2]+'-'+iso[3];
-    const br  = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
-    if (br)  return br[3]+'-'+br[2]+'-'+br[1];
+    if (iso) {
+      // Ignorar datas antes de 2024 (inválidas para carteira ativa)
+      if (parseInt(iso[1]) < 2024) return null;
+      return iso[1]+'-'+iso[2]+'-'+iso[3];
+    }
+    const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (br) {
+      if (parseInt(br[3]) < 2024) return null;
+      return br[3]+'-'+br[2]+'-'+br[1];
+    }
     return null;
   };
   const familia = cls => {
@@ -2178,8 +2196,11 @@ function parsePedidos(text) {
     const r = rows[i];
     const codigo = String(r[iCodigo]||'').trim();
     if (!codigo) continue;
+    const dataEmisStr = parseDateStr(r[iDataEm]);
     const dataEntStr = parseDateStr(r[iDataEnt]);
-    const dataEnt = dataEntStr ? new Date(dataEntStr+'T00:00:00') : null;
+    // Se DATA ENTREGA == DATA EMISSAO, provavelmente campo vazio (célula mesclada no HTML)
+    const dataEntValida = dataEntStr && dataEntStr !== dataEmisStr ? dataEntStr : null;
+    const dataEnt = dataEntValida ? new Date(dataEntValida+'T00:00:00') : null;
     const projetado = parseNum(r[iProj]);
     const disp = String(r[iDisp]||'').trim();
     const possOf = String(r[iPossOf]||'').trim();
@@ -2196,7 +2217,7 @@ function parsePedidos(text) {
       descricao: String(r[iDesc]||'').trim(),
       pedido:   String(r[iPedido]||'').trim(),
       dataEnt,
-      dataEntStr,
+      dataEntStr: dataEntValida,
       projetado,
       status,
       atrasado: dataEnt && dataEnt < hoje,
@@ -2434,19 +2455,27 @@ function _pvPopularDias() {
 // ── Família por classificação (sem pontos, ex: '300200001') ──────────────
 function pvFamilia(cls) {
   const s = String(cls||'').replace(/\./g,'');
-  if (s.startsWith('3002000') || s.startsWith('3003000')) return 'TOMADA+MULT';
-  if (s.startsWith('3005')) return 'BOMBA';
-  if (s.startsWith('4001')) return 'BOMBA';   // bomba pistão hydrocar
+  // CONJ EIXO e ADAPTADORES — classificações específicas primeiro
+  if (['3002002','3002005','1002002','1001006','3007001'].some(p => s.startsWith(p))) return 'CONJ EIXO';
+  // TOMADA DE FORCA E MULTIPLICADOR
+  if (s.startsWith('3002') || s.startsWith('3003')) return 'TOMADA+MULT';
+  // BOMBA
+  if (s.startsWith('3005') || s.startsWith('4001')) return 'BOMBA';
+  // CILINDRO
   if (s.startsWith('3004')) return 'CILINDRO';
-  if (s.startsWith('3002002') || s.startsWith('3002005')) return 'CONJ EIXO';
+  // KIT HIDRÁULICO
+  if (s.startsWith('3006') || s.startsWith('4003')) return 'KIT HIDRAULICO';
+  // GUINCHO E ENROLADOR
   if (s.startsWith('8')) return 'GUINCHO';
+  // WALVOIL
   if (s.startsWith('6')) return 'WALVOIL';
   return 'OUTROS';
 }
 
 const FAM_COLORS_PV = {
   'TOMADA+MULT':'#3d8bff','BOMBA':'#ff8c3b','CILINDRO':'#e74c3c',
-  'CONJ EIXO':'#06b6d4','GUINCHO':'#f59e0b','WALVOIL':'#a855f7','OUTROS':'#475569'
+  'CONJ EIXO':'#06b6d4','KIT HIDRAULICO':'#10b981','GUINCHO':'#f59e0b',
+  'WALVOIL':'#a855f7','OUTROS':'#475569'
 };
 
 // ── Renderizar painel de prioridades agrupado ─────────────────────────────
@@ -2512,8 +2541,8 @@ function renderPvPrioridades() {
   });
 
   const FAM_LABEL = {'TOMADA+MULT':'tomadas','BOMBA':'bombas','CILINDRO':'cilindros',
-    'CONJ EIXO':'conj. eixo','GUINCHO':'guinchos','WALVOIL':'walvoil','OUTROS':'outros'};
-  const FAM_ORDER = ['TOMADA+MULT','BOMBA','CILINDRO','CONJ EIXO','GUINCHO','WALVOIL','OUTROS'];
+    'CONJ EIXO':'conj. eixo','KIT HIDRAULICO':'kits hidr.','GUINCHO':'guinchos','WALVOIL':'walvoil','OUTROS':'outros'};
+  const FAM_ORDER = ['TOMADA+MULT','BOMBA','CILINDRO','CONJ EIXO','KIT HIDRAULICO','GUINCHO','WALVOIL','OUTROS'];
 
   const resumoHtml = FAM_ORDER
     .filter(f => famTotals[f] && famTotals[f].montar > 0)
@@ -2529,6 +2558,53 @@ function renderPvPrioridades() {
 
   const resumoDiv = document.getElementById('pv-resumo-fam');
   if (resumoDiv) resumoDiv.innerHTML = `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:4px">${resumoHtml}</div>`;
+
+  // ── Gráfico por família ─────────────────────────────────────────────────────
+  const famParaGrafico = FAM_ORDER.filter(f => famTotals[f] && famTotals[f].montar > 0);
+  const chartCanvas = document.getElementById('pv-prior-chart');
+  if (chartCanvas) {
+    const existingChart = Chart.getChart(chartCanvas);
+    if (existingChart) existingChart.destroy();
+    new Chart(chartCanvas, {
+      type: 'bar',
+      data: {
+        labels: famParaGrafico.map(f => FAM_LABEL[f]?.toUpperCase() || f),
+        datasets: [{
+          label: 'A Montar',
+          data: famParaGrafico.map(f => famTotals[f].montar),
+          backgroundColor: famParaGrafico.map(f => (FAM_COLORS_PV[f]||'#475569')+'cc'),
+          borderColor:     famParaGrafico.map(f =>  FAM_COLORS_PV[f]||'#475569'),
+          borderWidth: 1, borderRadius: 5,
+          datalabels: {
+            color: famParaGrafico.map(f => FAM_COLORS_PV[f]||'#aaa'),
+            anchor: 'end', align: 'top', offset: 2,
+            font: { size: 13, weight: '700' },
+            formatter: v => v.toLocaleString('pt-BR')
+          }
+        }, {
+          label: 'PV',
+          data: famParaGrafico.map(f => famTotals[f].pv),
+          backgroundColor: famParaGrafico.map(f => (FAM_COLORS_PV[f]||'#475569')+'33'),
+          borderColor:     famParaGrafico.map(f =>  FAM_COLORS_PV[f]||'#475569'),
+          borderWidth: 1, borderRadius: 5, borderDash: [4,2],
+          datalabels: { display: false }
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, labels: { color: 'var(--text-muted)', boxWidth: 12, font: { size: 11 } } },
+          datalabels: { display: true }
+        },
+        scales: {
+          x: { ticks: { color: '#7a8299', font: { size: 11 } }, grid: { display: false } },
+          y: { ticks: { color: '#7a8299' }, grid: { color: '#1e2334' } }
+        },
+        layout: { padding: { top: 28 } }
+      },
+      plugins: [ChartDataLabels]
+    });
+  }
 
   // ── Tabela agrupada ───────────────────────────────────────────────────────
   const tbody = document.getElementById('pv-prior-tbody');
