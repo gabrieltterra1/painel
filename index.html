@@ -1070,7 +1070,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <!-- Gráficos lado a lado -->
   <div class="charts-grid" style="margin-bottom:16px">
     <div class="chart-card">
-      <div class="chart-title">PEÇAS A MONTAR — POR FAMÍLIA (período)</div>
+      <div class="chart-title">PRODUTOS SELECIONADOS — POR FAMÍLIA</div>
       <div style="position:relative;height:220px"><canvas id="pv-prior-chart"></canvas></div>
     </div>
     <div class="chart-card">
@@ -2655,48 +2655,58 @@ function renderPvPrioridades() {
     });
   }
 
-  // ── Gráfico por família ─────────────────────────────────────────────────────
-  const famParaGrafico = FAM_ORDER.filter(f => famTotals[f] && famTotals[f].montar > 0);
+  // ── Gráfico de barras — soma dos produtos selecionados por família ──────────
+  const famFiltrados = FAM_ORDER.filter(f => lista.some(g => g.familia === f));
   const chartCanvas = document.getElementById('pv-prior-chart');
   if (chartCanvas) {
     const existingChart = Chart.getChart(chartCanvas);
     if (existingChart) existingChart.destroy();
+
+    // Contar produtos e peças a montar por família nos itens filtrados
+    const famCount  = {}; // nº produtos
+    const famMontar = {}; // total peças a montar
+    lista.forEach(g => {
+      famCount[g.familia]  = (famCount[g.familia]  || 0) + 1;
+      famMontar[g.familia] = (famMontar[g.familia] || 0) + (typeof g.a_montar === 'number' ? g.a_montar : 0);
+    });
+
     new Chart(chartCanvas, {
       type: 'bar',
       data: {
-        labels: famParaGrafico.map(f => FAM_LABEL[f]?.toUpperCase() || f),
+        labels: famFiltrados.map(f => (FAM_LABEL[f]||f).toUpperCase()),
         datasets: [{
-          label: 'A Montar',
-          data: famParaGrafico.map(f => famTotals[f].montar),
-          backgroundColor: famParaGrafico.map(f => (FAM_COLORS_PV[f]||'#475569')+'cc'),
-          borderColor:     famParaGrafico.map(f =>  FAM_COLORS_PV[f]||'#475569'),
+          label: 'Produtos',
+          data: famFiltrados.map(f => famCount[f]||0),
+          backgroundColor: famFiltrados.map(f => (FAM_COLORS_PV[f]||'#475569')+'cc'),
+          borderColor:     famFiltrados.map(f =>  FAM_COLORS_PV[f]||'#475569'),
           borderWidth: 1, borderRadius: 5,
           datalabels: {
-            color: famParaGrafico.map(f => FAM_COLORS_PV[f]||'#aaa'),
+            color: famFiltrados.map(f => FAM_COLORS_PV[f]||'#aaa'),
             anchor: 'end', align: 'top', offset: 2,
             font: { size: 13, weight: '700' },
-            formatter: v => v.toLocaleString('pt-BR')
+            formatter: v => v || ''
           }
-        }, {
-          label: 'PV',
-          data: famParaGrafico.map(f => famTotals[f].pv),
-          backgroundColor: famParaGrafico.map(f => (FAM_COLORS_PV[f]||'#475569')+'33'),
-          borderColor:     famParaGrafico.map(f =>  FAM_COLORS_PV[f]||'#475569'),
-          borderWidth: 1, borderRadius: 5, borderDash: [4,2],
-          datalabels: { display: false }
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: {
-          legend: { display: true, labels: { color: 'var(--text-muted)', boxWidth: 12, font: { size: 11 } } },
-          datalabels: { display: true }
+          legend: { display: false },
+          datalabels: { display: true },
+          tooltip: {
+            callbacks: {
+              afterLabel: (ctx) => {
+                const f = famFiltrados[ctx.dataIndex];
+                return 'Peças a montar: ' + (famMontar[f]||0).toLocaleString('pt-BR');
+              }
+            }
+          }
         },
         scales: {
           x: { ticks: { color: '#7a8299', font: { size: 11 } }, grid: { display: false } },
           y: { ticks: { color: '#7a8299' }, grid: { color: '#1e2334' } }
         },
-        layout: { padding: { top: 28 } }
+        layout: { padding: { top: 32 } }
       },
       plugins: [ChartDataLabels]
     });
@@ -2871,18 +2881,16 @@ function pvFiltroRapido(tipo) {
   const diasList = document.querySelectorAll('#ms-pv-dias-list .ms-item input');
   diasList.forEach(cb => {
     if (tipo === 'atraso') {
-      // Marcar apenas dias em atraso (antes de hoje)
       cb.checked = cb.value < hojeStr;
     } else if (tipo === 'hoje') {
-      // Marcar atrasos + hoje
       cb.checked = cb.value <= hojeStr;
     }
   });
   msChange('ms-pv-dias');
 
-  // Filtrar apenas projetado negativo
+  // Botão atraso: todos os projetados. Botão hoje: somente negativos
   const projFilt = document.getElementById('pv-proj-filt');
-  if (projFilt) { projFilt.value = 'neg'; }
+  if (projFilt) projFilt.value = tipo === 'hoje' ? 'neg' : '';
 
   renderPvPrioridades();
 }
