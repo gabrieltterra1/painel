@@ -2139,8 +2139,8 @@ function parsePedidos(text) {
   const iQtde   = ci('QTDE PENDENTE PV') >= 0 ? ci('QTDE PENDENTE PV') : ci('QTDE PENDENTE');
   const iCodigo = ci('CODIGO ITEM');
   const iDesc   = ci('DESCRICAO ITEM');
-  const iDataEm = ci('DATA EMISSAO');
-  const iDataEnt= ci('DATA ENTREGA');  // col8 — DATA DE ENTREGA DO PEDIDO
+  const iDataEm = ci('DATA EMISSAO') >= 0 ? ci('DATA EMISSAO') : 7;  // col8 (1-idx)
+  const iDataEnt= ci('DATA ENTREGA') >= 0 ? ci('DATA ENTREGA') : 8;  // col9 (1-idx) = DATA ENTREGA
   const iPedido = ci('PEDIDO');
   const iProj   = ci('PROJETADO');
   const iDisp   = ci('DISPONIBILIDADE');
