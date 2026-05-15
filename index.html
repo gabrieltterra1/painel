@@ -1070,11 +1070,11 @@ document.addEventListener('DOMContentLoaded', () => {
   <!-- Gráficos lado a lado -->
   <div class="charts-grid" style="margin-bottom:16px">
     <div class="chart-card">
-      <div class="chart-title">PRODUTOS SELECIONADOS — POR FAMÍLIA</div>
+      <div class="chart-title">A MONTAR — POR FAMÍLIA</div>
       <div style="position:relative;height:220px"><canvas id="pv-prior-chart"></canvas></div>
     </div>
     <div class="chart-card">
-      <div class="chart-title">PRODUTOS FILTRADOS — CONTAGEM POR STATUS</div>
+      <div class="chart-title">A MONTAR — POR STATUS</div>
       <div style="position:relative;height:220px"><canvas id="pv-status-chart"></canvas></div>
     </div>
   </div>
@@ -2496,9 +2496,11 @@ function _pvPopularDias() {
 
 // ── Família por classificação (sem pontos, ex: '300200001') ──────────────
 function pvFamilia(cls) {
-  const s = String(cls||'').replace(/\./g,'');
-  // CONJ EIXO e ADAPTADORES — classificações específicas primeiro
-  if (['3002002','3002005','1002002','1001006','3007001'].some(p => s.startsWith(p))) return 'CONJ EIXO';
+  const s = String(cls||'').replace(/\./g,'').trim();
+  // CONJ EIXO e ADAPTADORES — verificar ANTES de TOMADA (300200 é tomada, 300200002/005 é eixo)
+  if (s.startsWith('3002002') || s.startsWith('3002005') ||
+      s.startsWith('1002002') || s.startsWith('1001006') ||
+      s.startsWith('3007001')) return 'CONJ EIXO';
   // TOMADA DE FORCA E MULTIPLICADOR
   if (s.startsWith('3002') || s.startsWith('3003')) return 'TOMADA+MULT';
   // BOMBA
@@ -2616,12 +2618,13 @@ function renderPvPrioridades() {
     };
     lista.forEach(g => {
       const sof = g.statusOf || '';
-      if (g.faturar)                                            statusCounts['FATURAR']++;
-      else if (sof.includes('FALTA SEPARAR') && sof.includes('SEPARADO')) statusCounts['◑ MISTO']++;
-      else if (sof.includes('▣ SEPARADO'))                     statusCounts['▣ SEPARADO']++;
-      else if (sof.includes('◑ SEP. PARCIAL'))                 statusCounts['◑ SEP. PARCIAL']++;
-      else if (sof.includes('FALTA SEPARAR'))                  statusCounts['⚙ FALTA SEPARAR']++;
-      else                                                      statusCounts['✗ ABRIR OF']++;
+      const val = typeof g.a_montar === 'number' ? g.a_montar : (g.faturar ? g.qtde_pv : 0);
+      if (g.faturar)                                            statusCounts['FATURAR']            += val;
+      else if (sof.includes('FALTA SEPARAR') && sof.includes('SEPARADO')) statusCounts['◑ MISTO'] += val;
+      else if (sof.includes('▣ SEPARADO'))                     statusCounts['▣ SEPARADO']          += val;
+      else if (sof.includes('◑ SEP. PARCIAL'))                 statusCounts['◑ SEP. PARCIAL']      += val;
+      else if (sof.includes('FALTA SEPARAR'))                  statusCounts['⚙ FALTA SEPARAR']     += val;
+      else                                                      statusCounts['✗ ABRIR OF']          += val;
     });
 
     const statusLabels = Object.keys(statusCounts).filter(k => statusCounts[k] > 0);
@@ -2675,8 +2678,8 @@ function renderPvPrioridades() {
       data: {
         labels: famFiltrados.map(f => (FAM_LABEL[f]||f).toUpperCase()),
         datasets: [{
-          label: 'Produtos',
-          data: famFiltrados.map(f => famCount[f]||0),
+          label: 'A Montar',
+          data: famFiltrados.map(f => famMontar[f]||0),
           backgroundColor: famFiltrados.map(f => (FAM_COLORS_PV[f]||'#475569')+'cc'),
           borderColor:     famFiltrados.map(f =>  FAM_COLORS_PV[f]||'#475569'),
           borderWidth: 1, borderRadius: 5,
