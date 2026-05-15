@@ -2169,21 +2169,38 @@ function parsePedidos(text) {
   const iValor  = 26;  // VALOR LIQUIDO PENDEN
 
   const parseNum = v => parseFloat(String(v||'').replace(',','.'))||0;
-  const parseDateStr = s => {
+  // Converte qualquer formato de data para objeto Date local (sem shift de timezone)
+  const parseDate = s => {
     if (!s || s === '0' || s === 'null') return null;
-    // "2026-05-08 00:00:00" ou "DD/MM/YYYY"
+    // ISO com timezone: "2026-09-05T03:00:00.000Z" → usar diretamente
+    const isoZ = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+    if (isoZ) {
+      const ano = parseInt(isoZ[1]);
+      if (ano < 2024) return null;
+      // Criar data local a partir dos componentes UTC (T03:00:00Z = meia-noite no BRT UTC-3)
+      const d = new Date(s);
+      // Ajustar para data local correta
+      return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    }
+    // ISO simples: "2026-09-05"
     const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (iso) {
-      // Ignorar datas antes de 2024 (inválidas para carteira ativa)
       if (parseInt(iso[1]) < 2024) return null;
-      return iso[1]+'-'+iso[2]+'-'+iso[3];
+      return new Date(+iso[1], +iso[2]-1, +iso[3]);
     }
+    // BR: "13/05/2026"
     const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
     if (br) {
       if (parseInt(br[3]) < 2024) return null;
-      return br[3]+'-'+br[2]+'-'+br[1];
+      return new Date(+br[3], +br[2]-1, +br[1]);
     }
     return null;
+  };
+  const parseDateStr = s => {
+    const d = parseDate(s);
+    if (!d) return null;
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+    return y+'-'+m+'-'+day;
   };
   const familia = cls => {
     const s = String(cls||'');
@@ -2199,10 +2216,8 @@ function parsePedidos(text) {
     const codigo = String(r[iCodigo]||'').trim();
     if (!codigo) continue;
     const dataEmisStr = parseDateStr(r[iDataEm]);
-    const dataEntStr = parseDateStr(r[iDataEnt]);
-    // Se DATA ENTREGA == DATA EMISSAO, provavelmente campo vazio (célula mesclada no HTML)
-    const dataEntValida = dataEntStr && dataEntStr !== dataEmisStr ? dataEntStr : null;
-    const dataEnt = dataEntValida ? new Date(dataEntValida+'T00:00:00') : null;
+    const dataEntStr  = parseDateStr(r[iDataEnt]);
+    const dataEnt     = dataEntStr ? parseDate(r[iDataEnt]) : null;
     const projetado = parseNum(r[iProj]);
     const disp = String(r[iDisp]||'').trim();
     const possOf = String(r[iPossOf]||'').trim();
@@ -2219,7 +2234,7 @@ function parsePedidos(text) {
       descricao: String(r[iDesc]||'').trim(),
       pedido:   String(r[iPedido]||'').trim(),
       dataEnt,
-      dataEntStr: dataEntValida,
+      dataEntStr,
       projetado,
       status,
       atrasado: dataEnt && dataEnt < hoje,
