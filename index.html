@@ -2734,78 +2734,51 @@ function _pvCalcMontar(proj, ofSemStr, ofCompStr, ofParcStr) {
   const ofsParc = _pvParseOfs(ofParcStr);
   const ofsSem  = _pvParseOfs(ofSemStr);
 
-  // Regra: percorre OFs em ordem (COMP→PARC→SEM), cada OF usada inteira
-  // Quando uma OF sozinha cobre a necessidade restante → usa ela inteira (sem cap)
-  // Exceto: se a soma total supera necessidade E não há OF individual menor
-  //         que cubra exatamente → aplica min(total, necessidade) como teto
-  const calcMontar = ofs => {
+  // Regra: percorre OFs em ordem COMP→PARC→SEM
+  // Cada OF é usada INTEIRA — nunca monta parcial de uma OF
+  // Para quando acumulado >= necessidade
+  const somarOfs = ofs => {
     let acum = 0;
     for (const of_ of ofs) {
       if (acum >= necessidade) break;
-      const rest = necessidade - acum;
-      if (of_.qty >= rest) {
-        // Esta OF cobre o restante — usa inteira
-        acum += of_.qty;
-        break;
-      }
       acum += of_.qty;
     }
-    // Teto: min(acum, necessidade) quando nenhuma OF individual cobre sozinha
-    // mas a soma supera (ex: [1,3] nec=3 → acum=4 → teto=3)
-    return Math.min(acum, necessidade * 1.5) > necessidade
-      ? (acum > necessidade && ofsComp.concat(ofsParc,ofsSem).every(o => o.qty < necessidade)
-          ? necessidade : acum)
-      : acum;
+    return acum;
   };
 
-  // Calcular total e identificar quais tipos de OF contribuem
-  let total = 0, qtComp = 0, qtParc = 0, qtSem = 0;
-
-  if (ofsComp.length > 0) {
-    qtComp = calcMontar(ofsComp);
-    if (qtComp < necessidade && (ofsParc.length > 0 || ofsSem.length > 0)) {
-      // Precisa complementar
-      const resto = necessidade - qtComp;
-      const ofsExtra = [...ofsParc, ...ofsSem];
-      let acumExtra = 0;
-      for (const of_ of ofsExtra) {
-        if (acumExtra >= resto) break;
-        const r2 = resto - acumExtra;
-        if (of_.qty >= r2) { acumExtra += of_.qty; break; }
-        acumExtra += of_.qty;
-      }
-      // Complemento não deve ultrapassar o restante necessário (teto)
-      const complemento = Math.min(acumExtra, resto + (ofsExtra.every(o=>o.qty>resto) ? ofsExtra[0]?.qty - resto : 0));
-      qtSem = Math.min(acumExtra, acumExtra); // usa inteiro da OF
-      total = qtComp + acumExtra;
-    } else {
-      total = qtComp;
-    }
-  } else if (ofsParc.length > 0) {
-    qtParc = calcMontar(ofsParc);
-    total = qtParc;
-    if (total < necessidade && ofsSem.length > 0) {
-      let acumSem = 0, resto = necessidade - total;
-      for (const of_ of ofsSem) {
-        if (acumSem >= resto) break;
-        acumSem += of_.qty;
-      }
-      qtSem = acumSem; total += acumSem;
-    }
-  } else if (ofsSem.length > 0) {
-    total = calcMontar(ofsSem);
-    qtSem = total;
-  } else {
+  if (!ofsComp.length && !ofsParc.length && !ofsSem.length) {
     return { montar: necessidade, statusOf: `${necessidade} ✗ ABRIR OF` };
   }
 
+  // Calcular contribuição de cada tipo
+  let qtComp = 0, qtParc = 0, qtSem = 0;
+
+  // 1. COMP primeiro
+  qtComp = somarOfs(ofsComp);
+  // 2. Se ainda falta, complementa com PARC
+  const restAposComp = necessidade - qtComp;
+  if (restAposComp > 0 && ofsParc.length) {
+    const tmpOfsParc = ofsParc.map(o => ({...o}));
+    let acum = 0;
+    for (const o of tmpOfsParc) { if (acum >= restAposComp) break; acum += o.qty; }
+    qtParc = acum;
+  }
+  // 3. Se ainda falta, complementa com SEM
+  const restAposParc = necessidade - qtComp - qtParc;
+  if (restAposParc > 0 && ofsSem.length) {
+    let acum = 0;
+    for (const o of ofsSem) { if (acum >= restAposParc) break; acum += o.qty; }
+    qtSem = acum;
+  }
+
+  const total = qtComp + qtParc + qtSem;
+
   // Status descritivo
-  let statusOf = '';
   const partes = [];
   if (qtComp > 0) partes.push(`${qtComp} ▣ SEPARADO`);
   if (qtParc > 0) partes.push(`${qtParc} ◑ SEP. PARCIAL`);
   if (qtSem  > 0) partes.push(`${qtSem} ⚙ FALTA SEPARAR`);
-  statusOf = partes.join(' + ') || `${total} ABRIR OF`;
+  const statusOf = partes.join(' + ');
 
   return { montar: total, statusOf };
 }
