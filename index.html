@@ -567,10 +567,10 @@
   .chart-fixed-ns canvas { position: absolute; top: 0; left: 0; width: 100% !important; height: 100% !important; }
 
   /* LINHA DO TEMPO TABLE */
-  .timeline-table { min-width: 750px; border-collapse: collapse; table-layout: fixed; }
-  .timeline-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; display: block; width: 100%; max-width: 100%; }
-  .timeline-table th, .timeline-table td { white-space: nowrap; min-width: 120px; }
-  .timeline-table th:first-child, .timeline-table td:first-child { min-width: 100px; }
+  .timeline-table { border-collapse: collapse; width: max-content; min-width: 100%; }
+  .timeline-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; display: block; width: 100%; }
+  .timeline-table th { white-space: nowrap; padding: 10px 16px !important; }
+  .timeline-table td { white-space: nowrap; padding: 8px 16px !important; }
   .timeline-table th { background: #1a3a6e; color: #fff; font-family: var(--font-display); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; padding: 10px 14px; text-align: right; }
   .timeline-table th:first-child { text-align: left; }
   .timeline-table td { padding: 9px 14px; text-align: right; font-size: 13px; }
