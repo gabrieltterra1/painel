@@ -601,6 +601,78 @@
 
   /* FORNECEDOR COLUMN — truncate with tooltip */
   .fornecedor-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; font-size: 12px; }
+
+/* ═══════════ MOBILE RESPONSIVE ═══════════ */
+@media (max-width: 768px) {
+  /* Header */
+  header { padding: 10px 12px; gap: 8px; }
+  .header-left h1 { font-size: 16px; }
+  .status-bar { font-size: 10px; gap: 6px; }
+  .upload-btn { padding: 6px 10px; font-size: 11px; }
+
+  /* Tabs */
+  .tabs { padding: 0 8px; gap: 0; }
+  .tab { padding: 10px 10px; font-size: 10px; letter-spacing: 0; }
+
+  /* Conteúdo */
+  .content { padding: 12px; }
+  .section-title { font-size: 9px; letter-spacing: 1px; }
+
+  /* KPI bar — scroll horizontal */
+  .kpi-bar { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; gap: 8px; }
+  .kpi-card { min-width: 110px; padding: 10px 12px; flex-shrink: 0; }
+  .kpi-value { font-size: 20px; }
+  .kpi-label { font-size: 9px; }
+
+  /* Gráficos — empilhar verticalmente */
+  .charts-grid { grid-template-columns: 1fr; gap: 10px; }
+  .chart-card { padding: 10px 12px; }
+
+  /* Filtros */
+  .filter-row { gap: 6px; }
+  .filter-select { font-size: 12px; padding: 6px 8px; }
+  .search-input { width: 100% !important; font-size: 12px; }
+  .ms-btn { font-size: 12px; padding: 6px 10px; }
+  .ms-dropdown { min-width: 180px; }
+
+  /* Tabelas — scroll horizontal */
+  .table-wrap .scrollable { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { font-size: 11px; }
+  th, td { padding: 6px 8px; white-space: nowrap; }
+
+  /* Cards de trânsito */
+  .transit-cards { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .transit-card { padding: 10px; }
+  .transit-card-header { font-size: 13px; }
+
+  /* Cards resumo família (Pedidos) */
+  .fam-cards, #pv-resumo-fam > div { flex-wrap: wrap; gap: 8px; }
+
+  /* Botões filtro rápido */
+  #ms-pv-dias .ms-btn, button[onclick*="pvFiltroRapido"], button[onclick*="pvGerarPDF"] {
+    font-size: 10px; padding: 6px 8px;
+  }
+
+  /* Gráficos de barras — altura menor */
+  .chart-fixed { height: 160px !important; }
+  .chart-fixed-tall { height: 200px !important; }
+
+  /* IFE cards */
+  #ife-resumo > div { flex-wrap: wrap; }
+  #ife-resumo > div > div { padding: 10px 14px; }
+  #ife-resumo .fq { font-size: 22px; }
+
+  /* Servicos — ocultar colunas menos importantes em mobile */
+  .scrollable table { min-width: 600px; }
+}
+
+@media (max-width: 480px) {
+  .kpi-value { font-size: 18px; }
+  .tab { padding: 9px 7px; font-size: 9px; }
+  .charts-grid { gap: 8px; }
+  .transit-cards { grid-template-columns: 1fr; }
+  header { flex-wrap: wrap; }
+}
 </style>
 </head>
 <body>
@@ -661,7 +733,10 @@ document.addEventListener('DOMContentLoaded', () => {
       <span id="update-time" class="last-update">— Aguardando pasta…</span>
       <span class="countdown-ring" id="countdown"></span>
     </div>
-    <button class="upload-btn" id="refresh-btn" onclick="forcarAtualizacao()" title="Forçar atualização dos dados">↻ Atualizar</button>
+    <div style="display:flex;gap:5px">
+      <button class="upload-btn" id="refresh-btn" onclick="forcarAtualizacao(false)" title="Atualizar dados do painel">↻ Atualizar</button>
+      <button class="upload-btn" id="process-btn" onclick="forcarAtualizacao(true)" title="Ler novos emails e atualizar (~1 min)" style="padding:7px 10px;font-size:14px">⚡</button>
+    </div>
     <input type="file" id="file-input" multiple accept=".csv,.CSV" onchange="handleFiles(this.files)">
   </div>
 </header>
@@ -1084,17 +1159,17 @@ document.addEventListener('DOMContentLoaded', () => {
     <table style="min-width:900px">
       <thead class="blue" style="position:sticky;top:0;z-index:2">
         <tr>
-          <th style="width:90px">CÓDIGO</th>
-          <th>DESCRIÇÃO</th>
-          <th style="width:80px">FAMÍLIA</th>
-          <th style="text-align:right;width:70px">PV (qtde)</th>
-          <th style="text-align:right;width:80px">PROJETADO</th>
-          <th style="text-align:right;width:80px">OF SEM REQ</th>
-          <th style="text-align:right;width:80px">OF COMPLETA</th>
-          <th style="text-align:right;width:80px">OF PARCIAL</th>
-          <th style="text-align:right;width:90px;color:#f59e0b">A MONTAR</th>
-          <th style="width:90px">STATUS</th>
-          <th style="width:180px">DETALHE OF</th>
+          <th style="width:80px">CÓDIGO</th>
+          <th style="min-width:160px;max-width:260px">DESCRIÇÃO</th>
+          <th style="width:90px">FAMÍLIA</th>
+          <th style="text-align:right;width:55px">PV</th>
+          <th style="text-align:right;width:75px">PROJETADO</th>
+          <th style="text-align:right;width:70px">OF S/REQ</th>
+          <th style="text-align:right;width:70px">OF COMP.</th>
+          <th style="text-align:right;width:70px">OF PARC.</th>
+          <th style="text-align:right;width:85px;color:#f59e0b">▲ A MONTAR</th>
+          <th style="width:110px">STATUS</th>
+          <th style="width:200px">DETALHE OF</th>
         </tr>
       </thead>
       <tbody id="pv-prior-tbody"></tbody>
@@ -2743,7 +2818,7 @@ function renderPvPrioridades() {
     const aMontar = g.a_montar > 0 ? `<span style="color:#f59e0b;font-weight:800">${g.a_montar}</span>` : '<span class="zero">—</span>';
     return `<tr>
       <td style="font-family:monospace;font-size:12px">${g.codigo}</td>
-      <td style="font-size:12px;text-align:left">${g.descricao}</td>
+      <td style="font-size:11px;text-align:left;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${g.descricao}">${g.descricao}</td>
       <td style="color:${color};font-size:11px;font-weight:700">${g.familia}</td>
       <td style="text-align:right;font-weight:700">${g.qtde_pv}</td>
       <td style="text-align:right;color:${saldoColor};font-weight:600">${g.saldo}</td>
@@ -2839,30 +2914,26 @@ function _pvCalcMontar(proj, ofSemStr, ofCompStr, ofParcStr) {
     return { montar: necessidade, statusOf: `${necessidade} ✗ ABRIR OF` };
   }
 
-  // Calcular contribuição de cada tipo
-  let qtComp = 0, qtParc = 0, qtSem = 0;
+  // Percorre OFs em ordem COMP→PARC→SEM
+  // Cada OF é usada inteira. Quando a última OF usada >= nec_restante → usa inteira (sem teto)
+  // Quando múltiplas OFs pequenas cobrem acumulando → aplica teto em nec se última < nec
+  const somarAteNec = (ofs, nec) => {
+    let acum = 0, multi = false, ultima = 0;
+    for (const o of ofs) {
+      if (acum >= nec) break;
+      const resto = nec - acum;
+      if (o.qty >= resto) { acum += o.qty; ultima = o.qty; break; }
+      acum += o.qty; ultima = o.qty; multi = true;
+    }
+    if (multi && acum > nec && ultima < nec) return nec;
+    return acum;
+  };
 
-  // 1. COMP primeiro
-  qtComp = somarOfs(ofsComp);
-  // 2. Se ainda falta, complementa com PARC
-  const restAposComp = necessidade - qtComp;
-  if (restAposComp > 0 && ofsParc.length) {
-    const tmpOfsParc = ofsParc.map(o => ({...o}));
-    let acum = 0;
-    for (const o of tmpOfsParc) { if (acum >= restAposComp) break; acum += o.qty; }
-    qtParc = acum;
-  }
-  // 3. Se ainda falta, complementa com SEM
-  const restAposParc = necessidade - qtComp - qtParc;
-  if (restAposParc > 0 && ofsSem.length) {
-    let acum = 0;
-    for (const o of ofsSem) { if (acum >= restAposParc) break; acum += o.qty; }
-    qtSem = acum;
-  }
-
+  let qtComp = somarAteNec(ofsComp, necessidade);
+  let qtParc = qtComp < necessidade ? somarAteNec(ofsParc, necessidade - qtComp) : 0;
+  let qtSem  = (qtComp + qtParc) < necessidade ? somarAteNec(ofsSem, necessidade - qtComp - qtParc) : 0;
   const total = qtComp + qtParc + qtSem;
 
-  // Status descritivo
   const partes = [];
   if (qtComp > 0) partes.push(`${qtComp} ▣ SEPARADO`);
   if (qtParc > 0) partes.push(`${qtParc} ◑ SEP. PARCIAL`);
@@ -3820,11 +3891,22 @@ function setStatus(state, msg) {
   txt.textContent = msg;
 }
 
-async function forcarAtualizacao() {
+async function forcarAtualizacao(forceProcess=false) {
   const btn = document.getElementById('refresh-btn');
+  const pbtn = document.getElementById('process-btn');
+  if (forceProcess) {
+    if (pbtn) { pbtn.disabled = true; pbtn.textContent = '⏳'; }
+    if (btn)  { btn.disabled = true; }
+    setStatus('active', '⚡ Processando emails...');
+    try {
+      await fetch(WEBAPP+'?acao=processar&t='+Date.now());
+    } catch(e) { console.warn('Processar:', e); }
+    if (pbtn) { pbtn.disabled = false; pbtn.textContent = '⚡'; }
+  }
   if (btn) { btn.disabled = true; btn.textContent = '↻ Atualizando...'; }
   await readSheets();
   if (btn) { btn.disabled = false; btn.textContent = '↻ Atualizar'; }
+  if (btn) btn.disabled = false;
 }
 
 async function startMonitor() {
