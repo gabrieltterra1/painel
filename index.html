@@ -3200,7 +3200,7 @@ function pvGerarPDF() {
           let html = '<tr>';
           tds.forEach((td, i) => {
             const cls = i===1?'col-cod':i===3?'col-fam':i===9?'col-montar':i===10?'col-status':'';
-            html += \`<td class="\${cls}">\${td.innerHTML}</td>\`;
+            html += '<td class="' + cls + '">' + td.innerHTML + '</td>';
           });
           html += '</tr>';
           return html;
