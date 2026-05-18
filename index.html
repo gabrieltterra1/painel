@@ -2355,11 +2355,7 @@ function parsePedidos(text) {
     const r = rows[i];
     const codigo = String(r[iCodigo]||'').trim();
     if (!codigo) continue;
-    if (codigo === '9532') console.log('[9532] row:', JSON.stringify({
-      qtde: r[iQtde], proj: r[iProj], disp: r[iDisp],
-      possOf: r[iPossOf], totOf: r[iTotOf],
-      ofSem: r[iOfSem], ofComp: r[iOfComp], ofParc: r[iOfParc]
-    }));
+
     const dataEmisStr = parseDateStr(r[iDataEm]);
     const dataEntStr  = parseDateStr(r[iDataEnt]);
     const dataEnt     = dataEntStr ? parseDate(r[iDataEnt]) : null;
@@ -2913,12 +2909,21 @@ function _pvParseOfs(s) {
       else                              { cur += ch; }
     }
     if (cur.trim()) parts.push(cur.trim());
+    // Quantidade total do prefixo "32 (..." para fallback quando não tem =qty
+    const totalMatch = seg.match(/^(\d+)\s*\(/);
+    const totalQty = totalMatch ? parseInt(totalMatch[1]) : 0;
+
     for (const part of parts) {
       const clean = part.split('/')[0].trim(); // remove sufixo "/ (4072)"
       if (clean.includes('=')) {
         const [num, qty] = clean.split('=');
         const q = parseInt(qty?.trim());
         if (!isNaN(q) && q > 0) ofs.push({ of: num.trim(), qty: q });
+      } else if (clean.match(/^\d+$/)) {
+        // Sem =qty — distribuir quantidade total igualmente entre as OFs
+        const numOfs = parts.length || 1;
+        const qEach = parts.length > 1 ? Math.round(totalQty / numOfs) : totalQty;
+        if (qEach > 0) ofs.push({ of: clean.trim(), qty: qEach });
       }
     }
   }
