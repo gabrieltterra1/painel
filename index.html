@@ -2355,6 +2355,11 @@ function parsePedidos(text) {
     const r = rows[i];
     const codigo = String(r[iCodigo]||'').trim();
     if (!codigo) continue;
+    if (codigo === '9532') console.log('[9532] row:', JSON.stringify({
+      qtde: r[iQtde], proj: r[iProj], disp: r[iDisp],
+      possOf: r[iPossOf], totOf: r[iTotOf],
+      ofSem: r[iOfSem], ofComp: r[iOfComp], ofParc: r[iOfParc]
+    }));
     const dataEmisStr = parseDateStr(r[iDataEm]);
     const dataEntStr  = parseDateStr(r[iDataEnt]);
     const dataEnt     = dataEntStr ? parseDate(r[iDataEnt]) : null;
