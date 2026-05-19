@@ -3562,6 +3562,39 @@ const FAM_COLORS_PV = {
   'WALVOIL':'#a855f7','OUTROS':'#475569'
 };
 
+// ── Modal detalhes OF ────────────────────────────────────────────────────────
+function pvMostrarDetalheOf(event, dados) {
+  event.stopPropagation();
+  let modal = document.getElementById('pv-of-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'pv-of-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center';
+    modal.onclick = e => { if(e.target===modal) modal.remove(); };
+    document.body.appendChild(modal);
+  }
+  const _fmt = (label, str, color) => {
+    if (!str) return '';
+    // Mostrar o texto bruto original sem extrair nada
+    const raw = str.split('|').map(s=>s.trim()).filter(Boolean).join('&#10;');
+    return `<div style="margin-bottom:12px">
+      <div style="font-size:10px;letter-spacing:1px;color:${color};font-weight:700;margin-bottom:4px">${label}</div>
+      <pre style="background:#0b0f1e;border:1px solid #1e2a4a;border-radius:6px;padding:10px;font-size:12px;color:#c8cfe8;margin:0;white-space:pre-wrap;word-break:break-all;font-family:monospace">${raw}</pre>
+    </div>`;
+  };
+  modal.innerHTML = `
+    <div style="background:#151a2e;border:1px solid #1e2a4a;border-radius:12px;padding:24px;width:500px;max-width:95vw;max-height:80vh;overflow-y:auto;position:relative">
+      <button onclick="document.getElementById('pv-of-modal').remove()"
+        style="position:absolute;top:12px;right:12px;background:none;border:none;color:#7a8299;font-size:18px;cursor:pointer">×</button>
+      <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px">📋 Detalhes das OFs — Código ${dados.codigo}</div>
+      <div style="font-size:11px;color:#7a8299;margin-bottom:16px">Projetado: ${dados.proj} | Necessidade: ${Math.abs(dados.proj)} pçs</div>
+      ${_fmt('▣ OF COMPLETA (separada)', dados.comp, '#3d8bff')}
+      ${_fmt('◑ OF REQ. PARCIAL', dados.parc, '#06b6d4')}
+      ${_fmt('⚙ OF SEM REQUISIÇÃO', dados.sem, '#f59e0b')}
+      <div style="font-size:10px;color:#5a6380;margin-top:8px">Os itens entre parênteses após / são os componentes faltantes da OF parcial.</div>
+    </div>`;
+}
+
 // ── Estado da tabela de prioridades ──────────────────────────────────────
 let pvSortKey = 'a_montar', pvSortAsc = false;
 let pvOcultos = new Set(); // códigos ocultos na sessão
@@ -3848,7 +3881,13 @@ function renderPvPrioridades() {
       <td style="text-align:right;color:#06b6d4">${g.of_parc||'<span class="zero">—</span>'}</td>
       <td style="text-align:right">${aMontar}</td>
       <td>${statusBadge}</td>
-      <td style="font-size:10px;color:var(--text-muted);max-width:260px;word-break:break-word;white-space:normal;line-height:1.4">${g.faturar?'—':(g.statusOf||'—')}</td>
+      <td style="font-size:10px;color:var(--text-muted);max-width:260px;word-break:break-word;white-space:normal;line-height:1.4;cursor:${g.faturar?'default':'pointer'}"
+        onclick="${g.faturar?'':'pvMostrarDetalheOf(event,'+JSON.stringify({
+          sem: g.of_sem_str, comp: g.of_comp_str, parc: g.of_parc_str,
+          proj: g.proj, codigo: g.codigo
+        }).replace(/"/g,'&quot;')+')'}"
+        title="${g.faturar?'':'Clique para ver detalhes das OFs'}"
+      >${g.faturar?'—':(g.statusOf||'—')}</td>
     </tr>`;
   }).join('');
 
@@ -3962,7 +4001,8 @@ function _pvCalcMontarCompleto(proj, ofSemStr, ofCompStr, ofParcStr) {
   if (faltaAbrirOf > 0) partes.push(`${faltaAbrirOf} ✗ ABRIR OF`);
   if (partes.length === 0) partes.push(`${necessidade} ✗ ABRIR OF`);
 
-  const montar = totalMontavel > 0 ? totalMontavel + faltaAbrirOf : necessidade;
+  // A MONTAR = apenas as OFs que existem (faltaAbrirOf só aparece no DETALHE)
+  const montar = totalMontavel > 0 ? totalMontavel : necessidade;
   return { montar, statusOf: partes.join(' + ') };
 }
 
@@ -4018,38 +4058,50 @@ function pvGerarPDF() {
     <meta charset="UTF-8">
     <title>Prioridades PV — ${hoje}</title>
     <style>
-      * { box-sizing: border-box; }
-      body { font-family: Arial, sans-serif; font-size: 11px; color: #1a1a2e; margin: 12px; }
-      h2 { font-size: 16px; font-weight: 900; margin-bottom: 2px; color: #0d1b3e; }
-      h2 span { color: #1a6fcc; }
-      .sub { font-size: 10px; color: #666; margin-bottom: 10px; border-bottom: 1px solid #1a6fcc; padding-bottom: 4px; }
-      .graficos { display: flex; gap: 10px; margin-bottom: 12px; }
-      .graficos img { height: 140px; border-radius: 6px; }
-      table { width: 100%; border-collapse: collapse; font-size: 10px; }
-      th { background: #0d1b3e; color: #fff; padding: 5px 6px; text-align: left; font-size: 10px; }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #1a1a2e; margin: 14px; }
+      /* Cabeçalho */
+      .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #1a6fcc; padding-bottom: 8px; margin-bottom: 10px; }
+      .header h2 { font-size: 18px; font-weight: 900; color: #0d1b3e; }
+      .header h2 span { color: #1a6fcc; }
+      .header .sub { font-size: 9px; color: #666; text-align: right; line-height: 1.5; }
+      /* Gráficos */
+      .graficos { display: flex; gap: 12px; margin-bottom: 14px; }
+      .grafico-box { flex: 1; background: #f8faff; border: 1px solid #dde4f0; border-radius: 8px; padding: 8px; }
+      .grafico-box .titulo { font-size: 9px; font-weight: 700; color: #666; letter-spacing: 0.5px; margin-bottom: 4px; text-transform: uppercase; }
+      .graficos img { width: 100%; height: 150px; object-fit: contain; }
+      /* Tabela */
+      table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 4px; }
+      thead tr { background: #0d1b3e; }
+      th { color: #fff; padding: 6px 7px; text-align: left; font-size: 9px; font-weight: 700; letter-spacing: 0.3px; white-space: nowrap; }
       th:first-child { display: none; }
-      td { padding: 4px 6px; border-bottom: 1px solid #e8edf5; vertical-align: top; word-break: break-word; }
+      td { padding: 5px 7px; border-bottom: 1px solid #edf1f9; vertical-align: top; }
       td:first-child { display: none; }
-      tr:nth-child(even) td { background: #f4f7fc; }
-      td.col-cod { font-family: monospace; font-size: 11px; font-weight: 700; color: #1a6fcc; white-space: nowrap; }
-      td.col-desc { max-width: 200px; word-break: break-word; white-space: normal; }
-      td.col-fam { font-size: 9px; font-weight: 700; white-space: nowrap; }
-      td.col-montar { font-size: 13px; font-weight: 900; color: #b35e00; text-align: right; white-space: nowrap; }
-      td.col-status { font-size: 9px; font-weight: 700; white-space: nowrap; }
-      td.col-detalhe { font-size: 9px; color: #555; max-width: 150px; word-break: break-word; white-space: normal; }
-      .total-row td { background: #dce7f7 !important; font-weight: 700; border-top: 2px solid #1a6fcc; }
-      .total-row td.col-montar { color: #b35e00; font-size: 14px; }
+      tr:nth-child(even) td { background: #f5f8ff; }
+      /* Colunas especiais */
+      td.col-cod { font-family: 'Courier New', monospace; font-size: 11px; font-weight: 700; color: #1a6fcc; white-space: nowrap; }
+      td.col-desc { max-width: 180px; word-break: break-word; white-space: normal; line-height: 1.3; }
+      td.col-fam { font-size: 9px; font-weight: 700; white-space: nowrap; color: #444; }
+      td.col-montar { font-size: 14px; font-weight: 900; color: #b35e00; text-align: right; white-space: nowrap; }
+      td.col-status { font-size: 9px; font-weight: 700; }
+      td.col-status span { padding: 1px 5px; border-radius: 3px; }
+      td.col-detalhe { font-size: 9px; color: #555; max-width: 160px; word-break: break-word; white-space: normal; line-height: 1.3; }
+      /* Total */
+      .total-row td { background: #e8effe !important; font-weight: 700; font-size: 11px; border-top: 2px solid #1a6fcc; }
+      .total-row td.col-montar { color: #b35e00; font-size: 15px; }
       @media print {
-        body { margin: 6px; }
-        .graficos img { height: 120px; }
+        body { margin: 8px; }
+        .graficos img { height: 130px; }
       }
     </style>
   </head><body>
-    <h2>📋 Painel Industrial — Prioridades de Venda</h2>
-    <div class="sub">Gerado em ${hoje} &nbsp;|&nbsp; Período: ${periodoLabel} &nbsp;|&nbsp; Filtro: projetado negativo</div>
+    <div class="header">
+      <h2>📋 PAINEL <span>INDUSTRIAL</span> — Prioridades de Venda</h2>
+      <div class="sub">Gerado em ${hoje}<br>Período: ${periodoLabel}<br>Filtro: projetado negativo</div>
+    </div>
     <div class="graficos">
-      ${famImg ? `<img src="${famImg}" alt="Peças por família">` : ''}
-      ${statusImg ? `<img src="${statusImg}" alt="Status dos produtos">` : ''}
+      ${famImg ? `<div class="grafico-box"><div class="titulo">A Montar por Família</div><img src="${famImg}" alt="Família"></div>` : ''}
+      ${statusImg ? `<div class="grafico-box"><div class="titulo">A Montar por Status</div><img src="${statusImg}" alt="Status"></div>` : ''}
     </div>
     <table>
       <thead>${thead ? thead.innerHTML : ''}</thead>
