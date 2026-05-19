@@ -3621,6 +3621,7 @@ document.addEventListener('click', function(e) {
 // ── Estado da tabela de prioridades ──────────────────────────────────────
 let pvSortKey = 'a_montar', pvSortAsc = false;
 let pvOcultos = new Set(); // códigos ocultos na sessão
+let pvListaAtual = []; // lista atual renderizada (usada pelo PDF)
 
 function pvLimparFiltros() {
   // Desmarcar todos os dias
@@ -3753,6 +3754,7 @@ function renderPvPrioridades() {
       if (typeof va === 'string') return pvSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
       return pvSortAsc ? va - vb : vb - va;
     });
+  pvListaAtual = lista; // salvar para uso no PDF
   // Botão mostrar ocultos
   const btnOc = document.getElementById('pv-btn-ocultos');
   if (btnOc) { btnOc.style.display = pvOcultos.size > 0 ? '' : 'none'; btnOc.textContent = `👁 Mostrar ${pvOcultos.size} oculto(s)`; }
@@ -4107,7 +4109,7 @@ function pvGerarPDF() {
   const _famColors = {'TOMADA+MULT':'#3d8bff','BOMBA':'#ff8c3b','CILINDRO':'#e74c3c','CONJ EIXO':'#06b6d4','KIT HIDRAULICO':'#10b981','GUINCHO':'#f59e0b','WALVOIL':'#a855f7','OUTROS':'#475569'};
   const _famLabels = {'TOMADA+MULT':'Tomadas','BOMBA':'Bombas','CILINDRO':'Cilindros','CONJ EIXO':'Conj. Eixo','KIT HIDRAULICO':'Kit Hidr.','GUINCHO':'Guinchos','WALVOIL':'Walvoil','OUTROS':'Outros'};
   const famCards = _famOrder.map(f => {
-    const tot = (lista||[]).filter(g=>g.familia===f).reduce((s,g)=>s+(typeof g.a_montar==='number'?g.a_montar:0),0);
+    const tot = pvListaAtual.filter(g=>g.familia===f).reduce((s,g)=>s+(typeof g.a_montar==='number'?g.a_montar:0),0);
     return tot > 0 ? {fam:f, tot, color: _famColors[f]||'#475569', label:(_famLabels[f]||f).toUpperCase()} : null;
   }).filter(Boolean);
   // Capturar canvas de família (mantém para fallback)
