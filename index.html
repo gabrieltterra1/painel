@@ -3615,6 +3615,7 @@ function renderPvPrioridades() {
     if (_ofSem  && _ofSem  !== '0') g.of_sem_str  = [g.of_sem_str,  _ofSem ].filter(Boolean).join('|');
     if (_ofComp && _ofComp !== '0') g.of_comp_str = [g.of_comp_str, _ofComp].filter(Boolean).join('|');
     if (_ofParc && _ofParc !== '0') g.of_parc_str = [g.of_parc_str, _ofParc].filter(Boolean).join('|');
+    if (codigo === '9532') console.log('[9532] linha cod='+codigo+' proj='+r.projetado+' ofSem='+_ofSem+' ofComp='+_ofComp+' of_sem_str='+g.of_sem_str+' of_comp_str='+g.of_comp_str);
     g.of_sem       = _pvParseOfQtde(r.of_sem);
     g.of_comp      = _pvParseOfQtde(r.of_comp);
     g.of_parc      = _pvParseOfQtde(r.of_parc);
@@ -3629,6 +3630,7 @@ function renderPvPrioridades() {
     g.a_montar = rv.montar === 'FATURAR' ? 0 : rv.montar;
     g.statusOf = rv.statusOf;
     g.faturar  = rv.montar === 'FATURAR';
+    if (g.codigo === '9532') console.log('[9532] FINAL proj='+g.proj+' ofSemStr='+g.of_sem_str+' ofCompStr='+g.of_comp_str+' montar='+rv.montar+' status='+rv.statusOf);
   });
 
   // Filtrar
