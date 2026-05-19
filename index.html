@@ -4103,10 +4103,12 @@ function pvGerarPDF() {
   const statusImg = statusCanvas ? statusCanvas.toDataURL('image/png') : null;
 
   // Capturar dados das famílias para os cards
-  const famCards = FAM_ORDER.map(f => {
-    const g_list = lista || [];
-    const tot = g_list.filter(g=>g.familia===f).reduce((s,g)=>s+(typeof g.a_montar==='number'?g.a_montar:0),0);
-    return tot > 0 ? {fam:f, tot, color: FAM_COLORS_PV[f]||'#475569', label:(FAM_LABEL[f]||f).toUpperCase()} : null;
+  const _famOrder = ['TOMADA+MULT','BOMBA','CILINDRO','CONJ EIXO','KIT HIDRAULICO','GUINCHO','WALVOIL','OUTROS'];
+  const _famColors = {'TOMADA+MULT':'#3d8bff','BOMBA':'#ff8c3b','CILINDRO':'#e74c3c','CONJ EIXO':'#06b6d4','KIT HIDRAULICO':'#10b981','GUINCHO':'#f59e0b','WALVOIL':'#a855f7','OUTROS':'#475569'};
+  const _famLabels = {'TOMADA+MULT':'Tomadas','BOMBA':'Bombas','CILINDRO':'Cilindros','CONJ EIXO':'Conj. Eixo','KIT HIDRAULICO':'Kit Hidr.','GUINCHO':'Guinchos','WALVOIL':'Walvoil','OUTROS':'Outros'};
+  const famCards = _famOrder.map(f => {
+    const tot = (lista||[]).filter(g=>g.familia===f).reduce((s,g)=>s+(typeof g.a_montar==='number'?g.a_montar:0),0);
+    return tot > 0 ? {fam:f, tot, color: _famColors[f]||'#475569', label:(_famLabels[f]||f).toUpperCase()} : null;
   }).filter(Boolean);
   // Capturar canvas de família (mantém para fallback)
   const famCanvas = document.getElementById('pv-prior-chart');
