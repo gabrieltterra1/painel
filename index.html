@@ -1009,13 +1009,132 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 <div id="tab-termico" class="tab-content">
-  <div class="section-title">Polimento — Lucas Daniel Moreira</div>
-  <div class="kpi-bar" id="pol-kpis"></div>
-  <div class="section-title" style="margin-top:24px">Linha do Tempo — Polimento por Mês (Qtde Peças)</div>
-  <div class="filter-row" style="margin-bottom:16px">
-    <select class="filter-select" id="pol-mes" onchange="renderTermico()">
-      <option value="">Todos os meses</option>
+
+  <!-- ═══ METAS ═══ -->
+  <div class="section-title">METAS DIÁRIAS — TT & PM
+    <button onclick="abrirModalMetas()" style="margin-left:12px;background:rgba(61,139,255,.15);border:1px solid var(--blue);color:var(--blue);padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer">✏ Editar Metas</button>
+    <button onclick="abrirModalFeriados()" style="margin-left:8px;background:rgba(245,158,11,.15);border:1px solid #f59e0b;color:#f59e0b;padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer">📅 Feriados</button>
+  </div>
+  <div class="kpi-bar" id="meta-kpis" style="margin-bottom:24px"></div>
+
+  <!-- ═══ ACOMPANHAMENTO DIÁRIO MÊS ATUAL ═══ -->
+  <div class="section-title" style="margin-top:8px">ACOMPANHAMENTO DIÁRIO — MÊS ATUAL</div>
+
+  <!-- Cards de saldo -->
+  <div class="kpi-bar" id="saldo-kpis" style="margin-bottom:16px"></div>
+
+  <!-- Card último dia útil -->
+  <div id="ultimo-dia-card" style="margin-bottom:20px"></div>
+
+  <!-- Gráfico diário -->
+  <div class="chart-card" style="margin-bottom:20px">
+    <div class="chart-title">TT & PM — PEÇAS ENVIADAS POR DIA (mês atual)</div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+      <div style="position:relative;height:300px;min-width:500px"><canvas id="diario-chart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Gráficos MÉDIA DIÁRIA -->
+  <div class="section-title">MÉDIA DIÁRIA — META x REALIZADO</div>
+  <div class="charts-grid" style="margin-bottom:20px">
+    <div class="chart-card">
+      <div class="chart-title">TT — MÉDIA DIÁRIA POR MÊS (pçs/dia útil)</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <div style="position:relative;height:260px;min-width:400px"><canvas id="tt-media-chart"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">PM — MÉDIA DIÁRIA POR MÊS (pares/dia útil)</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <div style="position:relative;height:260px;min-width:400px"><canvas id="pm-media-chart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráficos ACUMULADO -->
+  <div class="section-title">ACUMULADO POR MÊS — TOTAL DE PEÇAS (até mês anterior)</div>
+  <div class="charts-grid" style="margin-bottom:20px">
+    <div class="chart-card">
+      <div class="chart-title">TT — TOTAL ENVIADO POR MÊS</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <div style="position:relative;height:260px;min-width:400px"><canvas id="tt-acum-chart"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">PM — TOTAL ENVIADO POR MÊS (pares)</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <div style="position:relative;height:260px;min-width:400px"><canvas id="pm-acum-chart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráficos SALDO -->
+  <div class="section-title">SALDO — REALIZADO vs META</div>
+  <div class="charts-grid" style="margin-bottom:24px">
+    <div class="chart-card">
+      <div class="chart-title">TT — SALDO POR MÊS (realizado − meta total)</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <div style="position:relative;height:220px;min-width:400px"><canvas id="tt-saldo-chart"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">TT — SALDO ACUMULADO NO ANO</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <div style="position:relative;height:220px;min-width:400px"><canvas id="tt-saldo-acum-chart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráficos META x REALIZADO total mensal -->
+  <div class="section-title">META x REALIZADO — TOTAL MENSAL DE PEÇAS</div>
+  <div class="charts-grid" style="margin-bottom:24px">
+    <div class="chart-card">
+      <div class="chart-title">TT — META MENSAL x REALIZADO</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <div style="position:relative;height:260px;min-width:400px"><canvas id="tt-meta-chart"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">PM — META MENSAL x REALIZADO (pares)</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <div style="position:relative;height:260px;min-width:400px"><canvas id="pm-meta-chart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ÚLTIMOS 10 DIAS ═══ -->
+  <div class="section-title">ÚLTIMOS 10 DIAS — NFs EMITIDAS (detalhado)</div>
+  <div class="filter-row" style="margin-bottom:12px">
+    <select class="filter-select" id="ult10-tipo" onchange="renderUlt10()">
+      <option value="">TT + PM</option>
+      <option value="TT">Somente TT</option>
+      <option value="PM">Somente PM</option>
     </select>
+    <select class="filter-select" id="ult10-dia" onchange="renderUlt10()">
+      <option value="">Todos os dias</option>
+    </select>
+    <input class="search-input" type="text" id="ult10-search" placeholder="Buscar código ou descrição..." oninput="renderUlt10()">
+  </div>
+  <div class="table-wrap"><div class="scrollable">
+    <table style="min-width:650px">
+      <thead class="blue"><tr>
+        <th style="width:90px">DATA</th>
+        <th style="width:70px">TIPO</th>
+        <th style="width:90px">CÓDIGO</th>
+        <th>DESCRIÇÃO</th>
+        <th style="width:110px">FORNECEDOR</th>
+        <th style="text-align:right;width:80px">QTDE</th>
+      </tr></thead>
+      <tbody id="ult10-body"></tbody>
+      <tfoot id="ult10-foot"></tfoot>
+    </table>
+  </div></div>
+
+  <!-- ═══ POLIMENTO ═══ -->
+  <div class="section-title" style="margin-top:8px">POLIMENTO — Lucas Daniel Moreira</div>
+  <div class="kpi-bar" id="pol-kpis"></div>
+  <div class="filter-row" style="margin-bottom:16px;margin-top:12px">
+    <select class="filter-select" id="pol-mes" onchange="renderTermico()"><option value="">Todos os meses</option></select>
     <input class="search-input" type="text" id="pol-search" placeholder="Buscar código ou descrição..." oninput="renderTermico()">
   </div>
   <div class="table-wrap"><div class="scrollable">
@@ -1026,12 +1145,11 @@ document.addEventListener('DOMContentLoaded', () => {
     </table>
   </div></div>
 
-  <div class="section-title" style="margin-top:36px">Tratamento Térmico — Thermix / Tecnohard / Metaltecnica</div>
+  <!-- ═══ TRATAMENTO TÉRMICO ═══ -->
+  <div class="section-title" style="margin-top:36px">TRATAMENTO TÉRMICO — Thermix / Tecnohard / Metaltecnica</div>
   <div class="kpi-bar" id="term-kpis"></div>
-  <div class="filter-row" style="margin-bottom:16px;margin-top:16px">
-    <select class="filter-select" id="term-mes" onchange="renderTermico()">
-      <option value="">Todos os meses</option>
-    </select>
+  <div class="filter-row" style="margin-bottom:16px;margin-top:12px">
+    <select class="filter-select" id="term-mes" onchange="renderTermico()"><option value="">Todos os meses</option></select>
     <select class="filter-select" id="term-forn" onchange="renderTermico()">
       <option value="">Todos os fornecedores</option>
       <option value="THERMIX">Thermix</option>
@@ -1047,6 +1165,43 @@ document.addEventListener('DOMContentLoaded', () => {
       <tbody id="term-body"></tbody>
     </table>
   </div></div>
+</div>
+
+<!-- ═══ MODAL METAS ═══ -->
+<div id="modal-metas" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#151a2e;border:1px solid #1e2a4a;border-radius:12px;padding:24px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto">
+    <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:16px">✏ Editar Metas Diárias</div>
+    <div style="font-size:11px;color:#7a8299;margin-bottom:16px">Metas salvas permanentemente no navegador.</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr>
+        <th style="text-align:left;padding:6px 8px;color:#7a8299;font-size:10px">MÊS</th>
+        <th style="text-align:right;padding:6px 8px;color:#f59e0b;font-size:10px">TT (pçs/dia)</th>
+        <th style="text-align:right;padding:6px 8px;color:#06b6d4;font-size:10px">PM (pçs/dia)</th>
+      </tr></thead>
+      <tbody id="meta-editor-rows"></tbody>
+    </table>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+      <button onclick="fecharModalMetas()" style="background:#1e2a4a;border:1px solid #2a3a5a;color:#c8cfe8;padding:8px 18px;border-radius:6px;cursor:pointer">Cancelar</button>
+      <button onclick="salvarMetas()" style="background:var(--blue);border:none;color:#fff;padding:8px 18px;border-radius:6px;font-weight:700;cursor:pointer">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL FERIADOS ═══ -->
+<div id="modal-feriados" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#151a2e;border:1px solid #1e2a4a;border-radius:12px;padding:24px;width:420px;max-width:95vw;max-height:85vh;overflow-y:auto">
+    <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:16px">📅 Feriados</div>
+    <div style="font-size:11px;color:#7a8299;margin-bottom:12px">Feriados são descontados dos dias úteis para cálculo da meta mensal.</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <input id="feriado-data" type="date" style="background:#1e2a4a;border:1px solid #2a3a5a;color:#c8cfe8;padding:7px 10px;border-radius:6px;font-size:13px;flex:1">
+      <input id="feriado-nome" type="text" placeholder="Nome (ex: Natal)" style="background:#1e2a4a;border:1px solid #2a3a5a;color:#c8cfe8;padding:7px 10px;border-radius:6px;font-size:13px;flex:2">
+      <button onclick="adicionarFeriado()" style="background:var(--green);border:none;color:#fff;padding:7px 12px;border-radius:6px;font-weight:700;cursor:pointer">+</button>
+    </div>
+    <div id="feriados-lista" style="max-height:300px;overflow-y:auto"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px">
+      <button onclick="fecharModalFeriados()" style="background:var(--blue);border:none;color:#fff;padding:8px 18px;border-radius:6px;font-weight:700;cursor:pointer">Fechar</button>
+    </div>
+  </div>
 </div>
 
 <div id="tab-ife" class="tab-content">
@@ -1635,8 +1790,14 @@ function parseTermico(text) {
 
   const resultPol  = {}; // key: cod|desc|mes
   const resultTerm = {}; // key: cod|desc|forn|mes
-  // dias uteis por mês: será calculado como número de dias úteis (seg-sex) do mês
+  const resultDiarioTT = {}; // key: dt|cod|desc|forn
+  const resultDiarioPM = {}; // key: dt|cod|desc|forn
   const diasUteisMap = {};
+
+  // Calcular uma vez fora do loop
+  const _hoje = new Date(); _hoje.setHours(0,0,0,0);
+  const _hojeISO = _hoje.getFullYear()+'-'+String(_hoje.getMonth()+1).padStart(2,'0')+'-'+String(_hoje.getDate()).padStart(2,'0');
+  const _feriados = new Set(getFeriados().map(f => f.data)); // Set para O(1) lookup
 
   rows.forEach(r => {
     const emp = String(r[1]||'').trim();
@@ -1646,17 +1807,33 @@ function parseTermico(text) {
     const cod   = String(r[2]||'').trim();
     const desc  = String(r[3]||'').trim();
     const qtde  = parseFloat(String(r[12]||'').replace(',','.'))||0;
-    const mes   = tryMes(r[9]); // DT EMIS = col9
+    const dtRaw = String(r[9]||'').trim();
+    const mes   = tryMes(dtRaw);
     if (!mes || qtde <= 0 || !cod) return;
 
-    // Pré-calcular dias úteis do mês se ainda não calculado
+    // Data completa para excluir NFs de hoje
+    let dtISO = null;
+    const mBR  = dtRaw.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    const mISO = dtRaw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (mBR)       dtISO = mBR[3]+'-'+mBR[2]+'-'+mBR[1];
+    else if (mISO) dtISO = mISO[1]+'-'+mISO[2]+'-'+mISO[3];
+    if (dtISO === _hojeISO) return;
+
+    // Dias úteis do mês — calculado uma vez por mês
     if (!diasUteisMap[mes]) {
-      const [ano, m] = mes.split('-').map(Number);
+      const [anoM, mM] = mes.split('-').map(Number);
       let du = 0;
-      const dias = new Date(ano, m, 0).getDate();
-      for (let d = 1; d <= dias; d++) {
-        const dw = new Date(ano, m-1, d).getDay();
-        if (dw !== 0 && dw !== 6) du++;
+      const totalDias = new Date(anoM, mM, 0).getDate();
+      const isMesAtual = (anoM === _hoje.getFullYear() && mM === _hoje.getMonth()+1);
+      for (let d = 1; d <= totalDias; d++) {
+        const dt = new Date(anoM, mM-1, d);
+        // Não conta o dia atual
+        if (isMesAtual && dt >= _hoje) break;
+        const dw = dt.getDay();
+        if (dw === 0 || dw === 6) continue; // fim de semana não conta como dia útil
+        const iso = anoM+'-'+String(mM).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+        if (_feriados.has(iso)) continue; // feriado não conta como dia útil
+        du++;
       }
       diasUteisMap[mes] = du;
     }
@@ -1664,12 +1841,12 @@ function parseTermico(text) {
     if (isPolimento(forn)) {
       const key = cod+'|||'+desc+'|||'+mes;
       resultPol[key]  = (resultPol[key]||0) + qtde;
+      // Dados diários PM
+      const keyDia = dtISO+'|||'+cod+'|||'+desc+'|||LUCAS';
+      resultDiarioPM[keyDia] = (resultDiarioPM[keyDia]||0) + qtde;
     }
 
     if (isTermico(forn)) {
-      // Filtros Tratamento Térmico:
-      // 1. Descartar se descrição começa com "Garfo" (case-insensitive)
-      // 2. Descartar se código termina com "S" (case-insensitive)
       const descUp = desc.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       const codUp  = cod.toUpperCase();
       if (descUp.startsWith('GARFO')) return;
@@ -1678,8 +1855,18 @@ function parseTermico(text) {
       const fl = fornTermLabel(forn);
       const key = cod+'|||'+desc+'|||'+fl+'|||'+mes;
       resultTerm[key] = (resultTerm[key]||0) + qtde;
+      // Dados diários TT
+      const keyDia = dtISO+'|||'+cod+'|||'+desc+'|||'+fl;
+      resultDiarioTT[keyDia] = (resultDiarioTT[keyDia]||0) + qtde;
     }
   });
+
+  // Últimos 10 dias com NF (union TT + PM)
+  const todasDatas = new Set([
+    ...Object.keys(resultDiarioTT).map(k=>k.split('|||')[0]),
+    ...Object.keys(resultDiarioPM).map(k=>k.split('|||')[0])
+  ]);
+  const datasOrdenadas = [...todasDatas].filter(Boolean).sort().reverse().slice(0,10);
 
   DATA.termico = {
     polimento: Object.entries(resultPol).map(([k,v]) => {
@@ -1690,23 +1877,692 @@ function parseTermico(text) {
       const [cod, desc, forn, mes] = k.split('|||');
       return {cod, desc, forn, mes, qtde: v, du: diasUteisMap[mes]||1};
     }),
+    diarioTT: Object.entries(resultDiarioTT).map(([k,v]) => {
+      const [dt, cod, desc, forn] = k.split('|||');
+      return {dt, cod, desc, forn, qtde: v, tipo:'TT'};
+    }),
+    diarioPM: Object.entries(resultDiarioPM).map(([k,v]) => {
+      const [dt, cod, desc, forn] = k.split('|||');
+      return {dt, cod, desc, forn, qtde: v/2, tipo:'PM'}; // pares
+    }),
+    ult10dias: datasOrdenadas,
     diasUteis: diasUteisMap
   };
 }
 
-// ===== RENDER TERMICO =====
+// ═══════════ METAS & FERIADOS ═══════════
+
+// Metas padrão (editáveis via localStorage)
+const METAS_DEFAULT = {
+  TT: [1219,1219,1176,1176,1188,1188,1188,1188,1188,1188,1188,1188],
+  PM: [100,100,100,100,100,100,100,100,100,100,100,100]
+};
+const MESES_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+// Feriados nacionais padrão 2026
+const FERIADOS_DEFAULT = [
+  {data:'2026-01-01',nome:'Ano Novo'},
+  {data:'2026-02-16',nome:'Carnaval'},
+  {data:'2026-02-17',nome:'Carnaval'},
+  {data:'2026-04-03',nome:'Paixão de Cristo'},
+  {data:'2026-04-21',nome:'Tiradentes'},
+  {data:'2026-05-01',nome:'Dia do Trabalho'},
+  {data:'2026-06-04',nome:'Corpus Christi'},
+  {data:'2026-09-07',nome:'Independência'},
+  {data:'2026-10-12',nome:'Nossa Senhora Aparecida'},
+  {data:'2026-11-02',nome:'Finados'},
+  {data:'2026-11-15',nome:'Proclamação República'},
+  {data:'2026-12-25',nome:'Natal'},
+];
+
+function getMetas() {
+  try { const s = localStorage.getItem('termico_metas'); return s ? JSON.parse(s) : METAS_DEFAULT; }
+  catch { return METAS_DEFAULT; }
+}
+function getFeriados() {
+  try { const s = localStorage.getItem('termico_feriados'); return s ? JSON.parse(s) : FERIADOS_DEFAULT; }
+  catch { return FERIADOS_DEFAULT; }
+}
+
+// Calcular dias úteis de um mês descontando fins de semana e feriados
+function diasUteisMes(ano, mes1idx) { // mes1idx = 0-based
+  const feriados = getFeriados().map(f => f.data);
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const isMesAtual = (ano === hoje.getFullYear() && mes1idx === hoje.getMonth());
+  let du = 0;
+  const totalDias = new Date(ano, mes1idx+1, 0).getDate();
+  for (let d = 1; d <= totalDias; d++) {
+    const dt = new Date(ano, mes1idx, d);
+    // Para o mês atual: contar apenas até ontem (exclusive hoje)
+    if (isMesAtual && dt >= hoje) break;
+    const dw = dt.getDay();
+    if (dw === 0 || dw === 6) continue; // fim de semana
+    const iso = `${ano}-${String(mes1idx+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    if (feriados.includes(iso)) continue; // feriado
+    du++;
+  }
+  return du;
+}
+
+// Abrir/fechar modais
+function abrirModalMetas() {
+  const metas = getMetas();
+  const tbody = document.getElementById('meta-editor-rows');
+  tbody.innerHTML = MESES_LABEL.map((m, i) => `
+    <tr style="border-bottom:1px solid #1e2a4a">
+      <td style="padding:6px 8px;color:#c8cfe8">${m}</td>
+      <td style="padding:6px 8px;text-align:right">
+        <input type="number" id="meta-tt-${i}" value="${metas.TT[i]}"
+          style="width:80px;background:#1e2a4a;border:1px solid #2a3a5a;color:#f59e0b;padding:4px 8px;border-radius:4px;text-align:right">
+      </td>
+      <td style="padding:6px 8px;text-align:right">
+        <input type="number" id="meta-pm-${i}" value="${metas.PM[i]}"
+          style="width:80px;background:#1e2a4a;border:1px solid #2a3a5a;color:#06b6d4;padding:4px 8px;border-radius:4px;text-align:right">
+      </td>
+    </tr>`).join('');
+  document.getElementById('modal-metas').style.display = 'flex';
+}
+function fecharModalMetas() { document.getElementById('modal-metas').style.display = 'none'; }
+function salvarMetas() {
+  const metas = { TT: [], PM: [] };
+  for (let i = 0; i < 12; i++) {
+    metas.TT.push(parseInt(document.getElementById(`meta-tt-${i}`)?.value)||0);
+    metas.PM.push(parseInt(document.getElementById(`meta-pm-${i}`)?.value)||0);
+  }
+  localStorage.setItem('termico_metas', JSON.stringify(metas));
+  fecharModalMetas();
+  renderTermico();
+}
+
+function abrirModalFeriados() {
+  renderFeriadosLista();
+  document.getElementById('modal-feriados').style.display = 'flex';
+}
+function fecharModalFeriados() { document.getElementById('modal-feriados').style.display = 'none'; renderTermico(); }
+function renderFeriadosLista() {
+  const feriados = getFeriados().sort((a,b) => a.data.localeCompare(b.data));
+  document.getElementById('feriados-lista').innerHTML = feriados.length === 0
+    ? '<div style="color:#5a6380;font-size:12px;padding:8px">Nenhum feriado cadastrado.</div>'
+    : feriados.map(f => `
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid #1e2a4a">
+        <span style="color:#c8cfe8;font-size:13px;min-width:90px">${f.data.split('-').reverse().join('/')}</span>
+        <span style="color:#7a8299;font-size:13px;flex:1">${f.nome}</span>
+        <button onclick="removerFeriado('${f.data}')"
+          style="background:rgba(255,59,59,.15);border:1px solid var(--red);color:var(--red);width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px">×</button>
+      </div>`).join('');
+}
+function adicionarFeriado() {
+  const data = document.getElementById('feriado-data').value;
+  const nome = document.getElementById('feriado-nome').value.trim();
+  if (!data || !nome) return;
+  const feriados = getFeriados();
+  if (!feriados.find(f => f.data === data)) {
+    feriados.push({data, nome});
+    localStorage.setItem('termico_feriados', JSON.stringify(feriados));
+  }
+  document.getElementById('feriado-data').value = '';
+  document.getElementById('feriado-nome').value = '';
+  renderFeriadosLista();
+}
+function removerFeriado(data) {
+  const feriados = getFeriados().filter(f => f.data !== data);
+  localStorage.setItem('termico_feriados', JSON.stringify(feriados));
+  renderFeriadosLista();
+}
+
+// ═══════════ GRÁFICOS META x REALIZADO ═══════════
+let _ttMetaChart = null, _pmMetaChart = null, _ttSaldoChart = null, _ttAcumChart = null;
+
+function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
+  const metas   = getMetas();
+
+  // Dias úteis e metas mensais
+  const duMes      = Array.from({length:12}, (_,i) => diasUteisMes(ano, i));
+  const ttMetaMes  = duMes.map((du,i) => metas.TT[i] * du);
+  const pmMetaMes  = duMes.map((du,i) => metas.PM[i] * du);
+  const ttReal     = Array.from({length:12}, (_,i) => ttPorMes[i] || 0);
+  const pmReal     = Array.from({length:12}, (_,i) => pmPorMes[i] || 0);
+
+  // Médias diárias reais por mês
+  const ttMedDia   = duMes.map((du,i) => du > 0 ? Math.round(ttReal[i] / du) : 0);
+  const pmMedDia   = duMes.map((du,i) => du > 0 ? Math.round(pmReal[i] / du) : 0);
+
+  // Saldo (só até mês anterior) e acumulado
+  const ttSaldo     = ttReal.map((v,i) => i < mesAtual ? v - ttMetaMes[i] : null);
+  const ttSaldoAcum = ttSaldo.reduce((acc,v,i) => { acc.push(v!==null?(acc[i-1]||0)+v:null); return acc; }, []);
+
+  // Acumulado: apenas até mês anterior
+  const labelsAcum = MESES_LABEL.slice(0, mesAtual);
+  const ttRealAcum = ttReal.slice(0, mesAtual);
+  const pmRealAcum = pmReal.slice(0, mesAtual);
+  const ttMetaAcum = ttMetaMes.slice(0, mesAtual);
+  const pmMetaAcum = pmMetaMes.slice(0, mesAtual);
+
+  const labels     = MESES_LABEL;
+
+  // Cores — mês atual em destaque
+  const _bgBarra = (baseColor, i) => i === mesAtual ? baseColor : baseColor + '66';
+  const _bordBarra = (baseColor) => baseColor;
+
+  // Utilitário: destruir chart existente
+  const _destroy = id => { const c = Chart.getChart(id); if (c) c.destroy(); };
+
+  // ── 1. TT Média diária por mês + linha de meta ──────────────────────────
+  _destroy('tt-media-chart');
+  new Chart(document.getElementById('tt-media-chart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Média real (pçs/dia)',
+          data: ttMedDia,
+          backgroundColor: ttMedDia.map((v,i) => i===mesAtual ? '#3d8bffcc' : '#3d8bff55'),
+          borderColor: '#3d8bff', borderWidth: 1, borderRadius: 4,
+          datalabels: { color: '#fff', anchor:'end', align:'top', font:{size:10,weight:'700'},
+            formatter: v => v > 0 ? v.toLocaleString('pt-BR') : '' }
+        },
+        {
+          label: 'Meta/dia',
+          data: metas.TT,
+          type: 'line',
+          borderColor: '#f59e0b', borderWidth: 2, borderDash: [5,3],
+          pointRadius: 4, pointBackgroundColor: '#f59e0b',
+          fill: false, tension: 0,
+          datalabels: { display: false }
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display:true, labels:{color:'#7a8299',boxWidth:12,font:{size:11}} },
+        datalabels: { display:true }
+      },
+      scales: {
+        x: { ticks:{color:'#7a8299'}, grid:{display:false} },
+        y: { ticks:{color:'#7a8299'}, grid:{color:'#1e2334'} }
+      },
+      layout: { padding:{top:24} }
+    }, plugins:[ChartDataLabels]
+  });
+
+  // ── 2. PM Média diária por mês + linha de meta ──────────────────────────
+  _destroy('pm-media-chart');
+  new Chart(document.getElementById('pm-media-chart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Média real (pares/dia)',
+          data: pmMedDia,
+          backgroundColor: pmMedDia.map((v,i) => i===mesAtual ? '#a855f7cc' : '#a855f755'),
+          borderColor: '#a855f7', borderWidth:1, borderRadius:4,
+          datalabels: { color:'#fff', anchor:'end', align:'top', font:{size:10,weight:'700'},
+            formatter: v => v > 0 ? v.toLocaleString('pt-BR') : '' }
+        },
+        {
+          label: 'Meta (pares/dia)',
+          data: metas.PM,
+          type: 'line',
+          borderColor: '#06b6d4', borderWidth:2, borderDash:[5,3],
+          pointRadius:4, pointBackgroundColor:'#06b6d4',
+          fill:false, tension:0,
+          datalabels: { display:false }
+        }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend:{display:true,labels:{color:'#7a8299',boxWidth:12,font:{size:11}}},
+        datalabels:{display:true}
+      },
+      scales: {
+        x:{ticks:{color:'#7a8299'},grid:{display:false}},
+        y:{ticks:{color:'#7a8299'},grid:{color:'#1e2334'}}
+      },
+      layout:{padding:{top:24}}
+    }, plugins:[ChartDataLabels]
+  });
+
+  // ── 3. TT Acumulado por mês (até mês anterior) ──────────────────────────
+  _destroy('tt-acum-chart');
+  new Chart(document.getElementById('tt-acum-chart'), {
+    type:'bar',
+    data:{ labels:labelsAcum, datasets:[
+      { label:'TT Enviado',
+        data: ttRealAcum,
+        backgroundColor: '#f59e0b99', borderColor:'#f59e0b', borderWidth:1, borderRadius:4,
+        datalabels:{ color:'#fff', anchor:'end', align:'top', font:{size:10,weight:'700'},
+          formatter: v => v>0 ? v.toLocaleString('pt-BR') : '' }
+      },
+      { label:'Meta TT', data: ttMetaAcum, type:'line',
+        borderColor:'#f59e0b', borderDash:[5,3], borderWidth:2, pointRadius:3,
+        pointBackgroundColor:'#f59e0b', fill:false, datalabels:{display:false} }
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, datalabels:{display:true} },
+      scales:{ x:{ticks:{color:'#7a8299'},grid:{display:false}}, y:{ticks:{color:'#7a8299'},grid:{color:'#1e2334'}} },
+      layout:{padding:{top:24}}
+    }, plugins:[ChartDataLabels]
+  });
+
+  // ── 4. PM Acumulado por mês (até mês anterior) ──────────────────────────
+  _destroy('pm-acum-chart');
+  new Chart(document.getElementById('pm-acum-chart'), {
+    type:'bar',
+    data:{ labels:labelsAcum, datasets:[
+      { label:'PM Enviado (pares)',
+        data: pmRealAcum,
+        backgroundColor: '#06b6d499', borderColor:'#06b6d4', borderWidth:1, borderRadius:4,
+        datalabels:{ color:'#fff', anchor:'end', align:'top', font:{size:10,weight:'700'},
+          formatter: v => v>0 ? v.toLocaleString('pt-BR') : '' }
+      },
+      { label:'Meta PM (pares)', data: pmMetaAcum, type:'line',
+        borderColor:'#06b6d4', borderDash:[5,3], borderWidth:2, pointRadius:3,
+        pointBackgroundColor:'#06b6d4', fill:false, datalabels:{display:false} }
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, datalabels:{display:true} },
+      scales:{ x:{ticks:{color:'#7a8299'},grid:{display:false}}, y:{ticks:{color:'#7a8299'},grid:{color:'#1e2334'}} },
+      layout:{padding:{top:24}}
+    }, plugins:[ChartDataLabels]
+  });
+
+  // ── 5. TT Saldo por mês ─────────────────────────────────────────────────
+  _destroy('tt-saldo-chart');
+  new Chart(document.getElementById('tt-saldo-chart'), {
+    type:'bar',
+    data:{ labels, datasets:[{
+      label:'Saldo TT',
+      data: ttSaldo.map(v => v),
+      backgroundColor: ttSaldo.map((v,i) => {
+        if (v===null) return 'transparent';
+        const alpha = i===mesAtual ? 'cc' : '77';
+        return (v>=0 ? '#00c97a' : '#ff3b3b') + alpha;
+      }),
+      borderColor: ttSaldo.map(v => v===null?'transparent':(v>=0?'#00c97a':'#ff3b3b')),
+      borderWidth:1, borderRadius:4,
+      datalabels:{ color:'#fff', anchor:'end',
+        align: ttSaldo.map(v => v>=0 ? 'top' : 'bottom'),
+        font:{size:10,weight:'700'},
+        formatter: v => v!==0 ? (v>0?'+':'')+v.toLocaleString('pt-BR') : '' }
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, datalabels:{display:true} },
+      scales:{
+        x:{ticks:{color:'#7a8299'},grid:{display:false}},
+        y:{ticks:{color:'#7a8299'},grid:{color:'#1e2334'},
+          afterDataLimits(s){const e=Math.max(Math.abs(s.min),Math.abs(s.max))*.2;s.min-=e;s.max+=e;}}
+      }, layout:{padding:{top:24,bottom:24}}
+    }, plugins:[ChartDataLabels]
+  });
+
+  // ── 6. TT Saldo acumulado no ano ────────────────────────────────────────
+  _destroy('tt-saldo-acum-chart');
+  new Chart(document.getElementById('tt-saldo-acum-chart'), {
+    type:'line',
+    data:{ labels, datasets:[
+      { label:'Acumulado TT',
+        data: ttSaldoAcum,
+        borderColor:'#3d8bff', backgroundColor:'rgba(61,139,255,.1)', fill:true,
+        tension:.3, pointRadius:5,
+        pointBackgroundColor: ttSaldoAcum.map((v,i) => i===mesAtual ? '#fff' : (v>=0?'#00c97a':'#ff3b3b')),
+        pointBorderColor: ttSaldoAcum.map((v,i) => i===mesAtual ? '#3d8bff' : 'transparent'),
+        pointBorderWidth: 2,
+        datalabels:{ color:'#fff', anchor:'end', align:'top', font:{size:10,weight:'700'},
+          formatter: v => v!==0&&v!=null ? (v>0?'+':'')+v.toLocaleString('pt-BR') : '' }
+      },
+      { label:'Zero', data:Array(12).fill(0),
+        borderColor:'rgba(255,255,255,.25)', borderDash:[4,4],
+        pointRadius:0, datalabels:{display:false}, fill:false }
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, datalabels:{display:true} },
+      scales:{ x:{ticks:{color:'#7a8299'},grid:{display:false}}, y:{ticks:{color:'#7a8299'},grid:{color:'#1e2334'}} },
+      layout:{padding:{top:24}}
+    }, plugins:[ChartDataLabels]
+  });
+
+  // ── 7. TT Meta mensal x Realizado ──────────────────────────────────────
+  _destroy('tt-meta-chart');
+  new Chart(document.getElementById('tt-meta-chart'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      { label:'Meta mensal TT',
+        data:ttMetaMes,
+        backgroundColor: ttMetaMes.map((_,i) => i===mesAtual ? '#f59e0b55' : '#f59e0b33'),
+        borderColor:'#f59e0b', borderWidth:1, borderRadius:4,
+        datalabels:{ color:'#f59e0b', anchor:'end', align:'top', font:{size:9},
+          formatter:v=>v>0?v.toLocaleString('pt-BR'):'' }
+      },
+      { label:'Realizado TT',
+        data:ttReal,
+        backgroundColor: ttReal.map((_,i) => i===mesAtual ? '#3d8bffcc' : '#3d8bff77'),
+        borderColor:'#3d8bff', borderWidth:1, borderRadius:4,
+        datalabels:{ color:'#fff', anchor:'center', align:'center', font:{size:10,weight:'700'},
+          formatter:v=>v>0?v.toLocaleString('pt-BR'):'' }
+      }
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:true,labels:{color:'#7a8299',boxWidth:12,font:{size:11}}}, datalabels:{display:true} },
+      scales:{ x:{ticks:{color:'#7a8299'},grid:{display:false}}, y:{ticks:{color:'#7a8299'},grid:{color:'#1e2334'}} },
+      layout:{padding:{top:28}}
+    }, plugins:[ChartDataLabels]
+  });
+
+  // ── 8. PM Meta mensal x Realizado ──────────────────────────────────────
+  _destroy('pm-meta-chart');
+  new Chart(document.getElementById('pm-meta-chart'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      { label:'Meta mensal PM (pares)',
+        data:pmMetaMes,
+        backgroundColor: pmMetaMes.map((_,i) => i===mesAtual ? '#06b6d455' : '#06b6d433'),
+        borderColor:'#06b6d4', borderWidth:1, borderRadius:4,
+        datalabels:{ color:'#06b6d4', anchor:'end', align:'top', font:{size:9},
+          formatter:v=>v>0?v.toLocaleString('pt-BR'):'' }
+      },
+      { label:'Realizado PM (pares)',
+        data:pmReal,
+        backgroundColor: pmReal.map((_,i) => i===mesAtual ? '#a855f7cc' : '#a855f777'),
+        borderColor:'#a855f7', borderWidth:1, borderRadius:4,
+        datalabels:{ color:'#fff', anchor:'center', align:'center', font:{size:10,weight:'700'},
+          formatter:v=>v>0?v.toLocaleString('pt-BR'):'' }
+      }
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:true,labels:{color:'#7a8299',boxWidth:12,font:{size:11}}}, datalabels:{display:true} },
+      scales:{ x:{ticks:{color:'#7a8299'},grid:{display:false}}, y:{ticks:{color:'#7a8299'},grid:{color:'#1e2334'}} },
+      layout:{padding:{top:28}}
+    }, plugins:[ChartDataLabels]
+  });
+}
+
+// ═══════════ RENDER TERMICO =====
 function renderTermico() {
   if (!DATA.termico || !DATA.termico.polimento || DATA.termico.polimento.length === 0) {
-    // Sem dados ainda — mostrar mensagem nos KPIs
-    const kp = document.getElementById('pol-kpis');
-    const kt = document.getElementById('term-kpis');
     const msg = '<div class="kpi-card"><div class="kpi-label" style="color:var(--text-muted)">Clique em ↻ Atualizar para carregar os dados</div></div>';
-    if (kp) kp.innerHTML = msg;
-    if (kt) kt.innerHTML = msg;
+    ['pol-kpis','term-kpis','meta-kpis'].forEach(id => { const el = document.getElementById(id); if(el) el.innerHTML = msg; });
     return;
   }
+
+  // Determinar ano atual dos dados
+  const todosItens = [...DATA.termico.polimento, ...DATA.termico.termico];
+  const anos = [...new Set(todosItens.map(r => r.mes?.split('-')[0]))].filter(Boolean).sort();
+  const ano = parseInt(anos[anos.length-1]) || new Date().getFullYear();
+
+  // Agregar TT e PM por mês (índice 0=jan...11=dez)
+  // PM: dividir por 2 (contagem em PARES)
+  const ttPorMes = {}, pmPorMes = {};
+  DATA.termico.termico.forEach(r => {
+    const [a, m] = (r.mes||'').split('-').map(Number);
+    if (a === ano) ttPorMes[m-1] = (ttPorMes[m-1]||0) + r.qtde;
+  });
+  DATA.termico.polimento.forEach(r => {
+    const [a, m] = (r.mes||'').split('-').map(Number);
+    if (a === ano) pmPorMes[m-1] = (pmPorMes[m-1]||0) + (r.qtde / 2); // pares
+  });
+
+  // KPI de metas — mês atual
+  const metas = getMetas();
+  const mesAtual = new Date().getMonth(); // 0-based
+  const duMesAtual = diasUteisMes(ano, mesAtual);
+  const ttMetaDia = metas.TT[mesAtual];
+  const pmMetaDia = metas.PM[mesAtual];
+  const ttMetaMes = ttMetaDia * duMesAtual;
+  const pmMetaMes = pmMetaDia * duMesAtual;
+  const ttRealMes = ttPorMes[mesAtual] || 0;
+  const pmRealMes = pmPorMes[mesAtual] || 0;
+  const ttSaldoMes = ttRealMes - ttMetaMes;
+  const pmSaldoMes = pmRealMes - pmMetaMes;
+  const ttMedDia = duMesAtual > 0 ? Math.round(ttRealMes / duMesAtual) : 0;
+  const pmMedDia = duMesAtual > 0 ? Math.round(pmRealMes / duMesAtual) : 0;
+  const _cor = v => v >= 0 ? 'var(--green)' : 'var(--red)';
+  const _kpi = (label, val, color, sub) =>
+    `<div class="kpi-card"><div class="kpi-label">${label}</div><div class="kpi-value" style="color:${color}">${val}</div>${sub?`<div style="font-size:10px;color:var(--text-muted);margin-top:3px">${sub}</div>`:''}</div>`;
+
+  const metaKpis = document.getElementById('meta-kpis');
+  if (metaKpis) metaKpis.innerHTML =
+    _kpi('📅 MÊS ATUAL', MESES_LABEL[mesAtual]+'/'+ano, '#c8cfe8', duMesAtual+' dias úteis') +
+    _kpi('TT META/DIA', ttMetaDia.toLocaleString('pt-BR'), '#f59e0b', 'pçs/dia') +
+    _kpi('TT MÉDIA/DIA', ttMedDia.toLocaleString('pt-BR'), ttMedDia >= ttMetaDia ? 'var(--green)' : 'var(--red)', ttMedDia >= ttMetaDia ? '✓ acima da meta' : '✗ abaixo da meta') +
+    _kpi('TT TOTAL MÊS', ttRealMes.toLocaleString('pt-BR'), '#3d8bff', 'peças enviadas') +
+    _kpi('TT SALDO', (ttSaldoMes >= 0 ? '+' : '') + ttSaldoMes.toLocaleString('pt-BR'), _cor(ttSaldoMes), ttSaldoMes >= 0 ? 'acima da meta' : 'abaixo da meta') +
+    _kpi('PM META/DIA', pmMetaDia.toLocaleString('pt-BR'), '#06b6d4', 'pares/dia') +
+    _kpi('PM MÉDIA/DIA', pmMedDia.toLocaleString('pt-BR'), pmMedDia >= pmMetaDia ? 'var(--green)' : 'var(--red)', pmMedDia >= pmMetaDia ? '✓ acima da meta' : '✗ abaixo da meta') +
+    _kpi('PM TOTAL MÊS', pmRealMes.toLocaleString('pt-BR'), '#a855f7', 'pares enviados') +
+    _kpi('PM SALDO', (pmSaldoMes >= 0 ? '+' : '') + pmSaldoMes.toLocaleString('pt-BR'), _cor(pmSaldoMes), pmSaldoMes >= 0 ? 'acima da meta' : 'abaixo da meta');
+
+  // Renderizar gráficos
+  renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual);
+  renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas);
+  renderUlt10();
+
   renderPolimento();
   renderTermicoTable();
+}
+
+function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const anoAtual = hoje.getFullYear();
+  const mesIdx = hoje.getMonth(); // 0-based
+
+  // Agregar TT e PM por dia do mês atual
+  const diarioTT = {}, diarioPM = {};
+  (DATA.termico.diarioTT||[]).forEach(r => {
+    if (!r.dt) return;
+    const [a,m] = r.dt.split('-').map(Number);
+    if (a === ano && m === mesAtual+1) diarioTT[r.dt] = (diarioTT[r.dt]||0) + r.qtde;
+  });
+  (DATA.termico.diarioPM||[]).forEach(r => {
+    if (!r.dt) return;
+    const [a,m] = r.dt.split('-').map(Number);
+    if (a === ano && m === mesAtual+1) diarioPM[r.dt] = (diarioPM[r.dt]||0) + r.qtde; // já em pares
+  });
+
+  // Dias com NF no mês atual (sem hoje)
+  const diasComNF = [...new Set([...Object.keys(diarioTT), ...Object.keys(diarioPM)])]
+    .filter(d => d < hoje.toISOString().split('T')[0]).sort();
+
+  // Último dia com NF
+  const ultimoDia = diasComNF[diasComNF.length-1]||null;
+
+  // Calcular saldo acumulado
+  const feriados = getFeriados().map(f=>f.data);
+  const duAteMes = diasUteisMes(ano, mesAtual); // dias úteis até ontem
+  const totalDiasMes = new Date(ano, mesAtual+1, 0).getDate();
+  // Dias úteis restantes no mês (de hoje até fim do mês)
+  let duRestantes = 0;
+  for (let d = hoje.getDate(); d <= totalDiasMes; d++) {
+    const dt = new Date(ano, mesAtual, d);
+    if (dt.getDay()===0||dt.getDay()===6) continue;
+    const iso = `${ano}-${String(mesAtual+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    if (feriados.includes(iso)) continue;
+    duRestantes++;
+  }
+
+  const metaTTDia = metas.TT[mesAtual];
+  const metaPMDia = metas.PM[mesAtual];
+  const metaTTAcum = metaTTDia * duAteMes;
+  const metaPMAcum = metaPMDia * duAteMes;
+  const realTTMes = ttPorMes[mesAtual]||0;
+  const realPMMes = pmPorMes[mesAtual]||0;
+  const saldoTT = realTTMes - metaTTAcum;
+  const saldoPM = realPMMes - metaPMAcum;
+  const medNecTT = duRestantes > 0 ? Math.ceil((metaTTDia * (duAteMes + duRestantes) - realTTMes) / duRestantes) : 0;
+  const medNecPM = duRestantes > 0 ? Math.ceil((metaPMDia * (duAteMes + duRestantes) - realPMMes) / duRestantes) : 0;
+  const _cor = v => v >= 0 ? 'var(--green)' : 'var(--red)';
+  const _sinal = v => (v>=0?'+':'')+v.toLocaleString('pt-BR');
+
+  // Cards de saldo
+  const saldoKpis = document.getElementById('saldo-kpis');
+  if (saldoKpis) saldoKpis.innerHTML = [
+    {label:'TT META ACUM.', val:metaTTAcum.toLocaleString('pt-BR'), color:'#f59e0b', sub:duAteMes+' dias úteis'},
+    {label:'TT REALIZADO', val:realTTMes.toLocaleString('pt-BR'), color:'#3d8bff', sub:'pçs enviadas'},
+    {label:'TT SALDO', val:_sinal(saldoTT), color:_cor(saldoTT), sub:saldoTT>=0?'acima':'abaixo da meta'},
+    {label:'TT MED. NECESSÁRIA', val:medNecTT.toLocaleString('pt-BR'), color:medNecTT<=metaTTDia?'var(--green)':'var(--red)', sub:'pçs/dia ('+duRestantes+' dias rest.)'},
+    {label:'PM META ACUM.', val:metaPMAcum.toLocaleString('pt-BR'), color:'#06b6d4', sub:duAteMes+' dias úteis'},
+    {label:'PM REALIZADO', val:realPMMes.toLocaleString('pt-BR'), color:'#a855f7', sub:'pares enviados'},
+    {label:'PM SALDO', val:_sinal(saldoPM), color:_cor(saldoPM), sub:saldoPM>=0?'acima':'abaixo da meta'},
+    {label:'PM MED. NECESSÁRIA', val:medNecPM.toLocaleString('pt-BR'), color:medNecPM<=metaPMDia?'var(--green)':'var(--red)', sub:'pares/dia ('+duRestantes+' dias rest.)'},
+  ].map(k=>`<div class="kpi-card"><div class="kpi-label">${k.label}</div><div class="kpi-value" style="color:${k.color}">${k.val}</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px">${k.sub}</div></div>`).join('');
+
+  // Card último dia destacado
+  const ultCard = document.getElementById('ultimo-dia-card');
+  if (ultCard && ultimoDia) {
+    const ttUlt = diarioTT[ultimoDia]||0;
+    const pmUlt = diarioPM[ultimoDia]||0;
+    const dtFmt = ultimoDia.split('-').reverse().join('/');
+    const isDiaUtil = (() => {
+      const [ay,am,ad] = ultimoDia.split('-').map(Number);
+      const dw = new Date(ay,am-1,ad).getDay();
+      return dw!==0 && dw!==6 && !feriados.includes(ultimoDia);
+    })();
+    ultCard.innerHTML = `
+      <div style="background:linear-gradient(135deg,rgba(61,139,255,.15),rgba(245,158,11,.1));border:1px solid rgba(61,139,255,.4);border-radius:12px;padding:16px 20px;display:flex;flex-wrap:wrap;gap:20px;align-items:center">
+        <div>
+          <div style="font-size:10px;letter-spacing:1px;color:var(--text-muted);margin-bottom:4px">📅 ÚLTIMO DIA COM NF</div>
+          <div style="font-size:20px;font-weight:800;color:#fff">${dtFmt} ${isDiaUtil?'<span style="font-size:11px;color:var(--green)">● dia útil</span>':'<span style="font-size:11px;color:var(--amber)">● feriado/fim de semana</span>'}</div>
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+          <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:10px 16px;text-align:center">
+            <div style="font-size:10px;color:#f59e0b;letter-spacing:1px">TT ENVIADO</div>
+            <div style="font-size:24px;font-weight:800;color:#f59e0b">${ttUlt.toLocaleString('pt-BR')}</div>
+            <div style="font-size:10px;color:var(--text-muted)">peças · meta ${metaTTDia.toLocaleString('pt-BR')}/dia</div>
+            <div style="font-size:12px;font-weight:700;color:${ttUlt>=metaTTDia?'var(--green)':'var(--red)'}">${ttUlt>=metaTTDia?'✓ acima':'✗ abaixo'} da meta</div>
+          </div>
+          <div style="background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);border-radius:8px;padding:10px 16px;text-align:center">
+            <div style="font-size:10px;color:#a855f7;letter-spacing:1px">PM ENVIADO</div>
+            <div style="font-size:24px;font-weight:800;color:#a855f7">${pmUlt.toLocaleString('pt-BR')}</div>
+            <div style="font-size:10px;color:var(--text-muted)">pares · meta ${metaPMDia.toLocaleString('pt-BR')}/dia</div>
+            <div style="font-size:12px;font-weight:700;color:${pmUlt>=metaPMDia?'var(--green)':'var(--red)'}">${pmUlt>=metaPMDia?'✓ acima':'✗ abaixo'} da meta</div>
+          </div>
+        </div>
+      </div>`;
+  } else if (ultCard) {
+    ultCard.innerHTML = '';
+  }
+
+  // Gráfico diário
+  const labels = diasComNF.map(d => d.split('-').slice(1).reverse().join('/'));
+  const ttVals = diasComNF.map(d => diarioTT[d]||0);
+  const pmVals = diasComNF.map(d => diarioPM[d]||0);
+  const isUlt  = diasComNF.map(d => d === ultimoDia);
+
+  const _destroy = id => { const c = Chart.getChart(id); if(c) c.destroy(); };
+  _destroy('diario-chart');
+  new Chart(document.getElementById('diario-chart'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      { label:'TT (pçs)',
+        data:ttVals,
+        backgroundColor: ttVals.map((_,i)=>isUlt[i]?'#f59e0bff':'#f59e0b66'),
+        borderColor:'#f59e0b', borderWidth:1, borderRadius:4,
+        datalabels:{color:'#fff',anchor:'end',align:'top',font:{size:9,weight:'700'},formatter:v=>v>0?v.toLocaleString('pt-BR'):''}
+      },
+      { label:'PM (pares)',
+        data:pmVals,
+        backgroundColor: pmVals.map((_,i)=>isUlt[i]?'#a855f7ff':'#a855f766'),
+        borderColor:'#a855f7', borderWidth:1, borderRadius:4,
+        datalabels:{color:'#fff',anchor:'end',align:'top',font:{size:9,weight:'700'},formatter:v=>v>0?v.toLocaleString('pt-BR'):''}
+      },
+      { label:'Meta TT/dia', data:Array(labels.length).fill(metaTTDia),
+        type:'line', borderColor:'#f59e0b', borderDash:[4,3], borderWidth:2,
+        pointRadius:0, fill:false, datalabels:{display:false} },
+      { label:'Meta PM/dia', data:Array(labels.length).fill(metaPMDia),
+        type:'line', borderColor:'#a855f7', borderDash:[4,3], borderWidth:2,
+        pointRadius:0, fill:false, datalabels:{display:false} }
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:true,labels:{color:'#7a8299',boxWidth:12,font:{size:11}}},
+        datalabels:{display:true}
+      },
+      scales:{
+        x:{ticks:{color:'#7a8299',font:{size:10}},grid:{display:false}},
+        y:{ticks:{color:'#7a8299'},grid:{color:'#1e2334'}}
+      },
+      layout:{padding:{top:24}}
+    }, plugins:[ChartDataLabels]
+  });
+}
+
+function renderUlt10() {
+  const t = DATA.termico;
+  if (!t) return;
+  const tipo   = document.getElementById('ult10-tipo')?.value || '';
+  const diaFilt= document.getElementById('ult10-dia')?.value  || '';
+  const search = (document.getElementById('ult10-search')?.value||'').trim().toUpperCase();
+
+  const dias10 = t.ult10dias || [];
+
+  // Preencher dropdown de dias
+  const selDia = document.getElementById('ult10-dia');
+  if (selDia && selDia.options.length <= 1) {
+    dias10.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d;
+      opt.textContent = d.split('-').reverse().join('/');
+      selDia.appendChild(opt);
+    });
+  }
+
+  // Juntar TT e PM dos últimos 10 dias
+  let itens = [
+    ...(t.diarioTT||[]).filter(r => dias10.includes(r.dt)).map(r=>({...r, tipo:'TT', qtdeFmt:r.qtde})),
+    ...(t.diarioPM||[]).filter(r => dias10.includes(r.dt)).map(r=>({...r, tipo:'PM', qtdeFmt:r.qtde}))
+  ];
+
+  if (tipo) itens = itens.filter(r => r.tipo === tipo);
+  if (diaFilt) itens = itens.filter(r => r.dt === diaFilt);
+  if (search) itens = itens.filter(r =>
+    r.cod.toUpperCase().includes(search) || r.desc.toUpperCase().includes(search) || r.forn.toUpperCase().includes(search));
+
+  itens.sort((a,b) => b.dt.localeCompare(a.dt) || a.tipo.localeCompare(b.tipo));
+
+  const tbody = document.getElementById('ult10-body');
+  const tfoot = document.getElementById('ult10-foot');
+  if (!tbody) return;
+
+  let prevDia = '';
+  tbody.innerHTML = itens.map(r => {
+    const dtFmt = r.dt.split('-').reverse().join('/');
+    const isDiaUlt = r.dt === dias10[0];
+    const rowStyle = isDiaUlt ? 'background:rgba(61,139,255,.08)' : '';
+    const dtCell = r.dt !== prevDia
+      ? `<td style="font-weight:700;color:${isDiaUlt?'var(--blue)':'#c8cfe8'}">${dtFmt}${isDiaUlt?' ★':''}</td>`
+      : `<td style="color:var(--text-muted)">${dtFmt}</td>`;
+    prevDia = r.dt;
+    const tipoColor = r.tipo==='TT' ? '#f59e0b' : '#a855f7';
+    return `<tr style="${rowStyle}">
+      ${dtCell}
+      <td><span style="background:rgba(0,0,0,.2);color:${tipoColor};font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px">${r.tipo}</span></td>
+      <td style="font-family:monospace;font-size:11px">${r.cod}</td>
+      <td style="font-size:11px">${r.desc}</td>
+      <td style="font-size:11px;color:var(--text-muted)">${r.forn}</td>
+      <td style="text-align:right;font-weight:600;color:${tipoColor}">${r.qtdeFmt.toLocaleString('pt-BR')}${r.tipo==='PM'?' par':' pç'}</td>
+    </tr>`;
+  }).join('');
+
+  const totTT = itens.filter(r=>r.tipo==='TT').reduce((s,r)=>s+r.qtdeFmt,0);
+  const totPM = itens.filter(r=>r.tipo==='PM').reduce((s,r)=>s+r.qtdeFmt,0);
+  tfoot.innerHTML = `<tr style="background:#1e2a4a;border-top:2px solid var(--blue)">
+    <td colspan="5" style="font-weight:700;color:var(--text-muted)">TOTAL (${itens.length} registros)</td>
+    <td style="text-align:right;font-weight:700">
+      ${totTT>0?`<span style="color:#f59e0b">${totTT.toLocaleString('pt-BR')} pç</span>`:''}&nbsp;
+      ${totPM>0?`<span style="color:#a855f7">${totPM.toLocaleString('pt-BR')} par</span>`:''}
+    </td>
+  </tr>`;
 }
 
 function _termMeses(arr) {
@@ -1748,11 +2604,11 @@ function renderPolimento() {
       return `<th style="width:90px;text-align:right">${label}</th>`;
     }).join('') + '<th style="width:80px;text-align:right">TOTAL</th><th style="width:80px;text-align:right">MÉDIA/DU</th>';
 
-  // Totais por mês
+  // Totais por mês (em PARES = qtde/2)
   const totMes = {};
   const totDu  = {};
   mesCols.forEach(m => {
-    totMes[m] = data.filter(r=>r.mes===m).reduce((s,r)=>s+r.qtde,0);
+    totMes[m] = data.filter(r=>r.mes===m).reduce((s,r)=>s+r.qtde,0) / 2;
     totDu[m]  = DATA.termico.diasUteis[m]||1;
   });
 
@@ -1762,12 +2618,12 @@ function renderPolimento() {
     const [cod, desc] = k.split('|||');
     let total = 0;
     const cells = mesCols.map(m => {
-      const v = data.filter(r=>r.cod===cod&&r.desc===desc&&r.mes===m).reduce((s,r)=>s+r.qtde,0);
+      const v = data.filter(r=>r.cod===cod&&r.desc===desc&&r.mes===m).reduce((s,r)=>s+r.qtde,0) / 2;
       total += v;
       return `<td style="text-align:right">${v > 0 ? v.toLocaleString('pt-BR') : '<span class="zero">—</span>'}</td>`;
     }).join('');
     const media = mesCols.reduce((s,m) => {
-      const v = data.filter(r=>r.cod===cod&&r.desc===desc&&r.mes===m).reduce((a,r)=>a+r.qtde,0);
+      const v = data.filter(r=>r.cod===cod&&r.desc===desc&&r.mes===m).reduce((a,r)=>a+r.qtde,0) / 2;
       return s + (v > 0 ? v / (DATA.termico.diasUteis[m]||1) : 0);
     }, 0) / (mesCols.length||1);
     return `<tr><td style="font-family:monospace">${cod}</td><td>${desc}</td>${cells}
@@ -1775,26 +2631,26 @@ function renderPolimento() {
       <td style="text-align:right;color:var(--green)">${media.toFixed(1)}</td></tr>`;
   }).join('');
 
-  // Foot totais
+  // Foot totais (pares)
   const totalGeral = Object.values(totMes).reduce((s,v)=>s+v,0);
   const mediaGeral = mesCols.reduce((s,m)=>s+(totMes[m]/(totDu[m]||1)),0)/(mesCols.length||1);
   const tfoot = document.getElementById('pol-foot');
   tfoot.innerHTML = `<tr class="tfoot-row" style="background:#1e2a4a;border-top:2px solid var(--blue)">
-    <td colspan="2" style="text-align:left;color:var(--text-muted)">TOTAL</td>
+    <td colspan="2" style="text-align:left;color:var(--text-muted)">TOTAL (pares)</td>
     ${mesCols.map(m=>`<td style="text-align:right;font-weight:700">${totMes[m].toLocaleString('pt-BR')}</td>`).join('')}
     <td style="text-align:right;font-weight:700">${totalGeral.toLocaleString('pt-BR')}</td>
     <td style="text-align:right;color:var(--green);font-weight:700">${mediaGeral.toFixed(1)}</td>
   </tr>`;
 
-  // KPIs
+  // KPIs (pares)
   const kpis = document.getElementById('pol-kpis');
   const mesAtual = mesCols[mesCols.length-1]||'';
   const totAtual = totMes[mesAtual]||0;
   const duAtual  = totDu[mesAtual]||1;
   kpis.innerHTML = `
-    <div class="kpi-card"><div class="kpi-label">TOTAL GERAL (QTDE)</div><div class="kpi-value blue">${totalGeral.toLocaleString('pt-BR')}</div></div>
-    <div class="kpi-card"><div class="kpi-label">${mesAtual ? new Date(+mesAtual.split('-')[0],+mesAtual.split('-')[1]-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).toUpperCase() : '—'}</div><div class="kpi-value" style="color:var(--orange)">${totAtual.toLocaleString('pt-BR')}</div></div>
-    <div class="kpi-card"><div class="kpi-label">MÉDIA DIÁRIA (ÚLTIMO MÊS)</div><div class="kpi-value" style="color:var(--green)">${(totAtual/duAtual).toFixed(1)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">TOTAL GERAL (PARES)</div><div class="kpi-value blue">${totalGeral.toLocaleString('pt-BR')}</div></div>
+    <div class="kpi-card"><div class="kpi-label">${mesAtual ? new Date(+mesAtual.split('-')[0],+mesAtual.split('-')[1]-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).toUpperCase() : '—'}</div><div class="kpi-value" style="color:var(--orange)">${totAtual.toLocaleString('pt-BR')} pares</div></div>
+    <div class="kpi-card"><div class="kpi-label">MÉDIA DIÁRIA (ÚLTIMO MÊS)</div><div class="kpi-value" style="color:var(--green)">${(totAtual/duAtual).toFixed(1)} pares/dia</div></div>
   `;
 }
 
@@ -4105,26 +4961,56 @@ async function startMonitor() {
 
 async function readSheets() {
   setStatus('active', 'Lendo planilha...');
-  const parsers = {
+  const abas = {
     'OF_ABERTAS':        parseOF,
     'ITENS_MONTADOS':    parseMontados,
     'ESTOQUE_SEGURANCA': parseEstoque,
     'TRANSITO':          parseTransito,
-    'SERVICO_TERCEIROS': (text) => { parseServico(text); parseTermico(text); },
-    'IFE':  parseIFE,
-    'PEDIDOS_DE_VENDA': parsePedidos
+    'SERVICO_TERCEIROS': parseServico,
+    'TERMICO':           parseTermico,  // mesma aba SERVICO_TERCEIROS, parser separado
+    'IFE':               parseIFE,
+    'PEDIDOS_DE_VENDA':  parsePedidos
   };
-  let found=0, errors=[];
-  for (const [aba, parser] of Object.entries(parsers)) {
-    try {
-      const res = await fetch(WEBAPP+'?aba='+encodeURIComponent(aba)+'&t='+Date.now());
-      if (!res.ok){errors.push(aba);continue;}
-      const text = await res.text();
-      if (!text.trim()){errors.push(aba);continue;}
-      parser(text); found++;
-    } catch(e){errors.push(aba);console.error(aba,e);}
+
+  // Fetch paralelo — todas as abas ao mesmo tempo
+  const fetchAba = async (aba) => {
+    // TERMICO usa os mesmos dados de SERVICO_TERCEIROS (não faz fetch duplo)
+    if (aba === 'TERMICO') return null;
+    const res = await fetch(WEBAPP+'?aba='+encodeURIComponent(aba)+'&t='+Date.now());
+    if (!res.ok) throw new Error('HTTP '+res.status);
+    const text = await res.text();
+    if (!text.trim()) throw new Error('vazio');
+    return text;
+  };
+
+  const abaKeys = Object.keys(abas);
+  const results = await Promise.allSettled(abaKeys.map(aba => fetchAba(aba)));
+
+  let found = 0, errors = [];
+  let servicoText = null;
+
+  for (let i = 0; i < abaKeys.length; i++) {
+    const aba = abaKeys[i];
+    const result = results[i];
+    if (aba === 'TERMICO') continue; // processado depois com servicoText
+    if (result.status === 'fulfilled' && result.value) {
+      try {
+        abas[aba](result.value);
+        if (aba === 'SERVICO_TERCEIROS') servicoText = result.value;
+        found++;
+      } catch(e) { errors.push(aba); console.error(aba, e); }
+    } else {
+      errors.push(aba);
+      console.error(aba, result.reason);
+    }
   }
-  if (found>0) {
+
+  // Processar parseTermico com o mesmo texto de SERVICO_TERCEIROS
+  if (servicoText) {
+    try { parseTermico(servicoText); } catch(e) { console.error('TERMICO', e); }
+  }
+
+  if (found > 0) {
     renderAll();
     nextRead = new Date(Date.now()+READ_INTERVAL_MS);
     const t = new Date().toLocaleTimeString('pt-BR');
