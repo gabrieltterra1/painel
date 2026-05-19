@@ -3858,8 +3858,12 @@ function renderPvPrioridades() {
 // Suporta: parênteses aninhados, espaços após vírgula, '::' como substituto de '='
 function _pvParseOfs(s) {
   if (!s || s === '0') return [];
-  // Remove apóstrofo + normaliza '::' → '=' (substituto usado pelo salvarNaAba)
-  const segments = String(s).replace(/^'/, '').replace(/::/g, '=').split('|');
+  // Remove apóstrofo + normaliza '::' → '=' + remove caracteres não-ASCII/invisíveis
+  const segments = String(s)
+    .replace(/^'/, '')
+    .replace(/::/g, '=')
+    .replace(/[^\x20-\x7E()=,./\d]/g, '') // remove chars não-imprimíveis
+    .split('|');
   const ofs = [];
   for (const seg of segments) {
     const str = seg.trim();
@@ -3868,7 +3872,6 @@ function _pvParseOfs(s) {
     if (first < 0 || last < 0) continue;
     const totalMatch = str.match(/^(\d+)\s*\(/);
     const totalQty = totalMatch ? parseInt(totalMatch[1]) : 0;
-    // Separar por vírgula respeitando parênteses aninhados
     const inner = str.slice(first+1, last);
     const parts = [];
     let depth = 0, cur = '';
