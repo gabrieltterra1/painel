@@ -4112,9 +4112,30 @@ function pvGerarPDF() {
     const tot = pvListaAtual.filter(g=>g.familia===f).reduce((s,g)=>s+(typeof g.a_montar==='number'?g.a_montar:0),0);
     return tot > 0 ? {fam:f, tot, color: _famColors[f]||'#475569', label:(_famLabels[f]||f).toUpperCase()} : null;
   }).filter(Boolean);
-  // Capturar canvas de família (mantém para fallback)
-  const famCanvas = document.getElementById('pv-prior-chart');
-  const famImg = famCanvas ? famCanvas.toDataURL('image/png') : null;
+
+  // Cards de status
+  const _statusDefs = [
+    {key:'FATURAR',      label:'✓ FATURAR',       color:'#00c97a'},
+    {key:'SEPARADO',     label:'▣ SEPARADO',       color:'#3d8bff'},
+    {key:'SEP. PARCIAL', label:'◑ SEP. PARCIAL',   color:'#06b6d4'},
+    {key:'FALTA SEPARAR',label:'⚙ FALTA SEPARAR',  color:'#f59e0b'},
+    {key:'MISTO',        label:'◑ MISTO',           color:'#a855f7'},
+    {key:'ABRIR OF',     label:'✗ ABRIR OF',        color:'#ff3b3b'},
+  ];
+  const statusCards = _statusDefs.map(sd => {
+    const tot = pvListaAtual.filter(g => {
+      if (sd.key === 'FATURAR') return g.faturar;
+      const sof = g.statusOf || '';
+      if (sd.key === 'MISTO') return sof.includes('✗ ABRIR OF') && (sof.includes('▣')||sof.includes('◑')||sof.includes('⚙'));
+      if (sd.key === 'ABRIR OF') return sof.includes('✗ ABRIR OF') && !sof.includes('▣') && !sof.includes('◑') && !sof.includes('⚙');
+      return sof.includes(sd.key);
+    }).reduce((s,g) => s+(typeof g.a_montar==='number'?g.a_montar:g.qtde_pv||0), 0);
+    return tot > 0 ? {...sd, tot} : null;
+  }).filter(Boolean);
+
+  // Data e hora exata de impressão
+  const agora = new Date();
+  const hojeHora = agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR');
 
   // Capturar tabela atual
   const tbody = document.getElementById('pv-prior-tbody');
@@ -4165,19 +4186,27 @@ function pvGerarPDF() {
   </head><body>
     <div class="header">
       <h2>📋 PAINEL <span>INDUSTRIAL</span> — Prioridades de Venda</h2>
-      <div class="sub">Gerado em ${hoje}<br>Período: ${periodoLabel}<br>Filtro: projetado negativo</div>
+      <div class="sub">Impresso em ${hojeHora}<br>Período: ${periodoLabel}<br>Filtro: projetado negativo</div>
     </div>
     <div class="graficos">
-      <div class="grafico-box" style="flex:1.2">
+      <div class="grafico-box" style="flex:1.4">
         <div class="titulo">A MONTAR POR FAMÍLIA</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 0">
-          ${famCards.map(c=>`<div style="background:${c.color}18;border:2px solid ${c.color};border-radius:8px;padding:8px 14px;text-align:center;min-width:80px">
-            <div style="font-size:9px;font-weight:700;color:${c.color};letter-spacing:0.5px">${c.label}</div>
-            <div style="font-size:26px;font-weight:900;color:${c.color};line-height:1.1">${c.tot}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;padding:10px 0">
+          ${famCards.map(c=>`<div style="background:${c.color}18;border:2px solid ${c.color};border-radius:10px;padding:12px 18px;text-align:center;min-width:90px;flex:1">
+            <div style="font-size:10px;font-weight:700;color:${c.color};letter-spacing:0.5px;margin-bottom:4px">${c.label}</div>
+            <div style="font-size:32px;font-weight:900;color:${c.color};line-height:1">${c.tot}</div>
           </div>`).join('')}
         </div>
       </div>
-      ${statusImg ? `<div class="grafico-box"><div class="titulo">A Montar por Status</div><img src="${statusImg}" alt="Status"></div>` : ''}
+      <div class="grafico-box" style="flex:1">
+        <div class="titulo">A MONTAR POR STATUS</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;padding:10px 0">
+          ${statusCards.map(c=>`<div style="background:${c.color}18;border:2px solid ${c.color};border-radius:10px;padding:12px 18px;text-align:center;min-width:90px;flex:1">
+            <div style="font-size:10px;font-weight:700;color:${c.color};letter-spacing:0.5px;margin-bottom:4px">${c.label}</div>
+            <div style="font-size:32px;font-weight:900;color:${c.color};line-height:1">${c.tot}</div>
+          </div>`).join('')}
+        </div>
+      </div>
     </div>
     <table>
       <thead>${thead ? thead.innerHTML : ''}</thead>
