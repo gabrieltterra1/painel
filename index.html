@@ -3595,6 +3595,19 @@ function pvMostrarDetalheOf(event, dados) {
     </div>`;
 }
 
+// ── Event delegation para células de detalhe OF ──────────────────────────────
+document.addEventListener('click', function(e) {
+  const cell = e.target.closest('.pv-detalhe-of-cell');
+  if (!cell || cell.dataset.faturar === '1') return;
+  pvMostrarDetalheOf(e, {
+    sem:    decodeURIComponent(cell.dataset.sem  || ''),
+    comp:   decodeURIComponent(cell.dataset.comp || ''),
+    parc:   decodeURIComponent(cell.dataset.parc || ''),
+    proj:   parseInt(cell.dataset.proj  || '0'),
+    codigo: cell.dataset.codigo || ''
+  });
+});
+
 // ── Estado da tabela de prioridades ──────────────────────────────────────
 let pvSortKey = 'a_montar', pvSortAsc = false;
 let pvOcultos = new Set(); // códigos ocultos na sessão
@@ -3633,6 +3646,7 @@ function renderPvPrioridades() {
       qtde_pv:0, proj:0, saldo:0,
       of_sem:0, of_comp:0, of_parc:0,
       of_sem_str:'', of_comp_str:'', of_parc_str:'',
+      of_sem_raw:'', of_comp_raw:'', of_parc_raw:'', // texto bruto para popup
       _ofsSemVistas: new Set(), _ofsCompVistas: new Set(), _ofsParcVistas: new Set(),
       a_montar:0, statusOf:'', faturar:false
     };
@@ -3663,6 +3677,11 @@ function renderPvPrioridades() {
     g.of_sem_str  = _addOfStr(_ofSem,  g._ofsSemVistas,  g.of_sem_str);
     g.of_comp_str = _addOfStr(_ofComp, g._ofsCompVistas, g.of_comp_str);
     g.of_parc_str = _addOfStr(_ofParc, g._ofsParcVistas, g.of_parc_str);
+
+    // Guardar texto bruto original para o popup (preserva "/ (itens faltantes)")
+    if (_ofSem  && _ofSem  !== '0') g.of_sem_raw  = [g.of_sem_raw,  _ofSem ].filter(Boolean).join('\n');
+    if (_ofComp && _ofComp !== '0') g.of_comp_raw = [g.of_comp_raw, _ofComp].filter(Boolean).join('\n');
+    if (_ofParc && _ofParc !== '0') g.of_parc_raw = [g.of_parc_raw, _ofParc].filter(Boolean).join('\n');
 
     g.of_sem  = _pvParseOfQtde(r.of_sem);
     g.of_comp = _pvParseOfQtde(r.of_comp);
@@ -3881,11 +3900,14 @@ function renderPvPrioridades() {
       <td style="text-align:right;color:#06b6d4">${g.of_parc||'<span class="zero">—</span>'}</td>
       <td style="text-align:right">${aMontar}</td>
       <td>${statusBadge}</td>
-      <td style="font-size:10px;color:var(--text-muted);max-width:260px;word-break:break-word;white-space:normal;line-height:1.4;cursor:${g.faturar?'default':'pointer'}"
-        onclick="${g.faturar?'':'pvMostrarDetalheOf(event,'+JSON.stringify({
-          sem: g.of_sem_str, comp: g.of_comp_str, parc: g.of_parc_str,
-          proj: g.proj, codigo: g.codigo
-        }).replace(/"/g,'&quot;')+')'}"
+      <td style="font-size:10px;color:var(--text-muted);max-width:260px;word-break:break-word;white-space:normal;line-height:1.4;${g.faturar?'':'cursor:pointer'}"
+        class="pv-detalhe-of-cell"
+        data-sem="${encodeURIComponent(g.of_sem_raw||'')}"
+        data-comp="${encodeURIComponent(g.of_comp_raw||'')}"
+        data-parc="${encodeURIComponent(g.of_parc_raw||'')}"
+        data-proj="${g.proj}"
+        data-codigo="${g.codigo}"
+        data-faturar="${g.faturar?'1':'0'}"
         title="${g.faturar?'':'Clique para ver detalhes das OFs'}"
       >${g.faturar?'—':(g.statusOf||'—')}</td>
     </tr>`;
