@@ -3852,18 +3852,20 @@ function renderPvPrioridades() {
   </tr>`;
 }
 
-// Extrai OFs individuais de uma string ou múltiplas strings separadas por '|'
-// Suporta: "32 (171502453=8,171502454=8)" e "16 (171787704=8/ (4072),171787707=8/ (4072))"
+// Extrai OFs individuais: "32 (171502453=10,171502454=10)" → [{of,qty},...]
+// Suporta: parênteses aninhados, espaços após vírgula, '::' como substituto de '='
 function _pvParseOfs(s) {
   if (!s || s === '0') return [];
-  // Remove apóstrofo de proteção + suporte a múltiplas strings com '|'
-  const segments = String(s).replace(/^'/, '').split('|');
+  // Remove apóstrofo + normaliza '::' → '=' (substituto usado pelo salvarNaAba)
+  const segments = String(s).replace(/^'/, '').replace(/::/g, '=').split('|');
   const ofs = [];
   for (const seg of segments) {
     const str = seg.trim();
     const first = str.indexOf('(');
     const last  = str.lastIndexOf(')');
     if (first < 0 || last < 0) continue;
+    const totalMatch = str.match(/^(\d+)\s*\(/);
+    const totalQty = totalMatch ? parseInt(totalMatch[1]) : 0;
     // Separar por vírgula respeitando parênteses aninhados
     const inner = str.slice(first+1, last);
     const parts = [];
@@ -3875,21 +3877,16 @@ function _pvParseOfs(s) {
       else                              { cur += ch; }
     }
     if (cur.trim()) parts.push(cur.trim());
-    // Quantidade total do prefixo "32 (..." para fallback quando não tem =qty
-    const totalMatch = seg.match(/^(\d+)\s*\(/);
-    const totalQty = totalMatch ? parseInt(totalMatch[1]) : 0;
-
     for (const part of parts) {
-      const clean = part.split('/')[0].trim(); // remove sufixo "/ (4072)"
+      const clean = part.trim().split('/')[0].trim();
       if (clean.includes('=')) {
-        const [num, qty] = clean.split('=');
-        const q = parseInt(qty?.trim());
-        if (!isNaN(q) && q > 0) ofs.push({ of: num.trim(), qty: q });
-      } else if (clean.match(/^\d+$/)) {
-        // Sem =qty — distribuir quantidade total igualmente entre as OFs
-        const numOfs = parts.length || 1;
-        const qEach = parts.length > 1 ? Math.round(totalQty / numOfs) : totalQty;
-        if (qEach > 0) ofs.push({ of: clean.trim(), qty: qEach });
+        const eqIdx = clean.indexOf('=');
+        const num = clean.slice(0, eqIdx).trim();
+        const qty = parseInt(clean.slice(eqIdx+1).trim());
+        if (!isNaN(qty) && qty > 0) ofs.push({ of: num, qty });
+      } else if (/^\d+$/.test(clean)) {
+        const qEach = parts.length > 1 ? Math.round(totalQty / parts.length) : totalQty;
+        if (qEach > 0) ofs.push({ of: clean, qty: qEach });
       }
     }
   }
