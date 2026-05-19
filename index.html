@@ -1356,7 +1356,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <th style="text-align:right;width:70px">OF PARC.</th>
           <th style="text-align:right;width:85px;color:#f59e0b;cursor:pointer" onclick="pvOrdenar('a_montar')">▲ A MONTAR ⇅</th>
           <th style="width:110px">STATUS</th>
-          <th style="width:200px">DETALHE OF</th>
+          <th style="width:260px">DETALHE OF</th>
         </tr>
       </thead>
       <tbody id="pv-prior-tbody"></tbody>
@@ -3600,37 +3600,48 @@ function renderPvPrioridades() {
       qtde_pv:0, proj:0, saldo:0,
       of_sem:0, of_comp:0, of_parc:0,
       of_sem_str:'', of_comp_str:'', of_parc_str:'',
+      _ofsSemVistas: new Set(), _ofsCompVistas: new Set(), _ofsParcVistas: new Set(),
       a_montar:0, statusOf:'', faturar:false
     };
     const g = grupos[cod];
     g.qtde_pv     += r.qtde;
-    g.proj         = r.projetado; // projetado acumula por código
+    g.proj         = r.projetado;
     g.saldo        = r.projetado;
-    // Concatenar strings de OF para processar as OFs individuais juntas
-    // Remover apóstrofo de proteção (prefixado pelo salvarNaAba para evitar fórmulas)
+
     const _cleanOf = v => String(v||'').replace(/^'/, '').trim();
     const _ofSem  = _cleanOf(r.of_sem);
     const _ofComp = _cleanOf(r.of_comp);
     const _ofParc = _cleanOf(r.of_parc);
-    if (_ofSem  && _ofSem  !== '0') g.of_sem_str  = [g.of_sem_str,  _ofSem ].filter(Boolean).join('|');
-    if (_ofComp && _ofComp !== '0') g.of_comp_str = [g.of_comp_str, _ofComp].filter(Boolean).join('|');
-    if (_ofParc && _ofParc !== '0') g.of_parc_str = [g.of_parc_str, _ofParc].filter(Boolean).join('|');
-    if (g.codigo === '9532') console.log('[9532] linha proj='+r.projetado+' ofSem='+_ofSem+' ofComp='+_ofComp+' of_sem_str='+g.of_sem_str+' of_comp_str='+g.of_comp_str);
-    g.of_sem       = _pvParseOfQtde(r.of_sem);
-    g.of_comp      = _pvParseOfQtde(r.of_comp);
-    g.of_parc      = _pvParseOfQtde(r.of_parc);
+
+    // Deduplicar OFs — só adiciona se não foi vista antes para este código
+    const _addOfStr = (str, setVistas, target) => {
+      if (!str || str === '0') return target;
+      const ofs = _pvParseOfs(str);
+      const novas = ofs.filter(o => !setVistas.has(o.of));
+      novas.forEach(o => setVistas.add(o.of));
+      if (!novas.length) return target;
+      // Reconstruir string apenas com OFs novas
+      const novaStr = novas.map(o => o.qty > 0 ? o.of+'='+o.qty : o.of).join(',');
+      const total = novas.reduce((s,o) => s+o.qty, 0);
+      const rebuilt = total + ' (' + novaStr + ')';
+      return [target, rebuilt].filter(Boolean).join('|');
+    };
+
+    g.of_sem_str  = _addOfStr(_ofSem,  g._ofsSemVistas,  g.of_sem_str);
+    g.of_comp_str = _addOfStr(_ofComp, g._ofsCompVistas, g.of_comp_str);
+    g.of_parc_str = _addOfStr(_ofParc, g._ofsParcVistas, g.of_parc_str);
+
+    g.of_sem  = _pvParseOfQtde(r.of_sem);
+    g.of_comp = _pvParseOfQtde(r.of_comp);
+    g.of_parc = _pvParseOfQtde(r.of_parc);
   });
 
-  // Calcular "a montar" por produto
-  // Lógica: se tem OF sem req → usa essa qtde inteira
-  //         senão se tem parcial → usa parcial
-  //         senão se sem saldo → usa completa (já em prod mas precisa montar)
+  // Calcular A MONTAR com status múltiplo e ABRIR OF quando insuficiente
   Object.values(grupos).forEach(g => {
-    const rv = _pvCalcMontar(g.proj, g.of_sem_str, g.of_comp_str, g.of_parc_str);
+    const rv = _pvCalcMontarCompleto(g.proj, g.of_sem_str, g.of_comp_str, g.of_parc_str);
     g.a_montar = rv.montar === 'FATURAR' ? 0 : rv.montar;
     g.statusOf = rv.statusOf;
     g.faturar  = rv.montar === 'FATURAR';
-    if (g.codigo === '9532') console.log('[9532] FINAL proj='+g.proj+' ofSemStr='+g.of_sem_str+' ofCompStr='+g.of_comp_str+' montar='+rv.montar+' status='+rv.statusOf);
   });
 
   // Filtrar
@@ -3804,21 +3815,23 @@ function renderPvPrioridades() {
     let statusBadge;
     const sof = g.statusOf || '';
     const _badge = (bg, color, txt) =>
-      `<span style="background:${bg};color:${color};font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px">${txt}</span>`;
+      `<span style="background:${bg};color:${color};font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;white-space:nowrap">${txt}</span>`;
     if (g.faturar)
       statusBadge = _badge('rgba(0,201,122,0.12)','var(--green)','✓ FATURAR');
-    else if (sof.includes('ABRIR OF'))
+    else if (sof.includes('✗ ABRIR OF') && (sof.includes('▣') || sof.includes('◑') || sof.includes('⚙')))
+      statusBadge = _badge('rgba(168,85,247,0.12)','#a855f7','◑ MISTO + ABRIR OF');
+    else if (sof.includes('✗ ABRIR OF'))
       statusBadge = _badge('rgba(255,59,59,0.12)','var(--red)','✗ ABRIR OF');
-    else if (sof.includes('FALTA SEPARAR') && sof.includes('SEPARADO'))
+    else if (sof.includes('⚙') && sof.includes('▣'))
       statusBadge = _badge('rgba(168,85,247,0.12)','#a855f7','◑ MISTO');
-    else if (sof.includes('FALTA SEPARAR'))
+    else if (sof.includes('⚙ FALTA SEPARAR'))
       statusBadge = _badge('rgba(245,158,11,0.12)','#f59e0b','⚙ FALTA SEPARAR');
-    else if (sof.includes('SEP. PARCIAL'))
+    else if (sof.includes('◑ SEP. PARCIAL'))
       statusBadge = _badge('rgba(6,182,212,0.12)','#06b6d4','◑ SEP. PARCIAL');
-    else if (sof.includes('SEPARADO'))
+    else if (sof.includes('▣ SEPARADO'))
       statusBadge = _badge('rgba(61,139,255,0.12)','var(--blue)','▣ SEPARADO');
     else
-      statusBadge = _badge('rgba(255,59,59,0.12)','var(--red)','✗ SEM OF');
+      statusBadge = _badge('rgba(255,59,59,0.12)','var(--red)','✗ ABRIR OF');
     const aMontar = g.a_montar > 0 ? `<span style="color:#f59e0b;font-weight:800">${g.a_montar}</span>` : '<span class="zero">—</span>';
     return `<tr>
       <td style="text-align:center;padding:4px">
@@ -3835,7 +3848,7 @@ function renderPvPrioridades() {
       <td style="text-align:right;color:#06b6d4">${g.of_parc||'<span class="zero">—</span>'}</td>
       <td style="text-align:right">${aMontar}</td>
       <td>${statusBadge}</td>
-      <td style="font-size:10px;color:var(--text-muted);max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${g.faturar?'—':(g.statusOf||'—')}">${g.faturar?'—':(g.statusOf||'—')}</td>
+      <td style="font-size:10px;color:var(--text-muted);max-width:260px;word-break:break-word;white-space:normal;line-height:1.4">${g.faturar?'—':(g.statusOf||'—')}</td>
     </tr>`;
   }).join('');
 
@@ -3908,7 +3921,52 @@ function _pvParseOfQtde(s) {
 // 2. proj < 0: soma OFs inteiras (COMP → PARC → SEM) até cobrir abs(proj)
 //    Cada OF é usada inteira (não monta parcial de OF)
 // 3. Sem nenhuma OF → abs(proj) + statusOf "ABRIR OF"
-function _pvCalcMontar(proj, ofSemStr, ofCompStr, ofParcStr) {
+// Versão completa: suporta status múltiplo e ABRIR OF quando OFs são insuficientes
+function _pvCalcMontarCompleto(proj, ofSemStr, ofCompStr, ofParcStr) {
+  if (proj >= 0) return { montar: 'FATURAR', statusOf: 'FATURAR' };
+
+  const necessidade = Math.abs(proj);
+  const ofsComp = _pvParseOfs(ofCompStr);
+  const ofsParc = _pvParseOfs(ofParcStr);
+  const ofsSem  = _pvParseOfs(ofSemStr);
+
+  const somarAteNec = (ofs, nec) => {
+    let acum = 0, multi = false, ultima = 0;
+    for (const o of ofs) {
+      if (acum >= nec) break;
+      const resto = nec - acum;
+      if (o.qty >= resto) { acum += o.qty; ultima = o.qty; break; }
+      acum += o.qty; ultima = o.qty; multi = true;
+    }
+    if (multi && acum > nec && ultima < nec) return nec;
+    return acum;
+  };
+
+  // Total de OFs disponíveis (sem duplicação)
+  const totalOfsDisp = ofsComp.reduce((s,o)=>s+o.qty,0)
+                     + ofsParc.reduce((s,o)=>s+o.qty,0)
+                     + ofsSem.reduce((s,o)=>s+o.qty,0);
+
+  let qtComp = somarAteNec(ofsComp, necessidade);
+  let qtParc = qtComp < necessidade ? somarAteNec(ofsParc, necessidade - qtComp) : 0;
+  let qtSem  = (qtComp+qtParc) < necessidade ? somarAteNec(ofsSem, necessidade-qtComp-qtParc) : 0;
+  const totalMontavel = qtComp + qtParc + qtSem;
+
+  // O que falta abrir OF
+  const faltaAbrirOf = Math.max(0, necessidade - totalMontavel);
+
+  const partes = [];
+  if (qtComp > 0) partes.push(`${qtComp} ▣ SEPARADO`);
+  if (qtParc > 0) partes.push(`${qtParc} ◑ SEP. PARCIAL`);
+  if (qtSem  > 0) partes.push(`${qtSem} ⚙ FALTA SEPARAR`);
+  if (faltaAbrirOf > 0) partes.push(`${faltaAbrirOf} ✗ ABRIR OF`);
+  if (partes.length === 0) partes.push(`${necessidade} ✗ ABRIR OF`);
+
+  const montar = totalMontavel > 0 ? totalMontavel + faltaAbrirOf : necessidade;
+  return { montar, statusOf: partes.join(' + ') };
+}
+
+
   if (proj >= 0) return { montar: 'FATURAR', statusOf: 'FATURAR' };
 
   const necessidade = Math.abs(proj);
@@ -3931,35 +3989,6 @@ function _pvCalcMontar(proj, ofSemStr, ofCompStr, ofParcStr) {
   if (!ofsComp.length && !ofsParc.length && !ofsSem.length) {
     return { montar: necessidade, statusOf: `${necessidade} ✗ ABRIR OF` };
   }
-
-  // Percorre OFs em ordem COMP→PARC→SEM
-  // Cada OF é usada inteira. Quando a última OF usada >= nec_restante → usa inteira (sem teto)
-  // Quando múltiplas OFs pequenas cobrem acumulando → aplica teto em nec se última < nec
-  const somarAteNec = (ofs, nec) => {
-    let acum = 0, multi = false, ultima = 0;
-    for (const o of ofs) {
-      if (acum >= nec) break;
-      const resto = nec - acum;
-      if (o.qty >= resto) { acum += o.qty; ultima = o.qty; break; }
-      acum += o.qty; ultima = o.qty; multi = true;
-    }
-    if (multi && acum > nec && ultima < nec) return nec;
-    return acum;
-  };
-
-  let qtComp = somarAteNec(ofsComp, necessidade);
-  let qtParc = qtComp < necessidade ? somarAteNec(ofsParc, necessidade - qtComp) : 0;
-  let qtSem  = (qtComp + qtParc) < necessidade ? somarAteNec(ofsSem, necessidade - qtComp - qtParc) : 0;
-  const total = qtComp + qtParc + qtSem;
-
-  const partes = [];
-  if (qtComp > 0) partes.push(`${qtComp} ▣ SEPARADO`);
-  if (qtParc > 0) partes.push(`${qtParc} ◑ SEP. PARCIAL`);
-  if (qtSem  > 0) partes.push(`${qtSem} ⚙ FALTA SEPARAR`);
-  const statusOf = partes.join(' + ');
-
-  return { montar: total, statusOf };
-}
 
 // Registrar msChange para pedidos
 const _msChangePvOrig = msChange;
@@ -4014,30 +4043,30 @@ function pvGerarPDF() {
     <title>Prioridades PV — ${hoje}</title>
     <style>
       * { box-sizing: border-box; }
-      body { font-family: Arial, sans-serif; font-size: 13px; color: #1a1a2e; margin: 20px; }
-      h2 { font-size: 20px; font-weight: 900; margin-bottom: 4px; color: #0d1b3e; }
+      body { font-family: Arial, sans-serif; font-size: 11px; color: #1a1a2e; margin: 12px; }
+      h2 { font-size: 16px; font-weight: 900; margin-bottom: 2px; color: #0d1b3e; }
       h2 span { color: #1a6fcc; }
-      .sub { font-size: 11px; color: #666; margin-bottom: 18px; border-bottom: 2px solid #1a6fcc; padding-bottom: 8px; }
-      .graficos { display: flex; gap: 16px; margin-bottom: 20px; }
-      .graficos img { height: 220px; border: 1px solid #ccd; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
-      table { width: 100%; border-collapse: collapse; font-size: 12px; }
-      th { background: #0d1b3e; color: #fff; padding: 9px 10px; text-align: left; font-size: 11px; letter-spacing: 0.5px; }
+      .sub { font-size: 10px; color: #666; margin-bottom: 10px; border-bottom: 1px solid #1a6fcc; padding-bottom: 4px; }
+      .graficos { display: flex; gap: 10px; margin-bottom: 12px; }
+      .graficos img { height: 140px; border-radius: 6px; }
+      table { width: 100%; border-collapse: collapse; font-size: 10px; }
+      th { background: #0d1b3e; color: #fff; padding: 5px 6px; text-align: left; font-size: 10px; }
       th:first-child { display: none; }
-      td { padding: 7px 10px; border-bottom: 1px solid #e8edf5; vertical-align: middle; }
+      td { padding: 4px 6px; border-bottom: 1px solid #e8edf5; vertical-align: top; word-break: break-word; }
       td:first-child { display: none; }
       tr:nth-child(even) td { background: #f4f7fc; }
-      tr:hover td { background: #e8f0ff; }
-      /* CÓDIGO — destaque */
-      td.col-cod { font-family: monospace; font-size: 14px; font-weight: 700; color: #1a6fcc; white-space: nowrap; }
-      /* FAMÍLIA — badge colorido */
-      td.col-fam span { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; }
-      /* A MONTAR — destaque âmbar */
-      td.col-montar { font-size: 16px; font-weight: 900; color: #b35e00; text-align: right; }
-      /* STATUS */
-      td.col-status { font-weight: 700; font-size: 11px; }
-      .total-row td { background: #dce7f7 !important; font-weight: 700; font-size: 13px; border-top: 2px solid #1a6fcc; }
-      .total-row td.col-montar { color: #b35e00; font-size: 17px; }
-      @media print { body { margin: 8px; } }
+      td.col-cod { font-family: monospace; font-size: 11px; font-weight: 700; color: #1a6fcc; white-space: nowrap; }
+      td.col-desc { max-width: 200px; word-break: break-word; white-space: normal; }
+      td.col-fam { font-size: 9px; font-weight: 700; white-space: nowrap; }
+      td.col-montar { font-size: 13px; font-weight: 900; color: #b35e00; text-align: right; white-space: nowrap; }
+      td.col-status { font-size: 9px; font-weight: 700; white-space: nowrap; }
+      td.col-detalhe { font-size: 9px; color: #555; max-width: 150px; word-break: break-word; white-space: normal; }
+      .total-row td { background: #dce7f7 !important; font-weight: 700; border-top: 2px solid #1a6fcc; }
+      .total-row td.col-montar { color: #b35e00; font-size: 14px; }
+      @media print {
+        body { margin: 6px; }
+        .graficos img { height: 120px; }
+      }
     </style>
   </head><body>
     <h2>📋 Painel Industrial — Prioridades de Venda</h2>
@@ -4057,7 +4086,7 @@ function pvGerarPDF() {
           // col0=botão(oculto), col1=código, col2=desc, col3=família, col4=pv, col5=proj, col6=ofSem, col7=ofComp, col8=ofParc, col9=aMontar, col10=status, col11=detalhe
           let html = '<tr>';
           tds.forEach((td, i) => {
-            const cls = i===1?'col-cod':i===3?'col-fam':i===9?'col-montar':i===10?'col-status':'';
+            const cls = i===1?'col-cod':i===2?'col-desc':i===3?'col-fam':i===9?'col-montar':i===10?'col-status':i===11?'col-detalhe':'';
             html += '<td class="' + cls + '">' + td.innerHTML + '</td>';
           });
           html += '</tr>';
