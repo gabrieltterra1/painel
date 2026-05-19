@@ -4113,25 +4113,40 @@ function pvGerarPDF() {
     return tot > 0 ? {fam:f, tot, color: _famColors[f]||'#475569', label:(_famLabels[f]||f).toUpperCase()} : null;
   }).filter(Boolean);
 
-  // Cards de status
+  // Cards de status — extrair quantidades parciais do statusOf
+  const _statusTotais = {
+    'FATURAR': 0, 'SEPARADO': 0, 'SEP. PARCIAL': 0,
+    'FALTA SEPARAR': 0, 'ABRIR OF': 0
+  };
+  pvListaAtual.forEach(g => {
+    if (g.faturar) {
+      _statusTotais['FATURAR'] += g.qtde_pv || 0;
+      return;
+    }
+    const sof = g.statusOf || '';
+    // Extrair cada segmento "N ▣ TIPO" do statusOf
+    const segs = sof.split(' + ');
+    segs.forEach(seg => {
+      const m = seg.match(/^(\d+)\s+(.+)$/);
+      if (!m) return;
+      const qty = parseInt(m[1]);
+      const tipo = m[2].trim();
+      if (tipo.includes('▣ SEPARADO'))       _statusTotais['SEPARADO']      += qty;
+      else if (tipo.includes('◑ SEP. PARCIAL')) _statusTotais['SEP. PARCIAL'] += qty;
+      else if (tipo.includes('⚙ FALTA SEPARAR')) _statusTotais['FALTA SEPARAR'] += qty;
+      else if (tipo.includes('✗ ABRIR OF'))  _statusTotais['ABRIR OF']      += qty;
+    });
+  });
   const _statusDefs = [
-    {key:'FATURAR',      label:'✓ FATURAR',       color:'#00c97a'},
-    {key:'SEPARADO',     label:'▣ SEPARADO',       color:'#3d8bff'},
-    {key:'SEP. PARCIAL', label:'◑ SEP. PARCIAL',   color:'#06b6d4'},
-    {key:'FALTA SEPARAR',label:'⚙ FALTA SEPARAR',  color:'#f59e0b'},
-    {key:'MISTO',        label:'◑ MISTO',           color:'#a855f7'},
-    {key:'ABRIR OF',     label:'✗ ABRIR OF',        color:'#ff3b3b'},
+    {key:'FATURAR',      label:'✓ FATURAR',        color:'#00c97a'},
+    {key:'SEPARADO',     label:'▣ SEPARADO',        color:'#3d8bff'},
+    {key:'SEP. PARCIAL', label:'◑ SEP. PARCIAL',    color:'#06b6d4'},
+    {key:'FALTA SEPARAR',label:'⚙ FALTA SEPARAR',   color:'#f59e0b'},
+    {key:'ABRIR OF',     label:'✗ ABRIR OF',         color:'#ff3b3b'},
   ];
-  const statusCards = _statusDefs.map(sd => {
-    const tot = pvListaAtual.filter(g => {
-      if (sd.key === 'FATURAR') return g.faturar;
-      const sof = g.statusOf || '';
-      if (sd.key === 'MISTO') return sof.includes('✗ ABRIR OF') && (sof.includes('▣')||sof.includes('◑')||sof.includes('⚙'));
-      if (sd.key === 'ABRIR OF') return sof.includes('✗ ABRIR OF') && !sof.includes('▣') && !sof.includes('◑') && !sof.includes('⚙');
-      return sof.includes(sd.key);
-    }).reduce((s,g) => s+(typeof g.a_montar==='number'?g.a_montar:g.qtde_pv||0), 0);
-    return tot > 0 ? {...sd, tot} : null;
-  }).filter(Boolean);
+  const statusCards = _statusDefs
+    .map(sd => _statusTotais[sd.key] > 0 ? {...sd, tot: _statusTotais[sd.key]} : null)
+    .filter(Boolean);
 
   // Data e hora exata de impressão
   const agora = new Date();
@@ -4171,7 +4186,8 @@ function pvGerarPDF() {
       td.col-cod { font-family: 'Courier New', monospace; font-size: 11px; font-weight: 700; color: #1a6fcc; white-space: nowrap; }
       td.col-desc { max-width: 180px; word-break: break-word; white-space: normal; line-height: 1.3; }
       td.col-fam { font-size: 9px; font-weight: 700; white-space: nowrap; color: #444; }
-      td.col-montar { font-size: 14px; font-weight: 900; color: #000; text-align: right; white-space: nowrap; }
+      td.col-montar { font-size: 14px; font-weight: 900; color: #000 !important; text-align: right; white-space: nowrap; }
+      td.col-montar span { color: #000 !important; font-weight: 900 !important; }
       td.col-status { font-size: 9px; font-weight: 700; }
       td.col-status span { padding: 1px 5px; border-radius: 3px; }
       td.col-detalhe { font-size: 9px; color: #555; max-width: 160px; word-break: break-word; white-space: normal; line-height: 1.3; }
