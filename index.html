@@ -3966,30 +3966,6 @@ function _pvCalcMontarCompleto(proj, ofSemStr, ofCompStr, ofParcStr) {
   return { montar, statusOf: partes.join(' + ') };
 }
 
-
-  if (proj >= 0) return { montar: 'FATURAR', statusOf: 'FATURAR' };
-
-  const necessidade = Math.abs(proj);
-  const ofsComp = _pvParseOfs(ofCompStr);
-  const ofsParc = _pvParseOfs(ofParcStr);
-  const ofsSem  = _pvParseOfs(ofSemStr);
-
-  // Regra: percorre OFs em ordem COMP→PARC→SEM
-  // Cada OF é usada INTEIRA — nunca monta parcial de uma OF
-  // Para quando acumulado >= necessidade
-  const somarOfs = ofs => {
-    let acum = 0;
-    for (const of_ of ofs) {
-      if (acum >= necessidade) break;
-      acum += of_.qty;
-    }
-    return acum;
-  };
-
-  if (!ofsComp.length && !ofsParc.length && !ofsSem.length) {
-    return { montar: necessidade, statusOf: `${necessidade} ✗ ABRIR OF` };
-  }
-
 // Registrar msChange para pedidos
 const _msChangePvOrig = msChange;
 
