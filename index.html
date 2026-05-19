@@ -174,6 +174,10 @@
     padding: 0 32px;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    overflow-x: auto;
   }
   .tab {
     padding: 14px 24px;
@@ -567,10 +571,11 @@
   .chart-fixed-ns canvas { position: absolute; top: 0; left: 0; width: 100% !important; height: 100% !important; }
 
   /* LINHA DO TEMPO TABLE */
-  .timeline-table { border-collapse: collapse; width: max-content; min-width: 100%; }
+  .timeline-table { border-collapse: collapse; width: max-content; }
   .timeline-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; display: block; width: 100%; }
-  .timeline-table th { white-space: nowrap; padding: 10px 16px !important; }
-  .timeline-table td { white-space: nowrap; padding: 8px 16px !important; }
+  .timeline-table th { white-space: nowrap; padding: 10px 18px !important; min-width: 110px; }
+  .timeline-table td { white-space: nowrap; padding: 8px 18px !important; min-width: 110px; }
+  .timeline-table th:first-child, .timeline-table td:first-child { min-width: 130px; position: sticky; left: 0; background: var(--surface); z-index: 1; }
   .timeline-table th { background: #1a3a6e; color: #fff; font-family: var(--font-display); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; padding: 10px 14px; text-align: right; }
   .timeline-table th:first-child { text-align: left; }
   .timeline-table td { padding: 9px 14px; text-align: right; font-size: 13px; }
@@ -1231,13 +1236,17 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="kpi-bar" id="ife-kpis" style="margin-bottom:20px"></div>
 
   <!-- Gráfico principal -->
-  <div style="position:relative;height:340px;margin-bottom:28px">
-    <canvas id="ife-chart"></canvas>
+  <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:28px">
+    <div style="position:relative;height:340px;min-width:700px">
+      <canvas id="ife-chart"></canvas>
+    </div>
   </div>
 
   <!-- Gráfico comparativo ano a ano (oculto por padrão) -->
-  <div id="ife-comp-wrap" style="display:none;position:relative;height:300px;margin-bottom:28px">
-    <canvas id="ife-comp-chart"></canvas>
+  <div id="ife-comp-wrap" style="display:none;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:28px">
+    <div style="position:relative;height:300px;min-width:600px">
+      <canvas id="ife-comp-chart"></canvas>
+    </div>
   </div>
 
   <!-- Tabela -->
@@ -1309,6 +1318,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </select>
     <input class="search-input" type="text" id="pv-search2" placeholder="Buscar código ou descrição..." oninput="renderPvPrioridades()" style="width:200px">
     <button id="pv-btn-ocultos" onclick="pvOcultos.clear();renderPvPrioridades()" style="display:none;background:rgba(0,201,122,0.15);border:1px solid var(--green);color:var(--green);padding:7px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">👁 Mostrar ocultos</button>
+    <button onclick="pvLimparFiltros()" style="background:rgba(255,59,59,0.12);border:1px solid var(--red);color:var(--red);padding:7px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">✕ Limpar filtros</button>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button onclick="pvFiltroRapido('atraso')"
         style="background:rgba(255,59,59,0.15);border:1px solid var(--red);color:var(--red);padding:7px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">
@@ -1409,17 +1419,17 @@ document.addEventListener('DOMContentLoaded', () => {
       <thead class="blue" style="position:sticky;top:0;z-index:2">
         <tr>
           <th style="width:60px;position:sticky;left:0;background:#1a2a4a;z-index:3">PEDIDO</th>
-          <th style="width:80px">CÓDIGO</th>
-          <th>DESCRIÇÃO</th>
-          <th style="width:70px;text-align:right">QTDE</th>
-          <th style="width:90px">ENTREGA</th>
-          <th style="width:80px">STATUS</th>
-          <th style="width:70px;text-align:right">PROJETADO</th>
-          <th style="width:100px">OF SEM REQ</th>
-          <th style="width:100px">OF COMPLETA</th>
-          <th style="width:100px">OF PARCIAL</th>
-          <th style="width:80px">FAMÍLIA</th>
-          <th style="width:150px">CLIENTE</th>
+          <th style="width:75px">CÓDIGO</th>
+          <th style="min-width:140px;max-width:200px">DESCRIÇÃO</th>
+          <th style="width:40px;text-align:right">QT</th>
+          <th style="width:75px">ENTREGA</th>
+          <th style="width:90px">STATUS</th>
+          <th style="width:55px;text-align:right">PROJ.</th>
+          <th style="width:110px">OF S/REQ</th>
+          <th style="width:110px">OF COMP.</th>
+          <th style="width:110px">OF PARC.</th>
+          <th style="width:70px">FAMÍLIA</th>
+          <th style="width:130px">CLIENTE</th>
           <th style="width:80px;text-align:right">VALOR</th>
         </tr>
       </thead>
@@ -3479,7 +3489,7 @@ function renderPedidos() {
     return `<tr style="${rowBg}${r.atrasado?';border-left:3px solid var(--red)':''}">
       <td style="position:sticky;left:0;background:${r.atrasado?'rgba(30,20,20,0.95)':'var(--surface)'};font-weight:600">${r.pedido}</td>
       <td style="font-family:monospace;font-size:12px">${r.codigo}</td>
-      <td style="font-size:12px;text-align:left">${r.descricao}</td>
+      <td style="font-size:11px;text-align:left;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.descricao}">${r.descricao}</td>
       <td style="text-align:right;font-weight:600">${r.qtde}</td>
       <td style="color:${r.atrasado?'var(--red)':'var(--text)'};font-weight:${r.atrasado?'700':'400'}">${entrega}${r.atrasado?' ⚠':''}</td>
       <td style="background:${st.bg};color:${st.color};font-weight:700;font-size:11px;text-align:center">${st.icon} ${r.status}</td>
@@ -3612,6 +3622,24 @@ document.addEventListener('click', function(e) {
 let pvSortKey = 'a_montar', pvSortAsc = false;
 let pvOcultos = new Set(); // códigos ocultos na sessão
 
+function pvLimparFiltros() {
+  // Desmarcar todos os dias
+  document.querySelectorAll('#ms-pv-dias-list .ms-item input').forEach(cb => cb.checked = false);
+  msChange('ms-pv-dias');
+  // Resetar família
+  document.querySelectorAll('#ms-pv-fam2-list .ms-item input').forEach(cb => cb.checked = true);
+  msChange('ms-pv-fam2');
+  // Resetar projetado
+  const proj = document.getElementById('pv-proj-filt');
+  if (proj) proj.value = '';
+  // Limpar busca
+  const search = document.getElementById('pv-search2');
+  if (search) search.value = '';
+  // Mostrar ocultos
+  pvOcultos.clear();
+  renderPvPrioridades();
+}
+
 function pvOrdenar(key) {
   if (pvSortKey === key) pvSortAsc = !pvSortAsc;
   else { pvSortKey = key; pvSortAsc = true; }
@@ -3679,9 +3707,17 @@ function renderPvPrioridades() {
     g.of_parc_str = _addOfStr(_ofParc, g._ofsParcVistas, g.of_parc_str);
 
     // Guardar texto bruto original para o popup (preserva "/ (itens faltantes)")
-    if (_ofSem  && _ofSem  !== '0') g.of_sem_raw  = [g.of_sem_raw,  _ofSem ].filter(Boolean).join('\n');
-    if (_ofComp && _ofComp !== '0') g.of_comp_raw = [g.of_comp_raw, _ofComp].filter(Boolean).join('\n');
-    if (_ofParc && _ofParc !== '0') g.of_parc_raw = [g.of_parc_raw, _ofParc].filter(Boolean).join('\n');
+    // Deduplicar: não adicionar se OF já está no raw
+    const _addRaw = (raw, str) => {
+      if (!str || str === '0') return raw;
+      // Extrair número da OF para checar duplicata
+      const ofNum = str.match(/\((\d+)/);
+      if (ofNum && raw.includes(ofNum[1])) return raw; // já tem esta OF
+      return [raw, str].filter(Boolean).join('\n');
+    };
+    g.of_sem_raw  = _addRaw(g.of_sem_raw,  _ofSem);
+    g.of_comp_raw = _addRaw(g.of_comp_raw, _ofComp);
+    g.of_parc_raw = _addRaw(g.of_parc_raw, _ofParc);
 
     g.of_sem  = _pvParseOfQtde(r.of_sem);
     g.of_comp = _pvParseOfQtde(r.of_comp);
@@ -4066,7 +4102,13 @@ function pvGerarPDF() {
   const statusCanvas = document.getElementById('pv-status-chart');
   const statusImg = statusCanvas ? statusCanvas.toDataURL('image/png') : null;
 
-  // Capturar o canvas do gráfico de famílias
+  // Capturar dados das famílias para os cards
+  const famCards = FAM_ORDER.map(f => {
+    const g_list = lista || [];
+    const tot = g_list.filter(g=>g.familia===f).reduce((s,g)=>s+(typeof g.a_montar==='number'?g.a_montar:0),0);
+    return tot > 0 ? {fam:f, tot, color: FAM_COLORS_PV[f]||'#475569', label:(FAM_LABEL[f]||f).toUpperCase()} : null;
+  }).filter(Boolean);
+  // Capturar canvas de família (mantém para fallback)
   const famCanvas = document.getElementById('pv-prior-chart');
   const famImg = famCanvas ? famCanvas.toDataURL('image/png') : null;
 
@@ -4104,13 +4146,13 @@ function pvGerarPDF() {
       td.col-cod { font-family: 'Courier New', monospace; font-size: 11px; font-weight: 700; color: #1a6fcc; white-space: nowrap; }
       td.col-desc { max-width: 180px; word-break: break-word; white-space: normal; line-height: 1.3; }
       td.col-fam { font-size: 9px; font-weight: 700; white-space: nowrap; color: #444; }
-      td.col-montar { font-size: 14px; font-weight: 900; color: #b35e00; text-align: right; white-space: nowrap; }
+      td.col-montar { font-size: 14px; font-weight: 900; color: #000; text-align: right; white-space: nowrap; }
       td.col-status { font-size: 9px; font-weight: 700; }
       td.col-status span { padding: 1px 5px; border-radius: 3px; }
       td.col-detalhe { font-size: 9px; color: #555; max-width: 160px; word-break: break-word; white-space: normal; line-height: 1.3; }
       /* Total */
       .total-row td { background: #e8effe !important; font-weight: 700; font-size: 11px; border-top: 2px solid #1a6fcc; }
-      .total-row td.col-montar { color: #b35e00; font-size: 15px; }
+      .total-row td.col-montar { color: #000; font-size: 15px; }
       @media print {
         body { margin: 8px; }
         .graficos img { height: 130px; }
@@ -4122,7 +4164,15 @@ function pvGerarPDF() {
       <div class="sub">Gerado em ${hoje}<br>Período: ${periodoLabel}<br>Filtro: projetado negativo</div>
     </div>
     <div class="graficos">
-      ${famImg ? `<div class="grafico-box"><div class="titulo">A Montar por Família</div><img src="${famImg}" alt="Família"></div>` : ''}
+      <div class="grafico-box" style="flex:1.2">
+        <div class="titulo">A MONTAR POR FAMÍLIA</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 0">
+          ${famCards.map(c=>`<div style="background:${c.color}18;border:2px solid ${c.color};border-radius:8px;padding:8px 14px;text-align:center;min-width:80px">
+            <div style="font-size:9px;font-weight:700;color:${c.color};letter-spacing:0.5px">${c.label}</div>
+            <div style="font-size:26px;font-weight:900;color:${c.color};line-height:1.1">${c.tot}</div>
+          </div>`).join('')}
+        </div>
+      </div>
       ${statusImg ? `<div class="grafico-box"><div class="titulo">A Montar por Status</div><img src="${statusImg}" alt="Status"></div>` : ''}
     </div>
     <table>
