@@ -1789,23 +1789,20 @@ function parseTermico(text) {
   // col5=CODIGO_ITEM, col6=DESCRICAO_ITEM, col7=CODIGO_FORNECEDOR_CLIENTE
   // col8=NOME_FORNECEDOR_CLIENTE, col9=COD_CLASSIFICACAO, col10=DESCRICAO_CLASSIFICACAO
 
-  // Identifica fornecedor pelo nome (col8)
-  const nomeForn = s => String(s||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  const isPolimento = s => nomeForn(s).includes('LUCAS DANIEL');
-  const isTermico   = s => ['THERMIX','TECNOHARD','METALTECNICA'].some(t => nomeForn(s).includes(t));
-  const fornTermLabel = s => {
-    const n = nomeForn(s);
-    if (n.includes('THERMIX'))     return 'THERMIX';
-    if (n.includes('TECNOHARD'))   return 'TECNOHARD';
-    if (n.includes('METALTECNICA')) return 'METALTECNICA';
-    return 'OUTRO';
-  };
+  // Identifica fornecedor pelo CÓDIGO (col7) — mais confiável que o nome
+  // 365=TECNOHARD | 29212=THERMIX | 9883=METALTECNICA | 65184=LUCAS DANIEL (polimento)
+  const FORN_TERMICO = { '365':'TECNOHARD', '29212':'THERMIX', '9883':'METALTECNICA' };
+  const FORN_POLIMENTO = new Set(['65184','65434']);
+  const isPolimento   = cod => FORN_POLIMENTO.has(String(cod||'').trim());
+  const isTermico     = cod => !!FORN_TERMICO[String(cod||'').trim()];
+  const fornTermLabel = cod => FORN_TERMICO[String(cod||'').trim()] || 'OUTRO';
 
   const resultPol  = {};
   const resultTerm = {};
   const resultDiarioTT = {};
   const resultDiarioPM = {};
-  const diasUteisMap = {};
+  window._termicodiasUteisMap = window._termicodiasUteisMap || {};
+  const diasUteisMap = window._termicodiasUteisMap;
 
   const _hoje = new Date(); _hoje.setHours(0,0,0,0);
   const _hojeISO = _hoje.getFullYear()+'-'+String(_hoje.getMonth()+1).padStart(2,'0')+'-'+String(_hoje.getDate()).padStart(2,'0');
@@ -1823,15 +1820,17 @@ function parseTermico(text) {
     // Pular header e linhas vazias
     if (!r[2] || String(r[2]).trim().toUpperCase() === 'DATA_EMISSAO') { _dbgHeader++; return; }
 
-    const forn  = String(r[8]||'').trim();  // NOME_FORNECEDOR_CLIENTE
-    const cod   = String(r[5]||'').trim();  // CODIGO_ITEM
-    const desc  = String(r[6]||'').trim();  // DESCRICAO_ITEM
+    const fornCod = String(r[7]||'').trim();  // CODIGO_FORNECEDOR_CLIENTE (col7)
+    const forn    = String(r[8]||'').trim();  // NOME_FORNECEDOR_CLIENTE (col8, só para exibição)
+    const cod   = String(r[5]||'').trim().replace(/U$/i,'');  // CODIGO_ITEM (remove sufixo U)
+    const desc  = String(r[6]||'').trim().replace(/U$/i,'');  // DESCRICAO_ITEM (remove sufixo U)
     const qtde  = parseFloat(String(r[4]||'').replace(',','.'))||0; // QTDE
     const dtRaw = String(r[2]||'').trim();  // DATA_EMISSAO
     const mes   = tryMes(dtRaw);
     if (!mes) { _dbgSemMes++; if(_dbgSemMes<=2) console.log('[TERMICO] descartado sem-mes: dtRaw='+dtRaw+' row='+JSON.stringify(r)); return; }
     if (qtde <= 0) { _dbgSemQtde++; if(_dbgSemQtde<=2) console.log('[TERMICO] descartado sem-qtde: qtde='+r[4]+' cod='+cod); return; }
     if (!cod) { _dbgSemCod++; return; }
+    if (cod === '1007') return; // item desconsiderado
 
     // Data completa para excluir NFs de hoje
     let dtISO = null;
@@ -1860,7 +1859,7 @@ function parseTermico(text) {
       diasUteisMap[mes] = du;
     }
 
-    if (isPolimento(forn)) {
+    if (isPolimento(fornCod)) {
       _dbgPol++;
       const key = cod+'|||'+desc+'|||'+mes;
       resultPol[key]  = (resultPol[key]||0) + qtde;
@@ -1869,13 +1868,13 @@ function parseTermico(text) {
       resultDiarioPM[keyDia] = (resultDiarioPM[keyDia]||0) + qtde;
     }
 
-    if (isTermico(forn)) {
+    if (isTermico(fornCod)) {
       const descUp = desc.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       const codUp  = cod.toUpperCase();
       if (descUp.startsWith('GARFO')) return;
       if (codUp.endsWith('S')) return;
       _dbgTT++;
-      const fl = fornTermLabel(forn);
+      const fl = fornTermLabel(fornCod);
       const key = cod+'|||'+desc+'|||'+fl+'|||'+mes;
       resultTerm[key] = (resultTerm[key]||0) + qtde;
       // Dados diários TT
@@ -1883,7 +1882,7 @@ function parseTermico(text) {
       resultDiarioTT[keyDia] = (resultDiarioTT[keyDia]||0) + qtde;
     }
 
-    if (!isPolimento(forn) && !isTermico(forn)) {
+    if (!isPolimento(fornCod) && !isTermico(fornCod)) {
       _dbgSemForn++;
       if(_dbgSemForn <= 3) console.log('[TERMICO] linha sem match de fornecedor: forn='+forn+' cod='+cod);
     }
@@ -1936,16 +1935,20 @@ const MESES_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out'
 // Feriados nacionais padrão 2026
 const FERIADOS_DEFAULT = [
   {data:'2026-01-01',nome:'Ano Novo'},
-  {data:'2026-02-16',nome:'Carnaval'},
-  {data:'2026-02-17',nome:'Carnaval'},
+  {data:'2026-01-02',nome:'Recesso'},
+  {data:'2026-01-05',nome:'Recesso'},
+  {data:'2026-01-06',nome:'Recesso'},
   {data:'2026-04-03',nome:'Paixão de Cristo'},
   {data:'2026-04-21',nome:'Tiradentes'},
   {data:'2026-05-01',nome:'Dia do Trabalho'},
+  {data:'2026-05-25',nome:'Caravaggio'},
   {data:'2026-06-04',nome:'Corpus Christi'},
   {data:'2026-09-07',nome:'Independência'},
+  {data:'2026-09-20',nome:'Farroupilha'},
   {data:'2026-10-12',nome:'Nossa Senhora Aparecida'},
   {data:'2026-11-02',nome:'Finados'},
   {data:'2026-11-15',nome:'Proclamação República'},
+  {data:'2026-11-20',nome:'Consciência Negra'},
   {data:'2026-12-25',nome:'Natal'},
 ];
 
@@ -2012,7 +2015,7 @@ function abrirModalFeriados() {
   renderFeriadosLista();
   document.getElementById('modal-feriados').style.display = 'flex';
 }
-function fecharModalFeriados() { document.getElementById('modal-feriados').style.display = 'none'; renderTermico(); }
+function fecharModalFeriados() { document.getElementById('modal-feriados').style.display = 'none'; window._termicodiasUteisMap = {}; renderTermico(); }
 function renderFeriadosLista() {
   const feriados = getFeriados().sort((a,b) => a.data.localeCompare(b.data));
   document.getElementById('feriados-lista').innerHTML = feriados.length === 0
