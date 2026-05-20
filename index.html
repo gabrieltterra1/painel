@@ -4651,7 +4651,10 @@ function handleFiles(files) {
       else if (name.includes('ITENS_MONTADOS')) parseMontados(text);
       else if (name.includes('TRANSITO')) parseTransito(text);
       else if (name.includes('ESTOQUE_SEGURANCA')) parseEstoque(text);
-      else if (name.includes('SERVICO_TERCEIROS')) { parseServico(text); parseTermico(text); }
+      else if (name.includes('SERVICO_TERCEIROS')) parseServico(text);
+      else if (name.includes('TERMICO_POLIMENTO')) parseTermico(text);
+      else if (name.includes('IFE')) parseIFE(text);
+      else if (name.includes('PEDIDOS_DE_VENDA')) parsePedidos(text);
       document.getElementById('update-time').textContent = 'Atualizado: ' + new Date().toLocaleTimeString('pt-BR');
       renderAll();
     };
