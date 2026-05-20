@@ -1772,7 +1772,7 @@ const pctOk = pctCalc !== null && pctCalc >= 90;
 // ===== SERVICOS =====
 let servicoCharts = [];
 
-// ===== PARSE TERMICO (lê mesmo CSV do SERVICO_TERCEIROS) =====
+// ===== PARSE TERMICO (lê aba TERMICO_POLIMENTO — email NFS TT PM TABELA SIMPLES) =====
 function parseTermico(text) {
   const rows = parseCSV(text, ';');
   const tryMes = d => {
@@ -1783,41 +1783,43 @@ function parseTermico(text) {
     if (iso) return iso[1]+'-'+iso[2];
     return null;
   };
-  // Identifica fornecedor pelo código numérico no início do campo (ex: "29212 - THERMIX...")
-  const fornCod = s => String(s||'').trim().split(/[\s\-]/)[0].trim();
 
-  // Polimento: código 65184 (Lucas Daniel Moreira)
-  // Térmico:   29212=THERMIX, 365=TECNOHARD, 9883=METALTECNICA
-  const isPolimento   = s => fornCod(s) === '65184';
-  const isTermico     = s => ['29212','365','9883'].includes(fornCod(s));
+  // Nova estrutura de colunas (email NFS TT PM TABELA SIMPLES):
+  // col0=ID, col1=SIT_NF, col2=DATA_EMISSAO, col3=NUMERO_NF, col4=QTDE
+  // col5=CODIGO_ITEM, col6=DESCRICAO_ITEM, col7=CODIGO_FORNECEDOR_CLIENTE
+  // col8=NOME_FORNECEDOR_CLIENTE, col9=COD_CLASSIFICACAO, col10=DESCRICAO_CLASSIFICACAO
+
+  // Identifica fornecedor pelo nome (col8)
+  const nomeForn = s => String(s||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const isPolimento = s => nomeForn(s).includes('LUCAS DANIEL');
+  const isTermico   = s => ['THERMIX','TECNOHARD','METALTECNICA'].some(t => nomeForn(s).includes(t));
   const fornTermLabel = s => {
-    const c = fornCod(s);
-    if (c === '29212') return 'THERMIX';
-    if (c === '365')   return 'TECNOHARD';
-    if (c === '9883')  return 'METALTECNICA';
+    const n = nomeForn(s);
+    if (n.includes('THERMIX'))     return 'THERMIX';
+    if (n.includes('TECNOHARD'))   return 'TECNOHARD';
+    if (n.includes('METALTECNICA')) return 'METALTECNICA';
     return 'OUTRO';
   };
 
-  const resultPol  = {}; // key: cod|desc|mes
-  const resultTerm = {}; // key: cod|desc|forn|mes
-  const resultDiarioTT = {}; // key: dt|cod|desc|forn
-  const resultDiarioPM = {}; // key: dt|cod|desc|forn
+  const resultPol  = {};
+  const resultTerm = {};
+  const resultDiarioTT = {};
+  const resultDiarioPM = {};
   const diasUteisMap = {};
 
-  // Calcular uma vez fora do loop
   const _hoje = new Date(); _hoje.setHours(0,0,0,0);
   const _hojeISO = _hoje.getFullYear()+'-'+String(_hoje.getMonth()+1).padStart(2,'0')+'-'+String(_hoje.getDate()).padStart(2,'0');
-  const _feriados = new Set(getFeriados().map(f => f.data)); // Set para O(1) lookup
+  const _feriados = new Set(getFeriados().map(f => f.data));
 
   rows.forEach(r => {
-    const emp = String(r[1]||'').trim();
-    if (emp === 'EMP' || emp === '') return;
+    // Pular header e linhas vazias
+    if (!r[2] || String(r[2]).trim().toUpperCase() === 'DATA_EMISSAO') return;
 
-    const forn  = String(r[11]||'').trim();
-    const cod   = String(r[2]||'').trim();
-    const desc  = String(r[3]||'').trim();
-    const qtde  = parseFloat(String(r[12]||'').replace(',','.'))||0;
-    const dtRaw = String(r[9]||'').trim();
+    const forn  = String(r[8]||'').trim();  // NOME_FORNECEDOR_CLIENTE
+    const cod   = String(r[5]||'').trim();  // CODIGO_ITEM
+    const desc  = String(r[6]||'').trim();  // DESCRICAO_ITEM
+    const qtde  = parseFloat(String(r[4]||'').replace(',','.'))||0; // QTDE
+    const dtRaw = String(r[2]||'').trim();  // DATA_EMISSAO
     const mes   = tryMes(dtRaw);
     if (!mes || qtde <= 0 || !cod) return;
 
@@ -5147,15 +5149,13 @@ async function readSheets() {
     'ESTOQUE_SEGURANCA': parseEstoque,
     'TRANSITO':          parseTransito,
     'SERVICO_TERCEIROS': parseServico,
-    'TERMICO':           parseTermico,  // mesma aba SERVICO_TERCEIROS, parser separado
+    'TERMICO_POLIMENTO': parseTermico,
     'IFE':               parseIFE,
     'PEDIDOS_DE_VENDA':  parsePedidos
   };
 
   // Fetch paralelo — todas as abas ao mesmo tempo
   const fetchAba = async (aba) => {
-    // TERMICO usa os mesmos dados de SERVICO_TERCEIROS (não faz fetch duplo)
-    if (aba === 'TERMICO') return null;
     const res = await fetch(WEBAPP+'?aba='+encodeURIComponent(aba)+'&t='+Date.now());
     if (!res.ok) throw new Error('HTTP '+res.status);
     const text = await res.text();
@@ -5167,27 +5167,19 @@ async function readSheets() {
   const results = await Promise.allSettled(abaKeys.map(aba => fetchAba(aba)));
 
   let found = 0, errors = [];
-  let servicoText = null;
 
   for (let i = 0; i < abaKeys.length; i++) {
     const aba = abaKeys[i];
     const result = results[i];
-    if (aba === 'TERMICO') continue; // processado depois com servicoText
     if (result.status === 'fulfilled' && result.value) {
       try {
         abas[aba](result.value);
-        if (aba === 'SERVICO_TERCEIROS') servicoText = result.value;
         found++;
       } catch(e) { errors.push(aba); console.error(aba, e); }
     } else {
       errors.push(aba);
       console.error(aba, result.reason);
     }
-  }
-
-  // Processar parseTermico com o mesmo texto de SERVICO_TERCEIROS
-  if (servicoText) {
-    try { parseTermico(servicoText); } catch(e) { console.error('TERMICO', e); }
   }
 
   if (found > 0) {
