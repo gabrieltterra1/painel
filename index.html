@@ -4333,12 +4333,12 @@ function pvGerarPDF() {
           const proj  = tds[5] ? tds[5].innerText.trim() : '';
           const detalhe = tds[11] ? tds[11].innerText.trim() : '';
           let html = '<tr style="height:22px">';
-          // Checkboxes S M P E — usando caractere unicode ☐ com label
-          html += '<td style="text-align:left;padding:2px 3px;white-space:nowrap;font-size:9px;color:#333">'
-            + '<span style="margin-right:3px">S&#9744;</span>'
-            + '<span style="margin-right:3px">M&#9744;</span>'
-            + '<span style="margin-right:3px">P&#9744;</span>'
-            + '<span>E&#9744;</span>'
+          // Checkboxes S M P E — input type=checkbox com label
+          html += '<td style="padding:2px 3px;white-space:nowrap;font-size:8px;color:#333;vertical-align:middle">'
+            + 'S<input type="checkbox" style="width:10px;height:10px;margin:0 3px 0 1px"> '
+            + 'M<input type="checkbox" style="width:10px;height:10px;margin:0 3px 0 1px"> '
+            + 'P<input type="checkbox" style="width:10px;height:10px;margin:0 3px 0 1px"> '
+            + 'E<input type="checkbox" style="width:10px;height:10px;margin:0 0 0 1px">'
             + '</td>';
           // A MONTAR
           html += '<td style="font-size:13px;font-weight:900;color:#000;text-align:center;padding:2px 3px">' + aMontar + '</td>';
