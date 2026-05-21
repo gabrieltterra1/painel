@@ -3775,9 +3775,9 @@ function renderPvPrioridades() {
     g.of_comp_raw = _addRaw(g.of_comp_raw, _ofComp);
     g.of_parc_raw = _addRaw(g.of_parc_raw, _ofParc);
 
-    g.of_sem  = _pvParseOfQtde(r.of_sem);
-    g.of_comp = _pvParseOfQtde(r.of_comp);
-    g.of_parc = _pvParseOfQtde(r.of_parc);
+   g.of_sem  += _pvParseOfQtde(r.of_sem);
+    g.of_comp += _pvParseOfQtde(r.of_comp);
+    g.of_parc += _pvParseOfQtde(r.of_parc);
   });
 
   // Calcular A MONTAR com status múltiplo e ABRIR OF quando insuficiente
