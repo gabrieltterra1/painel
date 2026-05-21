@@ -3736,8 +3736,10 @@ function renderPvPrioridades() {
     };
     const g = grupos[cod];
     g.qtde_pv     += r.qtde;
-    g.proj         = r.projetado;
-    g.saldo        = r.projetado;
+    // Usar o menor projetado entre as linhas (mais restritivo)
+    if (g.qtde_pv === r.qtde) { g.proj = r.projetado; } // primeira linha
+    else { g.proj = Math.min(g.proj, r.projetado); }
+    g.saldo        = g.proj;
 
     const _cleanOf = v => String(v||'').replace(/^'/, '').trim();
     const _ofSem  = _cleanOf(r.of_sem);
@@ -4311,7 +4313,11 @@ function pvGerarPDF() {
     </div>
     <table>
       <thead><tr>
-        <th>A MONT.</th>
+        <th style="width:18px;text-align:center;padding:4px 2px">S</th>
+        <th style="width:18px;text-align:center;padding:4px 2px">M</th>
+        <th style="width:18px;text-align:center;padding:4px 2px">P</th>
+        <th style="width:18px;text-align:center;padding:4px 2px">E</th>
+        <th style="width:32px;text-align:center">QTD</th>
         <th>CÓDIGO</th>
         <th>DESCRIÇÃO</th>
         <th>FAMÍLIA</th>
@@ -4322,14 +4328,10 @@ function pvGerarPDF() {
         <th>OF PAR.</th>
         <th>STATUS</th>
         <th>DETALHE OF</th>
-        <th style="text-align:center">S</th>
-        <th style="text-align:center">M</th>
-        <th style="text-align:center">P</th>
-        <th style="text-align:center">E</th>
       </tr></thead>
       <tbody>${(() => {
         const rows = tbody ? tbody.querySelectorAll('tr') : [];
-        const cb = '<div style="width:13px;height:13px;border:1.5px solid #555;border-radius:2px;margin:0 auto"></div>';
+        const cb = '<div style="width:11px;height:11px;border:1.2px solid #666;border-radius:2px;margin:0 auto"></div>';
         return [...rows].map(tr => {
           const tds = tr.querySelectorAll('td');
           if (tds.length < 3) return tr.outerHTML;
@@ -4337,8 +4339,13 @@ function pvGerarPDF() {
           // col6=ofSem, col7=ofComp, col8=ofParc, col9=aMontar, col10=status, col11=detalhe
           const aMontar = tds[9] ? tds[9].innerText.trim() : '';
           let html = '<tr>';
-          // Coluna A MONT. (duplicada, destacada)
-          html += '<td class="col-montar" style="font-size:16px;font-weight:900;color:#000;text-align:center">' + aMontar + '</td>';
+          // Checkboxes S M P E — compactos no início
+          html += '<td style="text-align:center;padding:3px 2px">' + cb + '</td>';
+          html += '<td style="text-align:center;padding:3px 2px">' + cb + '</td>';
+          html += '<td style="text-align:center;padding:3px 2px">' + cb + '</td>';
+          html += '<td style="text-align:center;padding:3px 2px">' + cb + '</td>';
+          // A MONT. antes do código
+          html += '<td style="font-size:13px;font-weight:900;color:#000;text-align:center;padding:3px 4px">' + aMontar + '</td>';
           // Código
           html += '<td class="col-cod">' + (tds[1]?tds[1].innerHTML:'') + '</td>';
           // Descrição
@@ -4350,20 +4357,15 @@ function pvGerarPDF() {
           // PROJ
           html += '<td style="text-align:right">' + (tds[5]?tds[5].innerHTML:'') + '</td>';
           // OF S/REQ
-          html += '<td style="text-align:right;color:#f59e0b">' + (tds[6]?tds[6].innerHTML:'') + '</td>';
+          html += '<td style="text-align:right;color:#c07000">' + (tds[6]?tds[6].innerHTML:'') + '</td>';
           // OF COM
-          html += '<td style="text-align:right;color:#3d8bff">' + (tds[7]?tds[7].innerHTML:'') + '</td>';
+          html += '<td style="text-align:right;color:#1a5fcc">' + (tds[7]?tds[7].innerHTML:'') + '</td>';
           // OF PAR
-          html += '<td style="text-align:right;color:#06b6d4">' + (tds[8]?tds[8].innerHTML:'') + '</td>';
+          html += '<td style="text-align:right;color:#0077aa">' + (tds[8]?tds[8].innerHTML:'') + '</td>';
           // Status
           html += '<td class="col-status">' + (tds[10]?tds[10].innerHTML:'') + '</td>';
           // Detalhe OF
           html += '<td class="col-detalhe">' + (tds[11]?tds[11].innerHTML:'') + '</td>';
-          // Checkboxes S M P E
-          html += '<td style="text-align:center">' + cb + '</td>';
-          html += '<td style="text-align:center">' + cb + '</td>';
-          html += '<td style="text-align:center">' + cb + '</td>';
-          html += '<td style="text-align:center">' + cb + '</td>';
           html += '</tr>';
           return html;
         }).join('');
