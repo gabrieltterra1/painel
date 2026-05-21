@@ -4297,16 +4297,15 @@ function pvGerarPDF() {
       <div class="grafico-box" style="flex:1">
         <div class="titulo">RESUMO POR FAMÍLIA</div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 0">
-          ${famCards.map(c=>`<div style="background:${c.color}12;border:2px solid ${c.color};border-radius:8px;padding:8px 12px;min-width:110px;flex:1">
-            <div style="font-size:10px;font-weight:900;color:${c.color};margin-bottom:4px;letter-spacing:0.4px">${c.label}</div>
-            <div style="font-size:20px;font-weight:900;color:${c.color};margin-bottom:5px;line-height:1">${c.tot} <span style="font-size:10px;font-weight:600">itens</span></div>
-            <div style="font-size:9px;line-height:1.9;color:#333">
-              ${c.sep   > 0 ? \`<span style="color:#3d8bff">▣ \${c.sep} sep.</span><br>\` : ''}
-              ${c.parc  > 0 ? \`<span style="color:#06b6d4">◑ \${c.parc} parc.</span><br>\` : ''}
-              ${c.falta > 0 ? \`<span style="color:#f59e0b">⚙ \${c.falta} falta sep.</span><br>\` : ''}
-              ${c.abrir > 0 ? \`<span style="color:#ff3b3b">✗ \${c.abrir} abrir OF</span>\` : ''}
-            </div>
-          </div>`).join('')}
+          ${famCards.map(c => '<div style="background:'+c.color+'12;border:2px solid '+c.color+';border-radius:8px;padding:8px 12px;min-width:110px;flex:1">'
+            + '<div style="font-size:10px;font-weight:900;color:'+c.color+';margin-bottom:4px;letter-spacing:0.4px">'+c.label+'</div>'
+            + '<div style="font-size:20px;font-weight:900;color:'+c.color+';margin-bottom:5px;line-height:1">'+c.tot+' <span style="font-size:10px;font-weight:600">itens</span></div>'
+            + '<div style="font-size:9px;line-height:1.9;color:#333">'
+            + (c.sep   > 0 ? '<span style="color:#3d8bff">&#9635; '+c.sep+' sep.</span><br>' : '')
+            + (c.parc  > 0 ? '<span style="color:#06b6d4">&#9681; '+c.parc+' parc.</span><br>' : '')
+            + (c.falta > 0 ? '<span style="color:#f59e0b">&#9881; '+c.falta+' falta sep.</span><br>' : '')
+            + (c.abrir > 0 ? '<span style="color:#ff3b3b">&#10007; '+c.abrir+' abrir OF</span>' : '')
+            + '</div></div>').join('')}
         </div>
       </div>
     </div>
