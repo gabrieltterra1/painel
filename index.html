@@ -4323,7 +4323,10 @@ function pvGerarPDF() {
       </tr></thead>
       <tbody>${(() => {
         const rows = tbody ? tbody.querySelectorAll('tr') : [];
-        const cb = (lbl) => '<span style="display:inline-flex;flex-direction:column;align-items:center;margin:0 2px;font-size:7px;color:#555;gap:1px"><span>' + lbl + '</span><span style="display:block;width:10px;height:10px;border:1.2px solid #555;border-radius:1px"></span></span>';
+        const cbStyle = 'display:inline-flex;flex-direction:column;align-items:center;margin:0 2px;font-size:7px;color:#555;gap:1px';
+        const boxStyle = 'display:block;width:10px;height:10px;border:1.2px solid #555;border-radius:1px';
+        const cbHtml = (lbl) => '<span style="' + cbStyle + '"><span>' + lbl + '</span><span style="' + boxStyle + '"></span></span>';
+        const allCbs = cbHtml('S') + cbHtml('M') + cbHtml('P') + cbHtml('E');
         return [...rows].map(tr => {
           const tds = tr.querySelectorAll('td');
           if (tds.length < 3) return tr.outerHTML;
@@ -4335,7 +4338,7 @@ function pvGerarPDF() {
           const detalhe = tds[11] ? tds[11].innerText.trim() : '';
           let html = '<tr style="height:22px">';
           // Checkboxes S M P E juntos
-          html += '<td style="text-align:center;padding:2px 2px;white-space:nowrap">' + cb('S') + cb('M') + cb('P') + cb('E') + '</td>';
+          html += '<td style="text-align:center;padding:2px 2px;white-space:nowrap">' + allCbs + '</td>';
           // A MONTAR
           html += '<td style="font-size:13px;font-weight:900;color:#000;text-align:center;padding:2px 3px">' + aMontar + '</td>';
           // Código
