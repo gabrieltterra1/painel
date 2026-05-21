@@ -4288,6 +4288,8 @@ function pvGerarPDF() {
       @media print {
         body { margin: 8px; }
         .graficos img { height: 130px; }
+        input[type=checkbox] { -webkit-appearance: checkbox; appearance: checkbox; display:inline-block !important; visibility:visible !important; opacity:1 !important; width:10px !important; height:10px !important; }
+        .cb-cell { display:table-cell !important; }
       }
     </style>
   </head><body>
@@ -4333,12 +4335,10 @@ function pvGerarPDF() {
           const proj  = tds[5] ? tds[5].innerText.trim() : '';
           const detalhe = tds[11] ? tds[11].innerText.trim() : '';
           let html = '<tr style="height:22px">';
-          // Checkboxes S M P E — input type=checkbox com label
+          // Checkboxes S M P E — tabela interna com borda
+          const box = '<table style="display:inline-table;border-collapse:collapse;margin:0 1px"><tr><td style="border:1.2px solid #444;width:9px;height:9px;font-size:0"></td></tr></table>';
           html += '<td style="padding:2px 3px;white-space:nowrap;font-size:8px;color:#333;vertical-align:middle">'
-            + 'S<input type="checkbox" style="width:10px;height:10px;margin:0 3px 0 1px"> '
-            + 'M<input type="checkbox" style="width:10px;height:10px;margin:0 3px 0 1px"> '
-            + 'P<input type="checkbox" style="width:10px;height:10px;margin:0 3px 0 1px"> '
-            + 'E<input type="checkbox" style="width:10px;height:10px;margin:0 0 0 1px">'
+            + 'S' + box + ' M' + box + ' P' + box + ' E' + box
             + '</td>';
           // A MONTAR
           html += '<td style="font-size:13px;font-weight:900;color:#000;text-align:center;padding:2px 3px">' + aMontar + '</td>';
