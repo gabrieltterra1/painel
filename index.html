@@ -4327,34 +4327,25 @@ function pvGerarPDF() {
         const rows = tbody ? tbody.querySelectorAll('tr') : [];
         return [...rows].map(tr => {
           const tds = tr.querySelectorAll('td');
-          if (tds.length < 3) return tr.outerHTML;
-          // col0=botão(oculto), col1=código, col2=desc, col3=família, col4=pv, col5=proj,
-          // col6=ofSem, col7=ofComp, col8=ofParc, col9=aMontar, col10=status, col11=detalhe
+          if (tds.length < 3) return '';
           const aMontar = tds[9] ? tds[9].innerText.trim() : '';
-          const desc = tds[2] ? (tds[2].innerText||'').trim() : '';
-          const proj  = tds[5] ? tds[5].innerText.trim() : '';
+          const desc    = tds[2] ? tds[2].innerText.trim() : '';
+          const proj    = tds[5] ? tds[5].innerText.trim() : '';
           const detalhe = tds[11] ? tds[11].innerText.trim() : '';
-          let html = '<tr style="height:22px">';
-          // Checkboxes S M P E — tabela interna com borda
-          const box = '<table style="display:inline-table;border-collapse:collapse;margin:0 1px"><tr><td style="border:1.2px solid #444;width:9px;height:9px;font-size:0"></td></tr></table>';
-          html += '<td style="padding:2px 3px;white-space:nowrap;font-size:8px;color:#333;vertical-align:middle">'
-            + 'S' + box + ' M' + box + ' P' + box + ' E' + box
-            + '</td>';
-          // A MONTAR
-          html += '<td style="font-size:13px;font-weight:900;color:#000;text-align:center;padding:2px 3px">' + aMontar + '</td>';
-          // Código
-          html += '<td style="font-family:monospace;font-size:10px;font-weight:700;color:#1a6fcc;white-space:nowrap;padding:2px 4px">' + (tds[1]?tds[1].innerText.trim():'') + '</td>';
-          // Descrição — uma linha, truncada
-          html += '<td style="font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;padding:2px 4px" title="' + desc.replace(/"/g,"'") + '">' + desc + '</td>';
-          // Família
-          html += '<td style="font-size:9px;font-weight:700;white-space:nowrap;padding:2px 4px;color:#444">' + (tds[3]?tds[3].innerText.trim():'') + '</td>';
-          // Projetado
           const projNum = parseFloat(proj) || 0;
-          html += '<td style="text-align:right;font-size:10px;font-weight:700;padding:2px 4px;color:' + (projNum < 0 ? '#cc2200' : '#008800') + '">' + proj + '</td>';
-          // Detalhe OF
-          html += '<td style="font-size:9px;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;padding:2px 4px">' + detalhe + '</td>';
-          html += '</tr>';
-          return html;
+          const pc = projNum < 0 ? '#cc2200' : '#008800';
+          const bx = '<span style=\'display:inline-block;width:11px;height:11px;border:1.5px solid #333;vertical-align:middle;margin-left:1px\'></span>';
+          return '<tr>'
+            + '<td style=\'font-size:8px;color:#222;padding:3px 4px;white-space:nowrap;vertical-align:middle\'>'
+            + 'S'+bx+' M'+bx+' P'+bx+' E'+bx
+            + '</td>'
+            + '<td style=\'font-size:13px;font-weight:900;text-align:center;padding:3px 3px\'>' + aMontar + '</td>'
+            + '<td style=\'font-family:monospace;font-size:10px;font-weight:700;color:#1a6fcc;white-space:nowrap;padding:3px 4px\'>' + (tds[1]?tds[1].innerText.trim():'') + '</td>'
+            + '<td style=\'font-size:9px;white-space:nowrap;overflow:hidden;max-width:200px;padding:3px 4px\'>' + desc + '</td>'
+            + '<td style=\'font-size:9px;font-weight:700;white-space:nowrap;padding:3px 4px;color:#444\'>' + (tds[3]?tds[3].innerText.trim():'') + '</td>'
+            + '<td style=\'text-align:right;font-size:10px;font-weight:700;padding:3px 4px;color:' + pc + '\'>' + proj + '</td>'
+            + '<td style=\'font-size:9px;color:#444;white-space:nowrap;padding:3px 4px\'>' + detalhe + '</td>'
+            + '</tr>';
         }).join('');
       })()}</tbody>
       <tfoot class="total-row">${tfoot ? tfoot.innerHTML : ''}</tfoot>
