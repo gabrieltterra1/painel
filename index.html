@@ -4302,7 +4302,7 @@ function pvGerarPDF() {
           ${famCards.map(c => '<div style="background:'+c.color+'12;border:2px solid '+c.color+';border-radius:8px;padding:8px 12px;min-width:110px;flex:1">'
             + '<div style="font-size:10px;font-weight:900;color:'+c.color+';margin-bottom:4px;letter-spacing:0.4px">'+c.label+'</div>'
             + '<div style="font-size:20px;font-weight:900;color:'+c.color+';margin-bottom:5px;line-height:1">'+c.tot+' <span style="font-size:10px;font-weight:600">itens</span></div>'
-            + '<div style="font-size:9px;line-height:1.9;color:#333">'
+            + '<div style="font-size:11px;line-height:2;color:#333">'
             + (c.sep   > 0 ? '<span style="color:#3d8bff">&#9635; '+c.sep+' sep.</span><br>' : '')
             + (c.parc  > 0 ? '<span style="color:#06b6d4">&#9681; '+c.parc+' parc.</span><br>' : '')
             + (c.falta > 0 ? '<span style="color:#f59e0b">&#9881; '+c.falta+' falta sep.</span><br>' : '')
@@ -4313,59 +4313,42 @@ function pvGerarPDF() {
     </div>
     <table>
       <thead><tr>
-        <th style="width:18px;text-align:center;padding:4px 2px">S</th>
-        <th style="width:18px;text-align:center;padding:4px 2px">M</th>
-        <th style="width:18px;text-align:center;padding:4px 2px">P</th>
-        <th style="width:18px;text-align:center;padding:4px 2px">E</th>
-        <th style="width:32px;text-align:center">QTD</th>
-        <th>CÓDIGO</th>
+        <th style="width:52px;text-align:center">S&nbsp;M&nbsp;P&nbsp;E</th>
+        <th style="width:30px;text-align:center">QTD</th>
+        <th style="width:62px">CÓDIGO</th>
         <th>DESCRIÇÃO</th>
-        <th>FAMÍLIA</th>
-        <th>PV</th>
-        <th>PROJ.</th>
-        <th>OF S/REQ</th>
-        <th>OF COM.</th>
-        <th>OF PAR.</th>
-        <th>STATUS</th>
+        <th style="width:70px">FAMÍLIA</th>
+        <th style="width:34px;text-align:right">PROJ.</th>
         <th>DETALHE OF</th>
       </tr></thead>
       <tbody>${(() => {
         const rows = tbody ? tbody.querySelectorAll('tr') : [];
-        const cb = '<div style="width:11px;height:11px;border:1.2px solid #666;border-radius:2px;margin:0 auto"></div>';
+        const cb = (lbl) => '<span style="display:inline-flex;flex-direction:column;align-items:center;margin:0 2px;font-size:7px;color:#555;gap:1px"><span>' + lbl + '</span><span style="display:block;width:10px;height:10px;border:1.2px solid #555;border-radius:1px"></span></span>';
         return [...rows].map(tr => {
           const tds = tr.querySelectorAll('td');
           if (tds.length < 3) return tr.outerHTML;
           // col0=botão(oculto), col1=código, col2=desc, col3=família, col4=pv, col5=proj,
           // col6=ofSem, col7=ofComp, col8=ofParc, col9=aMontar, col10=status, col11=detalhe
           const aMontar = tds[9] ? tds[9].innerText.trim() : '';
-          let html = '<tr>';
-          // Checkboxes S M P E — compactos no início
-          html += '<td style="text-align:center;padding:3px 2px">' + cb + '</td>';
-          html += '<td style="text-align:center;padding:3px 2px">' + cb + '</td>';
-          html += '<td style="text-align:center;padding:3px 2px">' + cb + '</td>';
-          html += '<td style="text-align:center;padding:3px 2px">' + cb + '</td>';
-          // A MONT. antes do código
-          html += '<td style="font-size:13px;font-weight:900;color:#000;text-align:center;padding:3px 4px">' + aMontar + '</td>';
+          const desc = tds[2] ? (tds[2].innerText||'').trim() : '';
+          const proj  = tds[5] ? tds[5].innerText.trim() : '';
+          const detalhe = tds[11] ? tds[11].innerText.trim() : '';
+          let html = '<tr style="height:22px">';
+          // Checkboxes S M P E juntos
+          html += '<td style="text-align:center;padding:2px 2px;white-space:nowrap">' + cb('S') + cb('M') + cb('P') + cb('E') + '</td>';
+          // A MONTAR
+          html += '<td style="font-size:13px;font-weight:900;color:#000;text-align:center;padding:2px 3px">' + aMontar + '</td>';
           // Código
-          html += '<td class="col-cod">' + (tds[1]?tds[1].innerHTML:'') + '</td>';
-          // Descrição
-          html += '<td class="col-desc">' + (tds[2]?tds[2].innerHTML:'') + '</td>';
+          html += '<td style="font-family:monospace;font-size:10px;font-weight:700;color:#1a6fcc;white-space:nowrap;padding:2px 4px">' + (tds[1]?tds[1].innerText.trim():'') + '</td>';
+          // Descrição — uma linha, truncada
+          html += '<td style="font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;padding:2px 4px" title="' + desc.replace(/"/g,"'") + '">' + desc + '</td>';
           // Família
-          html += '<td class="col-fam">' + (tds[3]?tds[3].innerHTML:'') + '</td>';
-          // PV
-          html += '<td style="text-align:right">' + (tds[4]?tds[4].innerHTML:'') + '</td>';
-          // PROJ
-          html += '<td style="text-align:right">' + (tds[5]?tds[5].innerHTML:'') + '</td>';
-          // OF S/REQ
-          html += '<td style="text-align:right;color:#c07000">' + (tds[6]?tds[6].innerHTML:'') + '</td>';
-          // OF COM
-          html += '<td style="text-align:right;color:#1a5fcc">' + (tds[7]?tds[7].innerHTML:'') + '</td>';
-          // OF PAR
-          html += '<td style="text-align:right;color:#0077aa">' + (tds[8]?tds[8].innerHTML:'') + '</td>';
-          // Status
-          html += '<td class="col-status">' + (tds[10]?tds[10].innerHTML:'') + '</td>';
+          html += '<td style="font-size:9px;font-weight:700;white-space:nowrap;padding:2px 4px;color:#444">' + (tds[3]?tds[3].innerText.trim():'') + '</td>';
+          // Projetado
+          const projNum = parseFloat(proj) || 0;
+          html += '<td style="text-align:right;font-size:10px;font-weight:700;padding:2px 4px;color:' + (projNum < 0 ? '#cc2200' : '#008800') + '">' + proj + '</td>';
           // Detalhe OF
-          html += '<td class="col-detalhe">' + (tds[11]?tds[11].innerHTML:'') + '</td>';
+          html += '<td style="font-size:9px;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;padding:2px 4px">' + detalhe + '</td>';
           html += '</tr>';
           return html;
         }).join('');
