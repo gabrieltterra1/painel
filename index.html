@@ -4162,11 +4162,10 @@ function pvGerarPDF() {
     : diasSel.length === 1 ? diasSel[0].split('-').reverse().join('/')
     : diasSel[0].split('-').reverse().join('/') + ' a ' + diasSel[diasSel.length-1].split('-').reverse().join('/');
 
-  // Capturar o canvas do gráfico de status
-  const statusCanvas = document.getElementById('pv-status-chart');
-  const statusImg = statusCanvas ? statusCanvas.toDataURL('image/png') : null;
+  const agora = new Date();
+  const hojeHora = agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR');
 
-  // Capturar dados das famílias para os cards
+  // ── Cards por família ──────────────────────────────────────────────────
   const _famOrder  = ['TOMADA+MULT','CONJ EIXO','BOMBA','CILINDRO',
     'GUINCHO+ENROLADOR','GUINCHO - OUTROS',
     'WALVOIL - COMANDO','WALVOIL - VALVULA','WALVOIL - OUTROS',
@@ -4204,154 +4203,101 @@ function pvGerarPDF() {
     return { fam:f, tot, sep, parc, falta, abrir, color:_famColors[f]||'#475569', label:(_famLabels[f]||f).toUpperCase() };
   }).filter(Boolean);
 
-  // Cards de status — extrair quantidades parciais do statusOf
-  const _statusTotais = {
-    'FATURAR': 0, 'SEPARADO': 0, 'SEP. PARCIAL': 0,
-    'FALTA SEPARAR': 0, 'ABRIR OF': 0
-  };
-  pvListaAtual.forEach(g => {
-    if (g.faturar) {
-      _statusTotais['FATURAR'] += g.qtde_pv || 0;
-      return;
-    }
-    const sof = g.statusOf || '';
-    // Extrair cada segmento "N ▣ TIPO" do statusOf
-    const segs = sof.split(' + ');
-    segs.forEach(seg => {
-      const m = seg.match(/^(\d+)\s+(.+)$/);
-      if (!m) return;
-      const qty = parseInt(m[1]);
-      const tipo = m[2].trim();
-      if (tipo.includes('▣ SEPARADO'))       _statusTotais['SEPARADO']      += qty;
-      else if (tipo.includes('◑ SEP. PARCIAL')) _statusTotais['SEP. PARCIAL'] += qty;
-      else if (tipo.includes('⚙ FALTA SEPARAR')) _statusTotais['FALTA SEPARAR'] += qty;
-      else if (tipo.includes('✗ ABRIR OF'))  _statusTotais['ABRIR OF']      += qty;
-    });
-  });
-  const _statusDefs = [
-    {key:'FATURAR',      label:'✓ FATURAR',        color:'#00c97a'},
-    {key:'SEPARADO',     label:'▣ SEPARADO',        color:'#3d8bff'},
-    {key:'SEP. PARCIAL', label:'◑ SEP. PARCIAL',    color:'#06b6d4'},
-    {key:'FALTA SEPARAR',label:'⚙ FALTA SEPARAR',   color:'#f59e0b'},
-    {key:'ABRIR OF',     label:'✗ ABRIR OF',         color:'#ff3b3b'},
-  ];
-  const statusCards = _statusDefs
-    .map(sd => _statusTotais[sd.key] > 0 ? {...sd, tot: _statusTotais[sd.key]} : null)
-    .filter(Boolean);
-
-  // Data e hora exata de impressão
-  const agora = new Date();
-  const hojeHora = agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR');
-
-  // Capturar tabela atual
+  // ── Linhas da tabela ───────────────────────────────────────────────────
   const tbody = document.getElementById('pv-prior-tbody');
   const tfoot = document.getElementById('pv-prior-foot');
-  const thead = document.querySelector('#pv-prior-tbody')?.closest('table')?.querySelector('thead');
+  const rows  = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
 
+  // Montar linhas manualmente — sem template literal aninhado
+  let tbodyHtml = '';
+  rows.forEach(function(tr) {
+    const tds = tr.querySelectorAll('td');
+    if (tds.length < 3) return;
+    const get = function(i) { return tds[i] ? (tds[i].innerText || '').trim() : ''; };
+    const aMontar  = get(9);
+    const codigo   = get(1);
+    const desc     = get(2);
+    const familia  = get(3);
+    const proj     = get(5);
+    const detalhe  = get(11);
+    const projNum  = parseFloat(proj) || 0;
+    const projColor = projNum < 0 ? '#cc2200' : '#007700';
+
+    tbodyHtml += '<tr>';
+    tbodyHtml += '<td style="font-size:9px;font-family:monospace;padding:3px 5px;white-space:nowrap;color:#222">S__ M__ P__ E__</td>';
+    tbodyHtml += '<td style="font-size:13px;font-weight:900;text-align:center;padding:3px 4px">' + aMontar + '</td>';
+    tbodyHtml += '<td style="font-family:monospace;font-size:10px;font-weight:700;color:#1a6fcc;white-space:nowrap;padding:3px 4px">' + codigo + '</td>';
+    tbodyHtml += '<td style="font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;padding:3px 4px" title="' + desc.replace(/"/g,"'") + '">' + desc + '</td>';
+    tbodyHtml += '<td style="font-size:9px;font-weight:700;white-space:nowrap;padding:3px 4px;color:#444">' + familia + '</td>';
+    tbodyHtml += '<td style="text-align:right;font-size:10px;font-weight:700;padding:3px 4px;color:' + projColor + '">' + proj + '</td>';
+    tbodyHtml += '<td style="font-size:9px;color:#444;padding:3px 4px">' + detalhe + '</td>';
+    tbodyHtml += '</tr>';
+  });
+
+  const tfootHtml = tfoot ? tfoot.innerHTML : '';
+
+  // ── Cards HTML ─────────────────────────────────────────────────────────
+  let cardsHtml = '';
+  famCards.forEach(function(c) {
+    cardsHtml += '<div style="background:' + c.color + '12;border:2px solid ' + c.color + ';border-radius:8px;padding:8px 12px;min-width:110px;flex:1">';
+    cardsHtml += '<div style="font-size:10px;font-weight:900;color:' + c.color + ';margin-bottom:4px">' + c.label + '</div>';
+    cardsHtml += '<div style="font-size:20px;font-weight:900;color:' + c.color + ';margin-bottom:5px">' + c.tot + ' <span style="font-size:10px">itens</span></div>';
+    cardsHtml += '<div style="font-size:11px;line-height:2;color:#333">';
+    if (c.sep   > 0) cardsHtml += '<span style="color:#3d8bff">\u25a3 ' + c.sep   + ' sep.</span><br>';
+    if (c.parc  > 0) cardsHtml += '<span style="color:#06b6d4">\u25d1 ' + c.parc  + ' parc.</span><br>';
+    if (c.falta > 0) cardsHtml += '<span style="color:#f59e0b">\u2699 ' + c.falta + ' falta sep.</span><br>';
+    if (c.abrir > 0) cardsHtml += '<span style="color:#ff3b3b">\u2717 ' + c.abrir + ' abrir OF</span>';
+    cardsHtml += '</div></div>';
+  });
+
+  // ── Abrir janela e escrever ────────────────────────────────────────────
   const win = window.open('', '_blank');
-  win.document.write(`<!DOCTYPE html><html><head>
-    <meta charset="UTF-8">
-    <title>Prioridades PV — ${hoje}</title>
-    <style>
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #1a1a2e; margin: 14px; }
-      /* Cabeçalho */
-      .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #1a6fcc; padding-bottom: 8px; margin-bottom: 10px; }
-      .header h2 { font-size: 18px; font-weight: 900; color: #0d1b3e; }
-      .header h2 span { color: #1a6fcc; }
-      .header .sub { font-size: 9px; color: #666; text-align: right; line-height: 1.5; }
-      /* Gráficos */
-      .graficos { display: flex; gap: 12px; margin-bottom: 14px; }
-      .grafico-box { flex: 1; background: #f8faff; border: 1px solid #dde4f0; border-radius: 8px; padding: 8px; }
-      .grafico-box .titulo { font-size: 9px; font-weight: 700; color: #666; letter-spacing: 0.5px; margin-bottom: 4px; text-transform: uppercase; }
-      .graficos img { width: 100%; height: 150px; object-fit: contain; }
-      /* Tabela */
-      table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 4px; }
-      thead tr { background: #0d1b3e; }
-      th { color: #fff; padding: 6px 7px; text-align: left; font-size: 9px; font-weight: 700; letter-spacing: 0.3px; white-space: nowrap; }
-      th:first-child { display: none; }
-      td { padding: 5px 7px; border-bottom: 1px solid #edf1f9; vertical-align: top; }
-      td:first-child { display: none; }
-      tr:nth-child(even) td { background: #f5f8ff; }
-      /* Colunas especiais */
-      td.col-cod { font-family: 'Courier New', monospace; font-size: 11px; font-weight: 700; color: #1a6fcc; white-space: nowrap; }
-      td.col-desc { max-width: 180px; word-break: break-word; white-space: normal; line-height: 1.3; }
-      td.col-fam { font-size: 9px; font-weight: 700; white-space: nowrap; color: #444; }
-      td.col-montar { font-size: 14px; font-weight: 900; color: #000 !important; text-align: right; white-space: nowrap; }
-      td.col-montar span { color: #000 !important; font-weight: 900 !important; }
-      td.col-status { font-size: 9px; font-weight: 700; }
-      td.col-status span { padding: 1px 5px; border-radius: 3px; }
-      td.col-detalhe { font-size: 9px; color: #555; max-width: 160px; word-break: break-word; white-space: normal; line-height: 1.3; }
-      /* Total */
-      .total-row td { background: #e8effe !important; font-weight: 700; font-size: 11px; border-top: 2px solid #1a6fcc; }
-      .total-row td.col-montar { color: #000; font-size: 15px; }
-      @media print {
-        body { margin: 8px; }
-        .graficos img { height: 130px; }
-        input[type=checkbox] { -webkit-appearance: checkbox; appearance: checkbox; display:inline-block !important; visibility:visible !important; opacity:1 !important; width:10px !important; height:10px !important; }
-        .cb-cell { display:table-cell !important; }
-      }
-    </style>
-  </head><body>
-    <div class="header">
-      <h2>📋 PAINEL <span>INDUSTRIAL</span> — Prioridades de Venda</h2>
-      <div class="sub">Impresso em ${hojeHora}<br>Período: ${periodoLabel}<br>Filtro: projetado negativo</div>
-    </div>
-    <div class="graficos">
-      <div class="grafico-box" style="flex:1">
-        <div class="titulo">RESUMO POR FAMÍLIA</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 0">
-          ${famCards.map(c => '<div style="background:'+c.color+'12;border:2px solid '+c.color+';border-radius:8px;padding:8px 12px;min-width:110px;flex:1">'
-            + '<div style="font-size:10px;font-weight:900;color:'+c.color+';margin-bottom:4px;letter-spacing:0.4px">'+c.label+'</div>'
-            + '<div style="font-size:20px;font-weight:900;color:'+c.color+';margin-bottom:5px;line-height:1">'+c.tot+' <span style="font-size:10px;font-weight:600">itens</span></div>'
-            + '<div style="font-size:11px;line-height:2;color:#333">'
-            + (c.sep   > 0 ? '<span style="color:#3d8bff">&#9635; '+c.sep+' sep.</span><br>' : '')
-            + (c.parc  > 0 ? '<span style="color:#06b6d4">&#9681; '+c.parc+' parc.</span><br>' : '')
-            + (c.falta > 0 ? '<span style="color:#f59e0b">&#9881; '+c.falta+' falta sep.</span><br>' : '')
-            + (c.abrir > 0 ? '<span style="color:#ff3b3b">&#10007; '+c.abrir+' abrir OF</span>' : '')
-            + '</div></div>').join('')}
-        </div>
-      </div>
-    </div>
-    <table>
-      <thead><tr>
-        <th style="width:52px;text-align:center">S&nbsp;M&nbsp;P&nbsp;E</th>
-        <th style="width:30px;text-align:center">QTD</th>
-        <th style="width:62px">CÓDIGO</th>
-        <th>DESCRIÇÃO</th>
-        <th style="width:70px">FAMÍLIA</th>
-        <th style="width:34px;text-align:right">PROJ.</th>
-        <th>DETALHE OF</th>
-      </tr></thead>
-      <tbody>${(() => {
-        const rows = tbody ? tbody.querySelectorAll('tr') : [];
-        return [...rows].map(tr => {
-          const tds = tr.querySelectorAll('td');
-          if (tds.length < 3) return '';
-          const aMontar = tds[9] ? tds[9].innerText.trim() : '';
-          const desc    = tds[2] ? tds[2].innerText.trim() : '';
-          const proj    = tds[5] ? tds[5].innerText.trim() : '';
-          const detalhe = tds[11] ? tds[11].innerText.trim() : '';
-          const projNum = parseFloat(proj) || 0;
-          const pc = projNum < 0 ? '#cc2200' : '#008800';
-          const bx = '<span style=\'display:inline-block;width:11px;height:11px;border:1.5px solid #333;vertical-align:middle;margin-left:1px\'></span>';
-          return '<tr>'
-            + '<td style=\'font-size:8px;color:#222;padding:3px 4px;white-space:nowrap;vertical-align:middle\'>'
-            + 'S__ M__ P__ E__'           + '</td>'
-            + '<td style=\'font-size:13px;font-weight:900;text-align:center;padding:3px 3px\'>' + aMontar + '</td>'
-            + '<td style=\'font-family:monospace;font-size:10px;font-weight:700;color:#1a6fcc;white-space:nowrap;padding:3px 4px\'>' + (tds[1]?tds[1].innerText.trim():'') + '</td>'
-            + '<td style=\'font-size:9px;white-space:nowrap;overflow:hidden;max-width:200px;padding:3px 4px\'>' + desc + '</td>'
-            + '<td style=\'font-size:9px;font-weight:700;white-space:nowrap;padding:3px 4px;color:#444\'>' + (tds[3]?tds[3].innerText.trim():'') + '</td>'
-            + '<td style=\'text-align:right;font-size:10px;font-weight:700;padding:3px 4px;color:' + pc + '\'>' + proj + '</td>'
-            + '<td style=\'font-size:9px;color:#444;white-space:nowrap;padding:3px 4px\'>' + detalhe + '</td>'
-            + '</tr>';
-        }).join('');
-      })()}</tbody>
-      <tfoot class="total-row">${tfoot ? tfoot.innerHTML : ''}</tfoot>
-    </table>
-    <script>window.onload=()=>window.print();<\/script>
-  </body></html>`);
-  win.document.close();
+  const doc = win.document;
+  doc.open();
+  doc.write('<!DOCTYPE html><html><head><meta charset="UTF-8">');
+  doc.write('<title>Prioridades PV</title>');
+  doc.write('<style>');
+  doc.write('* { box-sizing:border-box; margin:0; padding:0; }');
+  doc.write('body { font-family:"Segoe UI",Arial,sans-serif; font-size:11px; color:#1a1a2e; margin:14px; }');
+  doc.write('.header { display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid #1a6fcc; padding-bottom:8px; margin-bottom:10px; }');
+  doc.write('.header h2 { font-size:18px; font-weight:900; color:#0d1b3e; }');
+  doc.write('.header h2 span { color:#1a6fcc; }');
+  doc.write('.header .sub { font-size:9px; color:#666; text-align:right; line-height:1.5; }');
+  doc.write('.cards { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }');
+  doc.write('.cards-title { font-size:9px; font-weight:700; color:#666; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:6px; }');
+  doc.write('table { width:100%; border-collapse:collapse; font-size:10px; table-layout:fixed; }');
+  doc.write('thead tr { background:#0d1b3e; }');
+  doc.write('th { color:#fff; padding:6px 5px; text-align:left; font-size:9px; font-weight:700; white-space:nowrap; }');
+  doc.write('td { padding:4px 5px; border-bottom:1px solid #edf1f9; vertical-align:middle; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }');
+  doc.write('tr:nth-child(even) td { background:#f5f8ff; }');
+  doc.write('.total-row td { background:#e8effe !important; font-weight:700; border-top:2px solid #1a6fcc; }');
+  doc.write('@media print { body { margin:6px; } }');
+  doc.write('</style></head><body>');
+
+  doc.write('<div class="header">');
+  doc.write('<h2>&#x1F4CB; PAINEL <span>INDUSTRIAL</span> &mdash; Prioridades de Venda</h2>');
+  doc.write('<div class="sub">Impresso em ' + hojeHora + '<br>Per&iacute;odo: ' + periodoLabel + '<br>Filtro: projetado negativo</div>');
+  doc.write('</div>');
+
+  doc.write('<div class="cards-title">RESUMO POR FAM&Iacute;LIA</div>');
+  doc.write('<div class="cards">' + cardsHtml + '</div>');
+
+  doc.write('<table>');
+  doc.write('<thead><tr>');
+  doc.write('<th style="width:90px">S__ M__ P__ E__</th>');
+  doc.write('<th style="width:30px;text-align:center">QTD</th>');
+  doc.write('<th style="width:65px">C&Oacute;DIGO</th>');
+  doc.write('<th>DESCRI&Ccedil;&Atilde;O</th>');
+  doc.write('<th style="width:72px">FAM&Iacute;LIA</th>');
+  doc.write('<th style="width:36px;text-align:right">PROJ.</th>');
+  doc.write('<th style="width:160px">DETALHE OF</th>');
+  doc.write('</tr></thead>');
+  doc.write('<tbody>' + tbodyHtml + '</tbody>');
+  doc.write('<tfoot class="total-row">' + tfootHtml + '</tfoot>');
+  doc.write('</table>');
+  doc.write('<script>window.onload=function(){window.print();}<\/script>');
+  doc.write('</body></html>');
+  doc.close();
 }
 
 function renderServico() {
