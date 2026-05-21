@@ -3775,7 +3775,7 @@ function renderPvPrioridades() {
     g.of_comp_raw = _addRaw(g.of_comp_raw, _ofComp);
     g.of_parc_raw = _addRaw(g.of_parc_raw, _ofParc);
 
-   g.of_sem  += _pvParseOfQtde(r.of_sem);
+    g.of_sem  += _pvParseOfQtde(r.of_sem);
     g.of_comp += _pvParseOfQtde(r.of_comp);
     g.of_parc += _pvParseOfQtde(r.of_parc);
   });
@@ -4182,8 +4182,24 @@ function pvGerarPDF() {
     'KIT HIDRAULICO':'Kit Hidr.','OUTROS':'Outros'
   };
   const famCards = _famOrder.map(f => {
-    const tot = pvListaAtual.filter(g=>g.familia===f).reduce((s,g)=>s+(typeof g.a_montar==='number'?g.a_montar:0),0);
-    return tot > 0 ? {fam:f, tot, color: _famColors[f]||'#475569', label:(_famLabels[f]||f).toUpperCase()} : null;
+    const itens = pvListaAtual.filter(g => g.familia === f);
+    if (!itens.length) return null;
+    const tot = itens.reduce((s,g) => s + (typeof g.a_montar==='number' ? g.a_montar : 0), 0);
+    if (tot === 0) return null;
+    let sep=0, parc=0, falta=0, abrir=0;
+    itens.forEach(g => {
+      const sof = g.statusOf || '';
+      sof.split(' + ').forEach(seg => {
+        const m = seg.match(/^(\d+)\s+(.+)$/);
+        if (!m) return;
+        const qty = parseInt(m[1]), tipo = m[2];
+        if (tipo.includes('\u25a3'))      sep   += qty;
+        else if (tipo.includes('\u25d1')) parc  += qty;
+        else if (tipo.includes('\u2699')) falta += qty;
+        else if (tipo.includes('\u2717')) abrir += qty;
+      });
+    });
+    return { fam:f, tot, sep, parc, falta, abrir, color:_famColors[f]||'#475569', label:(_famLabels[f]||f).toUpperCase() };
   }).filter(Boolean);
 
   // Cards de status — extrair quantidades parciais do statusOf
@@ -4278,39 +4294,77 @@ function pvGerarPDF() {
       <div class="sub">Impresso em ${hojeHora}<br>Período: ${periodoLabel}<br>Filtro: projetado negativo</div>
     </div>
     <div class="graficos">
-      <div class="grafico-box" style="flex:1.4">
-        <div class="titulo">A MONTAR POR FAMÍLIA</div>
-        <div style="display:flex;flex-wrap:wrap;gap:10px;padding:10px 0">
-          ${famCards.map(c=>`<div style="background:${c.color}18;border:2px solid ${c.color};border-radius:10px;padding:12px 18px;text-align:center;min-width:90px;flex:1">
-            <div style="font-size:10px;font-weight:700;color:${c.color};letter-spacing:0.5px;margin-bottom:4px">${c.label}</div>
-            <div style="font-size:32px;font-weight:900;color:${c.color};line-height:1">${c.tot}</div>
-          </div>`).join('')}
-        </div>
-      </div>
       <div class="grafico-box" style="flex:1">
-        <div class="titulo">A MONTAR POR STATUS</div>
-        <div style="display:flex;flex-wrap:wrap;gap:10px;padding:10px 0">
-          ${statusCards.map(c=>`<div style="background:${c.color}18;border:2px solid ${c.color};border-radius:10px;padding:12px 18px;text-align:center;min-width:90px;flex:1">
-            <div style="font-size:10px;font-weight:700;color:${c.color};letter-spacing:0.5px;margin-bottom:4px">${c.label}</div>
-            <div style="font-size:32px;font-weight:900;color:${c.color};line-height:1">${c.tot}</div>
+        <div class="titulo">RESUMO POR FAMÍLIA</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 0">
+          ${famCards.map(c=>`<div style="background:${c.color}12;border:2px solid ${c.color};border-radius:8px;padding:8px 12px;min-width:110px;flex:1">
+            <div style="font-size:10px;font-weight:900;color:${c.color};margin-bottom:4px;letter-spacing:0.4px">${c.label}</div>
+            <div style="font-size:20px;font-weight:900;color:${c.color};margin-bottom:5px;line-height:1">${c.tot} <span style="font-size:10px;font-weight:600">itens</span></div>
+            <div style="font-size:9px;line-height:1.9;color:#333">
+              ${c.sep   > 0 ? \`<span style="color:#3d8bff">▣ \${c.sep} sep.</span><br>\` : ''}
+              ${c.parc  > 0 ? \`<span style="color:#06b6d4">◑ \${c.parc} parc.</span><br>\` : ''}
+              ${c.falta > 0 ? \`<span style="color:#f59e0b">⚙ \${c.falta} falta sep.</span><br>\` : ''}
+              ${c.abrir > 0 ? \`<span style="color:#ff3b3b">✗ \${c.abrir} abrir OF</span>\` : ''}
+            </div>
           </div>`).join('')}
         </div>
       </div>
     </div>
     <table>
-      <thead>${thead ? thead.innerHTML : ''}</thead>
+      <thead><tr>
+        <th>A MONT.</th>
+        <th>CÓDIGO</th>
+        <th>DESCRIÇÃO</th>
+        <th>FAMÍLIA</th>
+        <th>PV</th>
+        <th>PROJ.</th>
+        <th>OF S/REQ</th>
+        <th>OF COM.</th>
+        <th>OF PAR.</th>
+        <th>STATUS</th>
+        <th>DETALHE OF</th>
+        <th style="text-align:center">S</th>
+        <th style="text-align:center">M</th>
+        <th style="text-align:center">P</th>
+        <th style="text-align:center">E</th>
+      </tr></thead>
       <tbody>${(() => {
-        // Reprocessar linhas para adicionar classes de destaque
         const rows = tbody ? tbody.querySelectorAll('tr') : [];
+        const cb = '<div style="width:13px;height:13px;border:1.5px solid #555;border-radius:2px;margin:0 auto"></div>';
         return [...rows].map(tr => {
           const tds = tr.querySelectorAll('td');
           if (tds.length < 3) return tr.outerHTML;
-          // col0=botão(oculto), col1=código, col2=desc, col3=família, col4=pv, col5=proj, col6=ofSem, col7=ofComp, col8=ofParc, col9=aMontar, col10=status, col11=detalhe
+          // col0=botão(oculto), col1=código, col2=desc, col3=família, col4=pv, col5=proj,
+          // col6=ofSem, col7=ofComp, col8=ofParc, col9=aMontar, col10=status, col11=detalhe
+          const aMontar = tds[9] ? tds[9].innerText.trim() : '';
           let html = '<tr>';
-          tds.forEach((td, i) => {
-            const cls = i===1?'col-cod':i===2?'col-desc':i===3?'col-fam':i===9?'col-montar':i===10?'col-status':i===11?'col-detalhe':'';
-            html += '<td class="' + cls + '">' + td.innerHTML + '</td>';
-          });
+          // Coluna A MONT. (duplicada, destacada)
+          html += '<td class="col-montar" style="font-size:16px;font-weight:900;color:#000;text-align:center">' + aMontar + '</td>';
+          // Código
+          html += '<td class="col-cod">' + (tds[1]?tds[1].innerHTML:'') + '</td>';
+          // Descrição
+          html += '<td class="col-desc">' + (tds[2]?tds[2].innerHTML:'') + '</td>';
+          // Família
+          html += '<td class="col-fam">' + (tds[3]?tds[3].innerHTML:'') + '</td>';
+          // PV
+          html += '<td style="text-align:right">' + (tds[4]?tds[4].innerHTML:'') + '</td>';
+          // PROJ
+          html += '<td style="text-align:right">' + (tds[5]?tds[5].innerHTML:'') + '</td>';
+          // OF S/REQ
+          html += '<td style="text-align:right;color:#f59e0b">' + (tds[6]?tds[6].innerHTML:'') + '</td>';
+          // OF COM
+          html += '<td style="text-align:right;color:#3d8bff">' + (tds[7]?tds[7].innerHTML:'') + '</td>';
+          // OF PAR
+          html += '<td style="text-align:right;color:#06b6d4">' + (tds[8]?tds[8].innerHTML:'') + '</td>';
+          // Status
+          html += '<td class="col-status">' + (tds[10]?tds[10].innerHTML:'') + '</td>';
+          // Detalhe OF
+          html += '<td class="col-detalhe">' + (tds[11]?tds[11].innerHTML:'') + '</td>';
+          // Checkboxes S M P E
+          html += '<td style="text-align:center">' + cb + '</td>';
+          html += '<td style="text-align:center">' + cb + '</td>';
+          html += '<td style="text-align:center">' + cb + '</td>';
+          html += '<td style="text-align:center">' + cb + '</td>';
           html += '</tr>';
           return html;
         }).join('');
