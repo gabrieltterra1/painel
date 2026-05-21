@@ -1353,21 +1353,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   <!-- Tabela agrupada por produto -->
   <div class="table-wrap" style="margin-bottom:28px"><div class="scrollable" style="max-height:360px">
-    <table style="min-width:900px">
+    <table style="min-width:900px;table-layout:fixed;width:100%">
       <thead class="blue" style="position:sticky;top:0;z-index:2">
         <tr>
           <th style="width:30px"></th>
           <th style="width:80px;cursor:pointer" onclick="pvOrdenar('codigo')">CÓDIGO ⇅</th>
-          <th style="min-width:160px;max-width:260px;cursor:pointer" onclick="pvOrdenar('descricao')">DESCRIÇÃO ⇅</th>
+          <th style="width:200px;cursor:pointer" onclick="pvOrdenar('descricao')">DESCRIÇÃO ⇅</th>
           <th style="width:90px;cursor:pointer" onclick="pvOrdenar('familia')">FAMÍLIA ⇅</th>
-          <th style="text-align:right;width:55px;cursor:pointer" onclick="pvOrdenar('qtde_pv')">PV ⇅</th>
-          <th style="text-align:right;width:75px;cursor:pointer" onclick="pvOrdenar('proj')">PROJETADO ⇅</th>
-          <th style="text-align:right;width:70px">OF S/REQ</th>
-          <th style="text-align:right;width:70px">OF COMP.</th>
-          <th style="text-align:right;width:70px">OF PARC.</th>
-          <th style="text-align:right;width:85px;color:#f59e0b;cursor:pointer" onclick="pvOrdenar('a_montar')">▲ A MONTAR ⇅</th>
+          <th style="text-align:right;width:45px;cursor:pointer" onclick="pvOrdenar('qtde_pv')">PV ⇅</th>
+          <th style="text-align:right;width:70px;cursor:pointer" onclick="pvOrdenar('proj')">PROJ. ⇅</th>
+          <th style="text-align:right;width:60px">OF S/REQ</th>
+          <th style="text-align:right;width:60px">OF COM.</th>
+          <th style="text-align:right;width:60px">OF PAR.</th>
+          <th style="text-align:right;width:75px;color:#f59e0b;cursor:pointer" onclick="pvOrdenar('a_montar')">▲ A MONT. ⇅</th>
           <th style="width:110px">STATUS</th>
-          <th style="width:260px">DETALHE OF</th>
+          <th style="width:200px">DETALHE OF</th>
         </tr>
       </thead>
       <tbody id="pv-prior-tbody"></tbody>
@@ -3990,8 +3990,8 @@ function renderPvPrioridades() {
         <button onclick="pvToggleOculto('${g.codigo}')" title="Ocultar este item"
           style="background:rgba(255,59,59,0.15);border:1px solid var(--red);color:var(--red);width:22px;height:22px;border-radius:4px;cursor:pointer;font-size:14px;line-height:1;padding:0">−</button>
       </td>
-      <td style="font-family:monospace;font-size:12px">${g.codigo}</td>
-      <td style="font-size:11px;text-align:left;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${g.descricao}">${g.descricao}</td>
+      <td style="font-family:monospace;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${g.codigo}</td>
+      <td style="font-size:11px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${g.descricao}">${g.descricao}</td>
       <td style="color:${color};font-size:11px;font-weight:700">${g.familia}</td>
       <td style="text-align:right;font-weight:700">${g.qtde_pv}</td>
       <td style="text-align:right;color:${saldoColor};font-weight:600">${g.saldo}</td>
@@ -4091,15 +4091,13 @@ function _pvCalcMontarCompleto(proj, ofSemStr, ofCompStr, ofParcStr) {
   const ofsParc = _pvParseOfs(ofParcStr);
   const ofsSem  = _pvParseOfs(ofSemStr);
 
+  // Soma OFs inteiras até cobrir a necessidade — nunca corta uma OF no meio
   const somarAteNec = (ofs, nec) => {
-    let acum = 0, multi = false, ultima = 0;
+    let acum = 0;
     for (const o of ofs) {
       if (acum >= nec) break;
-      const resto = nec - acum;
-      if (o.qty >= resto) { acum += o.qty; ultima = o.qty; break; }
-      acum += o.qty; ultima = o.qty; multi = true;
+      acum += o.qty; // sempre usa a OF inteira
     }
-    if (multi && acum > nec && ultima < nec) return nec;
     return acum;
   };
 
