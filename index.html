@@ -4227,10 +4227,10 @@ function pvGerarPDF() {
     tbodyHtml += '<td style="font-size:9px;font-family:monospace;padding:3px 5px;white-space:nowrap;color:#222">S__ M__ P__ E__</td>';
     tbodyHtml += '<td style="font-size:13px;font-weight:900;text-align:center;padding:3px 4px">' + aMontar + '</td>';
     tbodyHtml += '<td style="font-family:monospace;font-size:10px;font-weight:700;color:#1a6fcc;white-space:nowrap;padding:3px 4px">' + codigo + '</td>';
-    tbodyHtml += '<td style="font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;padding:3px 4px" title="' + desc.replace(/"/g,"'") + '">' + desc + '</td>';
+    tbodyHtml += '<td style="font-size:9px;padding:3px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + desc.replace(/"/g,"'") + '">' + desc + '</td>';
     tbodyHtml += '<td style="font-size:9px;font-weight:700;white-space:nowrap;padding:3px 4px;color:#444">' + familia + '</td>';
     tbodyHtml += '<td style="text-align:right;font-size:10px;font-weight:700;padding:3px 4px;color:' + projColor + '">' + proj + '</td>';
-    tbodyHtml += '<td style="font-size:9px;color:#444;padding:3px 4px">' + detalhe + '</td>';
+    tbodyHtml += '<td style="font-size:9px;color:#444;padding:3px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + detalhe + '</td>';
     tbodyHtml += '</tr>';
   });
 
@@ -4265,7 +4265,7 @@ function pvGerarPDF() {
   doc.write('.header .sub { font-size:9px; color:#666; text-align:right; line-height:1.5; }');
   doc.write('.cards { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }');
   doc.write('.cards-title { font-size:9px; font-weight:700; color:#666; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:6px; }');
-  doc.write('table { width:100%; border-collapse:collapse; font-size:10px; table-layout:fixed; }');
+  doc.write('table { width:100%; border-collapse:collapse; font-size:10px; }');
   doc.write('thead tr { background:#0d1b3e; }');
   doc.write('th { color:#fff; padding:6px 5px; text-align:left; font-size:9px; font-weight:700; white-space:nowrap; }');
   doc.write('td { padding:4px 5px; border-bottom:1px solid #edf1f9; vertical-align:middle; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }');
@@ -4284,13 +4284,13 @@ function pvGerarPDF() {
 
   doc.write('<table>');
   doc.write('<thead><tr>');
-  doc.write('<th style="width:90px">S__ M__ P__ E__</th>');
-  doc.write('<th style="width:30px;text-align:center">QTD</th>');
-  doc.write('<th style="width:65px">C&Oacute;DIGO</th>');
-  doc.write('<th>DESCRI&Ccedil;&Atilde;O</th>');
-  doc.write('<th style="width:72px">FAM&Iacute;LIA</th>');
-  doc.write('<th style="width:36px;text-align:right">PROJ.</th>');
-  doc.write('<th style="width:160px">DETALHE OF</th>');
+  doc.write('<th style="width:80px">S_ M_ P_ E_</th>');
+  doc.write('<th style="width:36px;text-align:center">QTD</th>');
+  doc.write('<th style="width:75px">CODIGO</th>');
+  doc.write('<th style="width:35%">DESCRICAO</th>');
+  doc.write('<th style="width:80px">FAMILIA</th>');
+  doc.write('<th style="width:40px;text-align:right">PROJ.</th>');
+  doc.write('<th>DETALHE OF</th>');
   doc.write('</tr></thead>');
   doc.write('<tbody>' + tbodyHtml + '</tbody>');
   doc.write('<tfoot class="total-row">' + tfootHtml + '</tfoot>');
