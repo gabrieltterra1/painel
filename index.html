@@ -525,7 +525,7 @@
   .file-area p { color: var(--text-muted); font-size: 14px; margin-bottom: 12px; }
 
   /* MONEY formatting */
-  .money { font-variant-numeric: tabular-nums; }
+  .money { font-variant-numeric: tabular-nums; text-align: right; }
 
   /* Scrollable table */
   .scrollable { max-height: 560px; overflow-y: auto; overflow-x: auto; }
@@ -2485,7 +2485,7 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
           ${isDiaUtil?'<span style="color:var(--green);margin-left:6px">● dia útil</span>':'<span style="color:var(--amber);margin-left:6px">● fds/feriado</span>'}
           <span style="color:var(--text-muted);margin-left:8px">${duAteMes} dias úteis no mês até ontem</span>
         </div>
-        <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
           <div style="flex:1;min-width:260px">
             <div style="margin-bottom:8px;font-size:10px;font-weight:700;color:#f59e0b;letter-spacing:1px">▸ TERMOTRANSFERÊNCIA (TT)</div>
             <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -4492,11 +4492,11 @@ function renderServico() {
   };
   const thead = document.getElementById('servico-thead-row');
   thead.innerHTML =
-    `<th ${_thStyle('nome')}>Fornecedor</th>`+
-    `<th ${_thStyle('emp')}>EMP</th>`+
-    `<th ${_thStyle('proc')}>PROCESSO</th>`+
-    filtMeses.map(m=>`<th ${_thStyle('mes:'+m)}>${mesLabel(m)}</th>`).join('')+
-    `<th ${_thStyle('total')}>Total</th>`;
+    `<th ${_thStyle('nome')} style="width:200px;text-align:left">Fornecedor</th>`+
+    `<th ${_thStyle('emp')} style="width:50px;text-align:center;font-size:10px">EMP</th>`+
+    `<th ${_thStyle('proc')} style="width:120px;text-align:left;font-size:10px">PROCESSO</th>`+
+    filtMeses.map(m=>`<th ${_thStyle('mes:'+m)} style="width:110px;text-align:right">${mesLabel(m)}</th>`).join('')+
+    `<th ${_thStyle('total')} style="width:120px;text-align:right">Total</th>`;
 
   const mesTotals = {};
   filtMeses.forEach(m=>mesTotals[m]=0);
