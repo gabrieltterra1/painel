@@ -900,6 +900,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <option value="qtd_asc">Ordenar: Qtd ↑</option>
       <option value="emp">Ordenar: Empresa</option>
     </select>
+    <button class="upload-btn" style="background:#334;color:#aab;border:1px solid #556;font-size:12px;padding:6px 12px" onclick="msDesmarcarTodos('ms-produto')">✕ Desmarcar filtros</button>
     <span class="transito-count" id="tr-count"></span>
   </div>
   <div class="table-wrap">
@@ -1537,6 +1538,13 @@ function msChange(id) {
   else if (id === 'ms-pv-dias' || id === 'ms-pv-fam2') renderPvPrioridades();
   else if (id.startsWith('ms-pv')) renderPedidos();
 }
+function msDesmarcarTodos(id) {
+  const allCb = document.getElementById(id+'-all');
+  if (allCb) allCb.checked = false;
+  document.querySelectorAll(`#${id} .ms-item input[type=checkbox]`).forEach(cb => { cb.checked = false; });
+  msChange(id);
+}
+
 function msToggleAll(id) {
   const allCb = document.getElementById(id+'-all');
   const checked = allCb ? !allCb.checked : false; // toggle
@@ -2473,10 +2481,14 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
           ${isDiaUtil?'<span style="color:var(--green);margin-left:6px">● dia útil</span>':'<span style="color:var(--amber);margin-left:6px">● fds/feriado</span>'}
           <span style="color:var(--text-muted);margin-left:8px">${duAteMes} dias úteis no mês até ontem</span>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div style="margin-bottom:8px;font-size:10px;font-weight:700;color:#f59e0b;letter-spacing:1px">▸ TERMOTRANSFERÊNCIA (TT)</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
           ${_card('TT DIA', ttUlt.toLocaleString('pt-BR'), '#f59e0b', 'peças · meta '+metaTTDia+'/dia', ttUlt>=metaTTDia)}
           ${_card('TT META/DIA', metaTTDia.toLocaleString('pt-BR'), '#f59e0b', 'pçs/dia', null)}
           ${_card('TT MÉDIA ACUM.', ttMedAcum.toLocaleString('pt-BR'), '#3d8bff', 'pçs/dia ('+duAteMes+' du)', ttMedAcum>=metaTTDia)}
+        </div>
+        <div style="margin-bottom:8px;font-size:10px;font-weight:700;color:#a855f7;letter-spacing:1px">▸ POLIMENTO DE METAIS (PM)</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
           ${_card('PM DIA', pmUlt.toLocaleString('pt-BR'), '#a855f7', 'pares · meta '+metaPMDia+'/dia', pmUlt>=metaPMDia)}
           ${_card('PM META/DIA', metaPMDia.toLocaleString('pt-BR'), '#a855f7', 'pares/dia', null)}
           ${_card('PM MÉDIA ACUM.', pmMedAcum.toLocaleString('pt-BR'), '#06b6d4', 'pares/dia ('+duAteMes+' du)', pmMedAcum>=metaPMDia)}
@@ -2902,25 +2914,38 @@ function renderIFE() {
   const ifeMatriz      = calcEmp('1');
   const ifeFilial      = calcEmp('2');
 
-  // IFE por marca (consolidado)
-  const marcas = {};
-  DATA.ife.filter(_ifeFiltrar('CONSOLIDADO')).filter(r=>r.mesKey===mesAtual).forEach(r => {
-    const m = _ifeMarca(r.clas);
-    if (!marcas[m]) marcas[m] = {atrasado:0,total:0};
-    marcas[m].atrasado += r.atrasado;
-    marcas[m].total    += r.total;
+  // IFE por família na MATRIZ
+  const FAM_IFE = {
+    'Walvoil':    { label:'Walvoil',      color:'#10b981', prefixos:['6'] },
+    'Guinchos':   { label:'Guinchos',     color:'#f59e0b', prefixos:['8'] },
+    'Força':      { label:'Força',        color:'#3d8bff', prefixos:['3'] },
+    'Hydrocar':   { label:'Hydrocar/Hydroven', color:'#a855f7', prefixos:['4','5'] },
+    'Peças':      { label:'Peças e Comp.', color:'#06b6d4', prefixos:['1','2'] },
+  };
+  const famIfeMatriz = {};
+  DATA.ife.filter(_ifeFiltrar('1')).filter(r=>r.mesKey===mesAtual).forEach(r => {
+    const clas = String(r.clas||'').trim();
+    let fk = 'Outros';
+    for (const [k,v] of Object.entries(FAM_IFE)) {
+      if (v.prefixos.some(p => clas.startsWith(p))) { fk=k; break; }
+    }
+    if (!famIfeMatriz[fk]) famIfeMatriz[fk]={atrasado:0,total:0};
+    famIfeMatriz[fk].atrasado += r.atrasado;
+    famIfeMatriz[fk].total    += r.total;
   });
-
-  const resumoMarcas = Object.entries(marcas).map(([m,v]) => {
-    const ife = v.total>0?(1-v.atrasado/v.total)*100:null;
-    return `<div style="text-align:center;padding:8px 16px;border-right:1px solid var(--border)">
-      <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">${m}</div>
-      <div style="font-size:18px;font-weight:700;color:${ife!==null?_ifeColor(ife):'var(--text-muted)'}">${ife!==null?ife.toFixed(2)+'%':'—'}</div>
+  const famIfeCardsHtml = Object.entries(FAM_IFE).map(([k,cfg]) => {
+    const d = famIfeMatriz[k]||{atrasado:0,total:0};
+    const ife = d.total>0?(1-d.atrasado/d.total)*100:null;
+    const cor = ife!==null?_ifeColor(ife):'var(--text-muted)';
+    return `<div style="background:${cfg.color}18;border:2px solid ${cfg.color};border-radius:8px;padding:10px 14px;min-width:100px;flex:1;text-align:center">
+      <div style="font-size:9px;font-weight:900;color:${cfg.color};margin-bottom:4px;letter-spacing:0.4px">${cfg.label.toUpperCase()}</div>
+      <div style="font-size:20px;font-weight:900;color:${cor}">${ife!==null?ife.toFixed(1)+'%':'—'}</div>
+      <div style="font-size:9px;color:var(--text-muted)">${d.total} entregas</div>
     </div>`;
   }).join('');
 
   document.getElementById('ife-resumo').innerHTML = `
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:10px">
       <div style="background:#1e2a4a;padding:10px 20px;font-size:11px;letter-spacing:1px;color:var(--text-muted)">
         IFE ${_ifeFmtLg(mesAtual)} — RESUMO
       </div>
@@ -2933,13 +2958,14 @@ function renderIFE() {
           <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">MATRIZ</div>
           <div style="font-size:28px;font-weight:700;color:${_ifeColor(ifeMatriz||0)}">${ifeMatriz!==null?ifeMatriz.toFixed(2)+'%':'—'}</div>
         </div>
-        <div style="text-align:center;padding:16px 28px;border-right:1px solid var(--border)">
+        <div style="text-align:center;padding:16px 28px">
           <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">FILIAL SP</div>
           <div style="font-size:28px;font-weight:700;color:${_ifeColor(ifeFilial||0)}">${ifeFilial!==null?ifeFilial.toFixed(2)+'%':'—'}</div>
         </div>
-        <div style="display:flex;flex:1;flex-wrap:wrap;align-items:center">${resumoMarcas}</div>
       </div>
-    </div>`;
+    </div>
+    <div style="margin-bottom:6px;font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:1px">IFE MATRIZ — POR FAMÍLIA</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${famIfeCardsHtml}</div>`;
 
   // ── KPIs ─────────────────────────────────────────────────────────────────
   document.getElementById('ife-kpis').innerHTML = `
@@ -3674,11 +3700,20 @@ let pvListaAtual = []; // lista atual renderizada (usada pelo PDF)
 
 function pvLimparFiltros() {
   // Desmarcar todos os dias
-  document.querySelectorAll('#ms-pv-dias-list .ms-item input').forEach(cb => cb.checked = false);
+  document.querySelectorAll('#ms-pv-dias .ms-item input').forEach(cb => cb.checked = false);
+  const diasAll = document.getElementById('ms-pv-dias-all');
+  if (diasAll) diasAll.checked = false;
   msChange('ms-pv-dias');
-  // Resetar família
-  document.querySelectorAll('#ms-pv-fam2-list .ms-item input').forEach(cb => cb.checked = true);
+  // Resetar família — TODAS marcadas
+  document.querySelectorAll('#ms-pv-fam2 .ms-item input').forEach(cb => cb.checked = true);
+  const fam2All = document.getElementById('ms-pv-fam2-all');
+  if (fam2All) fam2All.checked = true;
   msChange('ms-pv-fam2');
+  // Resetar status — TODOS marcados
+  document.querySelectorAll('#ms-pv-status .ms-item input').forEach(cb => cb.checked = true);
+  const statusAll = document.getElementById('ms-pv-status-all');
+  if (statusAll) statusAll.checked = true;
+  msChange('ms-pv-status');
   // Resetar projetado
   const proj = document.getElementById('pv-proj-filt');
   if (proj) proj.value = '';
@@ -3840,10 +3875,29 @@ function renderPvPrioridades() {
     .map(f => {
       const v = famTotals[f];
       const color = FAM_COLORS_PV[f]||'#475569';
-      return `<div style="background:var(--surface);border:1px solid ${color}44;border-left:3px solid ${color};border-radius:8px;padding:10px 18px;min-width:130px">
-        <div style="font-size:10px;color:${color};font-weight:700;letter-spacing:1px">${FAM_LABEL[f].toUpperCase()}</div>
-        <div style="font-size:24px;font-weight:800;color:${color}">${v.montar}</div>
-        <div style="font-size:10px;color:var(--text-muted)">a montar · ${v.pv} PV</div>
+      // calcular breakdown de status para esta família
+      let sep=0, parc=0, falta=0, abrir=0;
+      lista.filter(g => g.familia === f).forEach(g => {
+        const sof = g.statusOf || '';
+        sof.split(' + ').forEach(seg => {
+          const m = seg.match(/^(\d+)\s+(.+)$/);
+          if (!m) return;
+          const qty = parseInt(m[1]), tipo = m[2];
+          if (tipo.includes('\u25a3'))      sep   += qty;
+          else if (tipo.includes('\u25d1')) parc  += qty;
+          else if (tipo.includes('\u2699')) falta += qty;
+          else if (tipo.includes('\u2717')) abrir += qty;
+        });
+      });
+      let breakdown = '';
+      if (sep   > 0) breakdown += `<div style="font-size:11px;color:#3d8bff;line-height:1.8">▣ ${sep} sep.</div>`;
+      if (parc  > 0) breakdown += `<div style="font-size:11px;color:#06b6d4;line-height:1.8">◑ ${parc} parc.</div>`;
+      if (falta > 0) breakdown += `<div style="font-size:11px;color:#f59e0b;line-height:1.8">⚙ ${falta} falta sep.</div>`;
+      if (abrir > 0) breakdown += `<div style="font-size:11px;color:#ff3b3b;line-height:1.8">✗ ${abrir} abrir OF</div>`;
+      return `<div style="background:${color}12;border:2px solid ${color};border-radius:10px;padding:10px 14px;min-width:120px;flex:1">
+        <div style="font-size:10px;color:${color};font-weight:900;letter-spacing:0.5px;margin-bottom:4px">${FAM_LABEL[f].toUpperCase()}</div>
+        <div style="font-size:24px;font-weight:900;color:${color};margin-bottom:4px;line-height:1">${v.montar} <span style="font-size:10px;font-weight:600;color:var(--text-muted)">itens · ${v.pv} PV</span></div>
+        ${breakdown}
       </div>`;
     }).join('');
 
