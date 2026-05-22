@@ -1849,13 +1849,13 @@ function parseTermico(text) {
     const mes   = tryMes(dtRaw);
     if (!mes || qtde <= 0 || !cod) return;
 
-    // Data completa para excluir NFs de hoje
+    // Data completa para o diário (hoje incluído no ult10, excluído das médias)
     let dtISO = null;
     const mBR  = dtRaw.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
     const mISO = dtRaw.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (mBR)       dtISO = mBR[3]+'-'+mBR[2]+'-'+mBR[1];
     else if (mISO) dtISO = mISO[1]+'-'+mISO[2]+'-'+mISO[3];
-    if (dtISO === _hojeISO) return;
+    const isHojeNF = (dtISO === _hojeISO);
 
     // Dias úteis do mês — calculado uma vez por mês
     if (!diasUteisMap[mes]) {
@@ -1876,14 +1876,12 @@ function parseTermico(text) {
       diasUteisMap[mes] = du;
     }
 
+    // Hoje: incluído no diário (ult10) mas excluído dos totais mensais
+    if (!isHojeNF) {
     if (isPolimento(forn)) {
       const key = cod+'|||'+desc+'|||'+mes;
       resultPol[key]  = (resultPol[key]||0) + qtde;
-      // Dados diários PM
-      const keyDia = dtISO+'|||'+cod+'|||'+desc+'|||LUCAS';
-      resultDiarioPM[keyDia] = (resultDiarioPM[keyDia]||0) + qtde;
     }
-
     if (isTermico(forn)) {
       const descUp = desc.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       const codUp  = cod.toUpperCase();
@@ -1896,6 +1894,12 @@ function parseTermico(text) {
       // Dados diários TT
       const keyDia = dtISO+'|||'+cod+'|||'+desc+'|||'+fl;
       resultDiarioTT[keyDia] = (resultDiarioTT[keyDia]||0) + qtde;
+    }
+    } // end !isHojeNF
+    // Diário PM (inclui hoje)
+    if (isPolimento(forn) && dtISO) {
+      const keyDia = dtISO+'|||'+cod+'|||'+desc+'|||LUCAS';
+      resultDiarioPM[keyDia] = (resultDiarioPM[keyDia]||0) + qtde;
     }
   });
 
@@ -2445,9 +2449,9 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
     .filter(d => d < hojeStr).sort();
 
   // Último dia com NF por tipo (podem ser dias diferentes)
-  const ultimoDiaTT = [...Object.keys(diarioTT)].filter(d => d <= hojeStr).sort().slice(-1)[0] || null;
-  const ultimoDiaPM = [...Object.keys(diarioPM)].filter(d => d <= hojeStr).sort().slice(-1)[0] || null;
-  const ultimoDia   = diasComNF[diasComNF.length-1]||null;
+  const ultimoDiaTT = [...Object.keys(diarioTT)].sort().slice(-1)[0] || null;
+  const ultimoDiaPM = [...Object.keys(diarioPM)].sort().slice(-1)[0] || null;
+  const ultimoDia   = ultimoDiaTT || ultimoDiaPM || null;
 
   // Calcular saldo acumulado
   const feriados = getFeriados().map(f=>f.data);
@@ -2514,7 +2518,7 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
 
   // Card último dia destacado
   const ultCard = document.getElementById('ultimo-dia-card');
-  if (ultCard && ultimoDia) {
+  if (ultimoDia) {
     const ttUlt = diarioTT[ultimoDiaTT||ultimoDia]||0;
     const pmUlt = diarioPM[ultimoDiaPM||ultimoDia]||0;
     const dtFmtTT = (ultimoDiaTT||ultimoDia||'').split('-').reverse().join('/');
