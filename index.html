@@ -1016,19 +1016,25 @@ document.addEventListener('DOMContentLoaded', () => {
 <div id="tab-termico" class="tab-content">
 
   <!-- ═══ METAS ═══ -->
-  <div class="section-title">METAS &amp; ACOMPANHAMENTO — TT &amp; PM
-    <button onclick="abrirModalMetas()" style="margin-left:12px;background:rgba(61,139,255,.15);border:1px solid var(--blue);color:var(--blue);padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer">✏ Editar Metas</button>
-    <button onclick="abrirModalFeriados()" style="margin-left:8px;background:rgba(245,158,11,.15);border:1px solid #f59e0b;color:#f59e0b;padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer">📅 Feriados</button>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+    <span class="section-title" style="margin:0">METAS &amp; ACOMPANHAMENTO — TT &amp; PM</span>
+    <button onclick="abrirModalMetas()" style="background:rgba(61,139,255,.15);border:1px solid var(--blue);color:var(--blue);padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer">✏ Editar Metas</button>
+    <button onclick="abrirModalFeriados()" style="background:rgba(245,158,11,.15);border:1px solid #f59e0b;color:#f59e0b;padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer">📅 Feriados</button>
   </div>
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:20px">
-    <!-- TT row -->
-    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
-      <div id="meta-kpis" style="flex:1;min-width:280px"></div>
-      <div id="saldo-kpis" style="flex:1;min-width:280px"></div>
+    <div style="display:flex;gap:0;flex-wrap:wrap">
+      <!-- Coluna 1: Metas -->
+      <div style="flex:1;min-width:260px;padding-right:16px;border-right:1px solid var(--border)">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <div id="meta-kpis" style="flex:1;min-width:180px"></div>
+          <div id="saldo-kpis" style="flex:1;min-width:180px"></div>
+        </div>
+      </div>
+      <!-- Coluna 2: Último dia -->
+      <div style="flex:1;min-width:260px;padding-left:16px">
+        <div id="ultimo-dia-card"></div>
+      </div>
     </div>
-    <hr style="border:none;border-top:1px solid var(--border);margin:4px 0 12px">
-    <!-- Último dia -->
-    <div id="ultimo-dia-card"></div>
   </div>
 
   <!-- Gráfico diário -->
