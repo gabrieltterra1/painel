@@ -2483,6 +2483,11 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
   const medNecPM = duRestantes > 0 ? Math.ceil((metaPMDia * (duAteMes + duRestantes) - realPMMes) / duRestantes) : 0;
   const _cor = v => v >= 0 ? 'var(--green)' : 'var(--red)';
   const _sinal = v => (v>=0?'+':'')+v.toLocaleString('pt-BR');
+  const _cardBox = (title, color, inner) =>
+    '<div style="background:'+color+'0e;border:1px solid '+color+'44;border-radius:10px;padding:12px 16px;margin-bottom:8px">'
+    + '<div style="font-size:10px;font-weight:700;color:'+color+';letter-spacing:1px;margin-bottom:10px">'+title+'</div>'
+    + '<div style="display:flex;gap:10px;flex-wrap:wrap">'+inner+'</div>'
+    + '</div>';
   const _kpi = (label, val, color, sub, ok) => {
     const subHtml = sub ? '<div style="font-size:10px;color:var(--text-muted);margin-top:2px">'+sub+'</div>' : '';
     const okHtml  = (ok!==null&&ok!==undefined) ? '<div style="font-size:10px;font-weight:700;color:'+(ok?'var(--green)':'var(--red)')+'">'+  (ok?'✓ acima':'✗ abaixo')+' da meta</div>' : '';
