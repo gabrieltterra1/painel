@@ -1876,30 +1876,34 @@ function parseTermico(text) {
       diasUteisMap[mes] = du;
     }
 
-    // Hoje: incluído no diário (ult10) mas excluído dos totais mensais
-    if (!isHojeNF) {
+    // Diário — inclui hoje (para ult10)
+    if (dtISO && isPolimento(forn)) {
+      const keyDia = dtISO+'|||'+cod+'|||'+desc+'|||LUCAS';
+      resultDiarioPM[keyDia] = (resultDiarioPM[keyDia]||0) + qtde;
+    }
+    if (dtISO && isTermico(forn)) {
+      const descUp = desc.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const codUp  = cod.toUpperCase();
+      if (!descUp.startsWith('GARFO') && !/\dS$/i.test(codUp)) {
+        const fl = fornTermLabel(forn);
+        const keyDia = dtISO+'|||'+cod+'|||'+desc+'|||'+fl;
+        resultDiarioTT[keyDia] = (resultDiarioTT[keyDia]||0) + qtde;
+      }
+    }
+    // Totais mensais — exclui hoje
+    if (isHojeNF) return;
     if (isPolimento(forn)) {
       const key = cod+'|||'+desc+'|||'+mes;
-      resultPol[key]  = (resultPol[key]||0) + qtde;
+      resultPol[key] = (resultPol[key]||0) + qtde;
     }
     if (isTermico(forn)) {
       const descUp = desc.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       const codUp  = cod.toUpperCase();
       if (descUp.startsWith('GARFO')) return;
-      if (/\dS$/i.test(codUp)) return; // excluir apenas se termina em dígito+S (ex: 1234S), não 43ES
-
+      if (/\dS$/i.test(codUp)) return;
       const fl = fornTermLabel(forn);
       const key = cod+'|||'+desc+'|||'+fl+'|||'+mes;
       resultTerm[key] = (resultTerm[key]||0) + qtde;
-      // Dados diários TT
-      const keyDia = dtISO+'|||'+cod+'|||'+desc+'|||'+fl;
-      resultDiarioTT[keyDia] = (resultDiarioTT[keyDia]||0) + qtde;
-    }
-    } // end !isHojeNF
-    // Diário PM (inclui hoje)
-    if (isPolimento(forn) && dtISO) {
-      const keyDia = dtISO+'|||'+cod+'|||'+desc+'|||LUCAS';
-      resultDiarioPM[keyDia] = (resultDiarioPM[keyDia]||0) + qtde;
     }
   });
 
@@ -2449,8 +2453,8 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
     .filter(d => d < hojeStr).sort();
 
   // Último dia com NF por tipo (podem ser dias diferentes)
-  const ultimoDiaTT = [...Object.keys(diarioTT)].sort().slice(-1)[0] || null;
-  const ultimoDiaPM = [...Object.keys(diarioPM)].sort().slice(-1)[0] || null;
+  const ultimoDiaTT = [...Object.keys(diarioTT)].filter(d => d <= hojeStr).sort().slice(-1)[0] || null;
+  const ultimoDiaPM = [...Object.keys(diarioPM)].filter(d => d <= hojeStr).sort().slice(-1)[0] || null;
   const ultimoDia   = ultimoDiaTT || ultimoDiaPM || null;
 
   // Calcular saldo acumulado
