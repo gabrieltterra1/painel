@@ -900,7 +900,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <option value="qtd_asc">Ordenar: Qtd ↑</option>
       <option value="emp">Ordenar: Empresa</option>
     </select>
-    <button class="upload-btn" style="background:#334;color:#aab;border:1px solid #556;font-size:12px;padding:6px 12px" onclick="msDesmarcarTodos('ms-produto')">✕ Desmarcar filtros</button>
+    <button class="upload-btn" style="background:#334;color:#aab;border:1px solid #556;font-size:12px;padding:6px 12px" onclick="transitoLimparFiltros()">✕ Desmarcar filtros</button>
     <span class="transito-count" id="tr-count"></span>
   </div>
   <div class="table-wrap">
@@ -992,17 +992,15 @@ document.addEventListener('DOMContentLoaded', () => {
         <option value="MANUTENÇÃO">Manutenção</option>
         <option value="FILIAL SP">Filial SP</option>
         <option value="OUTROS">Outros</option>
+        <option value="SEM PROCESSO">⚠ Sem processo definido</option>
       </select>
       <select class="filter-select" id="servico-mes" onchange="renderServico()">
         <option value="">Todos os meses</option>
       </select>
-      <select class="filter-select" id="servico-sort" onchange="renderServico()">
-        <option value="nome">Ordenar: Nome A→Z</option>
-        <option value="total_desc">Ordenar: Total ↓</option>
-        <option value="total_asc">Ordenar: Total ↑</option>
-      </select>
+      <button class="upload-btn" style="background:#334;color:#aab;border:1px solid #556;font-size:12px;padding:6px 12px" onclick="servicoLimparFiltros()">✕ Limpar filtros</button>
     </div>
-    <div style="font-family:var(--font-display);font-size:11px;color:var(--text-muted);letter-spacing:1px;">VALORES EM R$</div>
+    <div style="font-family:var(--font-display);font-size:11px;color:var(--text-muted);letter-spacing:1px;">VALORES EM R$ · clique no cabeçalho para ordenar</div>
+    <input type="hidden" id="servico-sort" value="nome">
   </div>
   <div class="table-wrap">
     <div class="scrollable">
@@ -1538,6 +1536,12 @@ function msChange(id) {
   else if (id === 'ms-pv-dias' || id === 'ms-pv-fam2') renderPvPrioridades();
   else if (id.startsWith('ms-pv')) renderPedidos();
 }
+function transitoLimparFiltros() {
+  msDesmarcarTodos('ms-produto');
+  const emp = document.getElementById('tr-empresa');
+  if (emp) { emp.value = ''; renderTransito(); }
+}
+
 function msDesmarcarTodos(id) {
   const allCb = document.getElementById(id+'-all');
   if (allCb) allCb.checked = false;
@@ -2481,17 +2485,23 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
           ${isDiaUtil?'<span style="color:var(--green);margin-left:6px">● dia útil</span>':'<span style="color:var(--amber);margin-left:6px">● fds/feriado</span>'}
           <span style="color:var(--text-muted);margin-left:8px">${duAteMes} dias úteis no mês até ontem</span>
         </div>
-        <div style="margin-bottom:8px;font-size:10px;font-weight:700;color:#f59e0b;letter-spacing:1px">▸ TERMOTRANSFERÊNCIA (TT)</div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
-          ${_card('TT DIA', ttUlt.toLocaleString('pt-BR'), '#f59e0b', 'peças · meta '+metaTTDia+'/dia', ttUlt>=metaTTDia)}
-          ${_card('TT META/DIA', metaTTDia.toLocaleString('pt-BR'), '#f59e0b', 'pçs/dia', null)}
-          ${_card('TT MÉDIA ACUM.', ttMedAcum.toLocaleString('pt-BR'), '#3d8bff', 'pçs/dia ('+duAteMes+' du)', ttMedAcum>=metaTTDia)}
-        </div>
-        <div style="margin-bottom:8px;font-size:10px;font-weight:700;color:#a855f7;letter-spacing:1px">▸ POLIMENTO DE METAIS (PM)</div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          ${_card('PM DIA', pmUlt.toLocaleString('pt-BR'), '#a855f7', 'pares · meta '+metaPMDia+'/dia', pmUlt>=metaPMDia)}
-          ${_card('PM META/DIA', metaPMDia.toLocaleString('pt-BR'), '#a855f7', 'pares/dia', null)}
-          ${_card('PM MÉDIA ACUM.', pmMedAcum.toLocaleString('pt-BR'), '#06b6d4', 'pares/dia ('+duAteMes+' du)', pmMedAcum>=metaPMDia)}
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+          <div style="flex:1;min-width:260px">
+            <div style="margin-bottom:8px;font-size:10px;font-weight:700;color:#f59e0b;letter-spacing:1px">▸ TERMOTRANSFERÊNCIA (TT)</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              ${_card('TT DIA', ttUlt.toLocaleString('pt-BR'), '#f59e0b', 'peças · meta '+metaTTDia+'/dia', ttUlt>=metaTTDia)}
+              ${_card('TT META/DIA', metaTTDia.toLocaleString('pt-BR'), '#f59e0b', 'pçs/dia', null)}
+              ${_card('TT MÉDIA ACUM.', ttMedAcum.toLocaleString('pt-BR'), '#3d8bff', 'pçs/dia ('+duAteMes+' du)', ttMedAcum>=metaTTDia)}
+            </div>
+          </div>
+          <div style="flex:1;min-width:260px">
+            <div style="margin-bottom:8px;font-size:10px;font-weight:700;color:#a855f7;letter-spacing:1px">▸ POLIMENTO DE METAIS (PM)</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              ${_card('PM DIA', pmUlt.toLocaleString('pt-BR'), '#a855f7', 'pares · meta '+metaPMDia+'/dia', pmUlt>=metaPMDia)}
+              ${_card('PM META/DIA', metaPMDia.toLocaleString('pt-BR'), '#a855f7', 'pares/dia', null)}
+              ${_card('PM MÉDIA ACUM.', pmMedAcum.toLocaleString('pt-BR'), '#06b6d4', 'pares/dia ('+duAteMes+' du)', pmMedAcum>=metaPMDia)}
+            </div>
+          </div>
         </div>
       </div>`;
   } else if (ultCard) {
@@ -4354,6 +4364,25 @@ function pvGerarPDF() {
   doc.close();
 }
 
+function servicoSort(key) {
+  const el = document.getElementById('servico-sort');
+  if (!el) return;
+  // Toggle: se já está nessa coluna, inverte; senão, seta
+  if (el.value === key) el.value = key + '_desc';
+  else if (el.value === key + '_desc') el.value = key;
+  else el.value = key;
+  renderServico();
+}
+
+function servicoLimparFiltros() {
+  const s = document.getElementById('servico-search'); if (s) s.value = '';
+  const e = document.getElementById('servico-empresa'); if (e) e.value = '';
+  const p = document.getElementById('servico-processo'); if (p) p.value = '';
+  const m = document.getElementById('servico-mes'); if (m) m.value = '';
+  const o = document.getElementById('servico-sort'); if (o) o.value = 'nome';
+  renderServico();
+}
+
 function renderServico() {
   const search = document.getElementById('servico-search').value.toLowerCase();
   const empFilt = document.getElementById('servico-empresa').value; // '1', '2', or ''
@@ -4424,7 +4453,10 @@ function renderServico() {
   const filtMeses = mesFilt ? [mesFilt] : meses;
   let dataFilt = DATA.servico.filter(r => {
     if (empFilt && r.empresa_num !== empFilt) return false;
-    if (procFilt && r.processo !== procFilt) return false;
+    if (procFilt) {
+      if (procFilt === 'SEM PROCESSO') { if (r.processo && r.processo.trim() !== '') return false; }
+      else { if (r.processo !== procFilt) return false; }
+    }
     if (!r.empresa.toLowerCase().includes(search)) return false;
     return true;
   });
@@ -4439,29 +4471,44 @@ function renderServico() {
       return s + (e ? e.valor : 0);
     }, 0);
   });
-  // Sort empresas
   let sortedEmpresas = [...empresas];
-  if (sortSel === 'total_desc') sortedEmpresas.sort((a,b) => rowTotals[b]-rowTotals[a]);
+  if (sortSel === 'total' || sortSel === 'total_desc') sortedEmpresas.sort((a,b) => rowTotals[b]-rowTotals[a]);
   else if (sortSel === 'total_asc') sortedEmpresas.sort((a,b) => rowTotals[a]-rowTotals[b]);
-  else if (sortSel.startsWith('mes_desc:')) {
-    const m = sortSel.replace('mes_desc:','');
+  else if (sortSel === 'emp') sortedEmpresas.sort((a,b) => {
+    const ea = (dataFilt.find(r=>r.empresa===a)||{}).empresa_num||'';
+    const eb = (dataFilt.find(r=>r.empresa===b)||{}).empresa_num||'';
+    return ea.localeCompare(eb);
+  });
+  else if (sortSel === 'proc') sortedEmpresas.sort((a,b) => {
+    const pa = (dataFilt.find(r=>r.empresa===a)||{}).processo||'';
+    const pb = (dataFilt.find(r=>r.empresa===b)||{}).processo||'';
+    return pa.localeCompare(pb);
+  });
+  else if (sortSel.startsWith('mes:')) {
+    const m = sortSel.replace('mes:','');
     sortedEmpresas.sort((a,b) => {
       const va = (DATA.servico.find(r=>r.empresa===a&&r.mes===m)||{valor:0}).valor;
       const vb = (DATA.servico.find(r=>r.empresa===b&&r.mes===m)||{valor:0}).valor;
       return vb - va;
     });
   }
-  // else 'nome' = already sorted alphabetically
+  // else 'nome' = alphabetical
 
   // Column widths: fornecedor=200px, emp=50px, each mes=110px, total=120px
   const mesWidth = '110px';
+  const _thStyle = (key) => {
+    const cur = (document.getElementById('servico-sort')||{}).value||'nome';
+    const isActive = cur===key||cur===key+'_desc'||(key==='nome'&&cur==='nome');
+    const arrow = cur===key+'_desc'?' ↓':cur===key?' ↑':'';
+    return `style="width:${key==='nome'?'200px':key==='proc'?'120px':key==='emp'?'50px':'110px'};text-align:${key==='emp'?'center':'left'};cursor:pointer;user-select:none;${isActive?'color:#7eb8ff':''}font-size:${key==='emp'||key==='proc'?'10px':'inherit'}" onclick="servicoSort('${key}')"`;
+  };
   const thead = document.getElementById('servico-thead-row');
-  thead.innerHTML = `
-    <th style="width:200px;text-align:left">Fornecedor</th>
-    <th style="width:50px;text-align:center;font-size:10px">EMP</th>
-    <th style="width:120px;text-align:left;font-size:10px">PROCESSO</th>
-    ${filtMeses.map(m=>`<th style="width:${mesWidth}">${mesLabel(m)}</th>`).join('')}
-    <th style="width:120px">Total</th>`;
+  thead.innerHTML =
+    `<th ${_thStyle('nome')}>Fornecedor</th>`+
+    `<th ${_thStyle('emp')}>EMP</th>`+
+    `<th ${_thStyle('proc')}>PROCESSO</th>`+
+    filtMeses.map(m=>`<th ${_thStyle('mes:'+m)}>${mesLabel(m)}</th>`).join('')+
+    `<th ${_thStyle('total')}>Total</th>`;
 
   const mesTotals = {};
   filtMeses.forEach(m=>mesTotals[m]=0);
