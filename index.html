@@ -1020,16 +1020,16 @@ document.addEventListener('DOMContentLoaded', () => {
     <button onclick="abrirModalMetas()" style="margin-left:12px;background:rgba(61,139,255,.15);border:1px solid var(--blue);color:var(--blue);padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer">✏ Editar Metas</button>
     <button onclick="abrirModalFeriados()" style="margin-left:8px;background:rgba(245,158,11,.15);border:1px solid #f59e0b;color:#f59e0b;padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer">📅 Feriados</button>
   </div>
-  <div id="tt-pm-kpis-container" style="margin-bottom:16px">
-    <div id="tt-pm-date-header" style="font-size:12px;color:var(--text-muted);margin-bottom:12px"></div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap">
-      <div id="meta-kpis" style="flex:1;min-width:300px"></div>
-      <div id="saldo-kpis" style="flex:1;min-width:300px"></div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:20px">
+    <!-- TT row -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+      <div id="meta-kpis" style="flex:1;min-width:280px"></div>
+      <div id="saldo-kpis" style="flex:1;min-width:280px"></div>
     </div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:4px 0 12px">
+    <!-- Último dia -->
+    <div id="ultimo-dia-card"></div>
   </div>
-
-  <!-- Card último dia útil -->
-  <div id="ultimo-dia-card" style="margin-bottom:20px"></div>
 
   <!-- Gráfico diário -->
   <div class="chart-card" style="margin-bottom:20px">
@@ -2370,13 +2370,13 @@ function renderTermico() {
   const pmMedDia = duMesAtual > 0 ? Math.round(pmRealMes / duMesAtual) : 0;
   const _cor = v => v >= 0 ? 'var(--green)' : 'var(--red)';
   const _kpi = (label, val, color, sub) =>
-    `<div class="kpi-card"><div class="kpi-label">${label}</div><div class="kpi-value" style="color:${color}">${val}</div>${sub?`<div style="font-size:10px;color:var(--text-muted);margin-top:3px">${sub}</div>`:''}</div>`;
+    '<div class="kpi-card"><div class="kpi-label">'+label+'</div><div class="kpi-value" style="color:'+color+'">'+val+'</div>'+(sub?'<div style="font-size:10px;color:var(--text-muted);margin-top:3px">'+sub+'</div>':'')+'</div>';
 
   const _box = (title, color, inner) =>
-    `<div style="background:${color}0e;border:1px solid ${color}44;border-radius:10px;padding:12px 16px;height:100%">
-      <div style="font-size:10px;font-weight:700;color:${color};letter-spacing:1px;margin-bottom:10px">${title}</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">${inner}</div>
-    </div>`;
+    '<div style="background:'+color+'0e;border:1px solid '+color+'44;border-radius:10px;padding:12px 16px">'
+    + '<div style="font-size:10px;font-weight:700;color:'+color+';letter-spacing:1px;margin-bottom:10px">'+title+'</div>'
+    + '<div style="display:flex;gap:10px;flex-wrap:wrap">'+inner+'</div>'
+    + '</div>';
 
   // Date header
   const dateHdr = document.getElementById('tt-pm-date-header');
@@ -2384,22 +2384,19 @@ function renderTermico() {
 
   const metaKpis = document.getElementById('meta-kpis');
   if (metaKpis) metaKpis.innerHTML =
-    // Row TT
-    `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">` +
     _box('▸ TRATAMENTO TÉRMICO (TT) — METAS', '#f59e0b',
       _kpi('META/DIA',  ttMetaDia.toLocaleString('pt-BR'), '#f59e0b', 'pçs/dia') +
       _kpi('MÉDIA/DIA', ttMedDia.toLocaleString('pt-BR'),  ttMedDia>=ttMetaDia?'var(--green)':'var(--red)', ttMedDia>=ttMetaDia?'✓ acima':'✗ abaixo') +
       _kpi('TOTAL MÊS', ttRealMes.toLocaleString('pt-BR'), '#3d8bff', 'peças enviadas') +
       _kpi('SALDO',    (ttSaldoMes>=0?'+':'')+ttSaldoMes.toLocaleString('pt-BR'), _cor(ttSaldoMes), ttSaldoMes>=0?'acima da meta':'abaixo da meta')
-    ) + `</div>` +
-    // Row PM
-    `<div style="display:flex;gap:12px;flex-wrap:wrap">` +
+    ) +
+    '<div style="height:10px"></div>' +
     _box('▸ POLIMENTO (PM) — METAS', '#a855f7',
       _kpi('META/DIA',  pmMetaDia.toLocaleString('pt-BR'), '#06b6d4', 'pares/dia') +
       _kpi('MÉDIA/DIA', pmMedDia.toLocaleString('pt-BR'),  pmMedDia>=pmMetaDia?'var(--green)':'var(--red)', pmMedDia>=pmMetaDia?'✓ acima':'✗ abaixo') +
       _kpi('TOTAL MÊS', pmRealMes.toLocaleString('pt-BR'), '#a855f7', 'pares enviados') +
       _kpi('SALDO',    (pmSaldoMes>=0?'+':'')+pmSaldoMes.toLocaleString('pt-BR'), _cor(pmSaldoMes), pmSaldoMes>=0?'acima da meta':'abaixo da meta')
-    ) + `</div>`;
+    );
 
   // Renderizar gráficos
   renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual);
@@ -2461,33 +2458,32 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
   const medNecPM = duRestantes > 0 ? Math.ceil((metaPMDia * (duAteMes + duRestantes) - realPMMes) / duRestantes) : 0;
   const _cor = v => v >= 0 ? 'var(--green)' : 'var(--red)';
   const _sinal = v => (v>=0?'+':'')+v.toLocaleString('pt-BR');
-  const _kpi = (label, val, color, sub) =>
-    `<div class="kpi-card"><div class="kpi-label">${label}</div><div class="kpi-value" style="color:${color}">${val}</div>${sub?`<div style="font-size:10px;color:var(--text-muted);margin-top:3px">${sub}</div>`:''}</div>`;
+  const _kpi = (label, val, color, sub) => {
+    const subHtml = sub ? '<div style="font-size:10px;color:var(--text-muted);margin-top:3px">'+sub+'</div>' : '';
+    return '<div class="kpi-card"><div class="kpi-label">'+label+'</div><div class="kpi-value" style="color:'+color+'">'+val+'</div>'+subHtml+'</div>';
+  };
   const _box = (title, color, inner) =>
-    `<div style="background:${color}0e;border:1px solid ${color}44;border-radius:10px;padding:12px 16px;height:100%">
-      <div style="font-size:10px;font-weight:700;color:${color};letter-spacing:1px;margin-bottom:10px">${title}</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">${inner}</div>
-    </div>`;
+    '<div style="background:'+color+'0e;border:1px solid '+color+'44;border-radius:10px;padding:12px 16px">'
+    + '<div style="font-size:10px;font-weight:700;color:'+color+';letter-spacing:1px;margin-bottom:10px">'+title+'</div>'
+    + '<div style="display:flex;gap:10px;flex-wrap:wrap">'+inner+'</div>'
+    + '</div>';
 
   // Cards de saldo
   const saldoKpis = document.getElementById('saldo-kpis');
   if (saldoKpis) saldoKpis.innerHTML =
-    // Row TT
-    `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">` +
     _box('▸ TRATAMENTO TÉRMICO (TT) — ACOMP.', '#f59e0b',
       _kpi('META ACUM.',      metaTTAcum.toLocaleString('pt-BR'),  '#f59e0b', duAteMes+' dias úteis') +
       _kpi('REALIZADO',       realTTMes.toLocaleString('pt-BR'),   '#3d8bff', 'pçs enviadas') +
       _kpi('SALDO',           _sinal(saldoTT),                     _cor(saldoTT), saldoTT>=0?'acima da meta':'abaixo da meta') +
       _kpi('MED. NECESSÁRIA', medNecTT.toLocaleString('pt-BR'),    medNecTT<=metaTTDia?'var(--green)':'var(--red)', 'pçs/dia ('+duRestantes+' dias rest.)')
-    ) + `</div>` +
-    // Row PM
-    `<div style="display:flex;gap:12px;flex-wrap:wrap">` +
+    ) +
+    '<div style="height:10px"></div>' +
     _box('▸ POLIMENTO (PM) — ACOMP.', '#a855f7',
       _kpi('META ACUM.',      metaPMAcum.toLocaleString('pt-BR'),  '#06b6d4', duAteMes+' dias úteis') +
       _kpi('REALIZADO',       realPMMes.toLocaleString('pt-BR'),   '#a855f7', 'pares enviados') +
       _kpi('SALDO',           _sinal(saldoPM),                     _cor(saldoPM), saldoPM>=0?'acima da meta':'abaixo da meta') +
       _kpi('MED. NECESSÁRIA', medNecPM.toLocaleString('pt-BR'),    medNecPM<=metaPMDia?'var(--green)':'var(--red)', 'pares/dia ('+duRestantes+' dias rest.)')
-    ) + `</div>`;
+    );
 
   // Card último dia destacado
   const ultCard = document.getElementById('ultimo-dia-card');
@@ -2509,32 +2505,28 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
         <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${sub}</div>
         ${ok!==null?`<div style="font-size:10px;font-weight:700;color:${ok?'var(--green)':'var(--red)'}">${ok?'✓ acima':'✗ abaixo'} da meta</div>`:''}
       </div>`;
-    ultCard.innerHTML = `
-      <div style="background:linear-gradient(135deg,rgba(61,139,255,.12),rgba(245,158,11,.08));border:1px solid rgba(61,139,255,.35);border-radius:12px;padding:16px 20px">
-        <div style="font-size:10px;letter-spacing:1px;color:var(--text-muted);margin-bottom:10px">
-          📅 ÚLTIMO DIA COM NF — <strong style="color:#fff">${dtFmt}</strong>
-          ${isDiaUtil?'<span style="color:var(--green);margin-left:6px">● dia útil</span>':'<span style="color:var(--amber);margin-left:6px">● fds/feriado</span>'}
-          <span style="color:var(--text-muted);margin-left:8px">${duAteMes} dias úteis no mês até ontem</span>
-        </div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap">
-          <div style="flex:1;min-width:300px;background:#f59e0b0e;border:1px solid #f59e0b44;border-radius:10px;padding:12px 16px">
-            <div style="margin-bottom:10px;font-size:10px;font-weight:700;color:#f59e0b;letter-spacing:1px">▸ TRATAMENTO TÉRMICO (TT)</div>
-            <div style="display:flex;gap:10px;flex-wrap:wrap">
-              ${_card('TT DIA', ttUlt.toLocaleString('pt-BR'), '#f59e0b', 'peças · meta '+metaTTDia+'/dia', ttUlt>=metaTTDia)}
-              ${_card('TT META/DIA', metaTTDia.toLocaleString('pt-BR'), '#f59e0b', 'pçs/dia', null)}
-              ${_card('TT MÉDIA ACUM.', ttMedAcum.toLocaleString('pt-BR'), '#3d8bff', 'pçs/dia ('+duAteMes+' du)', ttMedAcum>=metaTTDia)}
-            </div>
-          </div>
-          <div style="flex:1;min-width:300px;background:#a855f70e;border:1px solid #a855f744;border-radius:10px;padding:12px 16px">
-            <div style="margin-bottom:10px;font-size:10px;font-weight:700;color:#a855f7;letter-spacing:1px">▸ POLIMENTO (PM)</div>
-            <div style="display:flex;gap:10px;flex-wrap:wrap">
-              ${_card('PM DIA', pmUlt.toLocaleString('pt-BR'), '#a855f7', 'pares · meta '+metaPMDia+'/dia', pmUlt>=metaPMDia)}
-              ${_card('PM META/DIA', metaPMDia.toLocaleString('pt-BR'), '#a855f7', 'pares/dia', null)}
-              ${_card('PM MÉDIA ACUM.', pmMedAcum.toLocaleString('pt-BR'), '#06b6d4', 'pares/dia ('+duAteMes+' du)', pmMedAcum>=metaPMDia)}
-            </div>
-          </div>
-        </div>
-      </div>`;
+    const _cardBox = (title, color, inner) =>
+      '<div style="background:'+color+'0e;border:1px solid '+color+'44;border-radius:10px;padding:12px 16px">'
+      + '<div style="font-size:10px;font-weight:700;color:'+color+';letter-spacing:1px;margin-bottom:10px">'+title+'</div>'
+      + '<div style="display:flex;gap:10px;flex-wrap:wrap">'+inner+'</div>'
+      + '</div>';
+    ultCard.innerHTML =
+      '<div style="font-size:10px;letter-spacing:1px;color:var(--text-muted);margin-bottom:10px">'
+      + '📅 ÚLTIMO DIA COM NF — <strong style="color:#fff">'+dtFmt+'</strong>'
+      + (isDiaUtil?'<span style="color:var(--green);margin-left:6px">● dia útil</span>':'<span style="color:var(--amber);margin-left:6px">● fds/feriado</span>')
+      + '<span style="color:var(--text-muted);margin-left:8px">'+duAteMes+' dias úteis no mês até ontem</span>'
+      + '</div>'
+      + _cardBox('▸ TRATAMENTO TÉRMICO (TT)', '#f59e0b',
+          _card('TT DIA', ttUlt.toLocaleString('pt-BR'), '#f59e0b', 'peças · meta '+metaTTDia+'/dia', ttUlt>=metaTTDia) +
+          _card('TT META/DIA', metaTTDia.toLocaleString('pt-BR'), '#f59e0b', 'pçs/dia', null) +
+          _card('TT MÉDIA ACUM.', ttMedAcum.toLocaleString('pt-BR'), '#3d8bff', 'pçs/dia ('+duAteMes+' du)', ttMedAcum>=metaTTDia)
+        )
+      + '<div style="height:10px"></div>'
+      + _cardBox('▸ POLIMENTO (PM)', '#a855f7',
+          _card('PM DIA', pmUlt.toLocaleString('pt-BR'), '#a855f7', 'pares · meta '+metaPMDia+'/dia', pmUlt>=metaPMDia) +
+          _card('PM META/DIA', metaPMDia.toLocaleString('pt-BR'), '#a855f7', 'pares/dia', null) +
+          _card('PM MÉDIA ACUM.', pmMedAcum.toLocaleString('pt-BR'), '#06b6d4', 'pares/dia ('+duAteMes+' du)', pmMedAcum>=metaPMDia)
+        );
   } else if (ultCard) {
     ultCard.innerHTML = '';
   }
