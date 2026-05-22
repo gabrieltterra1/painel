@@ -690,6 +690,10 @@
   header { flex-wrap: wrap; }
   .section-title { font-size: 8px; }
 }
+@media (max-width: 900px) {
+  #meta-kpis, #saldo-kpis, #ultimo-dia-card { flex: 1 1 100% !important; min-width: 100% !important; }
+}
+
 </style>
 </head>
 <body>
@@ -1024,10 +1028,10 @@ document.addEventListener('DOMContentLoaded', () => {
       <button onclick="abrirModalFeriados()" style="background:rgba(245,158,11,.15);border:1px solid #f59e0b;color:#f59e0b;padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer">📅 Feriados</button>
     </div>
     <!-- 3 colunas: TT metas | TT acomp | Último dia TT+PM -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-      <div id="meta-kpis"></div>
-      <div id="saldo-kpis"></div>
-      <div id="ultimo-dia-card"></div>
+    <div style="display:flex;gap:12px;align-items:stretch">
+      <div id="meta-kpis" style="flex:1;min-width:0"></div>
+      <div id="saldo-kpis" style="flex:1;min-width:0"></div>
+      <div id="ultimo-dia-card" style="flex:1;min-width:0"></div>
     </div>
   </div>
 
@@ -1126,8 +1130,8 @@ document.addEventListener('DOMContentLoaded', () => {
         <th style="width:70px">DATA</th>
         <th style="width:45px">TIPO</th>
         <th style="width:75px">CÓDIGO</th>
-        <th>DESCRIÇÃO</th>
-        <th style="width:130px">FORNECEDOR</th>
+        <th style="text-align:left">DESCRIÇÃO</th>
+        <th style="width:130px;text-align:left">FORNECEDOR</th>
         <th style="text-align:right;width:65px">QTDE</th>
       </tr></thead>
       <tbody id="ult10-body"></tbody>
@@ -2527,22 +2531,21 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
       + '<div style="font-size:10px;font-weight:700;color:'+color+';letter-spacing:1px;margin-bottom:10px">'+title+'</div>'
       + '<div style="display:flex;gap:10px;flex-wrap:wrap">'+inner+'</div>'
       + '</div>';
+    const duLabel = duAteMes+' du no mês até ontem';
     ultCard.innerHTML =
-      '<div style="font-size:9px;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:8px">'
-      + duAteMes+' dias úteis no mês até ontem</div>'
-      + _cardBox(
-          '📅 '+dtFmt+(isDiaUtil?' <span style="color:var(--green)">● dia útil</span>':' <span style="color:var(--amber)">● fds/feriado</span>')+' — TRATAMENTO TÉRMICO',
+      _cardBox(
+          '📅 '+dtFmt+' '+(isDiaUtil?'<span style="color:var(--green)">● dia útil</span>':'<span style="color:var(--amber)">● fds/feriado</span>')+' — TRATAMENTO TÉRMICO',
           '#f59e0b',
           _kpi('TT DIA',     ttUlt.toLocaleString('pt-BR'),     '#f59e0b', 'peças', ttUlt>=metaTTDia) +
           _kpi('META/DIA',   metaTTDia.toLocaleString('pt-BR'), '#f59e0b', 'pçs/dia', null) +
-          _kpi('MÉD. ACUM.', ttMedAcum.toLocaleString('pt-BR'), '#3d8bff', 'pçs/dia', ttMedAcum>=metaTTDia)
+          _kpi('MÉD. ACUM.', ttMedAcum.toLocaleString('pt-BR'), '#3d8bff', duLabel, ttMedAcum>=metaTTDia)
         )
       + _cardBox(
           '📅 '+dtFmtPM+' — POLIMENTO (PM)',
           '#a855f7',
           _kpi('PM DIA',     pmUlt.toLocaleString('pt-BR'),     '#a855f7', 'pares', pmUlt>=metaPMDia) +
           _kpi('META/DIA',   metaPMDia.toLocaleString('pt-BR'), '#a855f7', 'pares/dia', null) +
-          _kpi('MÉD. ACUM.', pmMedAcum.toLocaleString('pt-BR'), '#06b6d4', 'pares/dia', pmMedAcum>=metaPMDia)
+          _kpi('MÉD. ACUM.', pmMedAcum.toLocaleString('pt-BR'), '#06b6d4', duLabel, pmMedAcum>=metaPMDia)
         );
   } else if (ultCard) {
     ultCard.innerHTML = '';
@@ -2644,8 +2647,8 @@ function renderUlt10() {
       ${dtCell}
       <td><span style="background:rgba(0,0,0,.2);color:${tipoColor};font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px">${r.tipo}</span></td>
       <td style="font-family:monospace;font-size:11px;white-space:nowrap">${r.cod}</td>
-      <td style="font-size:11px">${r.desc}</td>
-      <td style="font-size:11px;color:var(--text-muted)">${r.forn}</td>
+      <td style="font-size:11px;text-align:left">${r.desc}</td>
+      <td style="font-size:11px;color:var(--text-muted);text-align:left;white-space:nowrap">${r.forn}</td>
       <td style="text-align:right;font-weight:600;color:${tipoColor}">${r.qtdeFmt.toLocaleString('pt-BR')}${r.tipo==='PM'?' par':' pç'}</td>
     </tr>`;
   }).join('');
@@ -2693,7 +2696,7 @@ function renderPolimento() {
 
   // Cabeçalho
   const thead = document.getElementById('pol-thead');
-  thead.innerHTML = '<th style="width:100px">CÓDIGO</th><th>DESCRIÇÃO</th>' +
+  thead.innerHTML = '<th style="width:80px;white-space:nowrap">CÓDIGO</th><th style="text-align:left">DESCRIÇÃO</th>' +
     mesCols.map(m => {
       const [a,mo] = m.split('-');
       const label = new Date(+a,+mo-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}).toUpperCase();
@@ -2722,7 +2725,7 @@ function renderPolimento() {
       const v = data.filter(r=>r.cod===cod&&r.desc===desc&&r.mes===m).reduce((a,r)=>a+r.qtde,0) / 2;
       return s + (v > 0 ? v / (DATA.termico.diasUteis[m]||1) : 0);
     }, 0) / (mesCols.length||1);
-    return `<tr><td style="font-family:monospace;font-size:11px;white-space:nowrap;width:75px">${cod}</td><td style="font-size:11px">${desc}</td>${cells}
+    return `<tr><td style="font-family:monospace;font-size:11px;white-space:nowrap">${cod}</td><td style="font-size:11px;text-align:left">${desc}</td>${cells}
       <td style="text-align:right;font-weight:600">${total.toLocaleString('pt-BR')}</td>
       <td style="text-align:right;color:var(--green)">${media.toFixed(1)}</td></tr>`;
   }).join('');
@@ -2765,7 +2768,7 @@ function renderTermicoTable() {
   if (search) itens = itens.filter(k => k.toUpperCase().includes(search));
 
   const thead = document.getElementById('term-thead');
-  thead.innerHTML = '<th style="width:100px">CÓDIGO</th><th>DESCRIÇÃO</th><th style="width:110px">FORNECEDOR</th>' +
+  thead.innerHTML = '<th style="width:80px;white-space:nowrap">CÓDIGO</th><th style="text-align:left">DESCRIÇÃO</th><th style="width:100px;text-align:left">FORNECEDOR</th>' +
     mesCols.map(m => {
       const [a,mo] = m.split('-');
       const label = new Date(+a,+mo-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}).toUpperCase();
@@ -2798,8 +2801,8 @@ function renderTermicoTable() {
     const color = FORN_COLORS[forn]||'var(--text)';
     return `<tr>
       <td style="font-family:monospace;font-size:11px;white-space:nowrap">${cod}</td>
-      <td style="font-size:11px">${desc}</td>
-      <td style="color:${color};font-size:11px;font-weight:600;white-space:nowrap">${forn}</td>
+      <td style="font-size:11px;text-align:left">${desc}</td>
+      <td style="color:${color};font-size:11px;font-weight:600;white-space:nowrap;text-align:left">${forn}</td>
       ${cells}
       <td style="text-align:right;font-weight:600">${total.toLocaleString('pt-BR')}</td>
       <td style="text-align:right;color:var(--green)">${media.toFixed(1)}</td>
@@ -5390,4 +5393,6 @@ startMonitor();
 
 </script>
 </body>
-</html>
+</html>  @media (max-width: 900px) {
+    #meta-kpis, #saldo-kpis, #ultimo-dia-card { flex: 1 1 100% !important; }
+  }
