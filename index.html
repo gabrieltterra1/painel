@@ -1791,7 +1791,7 @@ const pctOk = pctCalc !== null && pctCalc >= 90;
                   color:${pctOk?'var(--green)':'var(--red)'}">${pctCalc !== null ? pctCalc.toFixed(1)+'%' : ''}</span>
               </td>
             </tr>`;
-          }).join('')})()
+          }).join('')}
         </tbody>
       </table>
   </div>`;
@@ -2696,7 +2696,7 @@ function renderPolimento() {
 
   // Cabeçalho
   const thead = document.getElementById('pol-thead');
-  thead.innerHTML = '<th style="width:80px;white-space:nowrap">CÓDIGO</th><th style="text-align:left">DESCRIÇÃO</th>' +
+  thead.innerHTML = '<th style="width:75px">CÓDIGO</th><th style="text-align:left;min-width:200px">DESCRIÇÃO</th>' +
     mesCols.map(m => {
       const [a,mo] = m.split('-');
       const label = new Date(+a,+mo-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}).toUpperCase();
@@ -2725,7 +2725,7 @@ function renderPolimento() {
       const v = data.filter(r=>r.cod===cod&&r.desc===desc&&r.mes===m).reduce((a,r)=>a+r.qtde,0) / 2;
       return s + (v > 0 ? v / (DATA.termico.diasUteis[m]||1) : 0);
     }, 0) / (mesCols.length||1);
-    return `<tr><td style="font-family:monospace;font-size:11px;white-space:nowrap">${cod}</td><td style="font-size:11px;text-align:left">${desc}</td>${cells}
+    return `<tr><td style="font-family:monospace;font-size:11px;white-space:nowrap;padding-right:12px">${cod}</td><td style="font-size:11px">${desc}</td>${cells}
       <td style="text-align:right;font-weight:600">${total.toLocaleString('pt-BR')}</td>
       <td style="text-align:right;color:var(--green)">${media.toFixed(1)}</td></tr>`;
   }).join('');
@@ -2768,7 +2768,7 @@ function renderTermicoTable() {
   if (search) itens = itens.filter(k => k.toUpperCase().includes(search));
 
   const thead = document.getElementById('term-thead');
-  thead.innerHTML = '<th style="width:80px;white-space:nowrap">CÓDIGO</th><th style="text-align:left">DESCRIÇÃO</th><th style="width:100px;text-align:left">FORNECEDOR</th>' +
+  thead.innerHTML = '<th style="width:75px">CÓDIGO</th><th style="text-align:left;min-width:200px">DESCRIÇÃO</th><th style="width:95px;text-align:left">FORNECEDOR</th>' +
     mesCols.map(m => {
       const [a,mo] = m.split('-');
       const label = new Date(+a,+mo-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}).toUpperCase();
@@ -2800,8 +2800,8 @@ function renderTermicoTable() {
     }, 0) / (mesCols.length||1);
     const color = FORN_COLORS[forn]||'var(--text)';
     return `<tr>
-      <td style="font-family:monospace;font-size:11px;white-space:nowrap">${cod}</td>
-      <td style="font-size:11px;text-align:left">${desc}</td>
+      <td style="font-family:monospace;font-size:11px;white-space:nowrap;padding-right:12px">${cod}</td>
+      <td style="font-size:11px">${desc}</td>
       <td style="color:${color};font-size:11px;font-weight:600;white-space:nowrap;text-align:left">${forn}</td>
       ${cells}
       <td style="text-align:right;font-weight:600">${total.toLocaleString('pt-BR')}</td>
@@ -2994,6 +2994,7 @@ function renderIFE() {
       <div style="font-size:9px;font-weight:900;color:${cfg.color};margin-bottom:4px;letter-spacing:0.4px">${cfg.label.toUpperCase()}</div>
       <div style="font-size:20px;font-weight:900;color:${cor}">${ife!==null?ife.toFixed(1)+'%':'—'}</div>
       <div style="font-size:9px;color:var(--text-muted)">${d.total} entregas</div>
+      <div style="font-size:9px;font-weight:700;color:${ife!==null?(ife>=95?'var(--green)':'var(--red)'):'var(--text-muted)'}">${ife!==null?(ife>=95?'✓':'✗ -'+(95-ife).toFixed(1)+'%'):'—'}</div>
     </div>`;
   }).join('');
 
@@ -3006,14 +3007,17 @@ function renderIFE() {
         <div style="text-align:center;padding:16px 28px;border-right:1px solid var(--border)">
           <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">CONSOLIDADO</div>
           <div style="font-size:32px;font-weight:700;color:${_ifeColor(ifeConsolidado||0)}">${ifeConsolidado!==null?ifeConsolidado.toFixed(2)+'%':'—'}</div>
+          <div style="font-size:10px;font-weight:700;margin-top:4px;color:${ifeConsolidado!==null?(ifeConsolidado>=95?'var(--green)':'var(--red)'):'var(--text-muted)'}">${ifeConsolidado!==null?(ifeConsolidado>=95?'✓ acima da meta':'✗ abaixo da meta (95%)'):'—'}</div>
         </div>
         <div style="text-align:center;padding:16px 28px;border-right:1px solid var(--border)">
           <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">MATRIZ</div>
           <div style="font-size:28px;font-weight:700;color:${_ifeColor(ifeMatriz||0)}">${ifeMatriz!==null?ifeMatriz.toFixed(2)+'%':'—'}</div>
+          <div style="font-size:10px;font-weight:700;margin-top:4px;color:${ifeMatriz!==null?(ifeMatriz>=95?'var(--green)':'var(--red)'):'var(--text-muted)'}">${ifeMatriz!==null?(ifeMatriz>=95?'✓ acima da meta':'✗ abaixo da meta (95%)'):'—'}</div>
         </div>
         <div style="text-align:center;padding:16px 28px">
           <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">FILIAL SP</div>
           <div style="font-size:28px;font-weight:700;color:${_ifeColor(ifeFilial||0)}">${ifeFilial!==null?ifeFilial.toFixed(2)+'%':'—'}</div>
+          <div style="font-size:10px;font-weight:700;margin-top:4px;color:${ifeFilial!==null?(ifeFilial>=95?'var(--green)':'var(--red)'):'var(--text-muted)'}">${ifeFilial!==null?(ifeFilial>=95?'✓ acima da meta':'✗ abaixo da meta (95%)'):'—'}</div>
         </div>
       </div>
     </div>
@@ -5393,6 +5397,4 @@ startMonitor();
 
 </script>
 </body>
-</html>  @media (max-width: 900px) {
-    #meta-kpis, #saldo-kpis, #ultimo-dia-card { flex: 1 1 100% !important; }
-  }
+</html>
