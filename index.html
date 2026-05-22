@@ -2453,8 +2453,8 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
     .filter(d => d < hojeStr).sort();
 
   // Último dia com NF por tipo (podem ser dias diferentes)
-  const ultimoDiaTT = [...Object.keys(diarioTT)].filter(d => d <= hojeStr).sort().slice(-1)[0] || null;
-  const ultimoDiaPM = [...Object.keys(diarioPM)].filter(d => d <= hojeStr).sort().slice(-1)[0] || null;
+  const ultimoDiaTT = [...Object.keys(diarioTT)].filter(d => d < hojeStr).sort().slice(-1)[0] || null;
+  const ultimoDiaPM = [...Object.keys(diarioPM)].filter(d => d < hojeStr).sort().slice(-1)[0] || null;
   const ultimoDia   = ultimoDiaTT || ultimoDiaPM || null;
 
   // Calcular saldo acumulado
