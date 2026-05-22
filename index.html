@@ -2453,9 +2453,18 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
     .filter(d => d < hojeStr).sort();
 
   // Último dia com NF por tipo (podem ser dias diferentes)
-  const ultimoDiaTT = [...Object.keys(diarioTT)].filter(d => d < hojeStr).sort().slice(-1)[0] || null;
-  const ultimoDiaPM = [...Object.keys(diarioPM)].filter(d => d < hojeStr).sort().slice(-1)[0] || null;
-  const ultimoDia   = ultimoDiaTT || ultimoDiaPM || null;
+  // Último dia útil antes de hoje (independente de ter NF)
+  const _feriados2 = new Set(getFeriados().map(f=>f.data));
+  let _ultDiaUtil = null;
+  for (let i = 1; i <= 10; i++) {
+    const d = new Date(hoje); d.setDate(d.getDate() - i);
+    const dw = d.getDay();
+    const iso = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if (dw !== 0 && dw !== 6 && !_feriados2.has(iso)) { _ultDiaUtil = iso; break; }
+  }
+  const ultimoDiaTT = _ultDiaUtil;
+  const ultimoDiaPM = _ultDiaUtil;
+  const ultimoDia   = _ultDiaUtil;
 
   // Calcular saldo acumulado
   const feriados = getFeriados().map(f=>f.data);
