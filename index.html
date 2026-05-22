@@ -4403,19 +4403,7 @@ function renderServico() {
   });
   if ([...mesSelect.options].some(o => o.value === prevMesVal)) mesSelect.value = prevMesVal;
 
-  // Rebuild sort dropdown: keep fixed options + dynamic per-month options
-  const sortEl = document.getElementById('servico-sort');
-  const prevSortVal = sortEl.value;
-  while (sortEl.options.length > 3) sortEl.remove(3);
-  meses.forEach(m => {
-    const [y,mo] = m.split('-');
-    const label = new Date(+y,+mo-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'});
-    const opt = document.createElement('option');
-    opt.value = 'mes_desc:' + m;
-    opt.textContent = 'Ordenar: ' + label.charAt(0).toUpperCase() + label.slice(1) + ' ↓';
-    sortEl.appendChild(opt);
-  });
-  if ([...sortEl.options].some(o => o.value === prevSortVal)) sortEl.value = prevSortVal;
+  // sort handled by clickable headers (servico-sort is now a hidden input)
 
   // ── LINHA DO TEMPO (always full data, not filtered) ──
   const mesLabel = m => { const [y,mo]=m.split('-'); return new Date(+y,+mo-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}); };
