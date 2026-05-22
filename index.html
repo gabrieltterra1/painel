@@ -2393,19 +2393,23 @@ function renderTermico() {
   const ttRow = document.getElementById('tt-row');
   const pmRow = document.getElementById('pm-row');
   if (ttRow) ttRow.innerHTML =
-    _cardBox('▸ TRATAMENTO TÉRMICO (TT) — METAS', '#f59e0b',
+    '<div>' + _cardBox('▸ TRATAMENTO TÉRMICO (TT) — METAS', '#f59e0b',
       _kpi('META/DIA',  ttMetaDia.toLocaleString('pt-BR'), '#f59e0b', 'pçs/dia', null) +
       _kpi('MÉDIA/DIA', ttMedDia.toLocaleString('pt-BR'),  ttMedDia>=ttMetaDia?'var(--green)':'var(--red)', '', ttMedDia>=ttMetaDia) +
       _kpi('TOTAL MÊS', ttRealMes.toLocaleString('pt-BR'), '#3d8bff', 'peças', null) +
       _kpi('SALDO',    (ttSaldoMes>=0?'+':'')+ttSaldoMes.toLocaleString('pt-BR'), _cor(ttSaldoMes), '', ttSaldoMes>=0)
-    ) + '<div id="saldo-kpis-tt"></div>';
+    ) + '</div>'
+    + '<div id="saldo-kpis-tt"></div>'
+    + '<div id="ultimo-dia-tt"></div>';
   if (pmRow) pmRow.innerHTML =
-    _cardBox('▸ POLIMENTO (PM) — METAS', '#a855f7',
+    '<div>' + _cardBox('▸ POLIMENTO (PM) — METAS', '#a855f7',
       _kpi('META/DIA',  pmMetaDia.toLocaleString('pt-BR'), '#06b6d4', 'pares/dia', null) +
       _kpi('MÉDIA/DIA', pmMedDia.toLocaleString('pt-BR'),  pmMedDia>=pmMetaDia?'var(--green)':'var(--red)', '', pmMedDia>=pmMetaDia) +
       _kpi('TOTAL MÊS', pmRealMes.toLocaleString('pt-BR'), '#a855f7', 'pares', null) +
       _kpi('SALDO',    (pmSaldoMes>=0?'+':'')+pmSaldoMes.toLocaleString('pt-BR'), _cor(pmSaldoMes), '', pmSaldoMes>=0)
-    ) + '<div id="saldo-kpis-pm"></div><div id="ultimo-dia-pm"></div>';
+    ) + '</div>'
+    + '<div id="saldo-kpis-pm"></div>'
+    + '<div id="ultimo-dia-pm"></div>';
 
   // Renderizar gráficos
   renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual);
@@ -2536,19 +2540,15 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
       + '</div>';
     const duLabel = duAteMes+' du no mês até ontem';
     // TT card → col 3 of tt-row
-    const ultTT = document.getElementById('tt-row');
-    if (ultTT) {
-      const ttDiv = document.createElement('div');
-      ttDiv.innerHTML = _cardBox(
-        '📅 '+dtFmtTT+(isDiaUtil?' <span style="color:var(--green)">● dia útil</span>':' <span style="color:var(--amber)">● fds/feriado</span>')+' — TRATAMENTO TÉRMICO',
-        '#f59e0b',
-        _kpi('TT DIA',     ttUlt.toLocaleString('pt-BR'),     '#f59e0b', 'peças', ttUlt>=metaTTDia) +
-        _kpi('META/DIA',   metaTTDia.toLocaleString('pt-BR'), '#f59e0b', 'pçs/dia', null) +
-        _kpi('MÉD. ACUM.', ttMedAcum.toLocaleString('pt-BR'), '#3d8bff', duLabel, ttMedAcum>=metaTTDia)
-      );
-      ttDiv.style.cssText = '';
-      ultTT.appendChild(ttDiv);
-    }
+    // TT card → col 3 of tt-row
+    const ultTT_el = document.getElementById('ultimo-dia-tt');
+    if (ultTT_el) ultTT_el.innerHTML = _cardBox(
+      '📅 '+dtFmtTT+(isDiaUtil?' <span style="color:var(--green)">● dia útil</span>':' <span style="color:var(--amber)">● fds/feriado</span>')+' — TRATAMENTO TÉRMICO',
+      '#f59e0b',
+      _kpi('TT DIA',     ttUlt.toLocaleString('pt-BR'),     '#f59e0b', 'peças', ttUlt>=metaTTDia) +
+      _kpi('META/DIA',   metaTTDia.toLocaleString('pt-BR'), '#f59e0b', 'pçs/dia', null) +
+      _kpi('MÉD. ACUM.', ttMedAcum.toLocaleString('pt-BR'), '#3d8bff', duLabel, ttMedAcum>=metaTTDia)
+    );
     // PM card → col 3 of pm-row
     const ultPM_el = document.getElementById('ultimo-dia-pm');
     if (ultPM_el) ultPM_el.innerHTML = _cardBox(
@@ -2558,8 +2558,6 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
       _kpi('META/DIA',   metaPMDia.toLocaleString('pt-BR'), '#a855f7', 'pares/dia', null) +
       _kpi('MÉD. ACUM.', pmMedAcum.toLocaleString('pt-BR'), '#06b6d4', duLabel, pmMedAcum>=metaPMDia)
     );
-    // Hide old ultCard
-    if (ultCard) ultCard.style.display = 'none';
   } else if (ultCard) {
     ultCard.innerHTML = '';
   }
