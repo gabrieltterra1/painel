@@ -1904,9 +1904,10 @@ function parseTermico(text) {
     ...Object.keys(resultDiarioTT).map(k=>k.split('|||')[0]),
     ...Object.keys(resultDiarioPM).map(k=>k.split('|||')[0])
   ]);
-  const hojeIso = new Date().toISOString().split('T')[0];
+  // Usar data local (não UTC) para incluir hoje corretamente
+  const _hoje = new Date();
+  const hojeIso = _hoje.getFullYear()+'-'+String(_hoje.getMonth()+1).padStart(2,'0')+'-'+String(_hoje.getDate()).padStart(2,'0');
   const datasOrdenadas = [...todasDatas].filter(Boolean).sort().reverse();
-  // ult10: include today for the table, but mark it separately
   const datasOrdenadas10 = datasOrdenadas.filter(d => d <= hojeIso).slice(0,10);
 
   DATA.termico = {
@@ -2439,7 +2440,7 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
   });
 
   // Dias com NF no mês atual (sem hoje) — para gráficos e médias
-  const hojeStr = hoje.toISOString().split('T')[0];
+  const hojeStr = hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0')+'-'+String(hoje.getDate()).padStart(2,'0');
   const diasComNF = [...new Set([...Object.keys(diarioTT), ...Object.keys(diarioPM)])]
     .filter(d => d < hojeStr).sort();
 
