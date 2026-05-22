@@ -751,7 +751,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="header-right">
     <div class="monitor-status">
       <div class="status-dot" id="status-dot"></div>
-      <span id="update-time" class="last-update">— Aguardando pasta…</span>
+      <span id="update-time" class="last-update">— Aguardando dados…</span>
       <span class="countdown-ring" id="countdown"></span>
     </div>
     <div style="display:flex;gap:5px">
@@ -1905,8 +1905,8 @@ function parseTermico(text) {
     ...Object.keys(resultDiarioPM).map(k=>k.split('|||')[0])
   ]);
   // Usar data local (não UTC) para incluir hoje corretamente
-  const _hoje = new Date();
-  const hojeIso = _hoje.getFullYear()+'-'+String(_hoje.getMonth()+1).padStart(2,'0')+'-'+String(_hoje.getDate()).padStart(2,'0');
+  const _hj = new Date();
+  const hojeIso = _hj.getFullYear()+'-'+String(_hj.getMonth()+1).padStart(2,'0')+'-'+String(_hj.getDate()).padStart(2,'0');
   const datasOrdenadas = [...todasDatas].filter(Boolean).sort().reverse();
   const datasOrdenadas10 = datasOrdenadas.filter(d => d <= hojeIso).slice(0,10);
 
