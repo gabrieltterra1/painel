@@ -1017,25 +1017,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   <!-- ═══ METAS ═══ -->
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:20px">
-    <!-- Header row -->
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:10px">
       <span style="font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:1.5px;color:var(--text-muted)">METAS &amp; ACOMPANHAMENTO — TT &amp; PM</span>
       <button onclick="abrirModalMetas()" style="background:rgba(61,139,255,.15);border:1px solid var(--blue);color:var(--blue);padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer">✏ Editar Metas</button>
       <button onclick="abrirModalFeriados()" style="background:rgba(245,158,11,.15);border:1px solid #f59e0b;color:#f59e0b;padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer">📅 Feriados</button>
     </div>
-    <!-- Content row -->
-    <div style="display:flex;gap:0;flex-wrap:wrap">
-      <!-- Coluna 1: Metas -->
-      <div style="flex:1;min-width:260px;padding-right:16px;border-right:1px solid var(--border)">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-          <div id="meta-kpis" style="flex:1;min-width:180px"></div>
-          <div id="saldo-kpis" style="flex:1;min-width:180px"></div>
-        </div>
-      </div>
-      <!-- Coluna 2: Último dia -->
-      <div style="flex:1;min-width:260px;padding-left:16px">
-        <div id="ultimo-dia-card"></div>
-      </div>
+    <!-- 3 colunas: TT metas | TT acomp | Último dia TT+PM -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+      <div id="meta-kpis"></div>
+      <div id="saldo-kpis"></div>
+      <div id="ultimo-dia-card"></div>
     </div>
   </div>
 
@@ -1131,12 +1123,12 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="table-wrap"><div class="scrollable">
     <table style="min-width:650px">
       <thead class="blue"><tr>
-        <th style="width:90px">DATA</th>
-        <th style="width:70px">TIPO</th>
-        <th style="width:90px">CÓDIGO</th>
+        <th style="width:70px">DATA</th>
+        <th style="width:45px">TIPO</th>
+        <th style="width:75px">CÓDIGO</th>
         <th>DESCRIÇÃO</th>
-        <th style="width:110px">FORNECEDOR</th>
-        <th style="text-align:right;width:80px">QTDE</th>
+        <th style="width:130px">FORNECEDOR</th>
+        <th style="text-align:right;width:65px">QTDE</th>
       </tr></thead>
       <tbody id="ult10-body"></tbody>
       <tfoot id="ult10-foot"></tfoot>
@@ -1151,7 +1143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <input class="search-input" type="text" id="pol-search" placeholder="Buscar código ou descrição..." oninput="renderTermico()">
   </div>
   <div class="table-wrap"><div class="scrollable">
-    <table id="pol-table" style="table-layout:fixed;min-width:700px;">
+    <table id="pol-table" style="min-width:600px;">
       <thead class="blue"><tr id="pol-thead"></tr></thead>
       <tfoot id="pol-foot"></tfoot>
       <tbody id="pol-body"></tbody>
@@ -1172,7 +1164,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <input class="search-input" type="text" id="term-search" placeholder="Buscar código ou descrição..." oninput="renderTermico()">
   </div>
   <div class="table-wrap"><div class="scrollable">
-    <table id="term-table" style="table-layout:fixed;min-width:700px;">
+    <table id="term-table" style="min-width:600px;">
       <thead class="blue"><tr id="term-thead"></tr></thead>
       <tfoot id="term-foot"></tfoot>
       <tbody id="term-body"></tbody>
@@ -2389,35 +2381,25 @@ function renderTermico() {
       + subHtml + okHtml + '</div>';
   };
 
-  const _box = (title, color, inner) =>
-    '<div style="background:'+color+'0e;border:1px solid '+color+'44;border-radius:10px;padding:12px 16px">'
-    + '<div style="font-size:10px;font-weight:700;color:'+color+';letter-spacing:1px;margin-bottom:10px">'+title+'</div>'
-    + '<div style="display:flex;gap:10px;flex-wrap:wrap">'+inner+'</div>'
-    + '</div>';
-
-  // Date header
-  const dateHdr = document.getElementById('tt-pm-date-header');
-  if (dateHdr) dateHdr.innerHTML = `📅 <strong>${MESES_LABEL[mesAtual]}/${ano}</strong> &nbsp;·&nbsp; ${duMesAtual} dias úteis`;
-
   const _cardBox = (title, color, inner) =>
     '<div style="background:'+color+'0e;border:1px solid '+color+'44;border-radius:10px;padding:12px 16px;margin-bottom:8px">'
     + '<div style="font-size:10px;font-weight:700;color:'+color+';letter-spacing:1px;margin-bottom:10px">'+title+'</div>'
-    + '<div style="display:flex;gap:10px;flex-wrap:wrap">'+inner+'</div>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap">'+inner+'</div>'
     + '</div>';
 
   const metaKpis = document.getElementById('meta-kpis');
   if (metaKpis) metaKpis.innerHTML =
     _cardBox('▸ TRATAMENTO TÉRMICO (TT) — METAS', '#f59e0b',
       _kpi('META/DIA',  ttMetaDia.toLocaleString('pt-BR'), '#f59e0b', 'pçs/dia', null) +
-      _kpi('MÉDIA/DIA', ttMedDia.toLocaleString('pt-BR'),  ttMedDia>=ttMetaDia?'var(--green)':'var(--red)', ttMedDia>=ttMetaDia?'✓ acima da meta':'✗ abaixo da meta', ttMedDia>=ttMetaDia) +
-      _kpi('TOTAL MÊS', ttRealMes.toLocaleString('pt-BR'), '#3d8bff', 'peças enviadas', null) +
-      _kpi('SALDO',    (ttSaldoMes>=0?'+':'')+ttSaldoMes.toLocaleString('pt-BR'), _cor(ttSaldoMes), ttSaldoMes>=0?'acima da meta':'abaixo da meta', ttSaldoMes>=0)
+      _kpi('MÉDIA/DIA', ttMedDia.toLocaleString('pt-BR'),  ttMedDia>=ttMetaDia?'var(--green)':'var(--red)', '', ttMedDia>=ttMetaDia) +
+      _kpi('TOTAL MÊS', ttRealMes.toLocaleString('pt-BR'), '#3d8bff', 'peças', null) +
+      _kpi('SALDO',    (ttSaldoMes>=0?'+':'')+ttSaldoMes.toLocaleString('pt-BR'), _cor(ttSaldoMes), '', ttSaldoMes>=0)
     ) +
     _cardBox('▸ POLIMENTO (PM) — METAS', '#a855f7',
       _kpi('META/DIA',  pmMetaDia.toLocaleString('pt-BR'), '#06b6d4', 'pares/dia', null) +
-      _kpi('MÉDIA/DIA', pmMedDia.toLocaleString('pt-BR'),  pmMedDia>=pmMetaDia?'var(--green)':'var(--red)', pmMedDia>=pmMetaDia?'✓ acima da meta':'✗ abaixo da meta', pmMedDia>=pmMetaDia) +
-      _kpi('TOTAL MÊS', pmRealMes.toLocaleString('pt-BR'), '#a855f7', 'pares enviados', null) +
-      _kpi('SALDO',    (pmSaldoMes>=0?'+':'')+pmSaldoMes.toLocaleString('pt-BR'), _cor(pmSaldoMes), pmSaldoMes>=0?'acima da meta':'abaixo da meta', pmSaldoMes>=0)
+      _kpi('MÉDIA/DIA', pmMedDia.toLocaleString('pt-BR'),  pmMedDia>=pmMetaDia?'var(--green)':'var(--red)', '', pmMedDia>=pmMetaDia) +
+      _kpi('TOTAL MÊS', pmRealMes.toLocaleString('pt-BR'), '#a855f7', 'pares', null) +
+      _kpi('SALDO',    (pmSaldoMes>=0?'+':'')+pmSaldoMes.toLocaleString('pt-BR'), _cor(pmSaldoMes), '', pmSaldoMes>=0)
     );
 
   // Renderizar gráficos
@@ -2506,16 +2488,16 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
   const saldoKpis = document.getElementById('saldo-kpis');
   if (saldoKpis) saldoKpis.innerHTML =
     _cardBox('▸ TRATAMENTO TÉRMICO (TT) — ACOMP.', '#f59e0b',
-      _kpi('META ACUM.',      metaTTAcum.toLocaleString('pt-BR'),  '#f59e0b', duAteMes+' dias úteis', null) +
-      _kpi('REALIZADO',       realTTMes.toLocaleString('pt-BR'),   '#3d8bff', 'pçs enviadas', null) +
-      _kpi('SALDO',           _sinal(saldoTT),                     _cor(saldoTT), saldoTT>=0?'acima da meta':'abaixo da meta', saldoTT>=0) +
-      _kpi('MED. NECESSÁRIA', medNecTT.toLocaleString('pt-BR'),    medNecTT<=metaTTDia?'var(--green)':'var(--red)', 'pçs/dia ('+duRestantes+' dias rest.)', null)
+      _kpi('META ACUM.',  metaTTAcum.toLocaleString('pt-BR'), '#f59e0b', duAteMes+' du', null) +
+      _kpi('REALIZADO',   realTTMes.toLocaleString('pt-BR'),  '#3d8bff', 'pçs', null) +
+      _kpi('SALDO',       _sinal(saldoTT),                    _cor(saldoTT), '', saldoTT>=0) +
+      _kpi('MED. NEC.',   medNecTT.toLocaleString('pt-BR'),   medNecTT<=metaTTDia?'var(--green)':'var(--red)', 'pçs/dia', null)
     ) +
     _cardBox('▸ POLIMENTO (PM) — ACOMP.', '#a855f7',
-      _kpi('META ACUM.',      metaPMAcum.toLocaleString('pt-BR'),  '#06b6d4', duAteMes+' dias úteis', null) +
-      _kpi('REALIZADO',       realPMMes.toLocaleString('pt-BR'),   '#a855f7', 'pares enviados', null) +
-      _kpi('SALDO',           _sinal(saldoPM),                     _cor(saldoPM), saldoPM>=0?'acima da meta':'abaixo da meta', saldoPM>=0) +
-      _kpi('MED. NECESSÁRIA', medNecPM.toLocaleString('pt-BR'),    medNecPM<=metaPMDia?'var(--green)':'var(--red)', 'pares/dia ('+duRestantes+' dias rest.)', null)
+      _kpi('META ACUM.',  metaPMAcum.toLocaleString('pt-BR'), '#06b6d4', duAteMes+' du', null) +
+      _kpi('REALIZADO',   realPMMes.toLocaleString('pt-BR'),  '#a855f7', 'pares', null) +
+      _kpi('SALDO',       _sinal(saldoPM),                    _cor(saldoPM), '', saldoPM>=0) +
+      _kpi('MED. NEC.',   medNecPM.toLocaleString('pt-BR'),   medNecPM<=metaPMDia?'var(--green)':'var(--red)', 'pares/dia', null)
     );
 
   // Card último dia destacado
@@ -2546,21 +2528,21 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
       + '<div style="display:flex;gap:10px;flex-wrap:wrap">'+inner+'</div>'
       + '</div>';
     ultCard.innerHTML =
-      '<div style="font-size:10px;letter-spacing:1px;color:var(--text-muted);margin-bottom:10px">'
-      + '📅 ÚLTIMO DIA COM NF — <strong style="color:#fff">'+dtFmt+'</strong>'
-      + (isDiaUtil?'<span style="color:var(--green);margin-left:6px">● dia útil</span>':'<span style="color:var(--amber);margin-left:6px">● fds/feriado</span>')
-      + '<span style="color:var(--text-muted);margin-left:8px">'+duAteMes+' dias úteis no mês até ontem</span>'
-      + '</div>'
-      + _cardBox('▸ TRATAMENTO TÉRMICO (TT)', '#f59e0b',
-          _card('TT DIA', ttUlt.toLocaleString('pt-BR'), '#f59e0b', 'peças · meta '+metaTTDia+'/dia', ttUlt>=metaTTDia) +
-          _card('TT META/DIA', metaTTDia.toLocaleString('pt-BR'), '#f59e0b', 'pçs/dia', null) +
-          _card('TT MÉDIA ACUM.', ttMedAcum.toLocaleString('pt-BR'), '#3d8bff', 'pçs/dia ('+duAteMes+' du)', ttMedAcum>=metaTTDia)
+      '<div style="font-size:9px;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:8px">'
+      + duAteMes+' dias úteis no mês até ontem</div>'
+      + _cardBox(
+          '📅 '+dtFmt+(isDiaUtil?' <span style="color:var(--green)">● dia útil</span>':' <span style="color:var(--amber)">● fds/feriado</span>')+' — TRATAMENTO TÉRMICO',
+          '#f59e0b',
+          _kpi('TT DIA',     ttUlt.toLocaleString('pt-BR'),     '#f59e0b', 'peças', ttUlt>=metaTTDia) +
+          _kpi('META/DIA',   metaTTDia.toLocaleString('pt-BR'), '#f59e0b', 'pçs/dia', null) +
+          _kpi('MÉD. ACUM.', ttMedAcum.toLocaleString('pt-BR'), '#3d8bff', 'pçs/dia', ttMedAcum>=metaTTDia)
         )
-      + '<div style="height:10px"></div>'
-      + _cardBox('▸ POLIMENTO (PM)', '#a855f7',
-          _card('PM DIA', pmUlt.toLocaleString('pt-BR'), '#a855f7', 'pares · meta '+metaPMDia+'/dia', pmUlt>=metaPMDia) +
-          _card('PM META/DIA', metaPMDia.toLocaleString('pt-BR'), '#a855f7', 'pares/dia', null) +
-          _card('PM MÉDIA ACUM.', pmMedAcum.toLocaleString('pt-BR'), '#06b6d4', 'pares/dia ('+duAteMes+' du)', pmMedAcum>=metaPMDia)
+      + _cardBox(
+          '📅 '+dtFmtPM+' — POLIMENTO (PM)',
+          '#a855f7',
+          _kpi('PM DIA',     pmUlt.toLocaleString('pt-BR'),     '#a855f7', 'pares', pmUlt>=metaPMDia) +
+          _kpi('META/DIA',   metaPMDia.toLocaleString('pt-BR'), '#a855f7', 'pares/dia', null) +
+          _kpi('MÉD. ACUM.', pmMedAcum.toLocaleString('pt-BR'), '#06b6d4', 'pares/dia', pmMedAcum>=metaPMDia)
         );
   } else if (ultCard) {
     ultCard.innerHTML = '';
@@ -2661,7 +2643,7 @@ function renderUlt10() {
     return `<tr style="${rowStyle}">
       ${dtCell}
       <td><span style="background:rgba(0,0,0,.2);color:${tipoColor};font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px">${r.tipo}</span></td>
-      <td style="font-family:monospace;font-size:11px">${r.cod}</td>
+      <td style="font-family:monospace;font-size:11px;white-space:nowrap">${r.cod}</td>
       <td style="font-size:11px">${r.desc}</td>
       <td style="font-size:11px;color:var(--text-muted)">${r.forn}</td>
       <td style="text-align:right;font-weight:600;color:${tipoColor}">${r.qtdeFmt.toLocaleString('pt-BR')}${r.tipo==='PM'?' par':' pç'}</td>
@@ -2740,7 +2722,7 @@ function renderPolimento() {
       const v = data.filter(r=>r.cod===cod&&r.desc===desc&&r.mes===m).reduce((a,r)=>a+r.qtde,0) / 2;
       return s + (v > 0 ? v / (DATA.termico.diasUteis[m]||1) : 0);
     }, 0) / (mesCols.length||1);
-    return `<tr><td style="font-family:monospace">${cod}</td><td>${desc}</td>${cells}
+    return `<tr><td style="font-family:monospace;font-size:11px;white-space:nowrap;width:75px">${cod}</td><td style="font-size:11px">${desc}</td>${cells}
       <td style="text-align:right;font-weight:600">${total.toLocaleString('pt-BR')}</td>
       <td style="text-align:right;color:var(--green)">${media.toFixed(1)}</td></tr>`;
   }).join('');
@@ -2815,9 +2797,9 @@ function renderTermicoTable() {
     }, 0) / (mesCols.length||1);
     const color = FORN_COLORS[forn]||'var(--text)';
     return `<tr>
-      <td style="font-family:monospace">${cod}</td>
-      <td>${desc}</td>
-      <td style="color:${color};font-size:11px;font-weight:600">${forn}</td>
+      <td style="font-family:monospace;font-size:11px;white-space:nowrap">${cod}</td>
+      <td style="font-size:11px">${desc}</td>
+      <td style="color:${color};font-size:11px;font-weight:600;white-space:nowrap">${forn}</td>
       ${cells}
       <td style="text-align:right;font-weight:600">${total.toLocaleString('pt-BR')}</td>
       <td style="text-align:right;color:var(--green)">${media.toFixed(1)}</td>
