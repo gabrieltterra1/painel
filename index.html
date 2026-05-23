@@ -1027,12 +1027,12 @@ document.addEventListener('DOMContentLoaded', () => {
   <!-- Container TT -->
   <div id="tt-container" style="background:var(--surface);border:1px solid #f59e0b44;border-radius:12px;padding:14px 18px;margin-bottom:10px">
     <div id="tt-header" style="font-size:11px;font-weight:700;color:#f59e0b;letter-spacing:0.5px;margin-bottom:10px"></div>
-    <div id="tt-cards" style="display:flex;gap:6px;align-items:stretch"></div>
+    <div id="tt-cards" style="display:flex;gap:6px;align-items:stretch;overflow-x:auto;padding-bottom:4px"></div>
   </div>
   <!-- Container PM -->
   <div id="pm-container" style="background:var(--surface);border:1px solid #a855f744;border-radius:12px;padding:14px 18px;margin-bottom:20px">
     <div id="pm-header" style="font-size:11px;font-weight:700;color:#a855f7;letter-spacing:0.5px;margin-bottom:10px"></div>
-    <div id="pm-cards" style="display:flex;gap:6px;align-items:stretch"></div>
+    <div id="pm-cards" style="display:flex;gap:6px;align-items:stretch;overflow-x:auto;padding-bottom:4px"></div>
   </div>
 
   <!-- Gráfico diário -->
@@ -2388,7 +2388,7 @@ function renderTermico() {
   const _kpi = (label, val, color, sub, ok) => {
     const subHtml = sub ? '<div style="font-size:9px;color:var(--text-muted);margin-top:2px">'+sub+'</div>' : '';
     const okHtml  = (ok!==null&&ok!==undefined) ? '<div style="font-size:9px;font-weight:700;color:'+(ok?'var(--green)':'var(--red)')+'">'+  (ok?'✓ acima':'✗ abaixo')+' da meta</div>' : '';
-    return '<div style="background:'+color+'18;border:1px solid '+color+'44;border-radius:8px;padding:10px 12px;text-align:center;flex:1;min-width:100px;max-width:160px">'
+    return '<div style="background:'+color+'18;border:1px solid '+color+'44;border-radius:8px;padding:10px 12px;text-align:center;min-width:120px;flex-shrink:0">'
       + '<div style="font-size:9px;color:'+color+';letter-spacing:0.5px;font-weight:700;white-space:nowrap">'+label+'</div>'
       + '<div style="font-size:22px;font-weight:800;color:'+color+';line-height:1.1">'+val+'</div>'
       + subHtml + okHtml + '</div>';
@@ -2402,20 +2402,25 @@ function renderTermico() {
 
   // TT container — metas cards (acomp and ultimo-dia filled by renderDiario)
   const ttCards = document.getElementById('tt-cards');
-  if (ttCards) ttCards.innerHTML =
-    _kpi('META/DIA',  ttMetaDia.toLocaleString('pt-BR'), '#f59e0b', 'pçs/dia', null) +
-    _kpi('MÉDIA/DIA', ttMedDia.toLocaleString('pt-BR'),  ttMedDia>=ttMetaDia?'var(--green)':'var(--red)', '', ttMedDia>=ttMetaDia) +
-    _kpi('TOTAL MÊS', ttRealMes.toLocaleString('pt-BR'), '#3d8bff', 'peças', null) +
-    _kpi('SALDO',    (ttSaldoMes>=0?'+':'')+ttSaldoMes.toLocaleString('pt-BR'), _cor(ttSaldoMes), '', ttSaldoMes>=0) +
-    '<span id="tt-acomp-cards"></span><span id="tt-dia-card"></span>';
+  // Store metas HTML in data attribute for renderDiario to combine
+  if (ttCards) {
+    ttCards.dataset.metasHtml =
+      _kpi('META/DIA',  ttMetaDia.toLocaleString('pt-BR'), '#f59e0b', 'pçs/dia', null) +
+      _kpi('MÉDIA/DIA', ttMedDia.toLocaleString('pt-BR'),  ttMedDia>=ttMetaDia?'var(--green)':'var(--red)', '', ttMedDia>=ttMetaDia) +
+      _kpi('TOTAL MÊS', ttRealMes.toLocaleString('pt-BR'), '#3d8bff', 'peças', null) +
+      _kpi('SALDO',    (ttSaldoMes>=0?'+':'')+ttSaldoMes.toLocaleString('pt-BR'), _cor(ttSaldoMes), '', ttSaldoMes>=0);
+    ttCards.innerHTML = ttCards.dataset.metasHtml;
+  }
 
   const pmCards = document.getElementById('pm-cards');
-  if (pmCards) pmCards.innerHTML =
-    _kpi('META/DIA',  pmMetaDia.toLocaleString('pt-BR'), '#06b6d4', 'pares/dia', null) +
-    _kpi('MÉDIA/DIA', pmMedDia.toLocaleString('pt-BR'),  pmMedDia>=pmMetaDia?'var(--green)':'var(--red)', '', pmMedDia>=pmMetaDia) +
-    _kpi('TOTAL MÊS', pmRealMes.toLocaleString('pt-BR'), '#a855f7', 'pares', null) +
-    _kpi('SALDO',    (pmSaldoMes>=0?'+':'')+pmSaldoMes.toLocaleString('pt-BR'), _cor(pmSaldoMes), '', pmSaldoMes>=0) +
-    '<span id="pm-acomp-cards"></span><span id="pm-dia-card"></span>';
+  if (pmCards) {
+    pmCards.dataset.metasHtml =
+      _kpi('META/DIA',  pmMetaDia.toLocaleString('pt-BR'), '#06b6d4', 'pares/dia', null) +
+      _kpi('MÉDIA/DIA', pmMedDia.toLocaleString('pt-BR'),  pmMedDia>=pmMetaDia?'var(--green)':'var(--red)', '', pmMedDia>=pmMetaDia) +
+      _kpi('TOTAL MÊS', pmRealMes.toLocaleString('pt-BR'), '#a855f7', 'pares', null) +
+      _kpi('SALDO',    (pmSaldoMes>=0?'+':'')+pmSaldoMes.toLocaleString('pt-BR'), _cor(pmSaldoMes), '', pmSaldoMes>=0);
+    pmCards.innerHTML = pmCards.dataset.metasHtml;
+  }
 
   // Renderizar gráficos
   renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual);
@@ -2497,7 +2502,7 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
   const _kpi = (label, val, color, sub, ok) => {
     const subHtml = sub ? '<div style="font-size:9px;color:var(--text-muted);margin-top:2px">'+sub+'</div>' : '';
     const okHtml  = (ok!==null&&ok!==undefined) ? '<div style="font-size:9px;font-weight:700;color:'+(ok?'var(--green)':'var(--red)')+'">'+  (ok?'✓ acima':'✗ abaixo')+' da meta</div>' : '';
-    return '<div style="background:'+color+'18;border:1px solid '+color+'44;border-radius:8px;padding:10px 12px;text-align:center;flex:1;min-width:100px;max-width:160px">'
+    return '<div style="background:'+color+'18;border:1px solid '+color+'44;border-radius:8px;padding:10px 12px;text-align:center;min-width:120px;flex-shrink:0">'
       + '<div style="font-size:9px;color:'+color+';letter-spacing:0.5px;font-weight:700;white-space:nowrap">'+label+'</div>'
       + '<div style="font-size:22px;font-weight:800;color:'+color+';line-height:1.1">'+val+'</div>'
       + subHtml + okHtml + '</div>';
@@ -2508,17 +2513,20 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
     + '<div style="display:flex;gap:10px;flex-wrap:wrap">'+inner+'</div>'
     + '</div>';
 
-  // Acomp cards — appended into tt-cards/pm-cards
-  const ttAcomp = document.getElementById('tt-acomp-cards');
-  if (ttAcomp) ttAcomp.innerHTML =
+  // Acomp + dia cards — rebuild entire tt-cards/pm-cards innerHTML
+  const ttCardsEl = document.getElementById('tt-cards');
+  const acompTT =
     _kpi('META ACUM.', metaTTAcum.toLocaleString('pt-BR'), '#f59e0b', duAteMes+' du', null) +
     _kpi('REALIZADO',  realTTMes.toLocaleString('pt-BR'),  '#3d8bff', 'pçs', null) +
     _kpi('MED. NEC.',  medNecTT.toLocaleString('pt-BR'),   medNecTT<=metaTTDia?'var(--green)':'var(--red)', 'pçs/dia', null);
-  const pmAcomp = document.getElementById('pm-acomp-cards');
-  if (pmAcomp) pmAcomp.innerHTML =
+  if (ttCardsEl) ttCardsEl.innerHTML = (ttCardsEl.dataset.metasHtml||'') + acompTT;
+
+  const pmCardsEl = document.getElementById('pm-cards');
+  const acompPM =
     _kpi('META ACUM.', metaPMAcum.toLocaleString('pt-BR'), '#06b6d4', duAteMes+' du', null) +
     _kpi('REALIZADO',  realPMMes.toLocaleString('pt-BR'),  '#a855f7', 'pares', null) +
     _kpi('MED. NEC.',  medNecPM.toLocaleString('pt-BR'),   medNecPM<=metaPMDia?'var(--green)':'var(--red)', 'pares/dia', null);
+  if (pmCardsEl) pmCardsEl.innerHTML = (pmCardsEl.dataset.metasHtml||'') + acompPM;
 
   // Card último dia destacado
   const ultCard = document.getElementById('ultimo-dia-card');
@@ -2550,19 +2558,19 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
     const duLabel = duAteMes+' du no mês até ontem';
     const diaUtilLabel = isDiaUtil ? ' <span style="color:var(--green)">● dia útil</span>' : ' <span style="color:var(--amber)">● fds/feriado</span>';
 
-    // TT header + inline cards
-    const ttHeader = document.getElementById('tt-header');
-    if (ttHeader) ttHeader.innerHTML = '📅 '+dtFmtTT+diaUtilLabel+' — TRATAMENTO TÉRMICO';
-    const ttDiaCard = document.getElementById('tt-dia-card');
-    if (ttDiaCard) ttDiaCard.innerHTML =
+    // TT header + append TT DIA and MED ACUM to tt-cards
+    const ttHeaderEl = document.getElementById('tt-header');
+    if (ttHeaderEl) ttHeaderEl.innerHTML = '📅 '+dtFmtTT+diaUtilLabel+' — TRATAMENTO TÉRMICO';
+    const ttCardsEl2 = document.getElementById('tt-cards');
+    if (ttCardsEl2) ttCardsEl2.innerHTML += 
       _kpi('TT DIA',     ttUlt.toLocaleString('pt-BR'),     '#f59e0b', 'peças', ttUlt>=metaTTDia) +
       _kpi('MÉD. ACUM.', ttMedAcum.toLocaleString('pt-BR'), '#3d8bff', duLabel, ttMedAcum>=metaTTDia);
 
-    // PM header + inline cards
-    const pmHeader = document.getElementById('pm-header');
-    if (pmHeader) pmHeader.innerHTML = '📅 '+dtFmtPM+' — POLIMENTO (PM)';
-    const pmDiaCard = document.getElementById('pm-dia-card');
-    if (pmDiaCard) pmDiaCard.innerHTML =
+    // PM header + append PM DIA and MED ACUM to pm-cards
+    const pmHeaderEl = document.getElementById('pm-header');
+    if (pmHeaderEl) pmHeaderEl.innerHTML = '📅 '+dtFmtPM+' — POLIMENTO (PM)';
+    const pmCardsEl2 = document.getElementById('pm-cards');
+    if (pmCardsEl2) pmCardsEl2.innerHTML +=
       _kpi('PM DIA',     pmUlt.toLocaleString('pt-BR'),     '#a855f7', 'pares', pmUlt>=metaPMDia) +
       _kpi('MÉD. ACUM.', pmMedAcum.toLocaleString('pt-BR'), '#06b6d4', duLabel, pmMedAcum>=metaPMDia);
   } else if (ultCard) {
