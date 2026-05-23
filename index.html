@@ -2514,19 +2514,10 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
     + '</div>';
 
   // Acomp + dia cards — rebuild entire tt-cards/pm-cards innerHTML
-  const ttCardsEl = document.getElementById('tt-cards');
-  const acompTT =
-    _kpi('META ACUM.', metaTTAcum.toLocaleString('pt-BR'), '#f59e0b', duAteMes+' du', null) +
-    _kpi('REALIZADO',  realTTMes.toLocaleString('pt-BR'),  '#3d8bff', 'pçs', null) +
-    _kpi('MED. NEC.',  medNecTT.toLocaleString('pt-BR'),   medNecTT<=metaTTDia?'var(--green)':'var(--red)', 'pçs/dia', null);
-  if (ttCardsEl) ttCardsEl.innerHTML = (ttCardsEl.dataset.metasHtml||'') + acompTT;
-
-  const pmCardsEl = document.getElementById('pm-cards');
-  const acompPM =
-    _kpi('META ACUM.', metaPMAcum.toLocaleString('pt-BR'), '#06b6d4', duAteMes+' du', null) +
-    _kpi('REALIZADO',  realPMMes.toLocaleString('pt-BR'),  '#a855f7', 'pares', null) +
-    _kpi('MED. NEC.',  medNecPM.toLocaleString('pt-BR'),   medNecPM<=metaPMDia?'var(--green)':'var(--red)', 'pares/dia', null);
-  if (pmCardsEl) pmCardsEl.innerHTML = (pmCardsEl.dataset.metasHtml||'') + acompPM;
+  // Cards serão montados após renderDiario ter todos os dados
+  // Salvar dados de acomp para uso no bloco do ultimo-dia
+  window._ttAcomp = { metaTTAcum, realTTMes: realTTMes, medNecTT, metaTTDia, duAteMes };
+  window._pmAcomp = { metaPMAcum, realPMMes: realPMMes, medNecPM, metaPMDia, duAteMes };
 
   // Card último dia destacado
   const ultCard = document.getElementById('ultimo-dia-card');
@@ -2558,21 +2549,33 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
     const duLabel = duAteMes+' du no mês até ontem';
     const diaUtilLabel = isDiaUtil ? ' <span style="color:var(--green)">● dia útil</span>' : ' <span style="color:var(--amber)">● fds/feriado</span>';
 
-    // TT header + append TT DIA and MED ACUM to tt-cards
+    // Build all TT cards in correct order
     const ttHeaderEl = document.getElementById('tt-header');
-    if (ttHeaderEl) ttHeaderEl.innerHTML = '📅 '+dtFmtTT+diaUtilLabel+' — TRATAMENTO TÉRMICO';
+    if (ttHeaderEl) ttHeaderEl.innerHTML = '📅 '+dtFmtTT+diaUtilLabel+' — TRATAMENTO TÉRMICO <span style="color:var(--text-muted);font-weight:400;font-size:10px">· '+duAteMes+' du até ontem</span>';
     const ttCardsEl2 = document.getElementById('tt-cards');
-    if (ttCardsEl2) ttCardsEl2.innerHTML += 
-      _kpi('TT DIA',     ttUlt.toLocaleString('pt-BR'),     '#f59e0b', 'peças', ttUlt>=metaTTDia) +
-      _kpi('MÉD. ACUM.', ttMedAcum.toLocaleString('pt-BR'), '#3d8bff', duLabel, ttMedAcum>=metaTTDia);
+    const ttA = window._ttAcomp || {};
+    if (ttCardsEl2) ttCardsEl2.innerHTML =
+      _kpi('TT DIA',     ttUlt.toLocaleString('pt-BR'),       '#f59e0b', dtFmtTT, ttUlt>=(ttA.metaTTDia||0)) +
+      _kpi('MÉD/DIA ACUM', ttMedAcum.toLocaleString('pt-BR'), '#3d8bff', 'pçs/dia', ttMedAcum>=(ttA.metaTTDia||0)) +
+      _kpi('META/DIA',   (ttA.metaTTDia||0).toLocaleString('pt-BR'), '#f59e0b', 'pçs/dia', null) +
+      _kpi('TOTAL MÊS',  (ttA.realTTMes||0).toLocaleString('pt-BR'), '#3d8bff', 'peças', null) +
+      _kpi('META ACUM.', (ttA.metaTTAcum||0).toLocaleString('pt-BR'),'#f59e0b', (ttA.duAteMes||0)+' du', null) +
+      _kpi('SALDO',      _sinal((ttA.realTTMes||0)-(ttA.metaTTAcum||0)), _cor((ttA.realTTMes||0)-(ttA.metaTTAcum||0)), '', (ttA.realTTMes||0)>=(ttA.metaTTAcum||0)) +
+      _kpi('MED. NEC.',  (ttA.medNecTT||0).toLocaleString('pt-BR'), (ttA.medNecTT||0)<=(ttA.metaTTDia||0)?'var(--green)':'var(--red)', 'pçs/dia', null);
 
-    // PM header + append PM DIA and MED ACUM to pm-cards
+    // Build all PM cards in correct order
     const pmHeaderEl = document.getElementById('pm-header');
-    if (pmHeaderEl) pmHeaderEl.innerHTML = '📅 '+dtFmtPM+' — POLIMENTO (PM)';
+    if (pmHeaderEl) pmHeaderEl.innerHTML = '📅 '+dtFmtPM+' — POLIMENTO (PM) <span style="color:var(--text-muted);font-weight:400;font-size:10px">· '+duAteMes+' du até ontem</span>';
     const pmCardsEl2 = document.getElementById('pm-cards');
-    if (pmCardsEl2) pmCardsEl2.innerHTML +=
-      _kpi('PM DIA',     pmUlt.toLocaleString('pt-BR'),     '#a855f7', 'pares', pmUlt>=metaPMDia) +
-      _kpi('MÉD. ACUM.', pmMedAcum.toLocaleString('pt-BR'), '#06b6d4', duLabel, pmMedAcum>=metaPMDia);
+    const pmA = window._pmAcomp || {};
+    if (pmCardsEl2) pmCardsEl2.innerHTML =
+      _kpi('PM DIA',     pmUlt.toLocaleString('pt-BR'),       '#a855f7', dtFmtPM, pmUlt>=(pmA.metaPMDia||0)) +
+      _kpi('MÉD/DIA ACUM', pmMedAcum.toLocaleString('pt-BR'), '#06b6d4', 'pares/dia', pmMedAcum>=(pmA.metaPMDia||0)) +
+      _kpi('META/DIA',   (pmA.metaPMDia||0).toLocaleString('pt-BR'), '#a855f7', 'pares/dia', null) +
+      _kpi('TOTAL MÊS',  (pmA.realPMMes||0).toLocaleString('pt-BR'), '#a855f7', 'pares', null) +
+      _kpi('META ACUM.', (pmA.metaPMAcum||0).toLocaleString('pt-BR'),'#06b6d4', (pmA.duAteMes||0)+' du', null) +
+      _kpi('SALDO',      _sinal((pmA.realPMMes||0)-(pmA.metaPMAcum||0)), _cor((pmA.realPMMes||0)-(pmA.metaPMAcum||0)), '', (pmA.realPMMes||0)>=(pmA.metaPMAcum||0)) +
+      _kpi('MED. NEC.',  (pmA.medNecPM||0).toLocaleString('pt-BR'), (pmA.medNecPM||0)<=(pmA.metaPMDia||0)?'var(--green)':'var(--red)', 'pares/dia', null);
   } else if (ultCard) {
     ultCard.innerHTML = '';
   }
@@ -2938,7 +2941,7 @@ let ifeChart = null, ifeCompChart = null;
 // Helpers
 const _ifeFmt   = m => { if(!m)return'—'; const[a,mo]=m.split('-'); return new Date(+a,+mo-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}).toUpperCase(); };
 const _ifeFmtLg = m => { if(!m)return'—'; const[a,mo]=m.split('-'); return new Date(+a,+mo-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).toUpperCase(); };
-const _ifeColor = v => v>=95?'var(--green)':v>=85?'var(--orange)':'#e74c3c';
+const _ifeColor = v => v>=95?'var(--green)':'var(--red)';
 const _ifeHex   = v => v>=95?'#00c97a':v>=85?'#ff8c3b':'#e74c3c';
 
 function _ifeCalc(linhas) {
