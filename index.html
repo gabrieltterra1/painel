@@ -1027,12 +1027,12 @@ document.addEventListener('DOMContentLoaded', () => {
   <!-- Container TT -->
   <div id="tt-container" style="background:var(--surface);border:1px solid #f59e0b44;border-radius:12px;padding:14px 18px;margin-bottom:10px">
     <div id="tt-header" style="font-size:11px;font-weight:700;color:#f59e0b;letter-spacing:0.5px;margin-bottom:10px"></div>
-    <div id="tt-cards" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+    <div id="tt-cards" style="display:flex;gap:6px;align-items:stretch"></div>
   </div>
   <!-- Container PM -->
   <div id="pm-container" style="background:var(--surface);border:1px solid #a855f744;border-radius:12px;padding:14px 18px;margin-bottom:20px">
     <div id="pm-header" style="font-size:11px;font-weight:700;color:#a855f7;letter-spacing:0.5px;margin-bottom:10px"></div>
-    <div id="pm-cards" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+    <div id="pm-cards" style="display:flex;gap:6px;align-items:stretch"></div>
   </div>
 
   <!-- Gráfico diário -->
@@ -2386,10 +2386,10 @@ function renderTermico() {
   const pmMedDia = duMesAtual > 0 ? Math.round(pmRealMes / duMesAtual) : 0;
   const _cor = v => v >= 0 ? 'var(--green)' : 'var(--red)';
   const _kpi = (label, val, color, sub, ok) => {
-    const subHtml = sub ? '<div style="font-size:10px;color:var(--text-muted);margin-top:2px">'+sub+'</div>' : '';
-    const okHtml  = (ok!==null&&ok!==undefined) ? '<div style="font-size:10px;font-weight:700;color:'+(ok?'var(--green)':'var(--red)')+'">'+  (ok?'✓ acima':'✗ abaixo')+' da meta</div>' : '';
-    return '<div style="background:'+color+'18;border:1px solid '+color+'44;border-radius:8px;padding:10px 14px;text-align:center;min-width:90px">'
-      + '<div style="font-size:9px;color:'+color+';letter-spacing:1px;font-weight:700">'+label+'</div>'
+    const subHtml = sub ? '<div style="font-size:9px;color:var(--text-muted);margin-top:2px">'+sub+'</div>' : '';
+    const okHtml  = (ok!==null&&ok!==undefined) ? '<div style="font-size:9px;font-weight:700;color:'+(ok?'var(--green)':'var(--red)')+'">'+  (ok?'✓ acima':'✗ abaixo')+' da meta</div>' : '';
+    return '<div style="background:'+color+'18;border:1px solid '+color+'44;border-radius:8px;padding:10px 12px;text-align:center;flex:1;min-width:100px;max-width:160px">'
+      + '<div style="font-size:9px;color:'+color+';letter-spacing:0.5px;font-weight:700;white-space:nowrap">'+label+'</div>'
       + '<div style="font-size:22px;font-weight:800;color:'+color+';line-height:1.1">'+val+'</div>'
       + subHtml + okHtml + '</div>';
   };
@@ -2495,10 +2495,10 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
     + '<div style="display:flex;gap:10px;flex-wrap:wrap">'+inner+'</div>'
     + '</div>';
   const _kpi = (label, val, color, sub, ok) => {
-    const subHtml = sub ? '<div style="font-size:10px;color:var(--text-muted);margin-top:2px">'+sub+'</div>' : '';
-    const okHtml  = (ok!==null&&ok!==undefined) ? '<div style="font-size:10px;font-weight:700;color:'+(ok?'var(--green)':'var(--red)')+'">'+  (ok?'✓ acima':'✗ abaixo')+' da meta</div>' : '';
-    return '<div style="background:'+color+'18;border:1px solid '+color+'44;border-radius:8px;padding:10px 14px;text-align:center;min-width:90px">'
-      + '<div style="font-size:9px;color:'+color+';letter-spacing:1px;font-weight:700">'+label+'</div>'
+    const subHtml = sub ? '<div style="font-size:9px;color:var(--text-muted);margin-top:2px">'+sub+'</div>' : '';
+    const okHtml  = (ok!==null&&ok!==undefined) ? '<div style="font-size:9px;font-weight:700;color:'+(ok?'var(--green)':'var(--red)')+'">'+  (ok?'✓ acima':'✗ abaixo')+' da meta</div>' : '';
+    return '<div style="background:'+color+'18;border:1px solid '+color+'44;border-radius:8px;padding:10px 12px;text-align:center;flex:1;min-width:100px;max-width:160px">'
+      + '<div style="font-size:9px;color:'+color+';letter-spacing:0.5px;font-weight:700;white-space:nowrap">'+label+'</div>'
       + '<div style="font-size:22px;font-weight:800;color:'+color+';line-height:1.1">'+val+'</div>'
       + subHtml + okHtml + '</div>';
   };
