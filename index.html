@@ -956,13 +956,14 @@ document.addEventListener('DOMContentLoaded', () => {
       <span style="font-size:10px;color:var(--text-muted);letter-spacing:1px">LINHA DO TEMPO:</span>
       <button id="tl-btn-comparativo" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setTLMode('comparativo')">📅 Comparativo até hoje</button>
       <button id="tl-btn-2026" class="upload-btn" style="font-size:11px;padding:4px 10px;background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b" onclick="setTLMode('2026')">2026</button>
+      <button id="tl-btn-2025" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setTLMode('2025')">2025</button>
       <button id="tl-btn-todos" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setTLMode('todos')">Todos os anos</button>
     </div>
     <div style="display:flex;gap:4px;align-items:center;margin-left:16px;flex-wrap:wrap">
       <span style="font-size:10px;color:var(--text-muted);letter-spacing:1px">GRÁFICOS:</span>
       <button id="graf-btn-acum" class="upload-btn" style="font-size:11px;padding:4px 10px;background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b" onclick="setGrafMode('acumulado')">📅 Acumulado até hoje</button>
       <button id="graf-btn-completo" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setGrafMode('completo')">Ano completo</button>
-      <button id="graf-btn-2025" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setGrafMode('2025')">2025</button>
+
     </div>
   </div>
 
@@ -4596,7 +4597,7 @@ let servicoGrafMode = 'acumulado';   // 'acumulado' | 'completo'
 
 function setTLMode(mode) {
   servicoTLMode = mode;
-  ['comparativo','2026','todos'].forEach(m => {
+  ['comparativo','2026','2025','todos'].forEach(m => {
     const btn = document.getElementById('tl-btn-'+m);
     if (!btn) return;
     const active = m === mode;
@@ -4682,7 +4683,7 @@ function renderServico() {
 
   const todosAnos  = [...new Set(data.map(r => r.mes.split('-')[0]))].sort();
   const todosMeses = [...new Set(data.map(r => r.mes))].sort();
-  const anosGraf   = servicoGrafMode === '2025' ? ['2025'] : todosAnos;
+  const anosGraf   = servicoTLMode === '2025' ? ['2025'] : servicoTLMode === '2026' ? [anoAtual] : todosAnos;
 
   // ── Lê filtros ────────────────────────────────────────────────────────
   const searchFilt = (document.getElementById('servico-search')?.value||'').toLowerCase();
@@ -4822,6 +4823,7 @@ function renderServico() {
   // Determina quais anos mostrar baseado no modo
   let anosTimeline;
   if (servicoTLMode === '2026') anosTimeline = [anoAtual];
+  else if (servicoTLMode === '2025') anosTimeline = ['2025'];
   else if (servicoTLMode === 'todos') anosTimeline = todosAnos;
   else anosTimeline = todosAnos; // comparativo usa todos
 
@@ -4957,11 +4959,6 @@ function renderServico() {
 
   // Helper: valor de um ano para gráficos considerando modo acumulado/completo/2025
   const valorAnoGraf = (ano, filterFn) => {
-    if (servicoGrafMode === '2025') {
-      // Mostra apenas 2025 completo
-      if (ano !== '2025') return 0;
-      return dataGraf.filter(r=>r.mes.startsWith('2025-')&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
-    }
     if (servicoGrafMode === 'acumulado') {
       const anterior = dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&r.mes<ano+'-'+String(mesAtualNum).padStart(2,'0')&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
       const mesKey2 = ano+'-'+String(mesAtualNum).padStart(2,'0');
@@ -5092,7 +5089,7 @@ function renderServico() {
   const getMeta = (ano, mm) => { const v=tercMeta[ano+'-'+mm]; return (v!==undefined&&v!=='')?parseFloat(v):(TERC_META_FB[ano]?.[mm]||0); };
   const getComp = (ano, mm) => { const v=tercComp[ano+'-'+mm]; return (v!==undefined&&v!=='')?parseFloat(v):(TERC_COMP_FB[ano]?.[mm]||0); };
 
-  const anoMeta = anoFilt || anoAtual;
+  const anoMeta = servicoTLMode === '2025' ? '2025' : (anoFilt || anoAtual);
   const mesesMeta = Array.from({length:12},(_,i)=>String(i+1).padStart(2,'0'));
 
   // Ticket médio mensal
