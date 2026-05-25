@@ -958,10 +958,11 @@ document.addEventListener('DOMContentLoaded', () => {
       <button id="tl-btn-2026" class="upload-btn" style="font-size:11px;padding:4px 10px;background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b" onclick="setTLMode('2026')">2026</button>
       <button id="tl-btn-todos" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setTLMode('todos')">Todos os anos</button>
     </div>
-    <div style="display:flex;gap:4px;align-items:center;margin-left:16px">
+    <div style="display:flex;gap:4px;align-items:center;margin-left:16px;flex-wrap:wrap">
       <span style="font-size:10px;color:var(--text-muted);letter-spacing:1px">GRÁFICOS:</span>
       <button id="graf-btn-acum" class="upload-btn" style="font-size:11px;padding:4px 10px;background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b" onclick="setGrafMode('acumulado')">📅 Acumulado até hoje</button>
       <button id="graf-btn-completo" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setGrafMode('completo')">Ano completo</button>
+      <button id="graf-btn-2025" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setGrafMode('2025')">2025</button>
     </div>
   </div>
 
@@ -1255,7 +1256,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </table>
     <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
       <button onclick="fecharModalMetas()" style="background:#1e2a4a;border:1px solid #2a3a5a;color:#c8cfe8;padding:8px 18px;border-radius:6px;cursor:pointer">Cancelar</button>
-      <button onclick="salvarMetas()" style="background:var(--blue);border:none;color:#fff;padding:8px 18px;border-radius:6px;font-weight:700;cursor:pointer">💾 Salvar</button>
+      <button onclick="salvarMetas()" style="background:var(--blue);border:none;color:#fff;padding:8px 18px;border-radius:6px;font-weight:700;cursor:pointer">💾 Salvar no Sheets</button>
     </div>
   </div>
 </div>
@@ -1272,7 +1273,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <div id="feriados-lista" style="max-height:300px;overflow-y:auto"></div>
     <div style="display:flex;justify-content:flex-end;margin-top:16px">
-      <button onclick="fecharModalFeriados()" style="background:var(--blue);border:none;color:#fff;padding:8px 18px;border-radius:6px;font-weight:700;cursor:pointer">Fechar</button>
+      <button onclick="fecharModalFeriados()" style="background:var(--blue);border:none;color:#fff;padding:8px 18px;border-radius:6px;font-weight:700;cursor:pointer">✅ Fechar (salvo no Sheets)</button>
     </div>
   </div>
 </div>
@@ -2032,10 +2033,27 @@ const FERIADOS_DEFAULT = [
 ];
 
 function getMetas() {
+  // Try Sheets CONFIG first, fallback to localStorage, then default
+  const cfg = DATA.config || {};
+  if (cfg.TT_META_01) {
+    const m = { TT: [], PM: [] };
+    for (let i = 1; i <= 12; i++) {
+      const mm = String(i).padStart(2,'0');
+      m.TT.push(parseFloat(cfg['TT_META_'+mm]) || METAS_DEFAULT.TT[i-1]);
+      m.PM.push(parseFloat(cfg['PM_META_'+mm]) || METAS_DEFAULT.PM[i-1]);
+    }
+    return m;
+  }
   try { const s = localStorage.getItem('termico_metas'); return s ? JSON.parse(s) : METAS_DEFAULT; }
   catch { return METAS_DEFAULT; }
 }
 function getFeriados() {
+  // Try Sheets CONFIG first
+  const cfg = DATA.config || {};
+  if (cfg.FERIADOS !== undefined) {
+    const lista = String(cfg.FERIADOS||'').split(',').map(f=>f.trim()).filter(Boolean);
+    if (lista.length) return lista.map(d => ({data:d, nome: d}));
+  }
   try { const s = localStorage.getItem('termico_feriados'); return s ? JSON.parse(s) : FERIADOS_DEFAULT; }
   catch { return FERIADOS_DEFAULT; }
 }
@@ -2079,13 +2097,28 @@ function abrirModalMetas() {
   document.getElementById('modal-metas').style.display = 'flex';
 }
 function fecharModalMetas() { document.getElementById('modal-metas').style.display = 'none'; }
-function salvarMetas() {
+async function salvarMetas() {
   const metas = { TT: [], PM: [] };
+  const updates = {};
   for (let i = 0; i < 12; i++) {
-    metas.TT.push(parseInt(document.getElementById(`meta-tt-${i}`)?.value)||0);
-    metas.PM.push(parseInt(document.getElementById(`meta-pm-${i}`)?.value)||0);
+    const mm = String(i+1).padStart(2,'0');
+    const tt = parseInt(document.getElementById(`meta-tt-${i}`)?.value)||0;
+    const pm = parseInt(document.getElementById(`meta-pm-${i}`)?.value)||0;
+    metas.TT.push(tt); metas.PM.push(pm);
+    updates['TT_META_'+mm] = tt;
+    updates['PM_META_'+mm] = pm;
   }
+  // Save to localStorage as backup
   localStorage.setItem('termico_metas', JSON.stringify(metas));
+  // Save to Sheets
+  try {
+    const res = await fetch(WEBAPP, {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action:'updateConfig', data: updates})});
+    const txt = await res.text();
+    if (txt.includes('ok') && DATA.config) {
+      Object.entries(updates).forEach(([k,v]) => { DATA.config[k] = v; });
+    }
+  } catch(e) { console.warn('Sheets save failed, localStorage used:', e); }
   fecharModalMetas();
   renderTermico();
 }
@@ -2107,22 +2140,29 @@ function renderFeriadosLista() {
           style="background:rgba(255,59,59,.15);border:1px solid var(--red);color:var(--red);width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px">×</button>
       </div>`).join('');
 }
-function adicionarFeriado() {
+async function _salvarFeriadosSheets(feriados) {
+  const ferStr = feriados.map(f=>f.data).join(',');
+  localStorage.setItem('termico_feriados', JSON.stringify(feriados));
+  if (DATA.config) DATA.config['FERIADOS'] = ferStr;
+  try {
+    await fetch(WEBAPP, {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action:'updateConfig', data:{FERIADOS: ferStr}})});
+  } catch(e) { console.warn('Sheets feriados save failed:', e); }
+}
+async function adicionarFeriado() {
   const data = document.getElementById('feriado-data').value;
   const nome = document.getElementById('feriado-nome').value.trim();
   if (!data || !nome) return;
   const feriados = getFeriados();
-  if (!feriados.find(f => f.data === data)) {
-    feriados.push({data, nome});
-    localStorage.setItem('termico_feriados', JSON.stringify(feriados));
-  }
+  if (!feriados.find(f => f.data === data)) feriados.push({data, nome});
+  await _salvarFeriadosSheets(feriados);
   document.getElementById('feriado-data').value = '';
   document.getElementById('feriado-nome').value = '';
   renderFeriadosLista();
 }
-function removerFeriado(data) {
+async function removerFeriado(data) {
   const feriados = getFeriados().filter(f => f.data !== data);
-  localStorage.setItem('termico_feriados', JSON.stringify(feriados));
+  await _salvarFeriadosSheets(feriados);
   renderFeriadosLista();
 }
 
@@ -4569,7 +4609,7 @@ function setTLMode(mode) {
 
 function setGrafMode(mode) {
   servicoGrafMode = mode;
-  ['acumulado','completo'].forEach(m => {
+  ['acumulado','completo','2025'].forEach(m => {
     const btn = document.getElementById('graf-btn-'+m);
     if (!btn) return;
     const active = m === mode;
@@ -4893,12 +4933,11 @@ function renderServico() {
   // ── EVOLUÇÃO MENSAL ───────────────────────────────────────────────────
   const evolCanvas = document.getElementById('servico-evolucao-chart');
   if (evolCanvas) {
-    const datasets = todosAnos.map(ano=>{
+    const datasets = anosGraf.map(ano=>{
       const cor=ANOS_CORES[ano]||'#475569';
       const vals=mesesLabel12.map((_,i)=>{
         const mk=ano+'-'+String(i+1).padStart(2,'0');
-        // no modo acumulado, não mostra meses futuros de outros anos
-        if (servicoGrafMode==='acumulado' && mk>mesAtualKey) return null;
+        if ((servicoGrafMode==='acumulado'||servicoGrafMode==='2025') && mk>mesAtualKey && ano===anoAtual) return null;
         const v=dataGraf.filter(r=>r.mes===mk).reduce((s,r)=>s+r.valor,0);
         return v||null;
       });
@@ -4915,12 +4954,15 @@ function renderServico() {
     }));
   }
 
-  // Helper: valor de um ano para gráficos considerando modo acumulado/completo
+  // Helper: valor de um ano para gráficos considerando modo acumulado/completo/2025
   const valorAnoGraf = (ano, filterFn) => {
+    if (servicoGrafMode === '2025') {
+      // Mostra apenas 2025 completo
+      if (ano !== '2025') return 0;
+      return dataGraf.filter(r=>r.mes.startsWith('2025-')&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
+    }
     if (servicoGrafMode === 'acumulado') {
-      // Meses fechados antes do mês atual
       const anterior = dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&r.mes<ano+'-'+String(mesAtualNum).padStart(2,'0')&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
-      // Proporcional do mês atual
       const mesKey2 = ano+'-'+String(mesAtualNum).padStart(2,'0');
       const mesTotal = dataGraf.filter(r=>r.mes===mesKey2&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
       const diasMes2 = diasNoMes(ano, mesAtualNum);
@@ -4929,12 +4971,15 @@ function renderServico() {
     return dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
   };
 
+  // In '2025' mode, use only 2025 data and filter todosAnos display
+  const anosGraf = servicoGrafMode === '2025' ? ['2025'] : todosAnos;
+
   // ── ACUMULADO POR ANO ────────────────────────────────────────────────
   const acumCanvas = document.getElementById('servico-acum-chart');
   if (acumCanvas) {
-    const datasets = todosAnos.map(ano => {
+    const datasets = anosGraf.map(ano => {
       const cor = ANOS_CORES[ano] || '#475569';
-      const limMes = servicoGrafMode === 'acumulado' ? mesAtualNum : 12;
+      const limMes = (servicoGrafMode === 'acumulado' || servicoGrafMode === '2025') ? mesAtualNum : 12;
       let acum = 0;
       const vals = Array.from({length: 12}, (_, i) => {
         const idx = i + 1;
@@ -4991,7 +5036,7 @@ function renderServico() {
     dataGraf.filter(r=>r.mes.startsWith(anoAtual+'-')&&r.mes<=mesAtualKey).forEach(r=>{empTotAtual[r.empresa]=(empTotAtual[r.empresa]||0)+r.valor;});
     const top10=Object.entries(empTotAtual).sort((a,b)=>b[1]-a[1]).slice(0,10).map(e=>e[0]);
     const shortName=n=>n.replace(/\d+ - /,'').substring(0,24);
-    const topDatasets=todosAnos.map(ano=>{
+    const topDatasets=anosGraf.map(ano=>{
       const cor=ANOS_CORES[ano]||'#475569';
       return {label:ano+(servicoGrafMode==='acumulado'?' (até '+String(mesAtualNum).padStart(2,'0')+'/'+String(hoje.getDate()).padStart(2,'0')+')':''),
         data:top10.map(emp=>valorAnoGraf(ano,r=>r.empresa===emp)),
@@ -5015,7 +5060,7 @@ function renderServico() {
     // Sort processos by anoAtual value descending
     const procValsAtual = processos.map(p=>valorAnoGraf(anoAtual,r=>(r.processo||'SEM PROCESSO')===p));
     const procOrder = processos.map((p,i)=>({p,v:procValsAtual[i]})).sort((a,b)=>b.v-a.v).map(x=>x.p);
-    const procDatasets=todosAnos.map(ano=>{
+    const procDatasets=anosGraf.map(ano=>{
       const cor=ANOS_CORES[ano]||'#475569';
       return {label:ano+(servicoGrafMode==='acumulado'?' (até '+String(mesAtualNum).padStart(2,'0')+'/'+String(hoje.getDate()).padStart(2,'0')+')':''),
         data:procOrder.map(p=>valorAnoGraf(ano,r=>(r.processo||'SEM PROCESSO')===p)),
@@ -5082,9 +5127,9 @@ function renderServico() {
       type:'bar',
       data:{labels:top10t.map(shortN),datasets:[
         {label:anoAnt+' média/mês',data:ticketAntVals,backgroundColor:'#06b6d455',borderColor:'#06b6d4',borderWidth:1,
-          datalabels:{display:true,color:'#06b6d4',font:{size:8,weight:'700'},anchor:'end',align:'top',formatter:v=>v?fmtK(v):''}},
+          datalabels:{display:true,color:'#06b6d4',font:{size:9,weight:'700'},anchor:'end',align:'right',formatter:v=>v?fmtK(v):''}},
         {label:anoMeta+' média/mês',data:ticketVals,backgroundColor:'#f59e0bcc',borderColor:'#f59e0b',borderWidth:1,
-          datalabels:{display:true,color:'#fff',font:{size:8,weight:'700'},anchor:'end',align:'top',formatter:v=>v?fmtK(v):''}}
+          datalabels:{display:true,color:'#f59e0b',font:{size:9,weight:'700'},anchor:'end',align:'right',formatter:v=>v?fmtK(v):''}}
       ]},
       options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:'#c8cfe8',font:{size:11}}},datalabels:{}},
