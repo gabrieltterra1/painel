@@ -4682,6 +4682,7 @@ function renderServico() {
 
   const todosAnos  = [...new Set(data.map(r => r.mes.split('-')[0]))].sort();
   const todosMeses = [...new Set(data.map(r => r.mes))].sort();
+  const anosGraf   = servicoGrafMode === '2025' ? ['2025'] : todosAnos;
 
   // ── Lê filtros ────────────────────────────────────────────────────────
   const searchFilt = (document.getElementById('servico-search')?.value||'').toLowerCase();
@@ -4971,8 +4972,7 @@ function renderServico() {
     return dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
   };
 
-  // In '2025' mode, use only 2025 data and filter todosAnos display
-  const anosGraf = servicoGrafMode === '2025' ? ['2025'] : todosAnos;
+
 
   // ── ACUMULADO POR ANO ────────────────────────────────────────────────
   const acumCanvas = document.getElementById('servico-acum-chart');
