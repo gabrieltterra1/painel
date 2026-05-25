@@ -983,19 +983,29 @@ document.addEventListener('DOMContentLoaded', () => {
       <div style="overflow-x:auto"><div style="position:relative;height:280px;min-width:400px"><canvas id="servico-acum-chart"></canvas></div></div>
     </div>
   </div>
-  <!-- TOP 10 -->
+  <!-- TOP 10 | META x REALIZADO MENSAL -->
   <div class="charts-grid" style="margin-bottom:24px;">
     <div class="chart-card">
       <div class="chart-title">Top 10 Fornecedores</div>
       <div style="overflow-x:auto"><div style="position:relative;height:320px;min-width:400px"><canvas id="servico-top-chart"></canvas></div></div>
     </div>
     <div class="chart-card">
-      <div class="chart-title">Gastos por Processo</div>
-      <div style="overflow-x:auto"><div style="position:relative;height:320px;min-width:400px"><canvas id="servico-processo-chart"></canvas></div></div>
+      <div class="chart-title">Meta x Realizado — Mensal (R$)</div>
+      <div style="overflow-x:auto"><div style="position:relative;height:320px;min-width:400px"><canvas id="servico-meta-mes-chart"></canvas></div></div>
     </div>
   </div>
 
+  <!-- PROCESSO — linha inteira -->
+  <div class="chart-card" style="margin-bottom:24px">
+    <div class="chart-title">Gastos por Processo</div>
+    <div style="overflow-x:auto"><div style="position:relative;height:300px;min-width:600px"><canvas id="servico-processo-chart"></canvas></div></div>
+  </div>
 
+  <!-- META ACUMULADA — linha inteira -->
+  <div class="chart-card" style="margin-bottom:24px">
+    <div class="chart-title">Meta x Realizado — Acumulado (R$)</div>
+    <div style="overflow-x:auto"><div style="position:relative;height:280px;min-width:500px"><canvas id="servico-meta-acum-chart"></canvas></div></div>
+  </div>
 
   <!-- TABELA DETALHADA -->
   <div class="section-title">Detalhamento por Fornecedor</div>
@@ -2509,6 +2519,31 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
     duRestantes++;
   }
 
+  // Use CONFIG from Sheets if available
+  const cfg = DATA.config || {};
+  const getCfg = (key, fallback) => { const v = cfg[key]; return (v !== undefined && v !== '') ? parseFloat(v)||v : fallback; };
+  // Override metas from CONFIG
+  if (cfg.TT_META_01) {
+    for (let m=0;m<12;m++) {
+      const k = 'TT_META_' + String(m+1).padStart(2,'0');
+      if (cfg[k] !== undefined) metas.TT[m] = parseFloat(cfg[k]);
+    }
+  }
+  if (cfg.PM_META_01) {
+    for (let m=0;m<12;m++) {
+      const k = 'PM_META_' + String(m+1).padStart(2,'0');
+      if (cfg[k] !== undefined) metas.PM[m] = parseFloat(cfg[k]);
+    }
+  }
+  // Override feriados from CONFIG
+  if (cfg.FERIADOS && cfg.FERIADOS.trim()) {
+    const feriadosList = cfg.FERIADOS.split(',').map(f=>f.trim()).filter(Boolean);
+    if (feriadosList.length) {
+      // Merge with existing feriados
+      const existing = getFeriados().map(f=>f.data);
+      feriadosList.forEach(d => { if (!existing.includes(d)) saveFeriado(d,''); });
+    }
+  }
   const metaTTDia = metas.TT[mesAtual];
   const metaPMDia = metas.PM[mesAtual];
   const metaTTAcum = metaTTDia * duAteMes;
@@ -3182,6 +3217,85 @@ function renderIFE() {
   const compWrap = document.getElementById('ife-comp-wrap');
   compWrap.style.display = view==='comp' ? '' : 'none';
   if (view==='comp') _renderIFEComp(dados, anos, anoAtual);
+
+  // ── META x REALIZADO ─────────────────────────────────────────────────
+  const tercMeta = DATA.tercMeta || {};
+  const tercComp = DATA.tercComp || {};
+
+  // Hardcoded fallback if CONFIG not yet available
+  const TERC_META_FB = {
+    '2025':{'01':515165.59,'02':602939.61,'03':627959.22,'04':626854.41,'05':627450.83,'06':603448.00,'07':693083.81,'08':627450.83,'09':663156.79,'10':693058.90,'11':567742.04,'12':471689.98},
+    '2026':{'01':554871.00,'02':652688.00,'03':717942.00,'04':652687.00,'05':620060.00,'06':685257.00,'07':750570.00,'08':685314.00,'09':685314.00,'10':685314.00,'11':620060.00,'12':456922.00}
+  };
+  const TERC_COMP_FB = {
+    '2025':{'01':504289.33,'02':610858.35,'03':588773.20,'04':591810.25,'05':620558.09,'06':564775.15,'07':659224.61,'08':580306.66,'09':617224.52,'10':625889.87,'11':568397.89,'12':433950.39},
+    '2026':{'01':588944.94,'02':574970.71,'03':665368.37,'04':579243.51,'05':0,'06':0,'07':0,'08':0,'09':0,'10':0,'11':0,'12':0}
+  };
+  const getMeta = (ano, mm) => tercMeta[ano+'-'+mm] !== undefined ? tercMeta[ano+'-'+mm] : (TERC_META_FB[ano]?.[mm]||0);
+  const getComp = (ano, mm) => tercComp[ano+'-'+mm] !== undefined ? tercComp[ano+'-'+mm] : (TERC_COMP_FB[ano]?.[mm]||0);
+
+  // Prioriza ano atual, depois anos anteriores
+  const anosMetaOrdem = [...todosAnos].sort((a,b) => a===anoAtual?-1:b===anoAtual?1:+b-+a);
+
+  // Gráfico 1: Meta x Realizado mensal
+  const metaMesCanvas = document.getElementById('servico-meta-mes-chart');
+  if (metaMesCanvas) {
+    const anoMeta = anoFilt || anoAtual;
+    const mesesMeta = Array.from({length:12},(_,i)=>String(i+1).padStart(2,'0'));
+    const realVals  = mesesMeta.map(mm=>dataGraf.filter(r=>r.mes===anoMeta+'-'+mm).reduce((s,r)=>s+r.valor,0)||null);
+    const metaVals  = mesesMeta.map(mm=>getMeta(anoMeta,mm)||null);
+    const compVals  = mesesMeta.map(mm=>{const v=getComp(anoMeta,mm);return v>0?v:null;});
+    servicoCharts.push(new Chart(metaMesCanvas,{
+      type:'bar',
+      data:{labels:mesesLabel12,datasets:[
+        {label:'Realizado',data:realVals,backgroundColor:'#f59e0b99',borderColor:'#f59e0b',borderWidth:1,
+          datalabels:{display:true,color:'#fff',font:{size:8,weight:'700'},anchor:'end',align:'top',formatter:v=>v?fmtK(v):''}},
+        {type:'line',label:'Meta',data:metaVals,borderColor:'#ff3b3b',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:0,
+          datalabels:{display:false}},
+        {type:'line',label:'Meta Compet.',data:compVals,borderColor:'#00c97a',backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:3,tension:0,
+          datalabels:{display:false}}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:'#c8cfe8',font:{size:11}}},datalabels:{}},
+        scales:{x:{ticks:{color:'#7a8299'},grid:{color:'#1e2334'}},y:{ticks:{color:'#7a8299',callback:fmtK},grid:{color:'#1e2334'}}},
+        layout:{padding:{top:24}}
+      },plugins:[ChartDataLabels]
+    }));
+  }
+
+  // Gráfico 2: Meta x Realizado acumulado
+  const metaAcumCanvas = document.getElementById('servico-meta-acum-chart');
+  if (metaAcumCanvas) {
+    const anoMeta2 = anoFilt || anoAtual;
+    const mesesMeta2 = Array.from({length:12},(_,i)=>String(i+1).padStart(2,'0'));
+    let acumReal=0, acumMeta=0, acumComp=0;
+    const realAcum=[], metaAcum2=[], compAcum=[];
+    mesesMeta2.forEach(mm=>{
+      const r=dataGraf.filter(x=>x.mes===anoMeta2+'-'+mm).reduce((s,x)=>s+x.valor,0);
+      const m=getMeta(anoMeta2,mm);
+      const c=getComp(anoMeta2,mm);
+      acumReal+=r; acumMeta+=m; acumComp+=c>0?c:0;
+      realAcum.push(r>0?acumReal:null);
+      metaAcum2.push(m>0?acumMeta:null);
+      compAcum.push(c>0?acumComp:null);
+    });
+    servicoCharts.push(new Chart(metaAcumCanvas,{
+      type:'line',
+      data:{labels:mesesLabel12,datasets:[
+        {label:'Realizado Acum.',data:realAcum,borderColor:'#f59e0b',backgroundColor:'#f59e0b22',borderWidth:2.5,fill:true,tension:0.2,pointRadius:4,
+          datalabels:{display:ctx=>ctx.dataIndex===realAcum.filter(v=>v!==null).length-1,color:'#f59e0b',font:{size:10,weight:'700'},anchor:'end',align:'right',formatter:v=>v?fmtK(v):''}},
+        {label:'Meta Acum.',data:metaAcum2,borderColor:'#ff3b3b',backgroundColor:'transparent',borderWidth:2,borderDash:[],tension:0,pointRadius:3,
+          datalabels:{display:ctx=>ctx.dataIndex===metaAcum2.filter(v=>v!==null).length-1,color:'#ff3b3b',font:{size:10,weight:'700'},anchor:'end',align:'right',formatter:v=>v?fmtK(v):''}},
+        {label:'Meta Compet. Acum.',data:compAcum,borderColor:'#00c97a',backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],tension:0,pointRadius:3,
+          datalabels:{display:ctx=>ctx.dataIndex===compAcum.filter(v=>v!==null).length-1,color:'#00c97a',font:{size:10,weight:'700'},anchor:'end',align:'right',formatter:v=>v?fmtK(v):''}}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:'#c8cfe8',font:{size:11}}},datalabels:{}},
+        scales:{x:{ticks:{color:'#7a8299'},grid:{color:'#1e2334'}},y:{ticks:{color:'#7a8299',callback:fmtK},grid:{color:'#1e2334'}}},
+        layout:{padding:{right:60}}
+      },plugins:[ChartDataLabels]
+    }));
+  }
 
   // ── TABELA ────────────────────────────────────────────────────────────────
   if (view==='mensal' || view==='comp') _renderIFEMensal(dados, meses, ifeByMes);
@@ -4746,7 +4860,10 @@ function renderServico() {
     }).join('');
   } else {
     // Para cada ano, uma secção separada com seus próprios meses
-    const allMeses = [...new Set(dataGraf.filter(r=>anosTimeline.some(a=>r.mes.startsWith(a+'-'))).map(r=>r.mes))].sort();
+    // Build unified Jan→Dez month columns
+    const allMesesSet = new Set(dataGraf.filter(r=>anosTimeline.some(a=>r.mes.startsWith(a+'-'))).map(r=>r.mes.slice(5)));
+    const allMesesMM = [...allMesesSet].sort(); // ['01','02',...,'12']
+    const allMeses = allMesesMM; // just MM portions for todos mode
     const htmlRows = anosTimeline.map(ano=>{
       if (!dataGraf.some(r=>r.mes.startsWith(ano+'-'))) return '';
       const matrizVals={}, filialVals={};
@@ -4757,9 +4874,9 @@ function renderServico() {
       const sumM=Object.values(matrizVals).reduce((s,v)=>s+v,0);
       const sumF=Object.values(filialVals).reduce((s,v)=>s+v,0);
       const cor=ANOS_CORES[ano]||'#c8cfe8';
-      return '<tr><td style="'+tdP+';color:'+cor+';font-weight:900;position:sticky;left:0;background:var(--bg);z-index:2;min-width:50px">'+ano+'</td><td style="'+tdP+';color:#3d8bff;font-weight:700;position:sticky;left:50px;background:var(--bg);z-index:2">Matriz</td>'+allMeses.map(m=>'<td class="money" style="'+tdP+';color:#3d8bff">'+fmt(matrizVals[m]||0)+'</td>').join('')+'<td class="money" style="'+tdP+';color:#3d8bff;font-weight:700">'+fmt(sumM)+'</td></tr>'
-        +'<tr><td style="'+tdP+';position:sticky;left:0;background:var(--bg);z-index:2"></td><td style="'+tdP+';color:#ff8c3b;font-weight:700;position:sticky;left:50px;background:var(--bg);z-index:2">Filial SP</td>'+allMeses.map(m=>'<td class="money" style="'+tdP+';color:#ff8c3b">'+fmt(filialVals[m]||0)+'</td>').join('')+'<td class="money" style="'+tdP+';color:#ff8c3b;font-weight:700">'+fmt(sumF)+'</td></tr>'
-        +'<tr style="background:var(--surface2)"><td style="'+tdP+';position:sticky;left:0;background:var(--surface2);z-index:2"></td><td style="'+tdP+';color:#ffaa00;font-weight:700;position:sticky;left:50px;background:var(--surface2);z-index:2">Total</td>'+allMeses.map(m=>'<td class="money" style="'+tdP+';color:#ffaa00;font-weight:700">'+fmt((matrizVals[m]||0)+(filialVals[m]||0))+'</td>').join('')+'<td class="money" style="'+tdP+';color:#ffaa00;font-weight:700">'+fmt(sumM+sumF)+'</td></tr>'
+      return '<tr><td style="'+tdP+';color:'+cor+';font-weight:900;position:sticky;left:0;background:var(--bg);z-index:2;min-width:50px">'+ano+'</td><td style="'+tdP+';color:#3d8bff;font-weight:700;position:sticky;left:50px;background:var(--bg);z-index:2">Matriz</td>'+allMeses.map(mm=>{const k=ano+'-'+mm;return '<td class="money" style="'+tdP+';color:#3d8bff">'+(matrizVals[k]?fmt(matrizVals[k]):'—')+'</td>';}).join('')+'<td class="money" style="'+tdP+';color:#3d8bff;font-weight:700">'+fmt(sumM)+'</td></tr>'
+        +'<tr><td style="'+tdP+';position:sticky;left:0;background:var(--bg);z-index:2"></td><td style="'+tdP+';color:#ff8c3b;font-weight:700;position:sticky;left:50px;background:var(--bg);z-index:2">Filial SP</td>'+allMeses.map(mm=>{const k=ano+'-'+mm;return '<td class="money" style="'+tdP+';color:#ff8c3b">'+(filialVals[k]?fmt(filialVals[k]):'—')+'</td>';}).join('')+'<td class="money" style="'+tdP+';color:#ff8c3b;font-weight:700">'+fmt(sumF)+'</td></tr>'
+        +'<tr style="background:var(--surface2)"><td style="'+tdP+';position:sticky;left:0;background:var(--surface2);z-index:2"></td><td style="'+tdP+';color:#ffaa00;font-weight:700;position:sticky;left:50px;background:var(--surface2);z-index:2">Total</td>'+allMeses.map(mm=>{const k=ano+'-'+mm;return '<td class="money" style="'+tdP+';color:#ffaa00;font-weight:700">'+fmt((matrizVals[k]||0)+(filialVals[k]||0))+'</td>';}).join('')+'<td class="money" style="'+tdP+';color:#ffaa00;font-weight:700">'+fmt(sumM+sumF)+'</td></tr>'
         +'<tr><td colspan="'+(allMeses.length+3)+'" style="height:6px"></td></tr>';
     }).join('');
     // Thead usa o ano com mais meses
@@ -4769,7 +4886,7 @@ function renderServico() {
     if (theadTl) theadTl.innerHTML=
       '<th style="'+thP+';text-align:left;position:sticky;left:0;background:#1a2235;z-index:3;min-width:50px">ANO</th>'
       +'<th style="'+thP+';text-align:left;position:sticky;left:50px;background:#1a2235;z-index:3">EMPRESA</th>'
-      +allMeses.map(m=>'<th style="'+thP+'">'+shortMes(m)+'</th>').join('')
+      +allMeses.map(mm=>{ const [y2,mo2]=['2000',mm]; return '<th style="'+thP+'">'+new Date(2000,+mm-1,1).toLocaleDateString('pt-BR',{month:'short'}).toUpperCase().replace('.','')+'</th>'; }).join('')
       +'<th style="'+thP+'">TOTAL</th>';
     if (tbodyTl) tbodyTl.innerHTML=htmlRows;
   }
@@ -5560,6 +5677,29 @@ async function readSheets() {
     'IFE':               parseIFE,
     'PEDIDOS_DE_VENDA':  parsePedidos
   };
+
+  // Fetch CONFIG primeiro (metas, feriados, etc.)
+  try {
+    const cfgRes = await fetch(WEBAPP+'?aba=CONFIG&t='+Date.now());
+    const cfgText = await cfgRes.text();
+    if (cfgText && cfgText.startsWith('{')) {
+      DATA.config = JSON.parse(cfgText);
+      // Build terceiros metas
+      DATA.tercMeta = {};
+      DATA.tercComp = {};
+      const cfg2 = DATA.config;
+      for (let ano = 2023; ano <= 2030; ano++) {
+        for (let mes = 1; mes <= 12; mes++) {
+          const key = ano+'-'+String(mes).padStart(2,'0');
+          const mk = String(ano)+'_'+String(mes).padStart(2,'0');
+          const mv = cfg2['TERC_META_'+mk];
+          const cv = cfg2['TERC_COMP_'+mk];
+          if (mv !== undefined && mv !== '') DATA.tercMeta[key] = parseFloat(mv)||0;
+          if (cv !== undefined && cv !== '') DATA.tercComp[key] = parseFloat(cv)||0;
+        }
+      }
+    }
+  } catch(e) { console.warn('CONFIG não disponível:', e); }
 
   // Fetch paralelo — todas as abas ao mesmo tempo
   const fetchAba = async (aba) => {
