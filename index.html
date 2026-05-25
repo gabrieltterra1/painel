@@ -933,28 +933,19 @@ document.addEventListener('DOMContentLoaded', () => {
   <!-- CARDS RESUMO POR ANO -->
   <div id="servico-kpis" style="margin-bottom:20px"></div>
 
-  <!-- FILTROS GLOBAIS -->
-  <div class="filter-row" style="margin-bottom:16px;flex-wrap:wrap;gap:8px">
-    <select class="filter-select" id="servico-empresa" onchange="renderServico()">
-      <option value="">Todas as empresas</option>
-      <option value="1">Matriz</option>
-      <option value="2">Filial SP</option>
-    </select>
-    <select class="filter-select" id="servico-processo" onchange="renderServico()">
-      <option value="">Todos os processos</option>
-      <option value="TORNO">Torno</option>
-      <option value="RETÍFICA">Retífica</option>
-      <option value="POLIMENTO">Polimento</option>
-      <option value="TRATAMENTO SUPERFICIAL">Tratamento Superficial</option>
-      <option value="TRATAMENTO TÉRMICO">Tratamento Térmico</option>
-      <option value="GERADORA">Geradora</option>
-      <option value="CENTRO DE USINAGEM">Centro de Usinagem</option>
-      <option value="MANUTENÇÃO">Manutenção</option>
-      <option value="FILIAL SP">Filial SP</option>
-      <option value="OUTROS">Outros</option>
-      <option value="SEM PROCESSO">⚠ Sem processo definido</option>
-    </select>
-    <button class="upload-btn" style="background:#334;color:#aab;border:1px solid #556;font-size:12px;padding:6px 12px" onclick="servicoLimparFiltros()">✕ Limpar filtros</button>
+  <!-- Toggles globais acima dos gráficos -->
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+    <div style="display:flex;gap:4px;align-items:center">
+      <span style="font-size:10px;color:var(--text-muted);letter-spacing:1px">LINHA DO TEMPO:</span>
+      <button id="tl-btn-comparativo" class="upload-btn" style="font-size:11px;padding:4px 10px;background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b" onclick="setTLMode('comparativo')">📅 Comparativo até hoje</button>
+      <button id="tl-btn-2026" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setTLMode('2026')">2026</button>
+      <button id="tl-btn-todos" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setTLMode('todos')">Todos os anos</button>
+    </div>
+    <div style="display:flex;gap:4px;align-items:center;margin-left:16px">
+      <span style="font-size:10px;color:var(--text-muted);letter-spacing:1px">GRÁFICOS:</span>
+      <button id="graf-btn-acum" class="upload-btn" style="font-size:11px;padding:4px 10px;background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b" onclick="setGrafMode('acumulado')">📅 Acumulado até hoje</button>
+      <button id="graf-btn-completo" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setGrafMode('completo')">Ano completo</button>
+    </div>
   </div>
 
   <!-- LINHA DO TEMPO MATRIZ vs FILIAL -->
@@ -997,11 +988,30 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="servico-header">
     <div class="filter-row" style="flex-wrap:wrap;gap:8px">
       <input class="search-input" type="text" id="servico-search" placeholder="Filtrar fornecedor…" oninput="renderServico()">
-      <select class="filter-select" id="servico-ano" onchange="renderServico()">
+      <select class="filter-select" id="servico-ano" onchange="servicoAnoChange()">
         <option value="">Todos os anos</option>
       </select>
       <select class="filter-select" id="servico-mes" onchange="renderServico()">
         <option value="">Todos os meses</option>
+      </select>
+      <select class="filter-select" id="servico-empresa" onchange="renderServico()">
+        <option value="">Todas as empresas</option>
+        <option value="1">Matriz</option>
+        <option value="2">Filial SP</option>
+      </select>
+      <select class="filter-select" id="servico-processo" onchange="renderServico()">
+        <option value="">Todos os processos</option>
+        <option value="TORNO">Torno</option>
+        <option value="RETÍFICA">Retífica</option>
+        <option value="POLIMENTO">Polimento</option>
+        <option value="TRATAMENTO SUPERFICIAL">Tratamento Superficial</option>
+        <option value="TRATAMENTO TÉRMICO">Tratamento Térmico</option>
+        <option value="GERADORA">Geradora</option>
+        <option value="CENTRO DE USINAGEM">Centro de Usinagem</option>
+        <option value="MANUTENÇÃO">Manutenção</option>
+        <option value="FILIAL SP">Filial SP</option>
+        <option value="OUTROS">Outros</option>
+        <option value="SEM PROCESSO">⚠ Sem processo definido</option>
       </select>
       <button class="upload-btn" style="background:#334;color:#aab;border:1px solid #556;font-size:12px;padding:6px 12px" onclick="servicoLimparFiltros()">✕ Limpar filtros</button>
     </div>
@@ -4464,6 +4474,43 @@ function pvGerarPDF() {
   doc.close();
 }
 
+// ── Estado dos toggles ───────────────────────────────────────────────────
+let servicoTLMode   = 'comparativo'; // 'comparativo' | '2026' | 'todos'
+let servicoGrafMode = 'acumulado';   // 'acumulado' | 'completo'
+
+function setTLMode(mode) {
+  servicoTLMode = mode;
+  ['comparativo','2026','todos'].forEach(m => {
+    const btn = document.getElementById('tl-btn-'+m);
+    if (!btn) return;
+    const active = m === mode;
+    btn.style.background  = active ? '#f59e0b22' : '';
+    btn.style.border      = active ? '1px solid #f59e0b' : '1px solid var(--border)';
+    btn.style.color       = active ? '#f59e0b' : 'var(--text-muted)';
+  });
+  renderServico();
+}
+
+function setGrafMode(mode) {
+  servicoGrafMode = mode;
+  ['acumulado','completo'].forEach(m => {
+    const btn = document.getElementById('graf-btn-'+m);
+    if (!btn) return;
+    const active = m === mode;
+    btn.style.background = active ? '#f59e0b22' : '';
+    btn.style.border     = active ? '1px solid #f59e0b' : '1px solid var(--border)';
+    btn.style.color      = active ? '#f59e0b' : 'var(--text-muted)';
+  });
+  renderServico();
+}
+
+function servicoAnoChange() {
+  // Ao mudar ano, resetar mês e repopular opções de mês
+  const mesEl = document.getElementById('servico-mes');
+  if (mesEl) mesEl.value = '';
+  renderServico();
+}
+
 function servicoSort(key) {
   const el = document.getElementById('servico-sort');
   if (!el) return;
@@ -4474,12 +4521,16 @@ function servicoSort(key) {
 }
 
 function servicoLimparFiltros() {
-  const s = document.getElementById('servico-search'); if (s) s.value = '';
-  const e = document.getElementById('servico-empresa'); if (e) e.value = '';
-  const p = document.getElementById('servico-processo'); if (p) p.value = '';
-  const m = document.getElementById('servico-mes'); if (m) m.value = '';
-  const a = document.getElementById('servico-ano'); if (a) a.value = new Date().getFullYear().toString();
-  const o = document.getElementById('servico-sort'); if (o) o.value = 'nome';
+  const ids = ['servico-search','servico-mes'];
+  ids.forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  const ano = document.getElementById('servico-ano');
+  if (ano) ano.value = new Date().getFullYear().toString();
+  const emp = document.getElementById('servico-empresa');
+  if (emp) emp.value = '';
+  const proc = document.getElementById('servico-processo');
+  if (proc) proc.value = '';
+  const srt = document.getElementById('servico-sort');
+  if (srt) srt.value = 'total_desc';
   renderServico();
 }
 
@@ -4490,9 +4541,20 @@ function renderServico() {
   const data = DATA.servico || [];
   if (!data.length) return;
 
+  const hoje     = new Date();
+  const anoAtual = hoje.getFullYear().toString();
+  const mesAtualNum = hoje.getMonth() + 1; // 1-12
+  const mesAtualKey = anoAtual + '-' + String(mesAtualNum).padStart(2,'0');
+  // Dia do ano atual para comparativo: "MM-DD"
+  const hojeMD = String(mesAtualNum).padStart(2,'0') + '-' + String(hoje.getDate()).padStart(2,'0');
+
   const fmt  = v => v > 0 ? 'R$\u00a0' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
   const fmtK = v => 'R$' + Math.round(v/1000) + 'k';
-  const mesLabel = m => { const [y,mo] = m.split('-'); return new Date(+y,+mo-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}).toUpperCase(); };
+  const mesLabel = m => {
+    const [y,mo] = m.split('-');
+    return new Date(+y,+mo-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}).toUpperCase();
+  };
+
   const ANOS_CORES = {'2023':'#475569','2024':'#64748b','2025':'#06b6d4','2026':'#f59e0b','2027':'#a855f7'};
   const PROC_COLORS = {
     'TORNO':'#3d8bff','RETÍFICA':'#a855f7','POLIMENTO':'#00c97a',
@@ -4500,47 +4562,46 @@ function renderServico() {
     'GERADORA':'#f59e0b','CENTRO DE USINAGEM':'#e74c3c','MANUTENÇÃO':'#64748b',
     'FILIAL SP':'#ff6b35','OUTROS':'#475569','SEM PROCESSO':'#334155'
   };
+  const processos = Object.keys(PROC_COLORS);
 
-  const anoAtual  = new Date().getFullYear().toString();
-  const mesAtualKey = anoAtual + '-' + String(new Date().getMonth()+1).padStart(2,'0');
   const todosAnos  = [...new Set(data.map(r => r.mes.split('-')[0]))].sort();
   const todosMeses = [...new Set(data.map(r => r.mes))].sort();
-
-  // ── Populate filtros dinâmicos ────────────────────────────────────────
-  const anoEl = document.getElementById('servico-ano');
-  if (anoEl) {
-    const prev = anoEl.value || anoAtual;
-    anoEl.innerHTML = '<option value="">Todos os anos</option>';
-    todosAnos.forEach(a => {
-      const opt = document.createElement('option');
-      opt.value = a; opt.textContent = a;
-      if (a === prev) opt.selected = true;
-      anoEl.appendChild(opt);
-    });
-  }
-  const mesEl = document.getElementById('servico-mes');
-  if (mesEl) {
-    const prevM = mesEl.value;
-    while (mesEl.options.length > 1) mesEl.remove(1);
-    todosMeses.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m; opt.textContent = mesLabel(m);
-      if (m === prevM) opt.selected = true;
-      mesEl.appendChild(opt);
-    });
-  }
 
   // ── Lê filtros ────────────────────────────────────────────────────────
   const searchFilt = (document.getElementById('servico-search')?.value||'').toLowerCase();
   const empFilt    = document.getElementById('servico-empresa')?.value||'';
   const procFilt   = document.getElementById('servico-processo')?.value||'';
   const mesFilt    = document.getElementById('servico-mes')?.value||'';
-  const anoFilt    = document.getElementById('servico-ano')?.value||'';
+  const anoFilt    = document.getElementById('servico-ano')?.value || anoAtual;
 
-  const passaFiltro = r => {
-    const ano = r.mes.split('-')[0];
-    if (anoFilt && ano !== anoFilt) return false;
-    if (mesFilt && r.mes !== mesFilt) return false;
+  // ── Populate filtro de ano ────────────────────────────────────────────
+  const anoEl = document.getElementById('servico-ano');
+  if (anoEl && anoEl.options.length <= 1) {
+    todosAnos.forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a; opt.textContent = a;
+      if (a === anoAtual) opt.selected = true;
+      anoEl.appendChild(opt);
+    });
+  }
+
+  // ── Populate filtro de mês (só do ano selecionado) ────────────────────
+  const mesEl = document.getElementById('servico-mes');
+  if (mesEl) {
+    const prevM = mesEl.value;
+    while (mesEl.options.length > 1) mesEl.remove(1);
+    todosMeses
+      .filter(m => !anoFilt || m.startsWith(anoFilt + '-'))
+      .forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m; opt.textContent = mesLabel(m);
+        if (m === prevM) opt.selected = true;
+        mesEl.appendChild(opt);
+      });
+  }
+
+  // ── Helpers de filtro ─────────────────────────────────────────────────
+  const passaFiltroBase = r => {
     if (empFilt && r.empresa_num !== empFilt) return false;
     if (searchFilt && !r.empresa.toLowerCase().includes(searchFilt)) return false;
     if (procFilt) {
@@ -4549,52 +4610,73 @@ function renderServico() {
     }
     return true;
   };
-  const dataFilt = data.filter(passaFiltro);
 
-  // helper: filtra só por ano+empresa (sem mes/search/proc) para gráficos globais
-  const dataAno = (ano, emp) => data.filter(r => r.mes.startsWith(ano+'-') && (!emp || r.empresa_num === emp));
+  // Para tabela: filtra por ano+mês também
+  const dataFilt = data.filter(r => {
+    const ano = r.mes.split('-')[0];
+    if (anoFilt && ano !== anoFilt) return false;
+    if (mesFilt && r.mes !== mesFilt) return false;
+    return passaFiltroBase(r);
+  });
+
+  // Para gráficos: filtra por empresa/processo/busca mas não por mês específico
+  const dataGraf = data.filter(passaFiltroBase);
+
+  // Acumulado até hoje (mesmo MM-DD) em qualquer ano
+  const acumAteHoje = (ano) => {
+    const limMes = ano + '-' + String(mesAtualNum).padStart(2,'0');
+    const limDia = ano + '-' + String(mesAtualNum).padStart(2,'0') + '-' + String(hoje.getDate()).padStart(2,'0'); // não usamos diretamente, usamos o mês como proxy
+    // Como os dados são por mês, usamos meses < mês atual + proporcional do mês atual
+    // Simplificação: soma meses completos até (exclusive) mês atual + mês atual inteiro
+    return dataGraf.filter(r => r.mes.startsWith(ano+'-') && r.mes <= limMes).reduce((s,r)=>s+r.valor,0);
+  };
 
   // ── CARDS RESUMO ─────────────────────────────────────────────────────
   const kpisEl = document.getElementById('servico-kpis');
   if (kpisEl) {
-    const hoje = new Date();
-    const mesHojeStr = String(hoje.getMonth()+1).padStart(2,'0') + '/' + String(hoje.getDate()).padStart(2,'0');
-
-    // Cards por ano
     const anoCards = todosAnos.map(ano => {
       const cor = ANOS_CORES[ano] || '#475569';
       const isAtual = ano === anoAtual;
-      const total = dataAno(ano,'').reduce((s,r)=>s+r.valor,0);
-      const mesesDados = [...new Set(dataAno(ano,'').map(r=>r.mes))].length;
-      const media = mesesDados ? total/mesesDados : 0;
+      const totalAno = dataGraf.filter(r=>r.mes.startsWith(ano+'-')).reduce((s,r)=>s+r.valor,0);
+
+      // Média só meses fechados (excluir mês atual para ano atual)
+      const mesesFechados = [...new Set(dataGraf.filter(r=>{
+        if (!r.mes.startsWith(ano+'-')) return false;
+        if (isAtual && r.mes >= mesAtualKey) return false; // exclui mês atual
+        return true;
+      }).map(r=>r.mes))];
+      const totalFechado = dataGraf.filter(r=>mesesFechados.includes(r.mes)).reduce((s,r)=>s+r.valor,0);
+      const media = mesesFechados.length ? totalFechado / mesesFechados.length : 0;
+
+      const mesesComDados = [...new Set(dataGraf.filter(r=>r.mes.startsWith(ano+'-')).map(r=>r.mes))].length;
 
       let extra = '';
       if (isAtual) {
         const projecao = media * 12;
         extra = '<div style="font-size:10px;color:var(--text-muted);margin-top:3px">Projeção 12m: <b style="color:'+cor+'">'+fmt(projecao)+'</b></div>';
       } else {
-        // acumulado até mesmo dia/mês do ano em questão
-        const limMes = mesAtualKey.replace(anoAtual, ano);
-        const acum = data.filter(r => r.mes.startsWith(ano+'-') && r.mes <= limMes).reduce((s,r)=>s+r.valor,0);
-        extra = '<div style="font-size:10px;color:var(--text-muted);margin-top:3px">Acum. até '+mesHojeStr+': <b style="color:'+cor+'">'+fmt(acum)+'</b></div>';
+        const acum = acumAteHoje(ano);
+        const mesLabel2 = String(mesAtualNum).padStart(2,'0')+'/'+String(hoje.getDate()).padStart(2,'0');
+        extra = '<div style="font-size:10px;color:var(--text-muted);margin-top:3px">Acum. até '+mesLabel2+': <b style="color:'+cor+'">'+fmt(acum)+'</b></div>';
       }
 
-      return '<div style="background:'+cor+(isAtual?'22':'10')+';border:'+(isAtual?'2':'1')+'px solid '+cor+(isAtual?'':cor+'66')+';border-radius:10px;padding:12px 16px;flex:'+(isAtual?'2':'1')+';min-width:160px">'
-        +'<div style="font-size:10px;font-weight:900;color:'+cor+';letter-spacing:1px;margin-bottom:4px">'+ano+(isAtual?' ★':'')+' <span style="font-weight:400;font-size:9px">('+mesesDados+' meses)</span></div>'
-        +'<div style="font-size:'+(isAtual?'26':'20')+'px;font-weight:900;color:'+cor+'">'+fmt(total)+'</div>'
-        +'<div style="font-size:10px;color:var(--text-muted);margin-top:2px">Média/mês: <b style="color:'+cor+'">'+fmt(media)+'</b></div>'
+      return '<div style="background:'+cor+(isAtual?'22':'10')+';border:'+(isAtual?'2':'1')+'px solid '+(isAtual?cor:cor+'66')+';border-radius:10px;padding:12px 16px;flex:'+(isAtual?'2':'1')+';min-width:160px">'
+        +'<div style="font-size:10px;font-weight:900;color:'+cor+';letter-spacing:1px;margin-bottom:4px">'+ano+(isAtual?' ★':'')+' <span style="font-weight:400;font-size:9px">('+mesesComDados+' meses)</span></div>'
+        +'<div style="font-size:'+(isAtual?'26':'20')+'px;font-weight:900;color:'+cor+'">'+fmt(totalAno)+'</div>'
+        +'<div style="font-size:10px;color:var(--text-muted);margin-top:2px">Média/mês'+(isAtual?' (meses fechados)':'')+': <b style="color:'+cor+'">'+fmt(media)+'</b></div>'
         +extra+'</div>';
     }).join('');
 
-    // Cards extras: mês atual, matriz, filial, fornecedores
-    const totalMesAtual = dataAno(anoAtual,'').filter(r=>r.mes===mesAtualKey).reduce((s,r)=>s+r.valor,0);
-    const totalMatriz   = dataAno(anoAtual,'1').reduce((s,r)=>s+r.valor,0);
-    const totalFilial   = dataAno(anoAtual,'2').reduce((s,r)=>s+r.valor,0);
-    const nFornecedores = new Set(dataAno(anoAtual,'').map(r=>r.empresa)).size;
+    // Cards extras
+    const totalMesAtual  = dataGraf.filter(r=>r.mes===mesAtualKey).reduce((s,r)=>s+r.valor,0);
+    const totalMatriz    = dataGraf.filter(r=>r.mes.startsWith(anoAtual+'-')&&r.empresa_num==='1').reduce((s,r)=>s+r.valor,0);
+    const totalFilial    = dataGraf.filter(r=>r.mes.startsWith(anoAtual+'-')&&r.empresa_num==='2').reduce((s,r)=>s+r.valor,0);
+    const nFornecedores  = new Set(dataGraf.filter(r=>r.mes.startsWith(anoAtual+'-')).map(r=>r.empresa)).size;
+
     const extraCards =
-      '<div style="background:#3d8bff18;border:1px solid #3d8bff66;border-radius:10px;padding:12px 16px;flex:1;min-width:130px">'
-        +'<div style="font-size:9px;font-weight:700;color:#3d8bff;letter-spacing:1px;margin-bottom:4px">MÊS ATUAL ('+mesLabel(mesAtualKey)+')</div>'
-        +'<div style="font-size:22px;font-weight:900;color:#3d8bff">'+fmt(totalMesAtual)+'</div></div>'
+      '<div style="background:#ffaa0022;border:2px solid #ffaa00;border-radius:10px;padding:12px 16px;flex:1;min-width:130px">'
+        +'<div style="font-size:9px;font-weight:700;color:#ffaa00;letter-spacing:1px;margin-bottom:4px">MÊS ATUAL ('+mesLabel(mesAtualKey)+')</div>'
+        +'<div style="font-size:22px;font-weight:900;color:#ffaa00">'+fmt(totalMesAtual)+'</div></div>'
       +'<div style="background:#3d8bff18;border:1px solid #3d8bff44;border-radius:10px;padding:12px 16px;flex:1;min-width:130px">'
         +'<div style="font-size:9px;font-weight:700;color:#3d8bff;letter-spacing:1px;margin-bottom:4px">MATRIZ '+anoAtual+'</div>'
         +'<div style="font-size:22px;font-weight:900;color:#3d8bff">'+fmt(totalMatriz)+'</div></div>'
@@ -4610,67 +4692,110 @@ function renderServico() {
       +'<div style="display:flex;gap:10px;flex-wrap:wrap">'+extraCards+'</div>';
   }
 
-  // ── LINHA DO TEMPO — filtro de ano ────────────────────────────────────
-  const anoTimeline = anoFilt || anoAtual;
-  const mesesTL = [...new Set(data.filter(r=>r.mes.startsWith(anoTimeline+'-')).map(r=>r.mes))].sort();
-  const matrizTL = {}, filialTL = {};
-  mesesTL.forEach(m=>{matrizTL[m]=0;filialTL[m]=0;});
-  data.filter(r=>r.mes.startsWith(anoTimeline+'-')).forEach(r=>{
-    if (r.empresa_num==='1') matrizTL[r.mes]=(matrizTL[r.mes]||0)+r.valor;
-    else filialTL[r.mes]=(filialTL[r.mes]||0)+r.valor;
-  });
-  const sumObj = o => Object.values(o).reduce((s,v)=>s+v,0);
+  // ── LINHA DO TEMPO ────────────────────────────────────────────────────
+  // Determina quais anos mostrar baseado no modo
+  let anosTimeline;
+  if (servicoTLMode === '2026') anosTimeline = [anoAtual];
+  else if (servicoTLMode === 'todos') anosTimeline = todosAnos;
+  else anosTimeline = todosAnos; // comparativo usa todos
+
+  // Meses do anoFilt para timeline
+  const mesesTL = [...new Set(dataGraf.filter(r=>anosTimeline.some(a=>r.mes.startsWith(a+'-'))).map(r=>r.mes))].sort();
+  // Para comparativo: agrupa por mês-calendário (MM)
+  const mesesLabel12 = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
   const theadTl = document.getElementById('timeline-thead');
   const tbodyTl = document.getElementById('timeline-body');
-  if (theadTl) theadTl.innerHTML = '<th>EMPRESA</th>'+mesesTL.map(m=>'<th>'+mesLabel(m)+'</th>').join('')+'<th>TOTAL</th>';
-  if (tbodyTl) tbodyTl.innerHTML =
-    '<tr><td style="color:#3d8bff;font-weight:700">MATRIZ</td>'+mesesTL.map(m=>'<td class="money" style="color:#3d8bff">'+fmt(matrizTL[m])+'</td>').join('')+'<td class="money" style="color:#3d8bff;font-weight:700">'+fmt(sumObj(matrizTL))+'</td></tr>'+
-    '<tr><td style="color:#ff8c3b;font-weight:700">FILIAL SP</td>'+mesesTL.map(m=>'<td class="money" style="color:#ff8c3b">'+fmt(filialTL[m])+'</td>').join('')+'<td class="money" style="color:#ff8c3b;font-weight:700">'+fmt(sumObj(filialTL))+'</td></tr>'+
-    '<tr style="background:var(--surface2)"><td style="color:#ffaa00;font-weight:700">TOTAL</td>'+mesesTL.map(m=>'<td class="money" style="color:#ffaa00;font-weight:700">'+fmt((matrizTL[m]||0)+(filialTL[m]||0))+'</td>').join('')+'<td class="money" style="color:#ffaa00;font-weight:700">'+fmt(sumObj(matrizTL)+sumObj(filialTL))+'</td></tr>';
 
-  const tlCanvas = document.getElementById('servico-timeline-chart');
-  if (tlCanvas) {
-    const totalTL = mesesTL.map(m=>(matrizTL[m]||0)+(filialTL[m]||0));
-    const tlChart = new Chart(tlCanvas, {
-      data: {
-        labels: mesesTL.map(mesLabel),
-        datasets: [
-          { type:'bar', label:'Filial SP', data:mesesTL.map(m=>filialTL[m]), backgroundColor:'#ff8c3b99', borderColor:'#ff8c3b', borderWidth:1, stack:'s',
-            datalabels:{display:false} },
-          { type:'bar', label:'Matriz',   data:mesesTL.map(m=>matrizTL[m]), backgroundColor:'#3d8bff99', borderColor:'#3d8bff', borderWidth:1, stack:'s',
-            datalabels:{display:false} },
-          { type:'line', label:'Total', data:totalTL, borderColor:'#ffaa00', backgroundColor:'transparent', borderWidth:2.5, pointRadius:4, tension:0.3,
-            datalabels:{display:true, color:'#ffaa00', font:{size:10,weight:'700'}, anchor:'end', align:'top', formatter:v=>'R$'+Math.round(v/1000)+'k'} }
-        ]
-      },
-      options: { responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{labels:{color:'#c8cfe8'}}, datalabels:{} },
-        scales:{
-          x:{stacked:true,ticks:{color:'#7a8299'},grid:{color:'#1e2334'}},
-          y:{stacked:true,ticks:{color:'#7a8299',callback:fmtK},grid:{color:'#1e2334'}}
-        },
-        layout:{padding:{top:30}}
-      }, plugins:[ChartDataLabels]
-    });
-    servicoCharts.push(tlChart);
+  if (servicoTLMode === 'comparativo') {
+    // Mostra Jan-Dez, cada ano uma linha, só até mês atual
+    const mesesCal = Array.from({length:mesAtualNum},(_,i)=>String(i+1).padStart(2,'0'));
+    if (theadTl) theadTl.innerHTML = '<th>ANO</th>'+mesesCal.map(m=>'<th>'+mesesLabel12[+m-1]+'</th>').join('')+'<th>ACUM.</th>';
+    if (tbodyTl) tbodyTl.innerHTML = todosAnos.map(ano=>{
+      const cor = ANOS_CORES[ano]||'#c8cfe8';
+      const vals = mesesCal.map(m=>dataGraf.filter(r=>r.mes===ano+'-'+m).reduce((s,r)=>s+r.valor,0));
+      const total = vals.reduce((s,v)=>s+v,0);
+      return '<tr><td style="color:'+cor+';font-weight:700">'+ano+'</td>'
+        +vals.map(v=>'<td class="money" style="color:'+cor+'">'+fmt(v)+'</td>').join('')
+        +'<td class="money" style="color:'+cor+';font-weight:700">'+fmt(total)+'</td></tr>';
+    }).join('');
+  } else {
+    const mesesTL2 = [...new Set(dataGraf.filter(r=>anosTimeline.some(a=>r.mes.startsWith(a+'-'))).map(r=>r.mes))].sort();
+    if (theadTl) theadTl.innerHTML = '<th>EMPRESA</th>'+mesesTL2.map(m=>'<th>'+mesLabel(m)+'</th>').join('')+'<th>TOTAL</th>';
+    if (tbodyTl) tbodyTl.innerHTML = anosTimeline.map(ano=>{
+      const matrizVals={}, filialVals={};
+      mesesTL2.filter(m=>m.startsWith(ano+'-')).forEach(m=>{matrizVals[m]=0;filialVals[m]=0;});
+      dataGraf.filter(r=>r.mes.startsWith(ano+'-')).forEach(r=>{
+        if(r.empresa_num==='1') matrizVals[r.mes]=(matrizVals[r.mes]||0)+r.valor;
+        else filialVals[r.mes]=(filialVals[r.mes]||0)+r.valor;
+      });
+      const sumM=Object.values(matrizVals).reduce((s,v)=>s+v,0);
+      const sumF=Object.values(filialVals).reduce((s,v)=>s+v,0);
+      const prefix = anosTimeline.length>1?ano+' ':'';
+      return '<tr><td style="color:#3d8bff;font-weight:700">'+prefix+'Matriz</td>'+mesesTL2.map(m=>'<td class="money" style="color:#3d8bff">'+fmt(matrizVals[m]||0)+'</td>').join('')+'<td class="money" style="color:#3d8bff;font-weight:700">'+fmt(sumM)+'</td></tr>'
+        +'<tr><td style="color:#ff8c3b;font-weight:700">'+prefix+'Filial SP</td>'+mesesTL2.map(m=>'<td class="money" style="color:#ff8c3b">'+fmt(filialVals[m]||0)+'</td>').join('')+'<td class="money" style="color:#ff8c3b;font-weight:700">'+fmt(sumF)+'</td></tr>'
+        +'<tr style="background:var(--surface2)"><td style="color:#ffaa00;font-weight:700">'+prefix+'Total</td>'+mesesTL2.map(m=>'<td class="money" style="color:#ffaa00;font-weight:700">'+fmt((matrizVals[m]||0)+(filialVals[m]||0))+'</td>').join('')+'<td class="money" style="color:#ffaa00;font-weight:700">'+fmt(sumM+sumF)+'</td></tr>';
+    }).join('');
   }
 
-  // ── EVOLUÇÃO MENSAL + TOP10 lado a lado ───────────────────────────────
-  const mesesLabel12 = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  // Gráfico timeline
+  const tlCanvas = document.getElementById('servico-timeline-chart');
+  if (tlCanvas) {
+    let tlDatasets;
+    if (servicoTLMode === 'comparativo') {
+      const mesesCal = Array.from({length:mesAtualNum},(_,i)=>String(i+1).padStart(2,'0'));
+      tlDatasets = todosAnos.map(ano=>{
+        const cor=ANOS_CORES[ano]||'#475569';
+        return {type:'line',label:ano,data:mesesCal.map(m=>dataGraf.filter(r=>r.mes===ano+'-'+m).reduce((s,r)=>s+r.valor,0)||null),
+          borderColor:cor,backgroundColor:cor+'33',borderWidth:ano===anoAtual?3:1.5,pointRadius:ano===anoAtual?4:2,tension:0.3,fill:false,spanGaps:true,datalabels:{display:false}};
+      });
+      servicoCharts.push(new Chart(tlCanvas,{
+        data:{labels:mesesLabel12.slice(0,mesAtualNum),datasets:tlDatasets},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{labels:{color:'#c8cfe8'}},datalabels:{display:false}},
+          scales:{x:{ticks:{color:'#7a8299'},grid:{color:'#1e2334'}},y:{ticks:{color:'#7a8299',callback:fmtK},grid:{color:'#1e2334'}}}
+        },plugins:[ChartDataLabels]
+      }));
+    } else {
+      const mesesTL3=[...new Set(dataGraf.filter(r=>anosTimeline.some(a=>r.mes.startsWith(a+'-'))).map(r=>r.mes))].sort();
+      const matByM={},filByM={};
+      mesesTL3.forEach(m=>{matByM[m]=0;filByM[m]=0;});
+      dataGraf.filter(r=>anosTimeline.some(a=>r.mes.startsWith(a+'-'))).forEach(r=>{
+        if(r.empresa_num==='1') matByM[r.mes]=(matByM[r.mes]||0)+r.valor;
+        else filByM[r.mes]=(filByM[r.mes]||0)+r.valor;
+      });
+      const totalTL=mesesTL3.map(m=>(matByM[m]||0)+(filByM[m]||0));
+      servicoCharts.push(new Chart(tlCanvas,{
+        data:{labels:mesesTL3.map(mesLabel),datasets:[
+          {type:'bar',label:'Filial SP',data:mesesTL3.map(m=>filByM[m]),backgroundColor:'#ff8c3b99',borderColor:'#ff8c3b',borderWidth:1,stack:'s',datalabels:{display:false}},
+          {type:'bar',label:'Matriz',data:mesesTL3.map(m=>matByM[m]),backgroundColor:'#3d8bff99',borderColor:'#3d8bff',borderWidth:1,stack:'s',datalabels:{display:false}},
+          {type:'line',label:'Total',data:totalTL,borderColor:'#ffaa00',backgroundColor:'transparent',borderWidth:2.5,pointRadius:4,tension:0.3,
+            datalabels:{display:true,color:'#ffaa00',font:{size:10,weight:'700'},anchor:'end',align:'top',formatter:fmtK}}
+        ]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{labels:{color:'#c8cfe8'}},datalabels:{}},
+          scales:{x:{stacked:true,ticks:{color:'#7a8299'},grid:{color:'#1e2334'}},y:{stacked:true,ticks:{color:'#7a8299',callback:fmtK},grid:{color:'#1e2334'}}},
+          layout:{padding:{top:30}}
+        },plugins:[ChartDataLabels]
+      }));
+    }
+  }
+
+  // ── EVOLUÇÃO MENSAL ───────────────────────────────────────────────────
   const evolCanvas = document.getElementById('servico-evolucao-chart');
   if (evolCanvas) {
-    const datasets = todosAnos.map(ano => {
-      const cor = ANOS_CORES[ano]||'#475569';
-      const vals = mesesLabel12.map((_,i) => {
-        const mk = ano+'-'+String(i+1).padStart(2,'0');
-        return data.filter(r=>r.mes===mk&&(!empFilt||r.empresa_num===empFilt)).reduce((s,r)=>s+r.valor,0)||null;
+    const datasets = todosAnos.map(ano=>{
+      const cor=ANOS_CORES[ano]||'#475569';
+      const vals=mesesLabel12.map((_,i)=>{
+        const mk=ano+'-'+String(i+1).padStart(2,'0');
+        const v=dataGraf.filter(r=>r.mes===mk).reduce((s,r)=>s+r.valor,0);
+        return v||null;
       });
-      return {label:ano,data:vals,borderColor:cor,backgroundColor:cor+'33',borderWidth:ano===anoAtual?3:1.5,pointRadius:ano===anoAtual?4:2,tension:0.3,fill:false,spanGaps:true,
-        datalabels:{display:false}};
+      return {label:ano,data:vals,borderColor:cor,backgroundColor:cor+'33',
+        borderWidth:ano===anoAtual?3:1.5,pointRadius:ano===anoAtual?4:2,tension:0.3,fill:false,spanGaps:true,datalabels:{display:false}};
     });
     servicoCharts.push(new Chart(evolCanvas,{
-      type:'line', data:{labels:mesesLabel12,datasets},
+      type:'line',data:{labels:mesesLabel12,datasets},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:'#c8cfe8',font:{size:11}}},datalabels:{display:false}},
         scales:{x:{ticks:{color:'#7a8299'},grid:{color:'#1e2334'}},y:{ticks:{color:'#7a8299',callback:fmtK},grid:{color:'#1e2334'}}}
@@ -4678,20 +4803,32 @@ function renderServico() {
     }));
   }
 
+  // Helper: valor de um ano para gráficos considerando modo acumulado/completo
+  const valorAnoGraf = (ano, filterFn) => {
+    if (servicoGrafMode === 'acumulado') {
+      // Só até mês atual (inclusive)
+      return dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&r.mes<=mesAtualKey&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
+    }
+    return dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
+  };
+
+  // ── TOP 10 ────────────────────────────────────────────────────────────
   const topCanvas = document.getElementById('servico-top-chart');
   if (topCanvas) {
-    const empTotaisAtual = {};
-    dataAno(anoAtual, empFilt).forEach(r=>{ empTotaisAtual[r.empresa]=(empTotaisAtual[r.empresa]||0)+r.valor; });
-    const top10 = Object.entries(empTotaisAtual).sort((a,b)=>b[1]-a[1]).slice(0,10).map(e=>e[0]);
-    const shortName = n => n.replace(/\d+ - /,'').substring(0,24);
-    const topDatasets = todosAnos.map(ano => {
-      const cor = ANOS_CORES[ano]||'#475569';
-      return {label:ano, data:top10.map(emp=>data.filter(r=>r.mes.startsWith(ano+'-')&&r.empresa===emp&&(!empFilt||r.empresa_num===empFilt)).reduce((s,r)=>s+r.valor,0)),
-        backgroundColor:cor+(ano===anoAtual?'cc':'55'), borderColor:cor, borderWidth:ano===anoAtual?2:1,
-        datalabels:{display:ano===anoAtual, color:'#fff', font:{size:9,weight:'700'}, anchor:'end', align:'right', formatter:v=>v>0?'R$'+Math.round(v/1000)+'k':''}};
+    const empTotAtual={};
+    dataGraf.filter(r=>r.mes.startsWith(anoAtual+'-')&&r.mes<=mesAtualKey).forEach(r=>{empTotAtual[r.empresa]=(empTotAtual[r.empresa]||0)+r.valor;});
+    const top10=Object.entries(empTotAtual).sort((a,b)=>b[1]-a[1]).slice(0,10).map(e=>e[0]);
+    const shortName=n=>n.replace(/\d+ - /,'').substring(0,24);
+    const topDatasets=todosAnos.map(ano=>{
+      const cor=ANOS_CORES[ano]||'#475569';
+      return {label:ano+(servicoGrafMode==='acumulado'?' (até '+String(mesAtualNum).padStart(2,'0')+'/'+String(hoje.getDate()).padStart(2,'0')+')':''),
+        data:top10.map(emp=>valorAnoGraf(ano,r=>r.empresa===emp)),
+        backgroundColor:cor+(ano===anoAtual?'cc':'55'),borderColor:cor,borderWidth:ano===anoAtual?2:1,
+        datalabels:{display:true,color:'#fff',font:{size:9,weight:'700'},anchor:'end',align:'right',
+          formatter:v=>v>0?fmtK(v):''}};
     });
     servicoCharts.push(new Chart(topCanvas,{
-      type:'bar', data:{labels:top10.map(shortName),datasets:topDatasets},
+      type:'bar',data:{labels:top10.map(shortName),datasets:topDatasets},
       options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:'#c8cfe8',font:{size:11}}},datalabels:{}},
         scales:{x:{ticks:{color:'#7a8299',callback:fmtK},grid:{color:'#1e2334'}},y:{ticks:{color:'#c8cfe8',font:{size:10}},grid:{display:false}}},
@@ -4700,19 +4837,19 @@ function renderServico() {
     }));
   }
 
-  // ── GRÁFICO PROCESSO — linha inteira ──────────────────────────────────
+  // ── PROCESSO ──────────────────────────────────────────────────────────
   const procCanvas = document.getElementById('servico-processo-chart');
   if (procCanvas) {
-    const processos = Object.keys(PROC_COLORS);
-    const procDatasets = todosAnos.map(ano => {
-      const cor = ANOS_CORES[ano]||'#475569';
-      return {label:ano,
-        data:processos.map(p=>data.filter(r=>r.mes.startsWith(ano+'-')&&(r.processo||'SEM PROCESSO')===p&&(!empFilt||r.empresa_num===empFilt)).reduce((s,r)=>s+r.valor,0)),
-        backgroundColor:cor+(ano===anoAtual?'cc':'55'), borderColor:cor, borderWidth:ano===anoAtual?2:1,
-        datalabels:{display:ano===anoAtual, color:'#fff', font:{size:9,weight:'700'}, anchor:'end', align:'top', formatter:v=>v>0?'R$'+Math.round(v/1000)+'k':''}};
+    const procDatasets=todosAnos.map(ano=>{
+      const cor=ANOS_CORES[ano]||'#475569';
+      return {label:ano+(servicoGrafMode==='acumulado'?' (até '+String(mesAtualNum).padStart(2,'0')+'/'+String(hoje.getDate()).padStart(2,'0')+')':''),
+        data:processos.map(p=>valorAnoGraf(ano,r=>(r.processo||'SEM PROCESSO')===p)),
+        backgroundColor:cor+(ano===anoAtual?'cc':'55'),borderColor:cor,borderWidth:ano===anoAtual?2:1,
+        datalabels:{display:true,color:'#fff',font:{size:9,weight:'700'},anchor:'end',align:'top',
+          formatter:v=>v>0?fmtK(v):''}};
     });
     servicoCharts.push(new Chart(procCanvas,{
-      type:'bar', data:{labels:processos, datasets:procDatasets},
+      type:'bar',data:{labels:processos,datasets:procDatasets},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:'#c8cfe8',font:{size:11}}},datalabels:{}},
         scales:{x:{ticks:{color:'#7a8299',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#7a8299',callback:fmtK},grid:{color:'#1e2334'}}},
@@ -4721,29 +4858,31 @@ function renderServico() {
     }));
   }
 
-  // ── TABELA DETALHADA ──────────────────────────────────────────────────
-  const filtMeses = [...new Set(dataFilt.map(r=>r.mes))].sort();
-  const empresas  = [...new Set(dataFilt.map(r=>r.empresa))].sort();
-  const mesTotals = {};
+  // ── TABELA ────────────────────────────────────────────────────────────
+  const filtMeses=[...new Set(dataFilt.map(r=>r.mes))].sort();
+  const empresas=[...new Set(dataFilt.map(r=>r.empresa))].sort();
+  const mesTotals={};
   filtMeses.forEach(m=>{mesTotals[m]=0;});
   dataFilt.forEach(r=>{mesTotals[r.mes]=(mesTotals[r.mes]||0)+r.valor;});
 
-  // colgroup
-  const tbl = document.getElementById('servico-table');
-  if (tbl) { const cg=tbl.querySelector('colgroup'); if(cg)cg.remove();
+  const tbl=document.getElementById('servico-table');
+  if (tbl) {
+    const cg=tbl.querySelector('colgroup'); if(cg) cg.remove();
     const nc=document.createElement('colgroup');
-    nc.innerHTML='<col style="width:200px"><col style="width:45px"><col style="width:100px">'+filtMeses.map(()=>'<col style="width:100px">').join('')+'<col style="width:100px">';
-    tbl.prepend(nc); }
+    nc.innerHTML='<col style="min-width:180px"><col style="width:42px"><col style="width:95px">'
+      +filtMeses.map(()=>'<col style="width:95px">').join('')+'<col style="width:95px">';
+    tbl.prepend(nc);
+    tbl.style.tableLayout='fixed';
+  }
 
-  const thead = document.getElementById('servico-thead-row');
-  if (thead) thead.innerHTML =
+  const thead=document.getElementById('servico-thead-row');
+  if (thead) thead.innerHTML=
     '<th style="text-align:left;cursor:pointer" onclick="servicoSort(&#39;nome&#39;)">FORNECEDOR</th>'
-    +'<th style="width:45px;text-align:center;cursor:pointer" onclick="servicoSort(&#39;emp&#39;)">EMP</th>'
+    +'<th style="text-align:center;cursor:pointer;font-size:10px" onclick="servicoSort(&#39;emp&#39;)">EMP</th>'
     +'<th style="text-align:left;font-size:10px;cursor:pointer" onclick="servicoSort(&#39;proc&#39;)">PROCESSO</th>'
     +filtMeses.map(m=>'<th style="text-align:right;cursor:pointer" onclick="servicoSort(&#39;mes:'+m+'&#39;)">'+mesLabel(m)+'</th>').join('')
     +'<th style="text-align:right;cursor:pointer" onclick="servicoSort(&#39;total&#39;)">TOTAL</th>';
 
-  // sort
   const rowTotals={};
   empresas.forEach(emp=>{rowTotals[emp]=filtMeses.reduce((s,m)=>{const e=dataFilt.find(r=>r.empresa===emp&&r.mes===m);return s+(e?e.valor:0);},0);});
   let sorted=[...empresas];
@@ -4752,26 +4891,28 @@ function renderServico() {
   else if(sv==='total_asc') sorted.sort((a,b)=>rowTotals[a]-rowTotals[b]);
   else if(sv==='emp') sorted.sort((a,b)=>{const ea=(dataFilt.find(r=>r.empresa===a)||{}).empresa_num||'';const eb=(dataFilt.find(r=>r.empresa===b)||{}).empresa_num||'';return ea.localeCompare(eb);});
   else if(sv==='proc') sorted.sort((a,b)=>{const pa=(dataFilt.find(r=>r.empresa===a)||{}).processo||'';const pb=(dataFilt.find(r=>r.empresa===b)||{}).processo||'';return pa.localeCompare(pb);});
-  else if(sv.startsWith('mes:')) { const mk=sv.replace('mes:','').replace('_desc','');
-    sorted.sort((a,b)=>{const va=(dataFilt.find(r=>r.empresa===a&&r.mes===mk)||{valor:0}).valor;const vb=(dataFilt.find(r=>r.empresa===b&&r.mes===mk)||{valor:0}).valor;return sv.endsWith('_desc')?vb-va:va-vb;}); }
+  else if(sv.startsWith('mes:')) {
+    const mk=sv.replace('mes:','').replace('_desc','');
+    sorted.sort((a,b)=>{const va=(dataFilt.find(r=>r.empresa===a&&r.mes===mk)||{valor:0}).valor;const vb=(dataFilt.find(r=>r.empresa===b&&r.mes===mk)||{valor:0}).valor;return sv.endsWith('_desc')?vb-va:va-vb;});
+  }
 
   const tbody=document.getElementById('servico-body');
-  if(tbody) tbody.innerHTML=sorted.map(emp=>{
+  if (tbody) tbody.innerHTML=sorted.map(emp=>{
     const d=dataFilt.find(r=>r.empresa===emp)||{};
     const cor=d.empresa_num==='1'?'#3d8bff':d.empresa_num==='2'?'#ff8c3b':'#c8cfe8';
     return '<tr>'
-      +'<td style="font-size:11px;text-align:left;color:'+cor+'">'+emp+'</td>'
+      +'<td style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:'+cor+'">'+emp+'</td>'
       +'<td style="text-align:center;font-size:10px;color:'+cor+';font-weight:700">'+(d.empresa_num==='1'?'MTZ':'FIL')+'</td>'
-      +'<td style="font-size:10px;color:var(--text-muted);text-align:left">'+(d.processo||'<span style="color:#64748b">—</span>')+'</td>'
-      +filtMeses.map(m=>{const e=dataFilt.find(r=>r.empresa===emp&&r.mes===m);return '<td class="money">'+(e?fmt(e.valor):'—')+'</td>';}).join('')
-      +'<td class="money" style="color:'+cor+';font-weight:700">'+fmt(rowTotals[emp])+'</td>'
+      +'<td style="font-size:10px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(d.processo||'—')+'</td>'
+      +filtMeses.map(m=>{const e=dataFilt.find(r=>r.empresa===emp&&r.mes===m);return '<td class="money" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(e?fmt(e.valor):'—')+'</td>';}).join('')
+      +'<td class="money" style="color:'+cor+';font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+fmt(rowTotals[emp])+'</td>'
       +'</tr>';
   }).join('');
 
   const foot=document.getElementById('servico-foot');
-  if(foot) foot.innerHTML='<tr><td colspan="3"><strong>TOTAL ('+sorted.length+' fornecedores)</strong></td>'
-    +filtMeses.map(m=>'<td class="money" style="color:#ffaa00;font-weight:700"><strong>'+fmt(mesTotals[m])+'</strong></td>').join('')
-    +'<td class="money" style="color:#ffaa00;font-weight:700"><strong>'+fmt(sorted.reduce((s,e)=>s+rowTotals[e],0))+'</strong></td></tr>';
+  if (foot) foot.innerHTML='<tr><td colspan="3"><strong>TOTAL ('+sorted.length+' fornecedores)</strong></td>'
+    +filtMeses.map(m=>'<td class="money" style="color:#ffaa00;font-weight:700">'+fmt(mesTotals[m])+'</td>').join('')
+    +'<td class="money" style="color:#ffaa00;font-weight:700">'+fmt(sorted.reduce((s,e)=>s+rowTotals[e],0))+'</td></tr>';
 }
 
 
