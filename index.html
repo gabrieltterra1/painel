@@ -950,8 +950,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   <!-- LINHA DO TEMPO MATRIZ vs FILIAL -->
   <div class="section-title">Linha do Tempo — Matriz vs Filial SP por Mês</div>
-  <div style="overflow-x:auto;margin-bottom:8px">
-    <table id="timeline-table" style="border-collapse:collapse;white-space:nowrap;font-size:12px">
+  <div style="overflow-x:auto;margin-bottom:8px;-webkit-overflow-scrolling:touch">
+    <table id="timeline-table" style="border-collapse:collapse;white-space:nowrap;font-size:12px;width:max-content;min-width:100%">
       <thead class="blue"><tr id="timeline-thead"></tr></thead>
       <tbody id="timeline-body"></tbody>
     </table>
@@ -962,6 +962,13 @@ document.addEventListener('DOMContentLoaded', () => {
       <div style="position:relative;height:300px;min-width:600px;">
         <canvas id="servico-timeline-chart"></canvas>
       </div>
+    </div>
+    <!-- Canvas separado para modo comparativo -->
+    <div id="servico-comparativo-wrap" style="display:none;margin-top:12px">
+      <div style="font-size:10px;color:var(--text-muted);letter-spacing:1px;margin-bottom:6px">COMPARATIVO ANUAL ATÉ HOJE</div>
+      <div style="overflow-x:auto"><div style="position:relative;height:280px;min-width:500px">
+        <canvas id="servico-comparativo-chart"></canvas>
+      </div></div>
     </div>
   </div>
 
@@ -4723,17 +4730,19 @@ function renderServico() {
   const theadTl = document.getElementById('timeline-thead');
   const tbodyTl = document.getElementById('timeline-body');
 
+  const tdP = 'padding:7px 14px;white-space:nowrap';
+  const thP = 'padding:8px 14px;white-space:nowrap;text-align:right';
+
   if (servicoTLMode === 'comparativo') {
-    // Mostra Jan-Dez, cada ano uma linha, só até mês atual
     const mesesCal = Array.from({length:mesAtualNum},(_,i)=>String(i+1).padStart(2,'0'));
-    if (theadTl) theadTl.innerHTML = '<th>ANO</th>'+mesesCal.map(m=>'<th>'+mesesLabel12[+m-1]+'</th>').join('')+'<th>ACUM.</th>';
+    if (theadTl) theadTl.innerHTML = '<th style="'+thP+';text-align:left">ANO</th>'+mesesCal.map(m=>'<th style="'+thP+'">'+mesesLabel12[+m-1]+'</th>').join('')+'<th style="'+thP+'">ACUM.</th>';
     if (tbodyTl) tbodyTl.innerHTML = todosAnos.map(ano=>{
       const cor = ANOS_CORES[ano]||'#c8cfe8';
       const vals = mesesCal.map(m=>dataGraf.filter(r=>r.mes===ano+'-'+m).reduce((s,r)=>s+r.valor,0));
       const total = vals.reduce((s,v)=>s+v,0);
-      return '<tr><td style="color:'+cor+';font-weight:700">'+ano+'</td>'
-        +vals.map(v=>'<td class="money" style="color:'+cor+'">'+fmt(v)+'</td>').join('')
-        +'<td class="money" style="color:'+cor+';font-weight:700">'+fmt(total)+'</td></tr>';
+      return '<tr><td style="'+tdP+';color:'+cor+';font-weight:700">'+ano+'</td>'
+        +vals.map(v=>'<td class="money" style="'+tdP+';color:'+cor+'">'+fmt(v)+'</td>').join('')
+        +'<td class="money" style="'+tdP+';color:'+cor+';font-weight:700">'+fmt(total)+'</td></tr>';
     }).join('');
   } else {
     // Para cada ano, uma secção separada com seus próprios meses
@@ -4749,59 +4758,67 @@ function renderServico() {
       const sumM=Object.values(matrizVals).reduce((s,v)=>s+v,0);
       const sumF=Object.values(filialVals).reduce((s,v)=>s+v,0);
       const cor=ANOS_CORES[ano]||'#c8cfe8';
-      return '<tr style="background:#ffffff0a"><td colspan="'+(mesesAno.length+2)+'" style="color:'+cor+';font-weight:900;padding:8px 10px;letter-spacing:1px">'+ano+'</td></tr>'
-        +'<tr><td style="color:#3d8bff;font-weight:700">Matriz</td>'+mesesAno.map(m=>'<td class="money" style="color:#3d8bff">'+fmt(matrizVals[m]||0)+'</td>').join('')+'<td class="money" style="color:#3d8bff;font-weight:700">'+fmt(sumM)+'</td></tr>'
-        +'<tr><td style="color:#ff8c3b;font-weight:700">Filial SP</td>'+mesesAno.map(m=>'<td class="money" style="color:#ff8c3b">'+fmt(filialVals[m]||0)+'</td>').join('')+'<td class="money" style="color:#ff8c3b;font-weight:700">'+fmt(sumF)+'</td></tr>'
-        +'<tr style="background:var(--surface2)"><td style="color:#ffaa00;font-weight:700">Total</td>'+mesesAno.map(m=>'<td class="money" style="color:#ffaa00;font-weight:700">'+fmt((matrizVals[m]||0)+(filialVals[m]||0))+'</td>').join('')+'<td class="money" style="color:#ffaa00;font-weight:700">'+fmt(sumM+sumF)+'</td></tr>';
+      return '<tr style="background:#ffffff0a"><td colspan="'+(mesesAno.length+2)+'" style="color:'+cor+';font-weight:900;'+tdP+';letter-spacing:1px">'+ano+'</td></tr>'
+        +'<tr><td style="'+tdP+';color:#3d8bff;font-weight:700">Matriz</td>'+mesesAno.map(m=>'<td class="money" style="'+tdP+';color:#3d8bff">'+fmt(matrizVals[m]||0)+'</td>').join('')+'<td class="money" style="'+tdP+';color:#3d8bff;font-weight:700">'+fmt(sumM)+'</td></tr>'
+        +'<tr><td style="'+tdP+';color:#ff8c3b;font-weight:700">Filial SP</td>'+mesesAno.map(m=>'<td class="money" style="'+tdP+';color:#ff8c3b">'+fmt(filialVals[m]||0)+'</td>').join('')+'<td class="money" style="'+tdP+';color:#ff8c3b;font-weight:700">'+fmt(sumF)+'</td></tr>'
+        +'<tr style="background:var(--surface2)"><td style="'+tdP+';color:#ffaa00;font-weight:700">Total</td>'+mesesAno.map(m=>'<td class="money" style="'+tdP+';color:#ffaa00;font-weight:700">'+fmt((matrizVals[m]||0)+(filialVals[m]||0))+'</td>').join('')+'<td class="money" style="'+tdP+';color:#ffaa00;font-weight:700">'+fmt(sumM+sumF)+'</td></tr>';
     }).join('');
     // Thead usa o ano com mais meses
     const anoRef = anosTimeline[anosTimeline.length-1];
     const mesesRef=[...new Set(dataGraf.filter(r=>r.mes.startsWith(anoRef+'-')).map(r=>r.mes))].sort();
-    if (theadTl) theadTl.innerHTML='<th>EMPRESA</th>'+mesesRef.map(m=>'<th>'+mesLabel(m)+'</th>').join('')+'<th>TOTAL</th>';
+    if (theadTl) theadTl.innerHTML='<th style="'+thP+';text-align:left">EMPRESA</th>'+mesesRef.map(m=>'<th style="'+thP+'">'+mesLabel(m)+'</th>').join('')+'<th style="'+thP+'">TOTAL</th>';
     if (tbodyTl) tbodyTl.innerHTML=htmlRows;
   }
 
-  // Gráfico timeline
+  // Gráfico timeline — sempre barras (Matriz/Filial/Total)
   const tlCanvas = document.getElementById('servico-timeline-chart');
-  if (tlCanvas) {
-    let tlDatasets;
-    if (servicoTLMode === 'comparativo') {
-      const mesesCal = Array.from({length:mesAtualNum},(_,i)=>String(i+1).padStart(2,'0'));
-      tlDatasets = todosAnos.map(ano=>{
-        const cor=ANOS_CORES[ano]||'#475569';
-        return {type:'line',label:ano,data:mesesCal.map(m=>dataGraf.filter(r=>r.mes===ano+'-'+m).reduce((s,r)=>s+r.valor,0)||null),
-          borderColor:cor,backgroundColor:cor+'33',borderWidth:ano===anoAtual?3:1.5,pointRadius:ano===anoAtual?4:2,tension:0.3,fill:false,spanGaps:true,datalabels:{display:false}};
-      });
-      servicoCharts.push(new Chart(tlCanvas,{
-        type:'line', data:{labels:mesesLabel12.slice(0,mesAtualNum),datasets:tlDatasets},
-        options:{responsive:true,maintainAspectRatio:false,
-          plugins:{legend:{labels:{color:'#c8cfe8'}},datalabels:{display:false}},
-          scales:{x:{ticks:{color:'#7a8299'},grid:{color:'#1e2334'}},y:{ticks:{color:'#7a8299',callback:fmtK},grid:{color:'#1e2334'}}}
-        },plugins:[ChartDataLabels]
-      }));
-    } else {
-      const mesesTL3=[...new Set(dataGraf.filter(r=>anosTimeline.some(a=>r.mes.startsWith(a+'-'))).map(r=>r.mes))].sort();
-      const matByM={},filByM={};
-      mesesTL3.forEach(m=>{matByM[m]=0;filByM[m]=0;});
-      dataGraf.filter(r=>anosTimeline.some(a=>r.mes.startsWith(a+'-'))).forEach(r=>{
-        if(r.empresa_num==='1') matByM[r.mes]=(matByM[r.mes]||0)+r.valor;
-        else filByM[r.mes]=(filByM[r.mes]||0)+r.valor;
-      });
-      const totalTL=mesesTL3.map(m=>(matByM[m]||0)+(filByM[m]||0));
-      servicoCharts.push(new Chart(tlCanvas,{
-        data:{labels:mesesTL3.map(mesLabel),datasets:[
-          {type:'bar',label:'Filial SP',data:mesesTL3.map(m=>filByM[m]),backgroundColor:'#ff8c3b99',borderColor:'#ff8c3b',borderWidth:1,stack:'s',datalabels:{display:false}},
-          {type:'bar',label:'Matriz',data:mesesTL3.map(m=>matByM[m]),backgroundColor:'#3d8bff99',borderColor:'#3d8bff',borderWidth:1,stack:'s',datalabels:{display:false}},
-          {type:'line',label:'Total',data:totalTL,borderColor:'#ffaa00',backgroundColor:'transparent',borderWidth:2.5,pointRadius:4,tension:0.3,
-            datalabels:{display:true,color:'#ffaa00',font:{size:10,weight:'700'},anchor:'end',align:'top',formatter:fmtK}}
-        ]},
-        options:{responsive:true,maintainAspectRatio:false,
-          plugins:{legend:{labels:{color:'#c8cfe8'}},datalabels:{}},
-          scales:{x:{stacked:true,ticks:{color:'#7a8299'},grid:{color:'#1e2334'}},y:{stacked:true,ticks:{color:'#7a8299',callback:fmtK},grid:{color:'#1e2334'}}},
-          layout:{padding:{top:30}}
-        },plugins:[ChartDataLabels]
-      }));
-    }
+  const compWrap = document.getElementById('servico-comparativo-wrap');
+  const compCanvas = document.getElementById('servico-comparativo-chart');
+
+  // Barras: usa anos da linha do tempo (2026 ou todos), nunca comparativo
+  const anosBarras = servicoTLMode === 'comparativo' ? [anoAtual] : anosTimeline;
+  const mesesBarras = [...new Set(dataGraf.filter(r=>anosBarras.some(a=>r.mes.startsWith(a+'-'))).map(r=>r.mes))].sort();
+  if (tlCanvas && mesesBarras.length) {
+    const matByM={}, filByM={};
+    mesesBarras.forEach(m=>{matByM[m]=0;filByM[m]=0;});
+    dataGraf.filter(r=>anosBarras.some(a=>r.mes.startsWith(a+'-'))).forEach(r=>{
+      if(r.empresa_num==='1') matByM[r.mes]=(matByM[r.mes]||0)+r.valor;
+      else filByM[r.mes]=(filByM[r.mes]||0)+r.valor;
+    });
+    const totalBarras = mesesBarras.map(m=>(matByM[m]||0)+(filByM[m]||0));
+    servicoCharts.push(new Chart(tlCanvas,{
+      data:{labels:mesesBarras.map(mesLabel),datasets:[
+        {type:'bar',label:'Filial SP',data:mesesBarras.map(m=>filByM[m]),backgroundColor:'#ff8c3b99',borderColor:'#ff8c3b',borderWidth:1,stack:'s',datalabels:{display:false}},
+        {type:'bar',label:'Matriz',data:mesesBarras.map(m=>matByM[m]),backgroundColor:'#3d8bff99',borderColor:'#3d8bff',borderWidth:1,stack:'s',datalabels:{display:false}},
+        {type:'line',label:'Total',data:totalBarras,borderColor:'#ffaa00',backgroundColor:'transparent',borderWidth:2.5,pointRadius:4,tension:0.3,
+          datalabels:{display:true,color:'#ffaa00',font:{size:10,weight:'700'},anchor:'end',align:'top',formatter:fmtK}}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:'#c8cfe8'}},datalabels:{}},
+        scales:{x:{stacked:true,ticks:{color:'#7a8299'},grid:{color:'#1e2334'}},y:{stacked:true,ticks:{color:'#7a8299',callback:fmtK},grid:{color:'#1e2334'}}},
+        layout:{padding:{top:30}}
+      },plugins:[ChartDataLabels]
+    }));
+  }
+
+  // Gráfico comparativo (só no modo comparativo) — linhas por ano Jan→mês atual
+  if (compWrap) compWrap.style.display = servicoTLMode === 'comparativo' ? 'block' : 'none';
+  if (servicoTLMode === 'comparativo' && compCanvas) {
+    const mesesCal = Array.from({length:mesAtualNum},(_,i)=>String(i+1).padStart(2,'0'));
+    const compDatasets = todosAnos.map(ano=>{
+      const cor=ANOS_CORES[ano]||'#475569';
+      return {label:ano, data:mesesCal.map(m=>dataGraf.filter(r=>r.mes===ano+'-'+m).reduce((s,r)=>s+r.valor,0)||null),
+        borderColor:cor,backgroundColor:cor+'22',borderWidth:ano===anoAtual?3:1.5,
+        pointRadius:ano===anoAtual?4:2,tension:0.3,fill:false,spanGaps:true,datalabels:{display:false}};
+    });
+    servicoCharts.push(new Chart(compCanvas,{
+      type:'line',
+      data:{labels:mesesLabel12.slice(0,mesAtualNum),datasets:compDatasets},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:'#c8cfe8'}},datalabels:{display:false}},
+        scales:{x:{ticks:{color:'#7a8299'},grid:{color:'#1e2334'}},y:{ticks:{color:'#7a8299',callback:fmtK},grid:{color:'#1e2334'}}}
+      },plugins:[ChartDataLabels]
+    }));
   }
 
   // ── EVOLUÇÃO MENSAL ───────────────────────────────────────────────────
