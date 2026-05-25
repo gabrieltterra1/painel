@@ -937,8 +937,8 @@ document.addEventListener('DOMContentLoaded', () => {
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
     <div style="display:flex;gap:4px;align-items:center">
       <span style="font-size:10px;color:var(--text-muted);letter-spacing:1px">LINHA DO TEMPO:</span>
-      <button id="tl-btn-comparativo" class="upload-btn" style="font-size:11px;padding:4px 10px;background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b" onclick="setTLMode('comparativo')">📅 Comparativo até hoje</button>
-      <button id="tl-btn-2026" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setTLMode('2026')">2026</button>
+      <button id="tl-btn-comparativo" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setTLMode('comparativo')">📅 Comparativo até hoje</button>
+      <button id="tl-btn-2026" class="upload-btn" style="font-size:11px;padding:4px 10px;background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b" onclick="setTLMode('2026')">2026</button>
       <button id="tl-btn-todos" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setTLMode('todos')">Todos os anos</button>
     </div>
     <div style="display:flex;gap:4px;align-items:center;margin-left:16px">
@@ -965,23 +965,30 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 
-  <!-- GRÁFICOS: EVOLUÇÃO + TOP 10 lado a lado -->
+  <!-- GRÁFICOS: EVOLUÇÃO + ACUMULADO lado a lado -->
   <div class="charts-grid" style="margin-bottom:24px;">
     <div class="chart-card">
       <div class="chart-title">Evolução Mensal por Ano (R$)</div>
       <div style="overflow-x:auto"><div style="position:relative;height:280px;min-width:400px"><canvas id="servico-evolucao-chart"></canvas></div></div>
     </div>
     <div class="chart-card">
+      <div class="chart-title">Acumulado por Ano (R$)</div>
+      <div style="overflow-x:auto"><div style="position:relative;height:280px;min-width:400px"><canvas id="servico-acum-chart"></canvas></div></div>
+    </div>
+  </div>
+  <!-- TOP 10 -->
+  <div class="charts-grid" style="margin-bottom:24px;">
+    <div class="chart-card">
       <div class="chart-title">Top 10 Fornecedores</div>
       <div style="overflow-x:auto"><div style="position:relative;height:320px;min-width:400px"><canvas id="servico-top-chart"></canvas></div></div>
     </div>
+    <div class="chart-card">
+      <div class="chart-title">Gastos por Processo</div>
+      <div style="overflow-x:auto"><div style="position:relative;height:320px;min-width:400px"><canvas id="servico-processo-chart"></canvas></div></div>
+    </div>
   </div>
 
-  <!-- GASTOS POR PROCESSO — linha inteira -->
-  <div class="chart-card" style="margin-bottom:24px">
-    <div class="chart-title">Gastos por Processo</div>
-    <div style="overflow-x:auto"><div style="position:relative;height:300px;min-width:600px"><canvas id="servico-processo-chart"></canvas></div></div>
-  </div>
+
 
   <!-- TABELA DETALHADA -->
   <div class="section-title">Detalhamento por Fornecedor</div>
@@ -4475,7 +4482,7 @@ function pvGerarPDF() {
 }
 
 // ── Estado dos toggles ───────────────────────────────────────────────────
-let servicoTLMode   = 'comparativo'; // 'comparativo' | '2026' | 'todos'
+let servicoTLMode   = '2026'; // 'comparativo' | '2026' | 'todos'
 let servicoGrafMode = 'acumulado';   // 'acumulado' | 'completo'
 
 function setTLMode(mode) {
@@ -4524,7 +4531,7 @@ function servicoLimparFiltros() {
   const ids = ['servico-search','servico-mes'];
   ids.forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   const ano = document.getElementById('servico-ano');
-  if (ano) ano.value = new Date().getFullYear().toString();
+  if (ano) ano.value = '';
   const emp = document.getElementById('servico-empresa');
   if (emp) emp.value = '';
   const proc = document.getElementById('servico-processo');
@@ -4572,7 +4579,7 @@ function renderServico() {
   const empFilt    = document.getElementById('servico-empresa')?.value||'';
   const procFilt   = document.getElementById('servico-processo')?.value||'';
   const mesFilt    = document.getElementById('servico-mes')?.value||'';
-  const anoFilt    = document.getElementById('servico-ano')?.value || anoAtual;
+  const anoFilt    = document.getElementById('servico-ano')?.value || '';
 
   // ── Populate filtro de ano ────────────────────────────────────────────
   const anoEl = document.getElementById('servico-ano');
@@ -4720,22 +4727,29 @@ function renderServico() {
         +'<td class="money" style="color:'+cor+';font-weight:700">'+fmt(total)+'</td></tr>';
     }).join('');
   } else {
-    const mesesTL2 = [...new Set(dataGraf.filter(r=>anosTimeline.some(a=>r.mes.startsWith(a+'-'))).map(r=>r.mes))].sort();
-    if (theadTl) theadTl.innerHTML = '<th>EMPRESA</th>'+mesesTL2.map(m=>'<th>'+mesLabel(m)+'</th>').join('')+'<th>TOTAL</th>';
-    if (tbodyTl) tbodyTl.innerHTML = anosTimeline.map(ano=>{
+    // Para cada ano, uma secção separada com seus próprios meses
+    const htmlRows = anosTimeline.map(ano=>{
+      const mesesAno=[...new Set(dataGraf.filter(r=>r.mes.startsWith(ano+'-')).map(r=>r.mes))].sort();
+      if (!mesesAno.length) return '';
       const matrizVals={}, filialVals={};
-      mesesTL2.filter(m=>m.startsWith(ano+'-')).forEach(m=>{matrizVals[m]=0;filialVals[m]=0;});
+      mesesAno.forEach(m=>{matrizVals[m]=0;filialVals[m]=0;});
       dataGraf.filter(r=>r.mes.startsWith(ano+'-')).forEach(r=>{
         if(r.empresa_num==='1') matrizVals[r.mes]=(matrizVals[r.mes]||0)+r.valor;
         else filialVals[r.mes]=(filialVals[r.mes]||0)+r.valor;
       });
       const sumM=Object.values(matrizVals).reduce((s,v)=>s+v,0);
       const sumF=Object.values(filialVals).reduce((s,v)=>s+v,0);
-      const prefix = anosTimeline.length>1?ano+' ':'';
-      return '<tr><td style="color:#3d8bff;font-weight:700">'+prefix+'Matriz</td>'+mesesTL2.map(m=>'<td class="money" style="color:#3d8bff">'+fmt(matrizVals[m]||0)+'</td>').join('')+'<td class="money" style="color:#3d8bff;font-weight:700">'+fmt(sumM)+'</td></tr>'
-        +'<tr><td style="color:#ff8c3b;font-weight:700">'+prefix+'Filial SP</td>'+mesesTL2.map(m=>'<td class="money" style="color:#ff8c3b">'+fmt(filialVals[m]||0)+'</td>').join('')+'<td class="money" style="color:#ff8c3b;font-weight:700">'+fmt(sumF)+'</td></tr>'
-        +'<tr style="background:var(--surface2)"><td style="color:#ffaa00;font-weight:700">'+prefix+'Total</td>'+mesesTL2.map(m=>'<td class="money" style="color:#ffaa00;font-weight:700">'+fmt((matrizVals[m]||0)+(filialVals[m]||0))+'</td>').join('')+'<td class="money" style="color:#ffaa00;font-weight:700">'+fmt(sumM+sumF)+'</td></tr>';
+      const cor=ANOS_CORES[ano]||'#c8cfe8';
+      return '<tr style="background:#ffffff0a"><td colspan="'+(mesesAno.length+2)+'" style="color:'+cor+';font-weight:900;padding:8px 10px;letter-spacing:1px">'+ano+'</td></tr>'
+        +'<tr><td style="color:#3d8bff;font-weight:700">Matriz</td>'+mesesAno.map(m=>'<td class="money" style="color:#3d8bff">'+fmt(matrizVals[m]||0)+'</td>').join('')+'<td class="money" style="color:#3d8bff;font-weight:700">'+fmt(sumM)+'</td></tr>'
+        +'<tr><td style="color:#ff8c3b;font-weight:700">Filial SP</td>'+mesesAno.map(m=>'<td class="money" style="color:#ff8c3b">'+fmt(filialVals[m]||0)+'</td>').join('')+'<td class="money" style="color:#ff8c3b;font-weight:700">'+fmt(sumF)+'</td></tr>'
+        +'<tr style="background:var(--surface2)"><td style="color:#ffaa00;font-weight:700">Total</td>'+mesesAno.map(m=>'<td class="money" style="color:#ffaa00;font-weight:700">'+fmt((matrizVals[m]||0)+(filialVals[m]||0))+'</td>').join('')+'<td class="money" style="color:#ffaa00;font-weight:700">'+fmt(sumM+sumF)+'</td></tr>';
     }).join('');
+    // Thead usa o ano com mais meses
+    const anoRef = anosTimeline[anosTimeline.length-1];
+    const mesesRef=[...new Set(dataGraf.filter(r=>r.mes.startsWith(anoRef+'-')).map(r=>r.mes))].sort();
+    if (theadTl) theadTl.innerHTML='<th>EMPRESA</th>'+mesesRef.map(m=>'<th>'+mesLabel(m)+'</th>').join('')+'<th>TOTAL</th>';
+    if (tbodyTl) tbodyTl.innerHTML=htmlRows;
   }
 
   // Gráfico timeline
@@ -4750,7 +4764,7 @@ function renderServico() {
           borderColor:cor,backgroundColor:cor+'33',borderWidth:ano===anoAtual?3:1.5,pointRadius:ano===anoAtual?4:2,tension:0.3,fill:false,spanGaps:true,datalabels:{display:false}};
       });
       servicoCharts.push(new Chart(tlCanvas,{
-        data:{labels:mesesLabel12.slice(0,mesAtualNum),datasets:tlDatasets},
+        type:'line', data:{labels:mesesLabel12.slice(0,mesAtualNum),datasets:tlDatasets},
         options:{responsive:true,maintainAspectRatio:false,
           plugins:{legend:{labels:{color:'#c8cfe8'}},datalabels:{display:false}},
           scales:{x:{ticks:{color:'#7a8299'},grid:{color:'#1e2334'}},y:{ticks:{color:'#7a8299',callback:fmtK},grid:{color:'#1e2334'}}}
@@ -4788,10 +4802,13 @@ function renderServico() {
       const cor=ANOS_CORES[ano]||'#475569';
       const vals=mesesLabel12.map((_,i)=>{
         const mk=ano+'-'+String(i+1).padStart(2,'0');
+        // no modo acumulado, não mostra meses futuros de outros anos
+        if (servicoGrafMode==='acumulado' && mk>mesAtualKey) return null;
         const v=dataGraf.filter(r=>r.mes===mk).reduce((s,r)=>s+r.valor,0);
         return v||null;
       });
-      return {label:ano,data:vals,borderColor:cor,backgroundColor:cor+'33',
+      return {label:ano+(servicoGrafMode==='acumulado'&&ano!==anoAtual?' (até '+String(mesAtualNum).padStart(2,'0')+'/'+String(hoje.getDate()).padStart(2,'0')+')':''),
+        data:vals,borderColor:cor,backgroundColor:cor+'33',
         borderWidth:ano===anoAtual?3:1.5,pointRadius:ano===anoAtual?4:2,tension:0.3,fill:false,spanGaps:true,datalabels:{display:false}};
     });
     servicoCharts.push(new Chart(evolCanvas,{
@@ -4811,6 +4828,58 @@ function renderServico() {
     }
     return dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
   };
+
+  // ── ACUMULADO POR ANO ────────────────────────────────────────────────
+  const acumCanvas = document.getElementById('servico-acum-chart');
+  if (acumCanvas) {
+    const datasets = todosAnos.map(ano => {
+      const cor = ANOS_CORES[ano] || '#475569';
+      // limite de meses: se acumulado, só até mês atual; se completo, todos 12
+      const limMes = servicoGrafMode === 'acumulado' ? mesAtualNum : 12;
+      let acum = 0;
+      const vals = Array.from({length: 12}, (_, i) => {
+        const idx = i + 1;
+        if (idx > limMes) return null;
+        const mk = ano + '-' + String(idx).padStart(2, '0');
+        const v = dataGraf.filter(r => r.mes === mk).reduce((s, r) => s + r.valor, 0);
+        acum += v;
+        return acum || null;
+      });
+      const label = servicoGrafMode === 'acumulado' && ano !== anoAtual
+        ? ano + ' (até ' + String(mesAtualNum).padStart(2,'0') + '/' + String(hoje.getDate()).padStart(2,'0') + ')'
+        : ano;
+      return {
+        label, data: vals,
+        borderColor: cor, backgroundColor: cor + '22',
+        borderWidth: ano === anoAtual ? 3 : 1.5,
+        pointRadius: ano === anoAtual ? 4 : 2,
+        tension: 0.3, fill: true, spanGaps: false,
+        datalabels: {
+          display: ctx => ctx.dataIndex === vals.filter(v=>v!==null).length - 1,
+          color: cor, font: {size: 10, weight: '700'},
+          anchor: 'end', align: 'right',
+          formatter: v => v ? fmtK(v) : ''
+        }
+      };
+    });
+    servicoCharts.push(new Chart(acumCanvas, {
+      type: 'line',
+      data: { labels: mesesLabel12, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#c8cfe8', font: { size: 11 } } },
+          datalabels: {}
+        },
+        scales: {
+          x: { ticks: { color: '#7a8299' }, grid: { color: '#1e2334' } },
+          y: { ticks: { color: '#7a8299', callback: fmtK }, grid: { color: '#1e2334' } }
+        },
+        layout: { padding: { right: 50 } }
+      },
+      plugins: [ChartDataLabels]
+    }));
+  }
 
   // ── TOP 10 ────────────────────────────────────────────────────────────
   const topCanvas = document.getElementById('servico-top-chart');
