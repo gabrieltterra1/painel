@@ -950,9 +950,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   <!-- LINHA DO TEMPO MATRIZ vs FILIAL -->
   <div class="section-title">Linha do Tempo — Matriz vs Filial SP por Mês</div>
-  <div class="timeline-scroll" style="width:100%;">
-    <table class="timeline-table" id="timeline-table" style="width:100%;">
-      <thead><tr id="timeline-thead"></tr></thead>
+  <div style="overflow-x:auto;margin-bottom:8px">
+    <table id="timeline-table" style="border-collapse:collapse;white-space:nowrap;font-size:12px">
+      <thead class="blue"><tr id="timeline-thead"></tr></thead>
       <tbody id="timeline-body"></tbody>
     </table>
   </div>
@@ -4583,11 +4583,13 @@ function renderServico() {
 
   // ── Populate filtro de ano ────────────────────────────────────────────
   const anoEl = document.getElementById('servico-ano');
-  if (anoEl && anoEl.options.length <= 1) {
+  if (anoEl) {
+    const prevAno = anoEl.value;
+    anoEl.innerHTML = '<option value="">Todos os anos</option>';
     todosAnos.forEach(a => {
       const opt = document.createElement('option');
       opt.value = a; opt.textContent = a;
-      if (a === anoAtual) opt.selected = true;
+      if (a === prevAno) opt.selected = true;
       anoEl.appendChild(opt);
     });
   }
@@ -4629,13 +4631,20 @@ function renderServico() {
   // Para gráficos: filtra por empresa/processo/busca mas não por mês específico
   const dataGraf = data.filter(passaFiltroBase);
 
-  // Acumulado até hoje (mesmo MM-DD) em qualquer ano
+  // Acumulado até mesmo dia/mês em qualquer ano
+  // Como dados são mensais, usamos meses fechados < mês atual + proporcional do mês atual
+  const diasNoMes = (ano, mes) => new Date(+ano, +mes, 0).getDate();
   const acumAteHoje = (ano) => {
-    const limMes = ano + '-' + String(mesAtualNum).padStart(2,'0');
-    const limDia = ano + '-' + String(mesAtualNum).padStart(2,'0') + '-' + String(hoje.getDate()).padStart(2,'0'); // não usamos diretamente, usamos o mês como proxy
-    // Como os dados são por mês, usamos meses < mês atual + proporcional do mês atual
-    // Simplificação: soma meses completos até (exclusive) mês atual + mês atual inteiro
-    return dataGraf.filter(r => r.mes.startsWith(ano+'-') && r.mes <= limMes).reduce((s,r)=>s+r.valor,0);
+    // Meses completamente antes do mês atual
+    const totalMesesAnteriores = dataGraf
+      .filter(r => r.mes.startsWith(ano+'-') && r.mes < ano+'-'+String(mesAtualNum).padStart(2,'0'))
+      .reduce((s,r)=>s+r.valor, 0);
+    // Proporcional do mês atual: (dia atual / dias no mês) * total do mês
+    const mesKey = ano + '-' + String(mesAtualNum).padStart(2,'0');
+    const totalMesAtualAno = dataGraf.filter(r=>r.mes===mesKey).reduce((s,r)=>s+r.valor, 0);
+    const diasMes = diasNoMes(ano, mesAtualNum);
+    const proporcional = totalMesAtualAno * (hoje.getDate() / diasMes);
+    return totalMesesAnteriores + proporcional;
   };
 
   // ── CARDS RESUMO ─────────────────────────────────────────────────────
@@ -4823,8 +4832,13 @@ function renderServico() {
   // Helper: valor de um ano para gráficos considerando modo acumulado/completo
   const valorAnoGraf = (ano, filterFn) => {
     if (servicoGrafMode === 'acumulado') {
-      // Só até mês atual (inclusive)
-      return dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&r.mes<=mesAtualKey&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
+      // Meses fechados antes do mês atual
+      const anterior = dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&r.mes<ano+'-'+String(mesAtualNum).padStart(2,'0')&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
+      // Proporcional do mês atual
+      const mesKey2 = ano+'-'+String(mesAtualNum).padStart(2,'0');
+      const mesTotal = dataGraf.filter(r=>r.mes===mesKey2&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
+      const diasMes2 = diasNoMes(ano, mesAtualNum);
+      return anterior + mesTotal * (hoje.getDate() / diasMes2);
     }
     return dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
   };
@@ -4834,14 +4848,17 @@ function renderServico() {
   if (acumCanvas) {
     const datasets = todosAnos.map(ano => {
       const cor = ANOS_CORES[ano] || '#475569';
-      // limite de meses: se acumulado, só até mês atual; se completo, todos 12
       const limMes = servicoGrafMode === 'acumulado' ? mesAtualNum : 12;
       let acum = 0;
       const vals = Array.from({length: 12}, (_, i) => {
         const idx = i + 1;
         if (idx > limMes) return null;
         const mk = ano + '-' + String(idx).padStart(2, '0');
-        const v = dataGraf.filter(r => r.mes === mk).reduce((s, r) => s + r.valor, 0);
+        let v = dataGraf.filter(r => r.mes === mk).reduce((s, r) => s + r.valor, 0);
+        // No último mês do modo acumulado, aplicar proporcional pelo dia
+        if (servicoGrafMode === 'acumulado' && idx === mesAtualNum) {
+          v = v * (hoje.getDate() / diasNoMes(ano, mesAtualNum));
+        }
         acum += v;
         return acum || null;
       });
