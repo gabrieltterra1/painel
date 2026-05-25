@@ -4746,6 +4746,7 @@ function renderServico() {
     }).join('');
   } else {
     // Para cada ano, uma secção separada com seus próprios meses
+    const allMeses = [...new Set(dataGraf.filter(r=>anosTimeline.some(a=>r.mes.startsWith(a+'-'))).map(r=>r.mes))].sort();
     const htmlRows = anosTimeline.map(ano=>{
       if (!dataGraf.some(r=>r.mes.startsWith(ano+'-'))) return '';
       const matrizVals={}, filialVals={};
@@ -4765,8 +4766,6 @@ function renderServico() {
     const anoRef = anosTimeline[anosTimeline.length-1];
     const mesesRef=[...new Set(dataGraf.filter(r=>r.mes.startsWith(anoRef+'-')).map(r=>r.mes))].sort();
     const shortMes = m => { const [y,mo]=m.split('-'); return new Date(+y,+mo-1,1).toLocaleDateString('pt-BR',{month:'short'}).toUpperCase().replace('.',''); };
-    // Use ALL months from all years for unified header
-    const allMeses = [...new Set(dataGraf.filter(r=>anosTimeline.some(a=>r.mes.startsWith(a+'-'))).map(r=>r.mes))].sort();
     if (theadTl) theadTl.innerHTML=
       '<th style="'+thP+';text-align:left;position:sticky;left:0;background:#1a2235;z-index:3;min-width:50px">ANO</th>'
       +'<th style="'+thP+';text-align:left;position:sticky;left:50px;background:#1a2235;z-index:3">EMPRESA</th>'
