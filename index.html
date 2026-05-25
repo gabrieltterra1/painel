@@ -974,30 +974,22 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 
-  <!-- GRÁFICOS COMPARATIVOS -->
+  <!-- GRÁFICOS: EVOLUÇÃO + TOP 10 lado a lado -->
   <div class="charts-grid" style="margin-bottom:24px;">
     <div class="chart-card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div class="chart-title" style="margin:0">Evolução Mensal por Ano (R$)</div>
-      </div>
-      <div style="overflow-x:auto"><div style="position:relative;height:260px;min-width:400px"><canvas id="servico-evolucao-chart"></canvas></div></div>
+      <div class="chart-title">Evolução Mensal por Ano (R$)</div>
+      <div style="overflow-x:auto"><div style="position:relative;height:280px;min-width:400px"><canvas id="servico-evolucao-chart"></canvas></div></div>
     </div>
     <div class="chart-card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div class="chart-title" style="margin:0">Gastos por Processo</div>
-        <div id="servico-processo-anos" style="display:flex;gap:6px"></div>
-      </div>
-      <div style="overflow-x:auto"><div style="position:relative;height:260px;min-width:400px"><canvas id="servico-processo-chart"></canvas></div></div>
+      <div class="chart-title">Top 10 Fornecedores</div>
+      <div style="overflow-x:auto"><div style="position:relative;height:320px;min-width:400px"><canvas id="servico-top-chart"></canvas></div></div>
     </div>
   </div>
 
-  <!-- TOP 10 FORNECEDORES -->
+  <!-- GASTOS POR PROCESSO — linha inteira -->
   <div class="chart-card" style="margin-bottom:24px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <div class="chart-title" style="margin:0">Top 10 Fornecedores</div>
-      <div id="servico-top-anos" style="display:flex;gap:6px"></div>
-    </div>
-    <div style="overflow-x:auto"><div style="position:relative;height:320px;min-width:400px"><canvas id="servico-top-chart"></canvas></div></div>
+    <div class="chart-title">Gastos por Processo</div>
+    <div style="overflow-x:auto"><div style="position:relative;height:300px;min-width:600px"><canvas id="servico-processo-chart"></canvas></div></div>
   </div>
 
   <!-- TABELA DETALHADA -->
@@ -4498,9 +4490,10 @@ function renderServico() {
   const data = DATA.servico || [];
   if (!data.length) return;
 
-  const fmtMoney = v => v > 0 ? 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) : '—';
+  const fmt  = v => v > 0 ? 'R$\u00a0' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+  const fmtK = v => 'R$' + Math.round(v/1000) + 'k';
   const mesLabel = m => { const [y,mo] = m.split('-'); return new Date(+y,+mo-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}).toUpperCase(); };
-  const ANOS_CORES = { '2024':'#64748b', '2025':'#06b6d4', '2026':'#f59e0b', '2027':'#a855f7' };
+  const ANOS_CORES = {'2023':'#475569','2024':'#64748b','2025':'#06b6d4','2026':'#f59e0b','2027':'#a855f7'};
   const PROC_COLORS = {
     'TORNO':'#3d8bff','RETÍFICA':'#a855f7','POLIMENTO':'#00c97a',
     'TRATAMENTO SUPERFICIAL':'#06b6d4','TRATAMENTO TÉRMICO':'#ff8c3b',
@@ -4508,279 +4501,277 @@ function renderServico() {
     'FILIAL SP':'#ff6b35','OUTROS':'#475569','SEM PROCESSO':'#334155'
   };
 
-  const anoAtual = new Date().getFullYear().toString();
-
-  // Extrair todos os anos e meses disponíveis
-  const todosAnos = [...new Set(data.map(r => r.mes.split('-')[0]))].sort();
+  const anoAtual  = new Date().getFullYear().toString();
+  const mesAtualKey = anoAtual + '-' + String(new Date().getMonth()+1).padStart(2,'0');
+  const todosAnos  = [...new Set(data.map(r => r.mes.split('-')[0]))].sort();
   const todosMeses = [...new Set(data.map(r => r.mes))].sort();
 
-  // Populate filtros dinâmicos
+  // ── Populate filtros dinâmicos ────────────────────────────────────────
   const anoEl = document.getElementById('servico-ano');
-  if (anoEl && anoEl.options.length <= 1) {
+  if (anoEl) {
+    const prev = anoEl.value || anoAtual;
+    anoEl.innerHTML = '<option value="">Todos os anos</option>';
     todosAnos.forEach(a => {
       const opt = document.createElement('option');
       opt.value = a; opt.textContent = a;
-      if (a === anoAtual) opt.selected = true;
+      if (a === prev) opt.selected = true;
       anoEl.appendChild(opt);
     });
   }
   const mesEl = document.getElementById('servico-mes');
   if (mesEl) {
-    const prevMes = mesEl.value;
+    const prevM = mesEl.value;
     while (mesEl.options.length > 1) mesEl.remove(1);
     todosMeses.forEach(m => {
       const opt = document.createElement('option');
       opt.value = m; opt.textContent = mesLabel(m);
-      if (m === prevMes) opt.selected = true;
+      if (m === prevM) opt.selected = true;
       mesEl.appendChild(opt);
     });
   }
 
-  // Filtros
-  const searchFilt  = (document.getElementById('servico-search')?.value||'').toLowerCase();
-  const empFilt     = document.getElementById('servico-empresa')?.value||'';
-  const procFilt    = document.getElementById('servico-processo')?.value||'';
-  const mesFilt     = document.getElementById('servico-mes')?.value||'';
-  const anoFilt     = document.getElementById('servico-ano')?.value||'';
-  const sortSel     = document.getElementById('servico-sort')?.value||'nome';
+  // ── Lê filtros ────────────────────────────────────────────────────────
+  const searchFilt = (document.getElementById('servico-search')?.value||'').toLowerCase();
+  const empFilt    = document.getElementById('servico-empresa')?.value||'';
+  const procFilt   = document.getElementById('servico-processo')?.value||'';
+  const mesFilt    = document.getElementById('servico-mes')?.value||'';
+  const anoFilt    = document.getElementById('servico-ano')?.value||'';
 
-  // Dataset filtrado para tabela (empresa+processo+busca+mes+ano)
-  const dataFilt = data.filter(r => {
+  const passaFiltro = r => {
     const ano = r.mes.split('-')[0];
     if (anoFilt && ano !== anoFilt) return false;
     if (mesFilt && r.mes !== mesFilt) return false;
     if (empFilt && r.empresa_num !== empFilt) return false;
     if (searchFilt && !r.empresa.toLowerCase().includes(searchFilt)) return false;
     if (procFilt) {
-      if (procFilt === 'SEM PROCESSO') { if (r.processo && r.processo.trim() !== '') return false; }
-      else { if (r.processo !== procFilt) return false; }
+      if (procFilt === 'SEM PROCESSO') { if (r.processo && r.processo.trim()) return false; }
+      else if (r.processo !== procFilt) return false;
     }
     return true;
-  });
+  };
+  const dataFilt = data.filter(passaFiltro);
 
-  // ── CARDS RESUMO POR ANO ──────────────────────────────────────────────
+  // helper: filtra só por ano+empresa (sem mes/search/proc) para gráficos globais
+  const dataAno = (ano, emp) => data.filter(r => r.mes.startsWith(ano+'-') && (!emp || r.empresa_num === emp));
+
+  // ── CARDS RESUMO ─────────────────────────────────────────────────────
   const kpisEl = document.getElementById('servico-kpis');
   if (kpisEl) {
-    const anoHoje = new Date().getFullYear();
-    const mesHoje = new Date().getMonth() + 1; // meses decorridos
-    const cardsHtml = todosAnos.map(ano => {
-      const totalAno = data.filter(r => r.mes.startsWith(ano+'-')).reduce((s,r) => s+r.valor, 0);
-      const mesesComDados = [...new Set(data.filter(r => r.mes.startsWith(ano+'-')).map(r => r.mes))].length;
-      const mediaMes = mesesComDados > 0 ? totalAno / mesesComDados : 0;
+    const hoje = new Date();
+    const mesHojeStr = String(hoje.getMonth()+1).padStart(2,'0') + '/' + String(hoje.getDate()).padStart(2,'0');
+
+    // Cards por ano
+    const anoCards = todosAnos.map(ano => {
       const cor = ANOS_CORES[ano] || '#475569';
       const isAtual = ano === anoAtual;
-      let projecaoHtml = '';
-      if (ano === anoAtual && mesHoje > 0 && mesesComDados > 0) {
-        const projetado = (totalAno / mesesComDados) * 12;
-        projecaoHtml = '<div style="font-size:10px;color:var(--text-muted);margin-top:4px">Projeção 12m: <span style="color:'+cor+'">'+fmtMoney(projetado)+'</span></div>';
+      const total = dataAno(ano,'').reduce((s,r)=>s+r.valor,0);
+      const mesesDados = [...new Set(dataAno(ano,'').map(r=>r.mes))].length;
+      const media = mesesDados ? total/mesesDados : 0;
+
+      let extra = '';
+      if (isAtual) {
+        const projecao = media * 12;
+        extra = '<div style="font-size:10px;color:var(--text-muted);margin-top:3px">Projeção 12m: <b style="color:'+cor+'">'+fmt(projecao)+'</b></div>';
+      } else {
+        // acumulado até mesmo dia/mês do ano em questão
+        const limMes = mesAtualKey.replace(anoAtual, ano);
+        const acum = data.filter(r => r.mes.startsWith(ano+'-') && r.mes <= limMes).reduce((s,r)=>s+r.valor,0);
+        extra = '<div style="font-size:10px;color:var(--text-muted);margin-top:3px">Acum. até '+mesHojeStr+': <b style="color:'+cor+'">'+fmt(acum)+'</b></div>';
       }
-      return '<div style="background:'+cor+(isAtual?'20':'0e')+';border:'+(isAtual?'2':'1')+'px solid '+cor+(isAtual?'':'66')+';border-radius:10px;padding:12px 18px;flex:'+(isAtual?'2':'1')+';min-width:180px">'
-        + '<div style="font-size:10px;font-weight:900;color:'+cor+';letter-spacing:1px;margin-bottom:6px">'+ano+(isAtual?' ★':'')+' <span style="font-weight:400;font-size:9px">('+mesesComDados+' meses)</span></div>'
-        + '<div style="font-size:'+(isAtual?'28':'22')+'px;font-weight:900;color:'+cor+'">'+fmtMoney(totalAno)+'</div>'
-        + '<div style="font-size:10px;color:var(--text-muted);margin-top:2px">Média/mês: <span style="color:'+cor+'">'+fmtMoney(mediaMes)+'</span></div>'
-        + projecaoHtml + '</div>';
+
+      return '<div style="background:'+cor+(isAtual?'22':'10')+';border:'+(isAtual?'2':'1')+'px solid '+cor+(isAtual?'':cor+'66')+';border-radius:10px;padding:12px 16px;flex:'+(isAtual?'2':'1')+';min-width:160px">'
+        +'<div style="font-size:10px;font-weight:900;color:'+cor+';letter-spacing:1px;margin-bottom:4px">'+ano+(isAtual?' ★':'')+' <span style="font-weight:400;font-size:9px">('+mesesDados+' meses)</span></div>'
+        +'<div style="font-size:'+(isAtual?'26':'20')+'px;font-weight:900;color:'+cor+'">'+fmt(total)+'</div>'
+        +'<div style="font-size:10px;color:var(--text-muted);margin-top:2px">Média/mês: <b style="color:'+cor+'">'+fmt(media)+'</b></div>'
+        +extra+'</div>';
     }).join('');
-    kpisEl.innerHTML = '<div style="display:flex;gap:10px;flex-wrap:wrap">' + cardsHtml + '</div>';
+
+    // Cards extras: mês atual, matriz, filial, fornecedores
+    const totalMesAtual = dataAno(anoAtual,'').filter(r=>r.mes===mesAtualKey).reduce((s,r)=>s+r.valor,0);
+    const totalMatriz   = dataAno(anoAtual,'1').reduce((s,r)=>s+r.valor,0);
+    const totalFilial   = dataAno(anoAtual,'2').reduce((s,r)=>s+r.valor,0);
+    const nFornecedores = new Set(dataAno(anoAtual,'').map(r=>r.empresa)).size;
+    const extraCards =
+      '<div style="background:#3d8bff18;border:1px solid #3d8bff66;border-radius:10px;padding:12px 16px;flex:1;min-width:130px">'
+        +'<div style="font-size:9px;font-weight:700;color:#3d8bff;letter-spacing:1px;margin-bottom:4px">MÊS ATUAL ('+mesLabel(mesAtualKey)+')</div>'
+        +'<div style="font-size:22px;font-weight:900;color:#3d8bff">'+fmt(totalMesAtual)+'</div></div>'
+      +'<div style="background:#3d8bff18;border:1px solid #3d8bff44;border-radius:10px;padding:12px 16px;flex:1;min-width:130px">'
+        +'<div style="font-size:9px;font-weight:700;color:#3d8bff;letter-spacing:1px;margin-bottom:4px">MATRIZ '+anoAtual+'</div>'
+        +'<div style="font-size:22px;font-weight:900;color:#3d8bff">'+fmt(totalMatriz)+'</div></div>'
+      +'<div style="background:#ff8c3b18;border:1px solid #ff8c3b44;border-radius:10px;padding:12px 16px;flex:1;min-width:130px">'
+        +'<div style="font-size:9px;font-weight:700;color:#ff8c3b;letter-spacing:1px;margin-bottom:4px">FILIAL SP '+anoAtual+'</div>'
+        +'<div style="font-size:22px;font-weight:900;color:#ff8c3b">'+fmt(totalFilial)+'</div></div>'
+      +'<div style="background:#00c97a18;border:1px solid #00c97a44;border-radius:10px;padding:12px 16px;flex:1;min-width:110px;text-align:center">'
+        +'<div style="font-size:9px;font-weight:700;color:#00c97a;letter-spacing:1px;margin-bottom:4px">FORNECEDORES '+anoAtual+'</div>'
+        +'<div style="font-size:32px;font-weight:900;color:#00c97a">'+nFornecedores+'</div></div>';
+
+    kpisEl.innerHTML =
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+anoCards+'</div>'
+      +'<div style="display:flex;gap:10px;flex-wrap:wrap">'+extraCards+'</div>';
   }
 
-  // ── GRÁFICO EVOLUÇÃO MENSAL POR ANO ──────────────────────────────────
-  const evolCanvas = document.getElementById('servico-evolucao-chart');
-  if (evolCanvas) {
-    const mesesLabel12 = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-    const datasets = todosAnos.map(ano => {
-      const cor = ANOS_CORES[ano] || '#475569';
-      const vals = mesesLabel12.map((_,i) => {
-        const mesKey = ano + '-' + String(i+1).padStart(2,'0');
-        return data.filter(r => r.mes === mesKey && (!empFilt || r.empresa_num === empFilt)).reduce((s,r) => s+r.valor, 0) || null;
-      });
-      return { label: ano, data: vals, borderColor: cor, backgroundColor: cor+'33',
-        borderWidth: ano === anoAtual ? 3 : 1.5,
-        pointRadius: ano === anoAtual ? 4 : 2,
-        tension: 0.3, fill: false, spanGaps: true };
-    });
-    const ec = new Chart(evolCanvas, {
-      type: 'line',
-      data: { labels: mesesLabel12, datasets },
-      options: { responsive:true, maintainAspectRatio:false,
-        plugins: { legend:{labels:{color:'#c8cfe8',font:{size:11}}}, datalabels:{display:false} },
-        scales: {
-          x: { ticks:{color:'#7a8299'}, grid:{color:'#1e2334'} },
-          y: { ticks:{color:'#7a8299', callback: v => 'R$'+Math.round(v/1000)+'k'}, grid:{color:'#1e2334'} }
-        }
-      }, plugins: [ChartDataLabels]
-    });
-    servicoCharts.push(ec);
-  }
-
-  // ── GRÁFICO PROCESSO — multi-ano ─────────────────────────────────────
-  const procAnosEl = document.getElementById('servico-processo-anos');
-  const anosParaProcesso = todosAnos; // mostrar todos
-  if (procAnosEl) {
-    procAnosEl.innerHTML = anosParaProcesso.map(a =>
-      '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;background:'+(ANOS_CORES[a]||'#475569')+'33;color:'+(ANOS_CORES[a]||'#475569')+'">'+a+'</span>'
-    ).join('');
-  }
-  const processos = Object.keys(PROC_COLORS);
-  const procCanvas = document.getElementById('servico-processo-chart');
-  if (procCanvas) {
-    const procDatasets = anosParaProcesso.map(ano => {
-      const cor = ANOS_CORES[ano] || '#475569';
-      const vals = processos.map(p => {
-        return data.filter(r => r.mes.startsWith(ano+'-') && (r.processo||'SEM PROCESSO') === p && (!empFilt || r.empresa_num === empFilt)).reduce((s,r) => s+r.valor, 0);
-      });
-      return { label: ano, data: vals, backgroundColor: cor+(ano===anoAtual?'cc':'66'),
-        borderColor: cor, borderWidth: ano===anoAtual?2:1 };
-    });
-    const pc = new Chart(procCanvas, {
-      type: 'bar',
-      data: { labels: processos, datasets: procDatasets },
-      options: { responsive:true, maintainAspectRatio:false,
-        plugins: { legend:{labels:{color:'#c8cfe8',font:{size:11}}}, datalabels:{display:false} },
-        scales: {
-          x: { ticks:{color:'#7a8299',font:{size:10}}, grid:{display:false} },
-          y: { ticks:{color:'#7a8299', callback: v => 'R$'+Math.round(v/1000)+'k'}, grid:{color:'#1e2334'} }
-        }
-      }, plugins: [ChartDataLabels]
-    });
-    servicoCharts.push(pc);
-  }
-
-  // ── TOP 10 FORNECEDORES — multi-ano ──────────────────────────────────
-  const topAnosEl = document.getElementById('servico-top-anos');
-  if (topAnosEl) {
-    topAnosEl.innerHTML = todosAnos.map(a =>
-      '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;background:'+(ANOS_CORES[a]||'#475569')+'33;color:'+(ANOS_CORES[a]||'#475569')+'">'+a+'</span>'
-    ).join('');
-  }
-  const topCanvas = document.getElementById('servico-top-chart');
-  if (topCanvas) {
-    // Calcular top 10 pelo ano atual
-    const empTotaisAtual = {};
-    data.filter(r => r.mes.startsWith(anoAtual+'-') && (!empFilt || r.empresa_num === empFilt))
-      .forEach(r => { empTotaisAtual[r.empresa] = (empTotaisAtual[r.empresa]||0) + r.valor; });
-    const top10emps = Object.entries(empTotaisAtual).sort((a,b) => b[1]-a[1]).slice(0,10).map(e => e[0]);
-    const shortName = n => n.length > 22 ? n.substring(0,22)+'…' : n;
-
-    const topDatasets = todosAnos.map(ano => {
-      const cor = ANOS_CORES[ano] || '#475569';
-      const vals = top10emps.map(emp =>
-        data.filter(r => r.mes.startsWith(ano+'-') && r.empresa === emp && (!empFilt || r.empresa_num === empFilt))
-          .reduce((s,r) => s+r.valor, 0)
-      );
-      return { label: ano, data: vals, backgroundColor: cor+(ano===anoAtual?'cc':'55'),
-        borderColor: cor, borderWidth: ano===anoAtual?2:1 };
-    });
-    const tc = new Chart(topCanvas, {
-      type: 'bar',
-      data: { labels: top10emps.map(shortName), datasets: topDatasets },
-      options: { indexAxis:'y', responsive:true, maintainAspectRatio:false,
-        plugins: { legend:{labels:{color:'#c8cfe8',font:{size:11}}}, datalabels:{display:false} },
-        scales: {
-          x: { ticks:{color:'#7a8299', callback: v => 'R$'+Math.round(v/1000)+'k'}, grid:{color:'#1e2334'} },
-          y: { ticks:{color:'#c8cfe8',font:{size:10}}, grid:{display:false} }
-        }
-      }, plugins: [ChartDataLabels]
-    });
-    servicoCharts.push(tc);
-  }
-
-  // ── TIMELINE MATRIZ vs FILIAL ──────────────────────────────────────────
-  const mesesTimeline = [...new Set(data.filter(r => !anoFilt || r.mes.startsWith(anoFilt+'-')).map(r => r.mes))].sort();
-  const matrizByMes = {}, filialByMes = {};
-  mesesTimeline.forEach(m => { matrizByMes[m] = 0; filialByMes[m] = 0; });
-  data.filter(r => !anoFilt || r.mes.startsWith(anoFilt+'-')).forEach(r => {
-    if (r.empresa_num === '1') matrizByMes[r.mes] = (matrizByMes[r.mes]||0) + r.valor;
-    else filialByMes[r.mes] = (filialByMes[r.mes]||0) + r.valor;
+  // ── LINHA DO TEMPO — filtro de ano ────────────────────────────────────
+  const anoTimeline = anoFilt || anoAtual;
+  const mesesTL = [...new Set(data.filter(r=>r.mes.startsWith(anoTimeline+'-')).map(r=>r.mes))].sort();
+  const matrizTL = {}, filialTL = {};
+  mesesTL.forEach(m=>{matrizTL[m]=0;filialTL[m]=0;});
+  data.filter(r=>r.mes.startsWith(anoTimeline+'-')).forEach(r=>{
+    if (r.empresa_num==='1') matrizTL[r.mes]=(matrizTL[r.mes]||0)+r.valor;
+    else filialTL[r.mes]=(filialTL[r.mes]||0)+r.valor;
   });
   const sumObj = o => Object.values(o).reduce((s,v)=>s+v,0);
 
-  // Timeline table
   const theadTl = document.getElementById('timeline-thead');
   const tbodyTl = document.getElementById('timeline-body');
-  if (theadTl) theadTl.innerHTML = '<th>EMPRESA</th>' + mesesTimeline.map(m=>'<th>'+mesLabel(m)+'</th>').join('') + '<th>TOTAL</th>';
+  if (theadTl) theadTl.innerHTML = '<th>EMPRESA</th>'+mesesTL.map(m=>'<th>'+mesLabel(m)+'</th>').join('')+'<th>TOTAL</th>';
   if (tbodyTl) tbodyTl.innerHTML =
-    '<tr class="blue"><td>MATRIZ</td>'+ mesesTimeline.map(m=>'<td class="money">'+fmtMoney(matrizByMes[m])+'</td>').join('') +'<td class="money">'+fmtMoney(sumObj(matrizByMes))+'</td></tr>'+
-    '<tr><td>FILIAL SP</td>'+ mesesTimeline.map(m=>'<td class="money">'+fmtMoney(filialByMes[m])+'</td>').join('') +'<td class="money">'+fmtMoney(sumObj(filialByMes))+'</td></tr>';
+    '<tr><td style="color:#3d8bff;font-weight:700">MATRIZ</td>'+mesesTL.map(m=>'<td class="money" style="color:#3d8bff">'+fmt(matrizTL[m])+'</td>').join('')+'<td class="money" style="color:#3d8bff;font-weight:700">'+fmt(sumObj(matrizTL))+'</td></tr>'+
+    '<tr><td style="color:#ff8c3b;font-weight:700">FILIAL SP</td>'+mesesTL.map(m=>'<td class="money" style="color:#ff8c3b">'+fmt(filialTL[m])+'</td>').join('')+'<td class="money" style="color:#ff8c3b;font-weight:700">'+fmt(sumObj(filialTL))+'</td></tr>'+
+    '<tr style="background:var(--surface2)"><td style="color:#ffaa00;font-weight:700">TOTAL</td>'+mesesTL.map(m=>'<td class="money" style="color:#ffaa00;font-weight:700">'+fmt((matrizTL[m]||0)+(filialTL[m]||0))+'</td>').join('')+'<td class="money" style="color:#ffaa00;font-weight:700">'+fmt(sumObj(matrizTL)+sumObj(filialTL))+'</td></tr>';
 
   const tlCanvas = document.getElementById('servico-timeline-chart');
   if (tlCanvas) {
+    const totalTL = mesesTL.map(m=>(matrizTL[m]||0)+(filialTL[m]||0));
     const tlChart = new Chart(tlCanvas, {
-      type: 'bar',
       data: {
-        labels: mesesTimeline.map(mesLabel),
+        labels: mesesTL.map(mesLabel),
         datasets: [
-          { label:'Matriz', data: mesesTimeline.map(m=>matrizByMes[m]), backgroundColor:'#3d8bff99', borderColor:'#3d8bff', borderWidth:1, stack:'s' },
-          { label:'Filial SP', data: mesesTimeline.map(m=>filialByMes[m]), backgroundColor:'#ff8c3b99', borderColor:'#ff8c3b', borderWidth:1, stack:'s' }
+          { type:'bar', label:'Filial SP', data:mesesTL.map(m=>filialTL[m]), backgroundColor:'#ff8c3b99', borderColor:'#ff8c3b', borderWidth:1, stack:'s',
+            datalabels:{display:false} },
+          { type:'bar', label:'Matriz',   data:mesesTL.map(m=>matrizTL[m]), backgroundColor:'#3d8bff99', borderColor:'#3d8bff', borderWidth:1, stack:'s',
+            datalabels:{display:false} },
+          { type:'line', label:'Total', data:totalTL, borderColor:'#ffaa00', backgroundColor:'transparent', borderWidth:2.5, pointRadius:4, tension:0.3,
+            datalabels:{display:true, color:'#ffaa00', font:{size:10,weight:'700'}, anchor:'end', align:'top', formatter:v=>'R$'+Math.round(v/1000)+'k'} }
         ]
       },
       options: { responsive:true, maintainAspectRatio:false,
-        plugins: { legend:{labels:{color:'#c8cfe8'}}, datalabels:{display:false} },
-        scales: {
-          x:{stacked:true, ticks:{color:'#7a8299'}, grid:{color:'#1e2334'}},
-          y:{stacked:true, ticks:{color:'#7a8299', callback:v=>'R$'+Math.round(v/1000)+'k'}, grid:{color:'#1e2334'}}
-        }
-      }, plugins: [ChartDataLabels]
+        plugins:{ legend:{labels:{color:'#c8cfe8'}}, datalabels:{} },
+        scales:{
+          x:{stacked:true,ticks:{color:'#7a8299'},grid:{color:'#1e2334'}},
+          y:{stacked:true,ticks:{color:'#7a8299',callback:fmtK},grid:{color:'#1e2334'}}
+        },
+        layout:{padding:{top:30}}
+      }, plugins:[ChartDataLabels]
     });
     servicoCharts.push(tlChart);
   }
 
-  // ── TABELA DETALHADA ──────────────────────────────────────────────────
-  const filtMeses = [...new Set(dataFilt.map(r => r.mes))].sort();
-  const empresas = [...new Set(dataFilt.map(r => r.empresa))].sort();
-  const mesTotals = {};
-  filtMeses.forEach(m => { mesTotals[m] = 0; });
-  dataFilt.forEach(r => { mesTotals[r.mes] = (mesTotals[r.mes]||0) + r.valor; });
-
-  // Thead
-  const thead = document.getElementById('servico-thead-row');
-  const termTable = document.getElementById('servico-table');
-  if (termTable) {
-    const cg = termTable.querySelector('colgroup');
-    if (cg) cg.remove();
-    const newCg = document.createElement('colgroup');
-    newCg.innerHTML = '<col style="width:200px"><col style="width:45px"><col style="width:100px">'
-      + filtMeses.map(()=>'<col style="width:100px">').join('')
-      + '<col style="width:100px">';
-    termTable.prepend(newCg);
+  // ── EVOLUÇÃO MENSAL + TOP10 lado a lado ───────────────────────────────
+  const mesesLabel12 = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const evolCanvas = document.getElementById('servico-evolucao-chart');
+  if (evolCanvas) {
+    const datasets = todosAnos.map(ano => {
+      const cor = ANOS_CORES[ano]||'#475569';
+      const vals = mesesLabel12.map((_,i) => {
+        const mk = ano+'-'+String(i+1).padStart(2,'0');
+        return data.filter(r=>r.mes===mk&&(!empFilt||r.empresa_num===empFilt)).reduce((s,r)=>s+r.valor,0)||null;
+      });
+      return {label:ano,data:vals,borderColor:cor,backgroundColor:cor+'33',borderWidth:ano===anoAtual?3:1.5,pointRadius:ano===anoAtual?4:2,tension:0.3,fill:false,spanGaps:true,
+        datalabels:{display:false}};
+    });
+    servicoCharts.push(new Chart(evolCanvas,{
+      type:'line', data:{labels:mesesLabel12,datasets},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:'#c8cfe8',font:{size:11}}},datalabels:{display:false}},
+        scales:{x:{ticks:{color:'#7a8299'},grid:{color:'#1e2334'}},y:{ticks:{color:'#7a8299',callback:fmtK},grid:{color:'#1e2334'}}}
+      },plugins:[ChartDataLabels]
+    }));
   }
+
+  const topCanvas = document.getElementById('servico-top-chart');
+  if (topCanvas) {
+    const empTotaisAtual = {};
+    dataAno(anoAtual, empFilt).forEach(r=>{ empTotaisAtual[r.empresa]=(empTotaisAtual[r.empresa]||0)+r.valor; });
+    const top10 = Object.entries(empTotaisAtual).sort((a,b)=>b[1]-a[1]).slice(0,10).map(e=>e[0]);
+    const shortName = n => n.replace(/\d+ - /,'').substring(0,24);
+    const topDatasets = todosAnos.map(ano => {
+      const cor = ANOS_CORES[ano]||'#475569';
+      return {label:ano, data:top10.map(emp=>data.filter(r=>r.mes.startsWith(ano+'-')&&r.empresa===emp&&(!empFilt||r.empresa_num===empFilt)).reduce((s,r)=>s+r.valor,0)),
+        backgroundColor:cor+(ano===anoAtual?'cc':'55'), borderColor:cor, borderWidth:ano===anoAtual?2:1,
+        datalabels:{display:ano===anoAtual, color:'#fff', font:{size:9,weight:'700'}, anchor:'end', align:'right', formatter:v=>v>0?'R$'+Math.round(v/1000)+'k':''}};
+    });
+    servicoCharts.push(new Chart(topCanvas,{
+      type:'bar', data:{labels:top10.map(shortName),datasets:topDatasets},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:'#c8cfe8',font:{size:11}}},datalabels:{}},
+        scales:{x:{ticks:{color:'#7a8299',callback:fmtK},grid:{color:'#1e2334'}},y:{ticks:{color:'#c8cfe8',font:{size:10}},grid:{display:false}}},
+        layout:{padding:{right:50}}
+      },plugins:[ChartDataLabels]
+    }));
+  }
+
+  // ── GRÁFICO PROCESSO — linha inteira ──────────────────────────────────
+  const procCanvas = document.getElementById('servico-processo-chart');
+  if (procCanvas) {
+    const processos = Object.keys(PROC_COLORS);
+    const procDatasets = todosAnos.map(ano => {
+      const cor = ANOS_CORES[ano]||'#475569';
+      return {label:ano,
+        data:processos.map(p=>data.filter(r=>r.mes.startsWith(ano+'-')&&(r.processo||'SEM PROCESSO')===p&&(!empFilt||r.empresa_num===empFilt)).reduce((s,r)=>s+r.valor,0)),
+        backgroundColor:cor+(ano===anoAtual?'cc':'55'), borderColor:cor, borderWidth:ano===anoAtual?2:1,
+        datalabels:{display:ano===anoAtual, color:'#fff', font:{size:9,weight:'700'}, anchor:'end', align:'top', formatter:v=>v>0?'R$'+Math.round(v/1000)+'k':''}};
+    });
+    servicoCharts.push(new Chart(procCanvas,{
+      type:'bar', data:{labels:processos, datasets:procDatasets},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:'#c8cfe8',font:{size:11}}},datalabels:{}},
+        scales:{x:{ticks:{color:'#7a8299',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#7a8299',callback:fmtK},grid:{color:'#1e2334'}}},
+        layout:{padding:{top:28}}
+      },plugins:[ChartDataLabels]
+    }));
+  }
+
+  // ── TABELA DETALHADA ──────────────────────────────────────────────────
+  const filtMeses = [...new Set(dataFilt.map(r=>r.mes))].sort();
+  const empresas  = [...new Set(dataFilt.map(r=>r.empresa))].sort();
+  const mesTotals = {};
+  filtMeses.forEach(m=>{mesTotals[m]=0;});
+  dataFilt.forEach(r=>{mesTotals[r.mes]=(mesTotals[r.mes]||0)+r.valor;});
+
+  // colgroup
+  const tbl = document.getElementById('servico-table');
+  if (tbl) { const cg=tbl.querySelector('colgroup'); if(cg)cg.remove();
+    const nc=document.createElement('colgroup');
+    nc.innerHTML='<col style="width:200px"><col style="width:45px"><col style="width:100px">'+filtMeses.map(()=>'<col style="width:100px">').join('')+'<col style="width:100px">';
+    tbl.prepend(nc); }
+
+  const thead = document.getElementById('servico-thead-row');
   if (thead) thead.innerHTML =
     '<th style="text-align:left;cursor:pointer" onclick="servicoSort(&#39;nome&#39;)">FORNECEDOR</th>'
     +'<th style="width:45px;text-align:center;cursor:pointer" onclick="servicoSort(&#39;emp&#39;)">EMP</th>'
-    +'<th style="width:100px;text-align:left;font-size:10px;cursor:pointer" onclick="servicoSort(&#39;proc&#39;)">PROCESSO</th>'
-    + filtMeses.map(function(m){ return '<th style="text-align:right;cursor:pointer" onclick="servicoSort(&#39;mes:'+m+'&#39;)">'+mesLabel(m)+'</th>'; }).join('')
-    + '<th style="text-align:right;cursor:pointer" onclick="servicoSort(&#39;total&#39;)">TOTAL</th>';
+    +'<th style="text-align:left;font-size:10px;cursor:pointer" onclick="servicoSort(&#39;proc&#39;)">PROCESSO</th>'
+    +filtMeses.map(m=>'<th style="text-align:right;cursor:pointer" onclick="servicoSort(&#39;mes:'+m+'&#39;)">'+mesLabel(m)+'</th>').join('')
+    +'<th style="text-align:right;cursor:pointer" onclick="servicoSort(&#39;total&#39;)">TOTAL</th>';
 
-  // Sort
-  const rowTotals = {};
-  empresas.forEach(emp => { rowTotals[emp] = filtMeses.reduce((s,m) => { const e = dataFilt.find(r=>r.empresa===emp&&r.mes===m); return s+(e?e.valor:0); }, 0); });
-  let sortedEmpresas = [...empresas];
-  const sv = (document.getElementById('servico-sort')||{}).value||'nome';
-  if (sv==='total'||sv==='total_desc') sortedEmpresas.sort((a,b)=>rowTotals[b]-rowTotals[a]);
-  else if (sv==='total_asc') sortedEmpresas.sort((a,b)=>rowTotals[a]-rowTotals[b]);
-  else if (sv==='emp') sortedEmpresas.sort((a,b)=>{const ea=(dataFilt.find(r=>r.empresa===a)||{}).empresa_num||'';const eb=(dataFilt.find(r=>r.empresa===b)||{}).empresa_num||'';return ea.localeCompare(eb);});
-  else if (sv==='proc') sortedEmpresas.sort((a,b)=>{const pa=(dataFilt.find(r=>r.empresa===a)||{}).processo||'';const pb=(dataFilt.find(r=>r.empresa===b)||{}).processo||'';return pa.localeCompare(pb);});
-  else if (sv.startsWith('mes:')) {
-    const m=sv.replace('mes:','');
-    sortedEmpresas.sort((a,b)=>{const va=(dataFilt.find(r=>r.empresa===a&&r.mes===m)||{valor:0}).valor;const vb=(dataFilt.find(r=>r.empresa===b&&r.mes===m)||{valor:0}).valor;return vb-va;});
-  }
+  // sort
+  const rowTotals={};
+  empresas.forEach(emp=>{rowTotals[emp]=filtMeses.reduce((s,m)=>{const e=dataFilt.find(r=>r.empresa===emp&&r.mes===m);return s+(e?e.valor:0);},0);});
+  let sorted=[...empresas];
+  const sv=(document.getElementById('servico-sort')||{}).value||'total_desc';
+  if(sv==='total'||sv==='total_desc') sorted.sort((a,b)=>rowTotals[b]-rowTotals[a]);
+  else if(sv==='total_asc') sorted.sort((a,b)=>rowTotals[a]-rowTotals[b]);
+  else if(sv==='emp') sorted.sort((a,b)=>{const ea=(dataFilt.find(r=>r.empresa===a)||{}).empresa_num||'';const eb=(dataFilt.find(r=>r.empresa===b)||{}).empresa_num||'';return ea.localeCompare(eb);});
+  else if(sv==='proc') sorted.sort((a,b)=>{const pa=(dataFilt.find(r=>r.empresa===a)||{}).processo||'';const pb=(dataFilt.find(r=>r.empresa===b)||{}).processo||'';return pa.localeCompare(pb);});
+  else if(sv.startsWith('mes:')) { const mk=sv.replace('mes:','').replace('_desc','');
+    sorted.sort((a,b)=>{const va=(dataFilt.find(r=>r.empresa===a&&r.mes===mk)||{valor:0}).valor;const vb=(dataFilt.find(r=>r.empresa===b&&r.mes===mk)||{valor:0}).valor;return sv.endsWith('_desc')?vb-va:va-vb;}); }
 
-  const color = emp => { const d=dataFilt.find(r=>r.empresa===emp); return d&&d.empresa_num==='1'?'#3d8bff':d&&d.empresa_num==='2'?'#ff8c3b':'#c8cfe8'; };
-  const tbody = document.getElementById('servico-body');
-  if (tbody) tbody.innerHTML = sortedEmpresas.map(emp => {
-    const d = dataFilt.find(r=>r.empresa===emp)||{};
+  const tbody=document.getElementById('servico-body');
+  if(tbody) tbody.innerHTML=sorted.map(emp=>{
+    const d=dataFilt.find(r=>r.empresa===emp)||{};
+    const cor=d.empresa_num==='1'?'#3d8bff':d.empresa_num==='2'?'#ff8c3b':'#c8cfe8';
     return '<tr>'
-      +'<td style="font-size:11px;text-align:left">'+emp+'</td>'
-      +'<td style="text-align:center;font-size:10px;color:'+(d.empresa_num==='1'?'#3d8bff':'#ff8c3b')+'">'+( d.empresa_num==='1'?'MTZ':'FIL')+'</td>'
+      +'<td style="font-size:11px;text-align:left;color:'+cor+'">'+emp+'</td>'
+      +'<td style="text-align:center;font-size:10px;color:'+cor+';font-weight:700">'+(d.empresa_num==='1'?'MTZ':'FIL')+'</td>'
       +'<td style="font-size:10px;color:var(--text-muted);text-align:left">'+(d.processo||'<span style="color:#64748b">—</span>')+'</td>'
-      + filtMeses.map(m => { const e=dataFilt.find(r=>r.empresa===emp&&r.mes===m); return '<td class="money">'+(e?fmtMoney(e.valor):'—')+'</td>'; }).join('')
-      +'<td class="money" style="color:'+color(emp)+';font-weight:700">'+fmtMoney(rowTotals[emp])+'</td>'
+      +filtMeses.map(m=>{const e=dataFilt.find(r=>r.empresa===emp&&r.mes===m);return '<td class="money">'+(e?fmt(e.valor):'—')+'</td>';}).join('')
+      +'<td class="money" style="color:'+cor+';font-weight:700">'+fmt(rowTotals[emp])+'</td>'
       +'</tr>';
   }).join('');
 
-  const foot = document.getElementById('servico-foot');
-  if (foot) foot.innerHTML = '<tr><td colspan="3"><strong>TOTAL ('+sortedEmpresas.length+' fornecedores)</strong></td>'
-    + filtMeses.map(m=>'<td class="money"><strong>'+fmtMoney(mesTotals[m])+'</strong></td>').join('')
-    +'<td class="money"><strong>'+fmtMoney(sortedEmpresas.reduce((s,e)=>s+rowTotals[e],0))+'</strong></td></tr>';
+  const foot=document.getElementById('servico-foot');
+  if(foot) foot.innerHTML='<tr><td colspan="3"><strong>TOTAL ('+sorted.length+' fornecedores)</strong></td>'
+    +filtMeses.map(m=>'<td class="money" style="color:#ffaa00;font-weight:700"><strong>'+fmt(mesTotals[m])+'</strong></td>').join('')
+    +'<td class="money" style="color:#ffaa00;font-weight:700"><strong>'+fmt(sorted.reduce((s,e)=>s+rowTotals[e],0))+'</strong></td></tr>';
 }
 
 
