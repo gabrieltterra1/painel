@@ -711,6 +711,23 @@
   </div>
 </div>
 
+<!-- Modal Meta Competitividade -->
+<div id="modal-meta-comp" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:#0d1b3e;border:1px solid var(--border);border-radius:12px;padding:24px;min-width:380px;max-width:95vw;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:#00c97a;letter-spacing:1px">✏ META COMPETITIVIDADE — SERVIÇOS TERCEIROS</div>
+      <button onclick="fecharModalMetaComp()" style="background:none;border:none;color:#666;font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:16px">Edite os valores e clique em Salvar. Os dados ficam no Google Sheets.</div>
+    <div id="meta-comp-form" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+    <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="fecharModalMetaComp()" style="background:#334;color:#aab;border:1px solid #556;padding:6px 16px;border-radius:6px;cursor:pointer">Cancelar</button>
+      <button onclick="salvarMetaComp()" style="background:#00c97a;color:#000;border:none;padding:6px 16px;border-radius:6px;font-weight:700;cursor:pointer">💾 Salvar no Sheets</button>
+    </div>
+    <div id="meta-comp-status" style="margin-top:8px;font-size:11px;text-align:center"></div>
+  </div>
+</div>
+
 <script>
 // Hash simples para não expor a senha em texto puro
 const HASH = '3a7f2c1b9e4d6f8a0c2e4b6d8f0a2c4e'; // IPH@interpump#2026
@@ -983,28 +1000,38 @@ document.addEventListener('DOMContentLoaded', () => {
       <div style="overflow-x:auto"><div style="position:relative;height:280px;min-width:400px"><canvas id="servico-acum-chart"></canvas></div></div>
     </div>
   </div>
-  <!-- TOP 10 | META x REALIZADO MENSAL -->
+  <!-- TOP 10 | TICKET MÉDIO MENSAL -->
   <div class="charts-grid" style="margin-bottom:24px;">
     <div class="chart-card">
       <div class="chart-title">Top 10 Fornecedores</div>
       <div style="overflow-x:auto"><div style="position:relative;height:320px;min-width:400px"><canvas id="servico-top-chart"></canvas></div></div>
     </div>
     <div class="chart-card">
-      <div class="chart-title">Meta x Realizado — Mensal (R$)</div>
-      <div style="overflow-x:auto"><div style="position:relative;height:320px;min-width:400px"><canvas id="servico-meta-mes-chart"></canvas></div></div>
+      <div class="chart-title">Gasto Médio Mensal por Fornecedor (Top 10)</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:6px">Total do ano ÷ meses com dados — identifica gastos regulares vs esporádicos</div>
+      <div style="overflow-x:auto"><div style="position:relative;height:300px;min-width:400px"><canvas id="servico-ticket-chart"></canvas></div></div>
     </div>
   </div>
 
-  <!-- PROCESSO — linha inteira -->
+  <!-- META x REALIZADO — MENSAL | ACUMULADO -->
+  <div class="charts-grid" style="margin-bottom:24px;">
+    <div class="chart-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div class="chart-title" style="margin:0">Meta x Realizado — Mensal (R$)</div>
+        <button onclick="abrirModalMetaComp()" style="background:rgba(0,201,122,.15);border:1px solid #00c97a;color:#00c97a;padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer">✏ Meta Competitividade</button>
+      </div>
+      <div style="overflow-x:auto"><div style="position:relative;height:280px;min-width:400px"><canvas id="servico-meta-mes-chart"></canvas></div></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Meta x Realizado — Acumulado (R$)</div>
+      <div style="overflow-x:auto"><div style="position:relative;height:280px;min-width:400px"><canvas id="servico-meta-acum-chart"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- PROCESSO — linha inteira, último gráfico antes da tabela -->
   <div class="chart-card" style="margin-bottom:24px">
     <div class="chart-title">Gastos por Processo</div>
     <div style="overflow-x:auto"><div style="position:relative;height:300px;min-width:600px"><canvas id="servico-processo-chart"></canvas></div></div>
-  </div>
-
-  <!-- META ACUMULADA — linha inteira -->
-  <div class="chart-card" style="margin-bottom:24px">
-    <div class="chart-title">Meta x Realizado — Acumulado (R$)</div>
-    <div style="overflow-x:auto"><div style="position:relative;height:280px;min-width:500px"><canvas id="servico-meta-acum-chart"></canvas></div></div>
   </div>
 
   <!-- TABELA DETALHADA -->
@@ -3218,11 +3245,9 @@ function renderIFE() {
   compWrap.style.display = view==='comp' ? '' : 'none';
   if (view==='comp') _renderIFEComp(dados, anos, anoAtual);
 
-  // ── META x REALIZADO ─────────────────────────────────────────────────
+  // ── META x REALIZADO + TICKET MÉDIO ─────────────────────────────────
   const tercMeta = DATA.tercMeta || {};
   const tercComp = DATA.tercComp || {};
-
-  // Hardcoded fallback if CONFIG not yet available
   const TERC_META_FB = {
     '2025':{'01':515165.59,'02':602939.61,'03':627959.22,'04':626854.41,'05':627450.83,'06':603448.00,'07':693083.81,'08':627450.83,'09':663156.79,'10':693058.90,'11':567742.04,'12':471689.98},
     '2026':{'01':554871.00,'02':652688.00,'03':717942.00,'04':652687.00,'05':620060.00,'06':685257.00,'07':750570.00,'08':685314.00,'09':685314.00,'10':685314.00,'11':620060.00,'12':456922.00}
@@ -3231,29 +3256,69 @@ function renderIFE() {
     '2025':{'01':504289.33,'02':610858.35,'03':588773.20,'04':591810.25,'05':620558.09,'06':564775.15,'07':659224.61,'08':580306.66,'09':617224.52,'10':625889.87,'11':568397.89,'12':433950.39},
     '2026':{'01':588944.94,'02':574970.71,'03':665368.37,'04':579243.51,'05':0,'06':0,'07':0,'08':0,'09':0,'10':0,'11':0,'12':0}
   };
-  const getMeta = (ano, mm) => tercMeta[ano+'-'+mm] !== undefined ? tercMeta[ano+'-'+mm] : (TERC_META_FB[ano]?.[mm]||0);
-  const getComp = (ano, mm) => tercComp[ano+'-'+mm] !== undefined ? tercComp[ano+'-'+mm] : (TERC_COMP_FB[ano]?.[mm]||0);
+  const getMeta = (ano, mm) => { const v=tercMeta[ano+'-'+mm]; return (v!==undefined&&v!=='')?parseFloat(v):(TERC_META_FB[ano]?.[mm]||0); };
+  const getComp = (ano, mm) => { const v=tercComp[ano+'-'+mm]; return (v!==undefined&&v!=='')?parseFloat(v):(TERC_COMP_FB[ano]?.[mm]||0); };
 
-  // Prioriza ano atual, depois anos anteriores
-  const anosMetaOrdem = [...todosAnos].sort((a,b) => a===anoAtual?-1:b===anoAtual?1:+b-+a);
+  const anoMeta = anoFilt || anoAtual;
+  const mesesMeta = Array.from({length:12},(_,i)=>String(i+1).padStart(2,'0'));
 
-  // Gráfico 1: Meta x Realizado mensal
+  // Ticket médio mensal
+  const ticketCanvas = document.getElementById('servico-ticket-chart');
+  if (ticketCanvas) {
+    const empTotAtualT={}, empMesesT={};
+    dataGraf.filter(r=>r.mes.startsWith(anoMeta+'-')).forEach(r=>{
+      empTotAtualT[r.empresa]=(empTotAtualT[r.empresa]||0)+r.valor;
+      if(!empMesesT[r.empresa]) empMesesT[r.empresa]=new Set();
+      empMesesT[r.empresa].add(r.mes);
+    });
+    const top10t=Object.entries(empTotAtualT).sort((a,b)=>b[1]-a[1]).slice(0,10).map(e=>e[0]);
+    const shortN=n=>n.replace(/\d+ - /,'').substring(0,22);
+    const ticketVals=top10t.map(emp=>{
+      const mesesCount=(empMesesT[emp]?empMesesT[emp].size:1);
+      return Math.round((empTotAtualT[emp]||0)/mesesCount);
+    });
+    // Compare with previous year
+    const anoAnt=String(parseInt(anoMeta)-1);
+    const empTotAnt={}, empMesesAnt={};
+    dataGraf.filter(r=>r.mes.startsWith(anoAnt+'-')).forEach(r=>{
+      empTotAnt[r.empresa]=(empTotAnt[r.empresa]||0)+r.valor;
+      if(!empMesesAnt[r.empresa]) empMesesAnt[r.empresa]=new Set();
+      empMesesAnt[r.empresa].add(r.mes);
+    });
+    const ticketAntVals=top10t.map(emp=>{
+      const tot=empTotAnt[emp]||0;
+      const mc=empMesesAnt[emp]?empMesesAnt[emp].size:1;
+      return tot>0?Math.round(tot/mc):null;
+    });
+    servicoCharts.push(new Chart(ticketCanvas,{
+      type:'bar',
+      data:{labels:top10t.map(shortN),datasets:[
+        {label:anoAnt+' média/mês',data:ticketAntVals,backgroundColor:'#06b6d455',borderColor:'#06b6d4',borderWidth:1,
+          datalabels:{display:true,color:'#06b6d4',font:{size:8,weight:'700'},anchor:'end',align:'top',formatter:v=>v?fmtK(v):''}},
+        {label:anoMeta+' média/mês',data:ticketVals,backgroundColor:'#f59e0bcc',borderColor:'#f59e0b',borderWidth:1,
+          datalabels:{display:true,color:'#fff',font:{size:8,weight:'700'},anchor:'end',align:'top',formatter:v=>v?fmtK(v):''}}
+      ]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:'#c8cfe8',font:{size:11}}},datalabels:{}},
+        scales:{x:{ticks:{color:'#7a8299',callback:fmtK},grid:{color:'#1e2334'}},y:{ticks:{color:'#c8cfe8',font:{size:10}},grid:{display:false}}},
+        layout:{padding:{right:40}}
+      },plugins:[ChartDataLabels]
+    }));
+  }
+
+  // Meta x Realizado Mensal
   const metaMesCanvas = document.getElementById('servico-meta-mes-chart');
   if (metaMesCanvas) {
-    const anoMeta = anoFilt || anoAtual;
-    const mesesMeta = Array.from({length:12},(_,i)=>String(i+1).padStart(2,'0'));
-    const realVals  = mesesMeta.map(mm=>dataGraf.filter(r=>r.mes===anoMeta+'-'+mm).reduce((s,r)=>s+r.valor,0)||null);
-    const metaVals  = mesesMeta.map(mm=>getMeta(anoMeta,mm)||null);
-    const compVals  = mesesMeta.map(mm=>{const v=getComp(anoMeta,mm);return v>0?v:null;});
+    const realVals=mesesMeta.map(mm=>{ const v=dataGraf.filter(r=>r.mes===anoMeta+'-'+mm).reduce((s,r)=>s+r.valor,0); return v||null; });
+    const metaVals=mesesMeta.map(mm=>{ const v=getMeta(anoMeta,mm); return v>0?v:null; });
+    const compVals=mesesMeta.map(mm=>{ const v=getComp(anoMeta,mm); return v>0?v:null; });
     servicoCharts.push(new Chart(metaMesCanvas,{
       type:'bar',
       data:{labels:mesesLabel12,datasets:[
-        {label:'Realizado',data:realVals,backgroundColor:'#f59e0b99',borderColor:'#f59e0b',borderWidth:1,
+        {label:'Realizado '+anoMeta,data:realVals,backgroundColor:'#f59e0b99',borderColor:'#f59e0b',borderWidth:1,
           datalabels:{display:true,color:'#fff',font:{size:8,weight:'700'},anchor:'end',align:'top',formatter:v=>v?fmtK(v):''}},
-        {type:'line',label:'Meta',data:metaVals,borderColor:'#ff3b3b',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:0,
-          datalabels:{display:false}},
-        {type:'line',label:'Meta Compet.',data:compVals,borderColor:'#00c97a',backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:3,tension:0,
-          datalabels:{display:false}}
+        {type:'line',label:'Meta',data:metaVals,borderColor:'#ff3b3b',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:0,datalabels:{display:false}},
+        {type:'line',label:'Meta Compet.',data:compVals,borderColor:'#00c97a',backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:3,tension:0,datalabels:{display:false}}
       ]},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:'#c8cfe8',font:{size:11}}},datalabels:{}},
@@ -3263,31 +3328,28 @@ function renderIFE() {
     }));
   }
 
-  // Gráfico 2: Meta x Realizado acumulado
+  // Meta x Realizado Acumulado
   const metaAcumCanvas = document.getElementById('servico-meta-acum-chart');
   if (metaAcumCanvas) {
-    const anoMeta2 = anoFilt || anoAtual;
-    const mesesMeta2 = Array.from({length:12},(_,i)=>String(i+1).padStart(2,'0'));
-    let acumReal=0, acumMeta=0, acumComp=0;
-    const realAcum=[], metaAcum2=[], compAcum=[];
-    mesesMeta2.forEach(mm=>{
-      const r=dataGraf.filter(x=>x.mes===anoMeta2+'-'+mm).reduce((s,x)=>s+x.valor,0);
-      const m=getMeta(anoMeta2,mm);
-      const c=getComp(anoMeta2,mm);
-      acumReal+=r; acumMeta+=m; acumComp+=c>0?c:0;
-      realAcum.push(r>0?acumReal:null);
-      metaAcum2.push(m>0?acumMeta:null);
-      compAcum.push(c>0?acumComp:null);
+    let acR=0,acM=0,acC=0;
+    const realAcum=[],metaAcum2=[],compAcum=[];
+    mesesMeta.forEach(mm=>{
+      const r=dataGraf.filter(x=>x.mes===anoMeta+'-'+mm).reduce((s,x)=>s+x.valor,0);
+      const m=getMeta(anoMeta,mm); const c=getComp(anoMeta,mm);
+      acR+=r; acM+=m; acC+=c>0?c:0;
+      realAcum.push(r>0||acR>0?acR:null);
+      metaAcum2.push(m>0?acM:null);
+      compAcum.push(c>0?acC:null);
     });
     servicoCharts.push(new Chart(metaAcumCanvas,{
       type:'line',
       data:{labels:mesesLabel12,datasets:[
         {label:'Realizado Acum.',data:realAcum,borderColor:'#f59e0b',backgroundColor:'#f59e0b22',borderWidth:2.5,fill:true,tension:0.2,pointRadius:4,
-          datalabels:{display:ctx=>ctx.dataIndex===realAcum.filter(v=>v!==null).length-1,color:'#f59e0b',font:{size:10,weight:'700'},anchor:'end',align:'right',formatter:v=>v?fmtK(v):''}},
-        {label:'Meta Acum.',data:metaAcum2,borderColor:'#ff3b3b',backgroundColor:'transparent',borderWidth:2,borderDash:[],tension:0,pointRadius:3,
-          datalabels:{display:ctx=>ctx.dataIndex===metaAcum2.filter(v=>v!==null).length-1,color:'#ff3b3b',font:{size:10,weight:'700'},anchor:'end',align:'right',formatter:v=>v?fmtK(v):''}},
+          datalabels:{display:ctx=>realAcum[ctx.dataIndex]!==null&&(ctx.dataIndex===11||realAcum[ctx.dataIndex+1]===null),color:'#f59e0b',font:{size:10,weight:'700'},anchor:'end',align:'right',formatter:v=>v?fmtK(v):''}},
+        {label:'Meta Acum.',data:metaAcum2,borderColor:'#ff3b3b',backgroundColor:'transparent',borderWidth:2,tension:0,pointRadius:3,
+          datalabels:{display:ctx=>metaAcum2[ctx.dataIndex]!==null&&(ctx.dataIndex===11||metaAcum2[ctx.dataIndex+1]===null),color:'#ff3b3b',font:{size:10,weight:'700'},anchor:'end',align:'right',formatter:v=>v?fmtK(v):''}},
         {label:'Meta Compet. Acum.',data:compAcum,borderColor:'#00c97a',backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],tension:0,pointRadius:3,
-          datalabels:{display:ctx=>ctx.dataIndex===compAcum.filter(v=>v!==null).length-1,color:'#00c97a',font:{size:10,weight:'700'},anchor:'end',align:'right',formatter:v=>v?fmtK(v):''}}
+          datalabels:{display:ctx=>compAcum[ctx.dataIndex]!==null&&(ctx.dataIndex===11||compAcum[ctx.dataIndex+1]===null),color:'#00c97a',font:{size:10,weight:'700'},anchor:'end',align:'right',formatter:v=>v?fmtK(v):''}}
       ]},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:'#c8cfe8',font:{size:11}}},datalabels:{}},
@@ -5064,16 +5126,19 @@ function renderServico() {
   // ── PROCESSO ──────────────────────────────────────────────────────────
   const procCanvas = document.getElementById('servico-processo-chart');
   if (procCanvas) {
+    // Sort processos by anoAtual value descending
+    const procValsAtual = processos.map(p=>valorAnoGraf(anoAtual,r=>(r.processo||'SEM PROCESSO')===p));
+    const procOrder = processos.map((p,i)=>({p,v:procValsAtual[i]})).sort((a,b)=>b.v-a.v).map(x=>x.p);
     const procDatasets=todosAnos.map(ano=>{
       const cor=ANOS_CORES[ano]||'#475569';
       return {label:ano+(servicoGrafMode==='acumulado'?' (até '+String(mesAtualNum).padStart(2,'0')+'/'+String(hoje.getDate()).padStart(2,'0')+')':''),
-        data:processos.map(p=>valorAnoGraf(ano,r=>(r.processo||'SEM PROCESSO')===p)),
+        data:procOrder.map(p=>valorAnoGraf(ano,r=>(r.processo||'SEM PROCESSO')===p)),
         backgroundColor:cor+(ano===anoAtual?'cc':'55'),borderColor:cor,borderWidth:ano===anoAtual?2:1,
         datalabels:{display:true,color:'#fff',font:{size:9,weight:'700'},anchor:'end',align:'top',
           formatter:v=>v>0?fmtK(v):''}};
     });
     servicoCharts.push(new Chart(procCanvas,{
-      type:'bar',data:{labels:processos,datasets:procDatasets},
+      type:'bar',data:{labels:procOrder,datasets:procDatasets},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:'#c8cfe8',font:{size:11}}},datalabels:{}},
         scales:{x:{ticks:{color:'#7a8299',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#7a8299',callback:fmtK},grid:{color:'#1e2334'}}},
@@ -5613,6 +5678,77 @@ function renderTransito() {
       <td style="text-align:left;font-size:11px;color:var(--text-muted)">${r.classificacao}</td>
     </tr>`;
   }).join('');
+}
+
+function abrirModalMetaComp() {
+  const modal = document.getElementById('modal-meta-comp');
+  const form  = document.getElementById('meta-comp-form');
+  modal.style.display = 'flex';
+  const anos = ['2025','2026','2027'];
+  const mesesNome = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const tercComp = DATA.tercComp || {};
+  const TERC_COMP_FB = {
+    '2025':{'01':504289.33,'02':610858.35,'03':588773.20,'04':591810.25,'05':620558.09,'06':564775.15,'07':659224.61,'08':580306.66,'09':617224.52,'10':625889.87,'11':568397.89,'12':433950.39},
+    '2026':{'01':588944.94,'02':574970.71,'03':665368.37,'04':579243.51,'05':0,'06':0,'07':0,'08':0,'09':0,'10':0,'11':0,'12':0},
+    '2027':{}
+  };
+  let html = '';
+  anos.forEach(ano => {
+    html += '<div style="grid-column:1/-1;margin-top:8px;font-size:10px;font-weight:700;color:#00c97a;letter-spacing:1px;border-bottom:1px solid var(--border);padding-bottom:4px">'+ano+'</div>';
+    mesesNome.forEach((mes,i) => {
+      const mm = String(i+1).padStart(2,'0');
+      const key = ano+'-'+mm;
+      const kFb = mm;
+      const val = (tercComp[key]!==undefined&&tercComp[key]!=='') ? tercComp[key] : (TERC_COMP_FB[ano]?.[kFb]||0);
+      html += '<div><label style="font-size:10px;color:var(--text-muted)">'+mes+'/'+ano+'</label>'
+        +'<input id="mcomp-'+ano+'-'+mm+'" type="number" value="'+parseFloat(val).toFixed(2)+'" '
+        +'style="width:100%;background:#1e2a4a;border:1px solid var(--border);color:#fff;padding:4px 8px;border-radius:4px;font-size:12px"></div>';
+    });
+  });
+  form.innerHTML = html;
+}
+
+function fecharModalMetaComp() {
+  document.getElementById('modal-meta-comp').style.display = 'none';
+}
+
+async function salvarMetaComp() {
+  const status = document.getElementById('meta-comp-status');
+  status.textContent = '⏳ Salvando...';
+  status.style.color = '#f59e0b';
+  const anos = ['2025','2026','2027'];
+  const updates = {};
+  anos.forEach(ano => {
+    for (let m=1;m<=12;m++) {
+      const mm = String(m).padStart(2,'0');
+      const el = document.getElementById('mcomp-'+ano+'-'+mm);
+      if (el) updates['TERC_COMP_'+ano+'_'+mm] = parseFloat(el.value)||0;
+    }
+  });
+  try {
+    const res = await fetch(WEBAPP, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({action: 'updateConfig', data: updates})
+    });
+    const txt = await res.text();
+    if (txt.includes('ok')) {
+      status.textContent = '✅ Salvo com sucesso!';
+      status.style.color = '#00c97a';
+      // Update local DATA.tercComp
+      if (!DATA.tercComp) DATA.tercComp = {};
+      Object.entries(updates).forEach(([k,v]) => {
+        const parts = k.replace('TERC_COMP_','').split('_');
+        DATA.tercComp[parts[0]+'-'+parts[1]] = v;
+      });
+      setTimeout(() => { fecharModalMetaComp(); renderServico(); }, 1200);
+    } else {
+      throw new Error(txt);
+    }
+  } catch(e) {
+    status.textContent = '❌ Erro: '+e.message;
+    status.style.color = '#ff3b3b';
+  }
 }
 
 function renderAll() {
