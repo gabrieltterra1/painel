@@ -983,7 +983,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 
-  <!-- Toggle GRÁFICOS -->
+  <!-- Toggle GRÁFICOS — controla todos os gráficos abaixo -->
   <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:16px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px">
     <span style="font-size:10px;color:var(--text-muted);letter-spacing:1px;white-space:nowrap">GRÁFICOS:</span>
     <button id="graf-btn-acum" class="upload-btn" style="font-size:11px;padding:4px 10px;background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b" onclick="setGrafMode('acumulado')">📅 Acumulado até hoje</button>
@@ -2037,16 +2037,18 @@ const FERIADOS_DEFAULT = [
 function getMetas() {
   // Try Sheets CONFIG first, fallback to localStorage, then default
   const cfg = DATA.config || {};
-  if (cfg.TT_META_01) {
+  if (cfg.TT_META_01 !== undefined) {
     const m = { TT: [], PM: [] };
     for (let i = 1; i <= 12; i++) {
       const mm = String(i).padStart(2,'0');
-      m.TT.push(parseFloat(cfg['TT_META_'+mm]) || METAS_DEFAULT.TT[i-1]);
-      m.PM.push(parseFloat(cfg['PM_META_'+mm]) || METAS_DEFAULT.PM[i-1]);
+      const tt = parseFloat(cfg['TT_META_'+mm]);
+      const pm = parseFloat(cfg['PM_META_'+mm]);
+      m.TT.push(isNaN(tt) ? METAS_DEFAULT.TT[i-1] : tt);
+      m.PM.push(isNaN(pm) ? METAS_DEFAULT.PM[i-1] : pm);
     }
     return m;
   }
-  try { const s = localStorage.getItem('termico_metas'); return s ? JSON.parse(s) : METAS_DEFAULT; }
+  try { const s = localStorage.getItem('termico_metas'); if(s){const p=JSON.parse(s);if(p&&p.TT&&p.TT.length===12)return p;} return METAS_DEFAULT; }
   catch { return METAS_DEFAULT; }
 }
 function getFeriados() {
@@ -2100,12 +2102,22 @@ function abrirModalMetas() {
 }
 function fecharModalMetas() { document.getElementById('modal-metas').style.display = 'none'; }
 async function _saveConfig(updates) {
-  // Use GET to avoid CORS issues with POST on Apps Script
+  // Use GET to avoid CORS issues — Apps Script handles acao=updateConfig
   const params = new URLSearchParams({acao:'updateConfig', data: JSON.stringify(updates), t: Date.now()});
-  const res = await fetch(WEBAPP + '?' + params.toString());
-  const txt = await res.text();
-  console.log('_saveConfig response:', txt);
-  return txt;
+  const url = WEBAPP + '?' + params.toString();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    const res = await fetch(url, {signal: controller.signal});
+    clearTimeout(timeout);
+    const txt = await res.text();
+    console.log('_saveConfig response:', txt);
+    return txt;
+  } catch(e) {
+    clearTimeout(timeout);
+    if (e.name === 'AbortError') throw new Error('Timeout — Apps Script demorou demais');
+    throw e;
+  }
 }
 
 async function salvarMetas() {
@@ -2113,17 +2125,19 @@ async function salvarMetas() {
   const updates = {};
   for (let i = 0; i < 12; i++) {
     const mm = String(i+1).padStart(2,'0');
-    const tt = parseInt(document.getElementById(`meta-tt-${i}`)?.value)||0;
-    const pm = parseInt(document.getElementById(`meta-pm-${i}`)?.value)||0;
+    const tt = parseInt(document.getElementById('meta-tt-'+i)?.value)||0;
+    const pm = parseInt(document.getElementById('meta-pm-'+i)?.value)||0;
     metas.TT.push(tt); metas.PM.push(pm);
     updates['TT_META_'+mm] = tt;
     updates['PM_META_'+mm] = pm;
   }
+  // Save locally always
   localStorage.setItem('termico_metas', JSON.stringify(metas));
+  if (DATA.config) Object.entries(updates).forEach(([k,v])=>{ DATA.config[k]=String(v); });
+  // Try Sheets
   try {
-    const txt = await _saveConfig(updates);
-    if (txt.includes('ok') && DATA.config) Object.entries(updates).forEach(([k,v])=>{ DATA.config[k]=v; });
-  } catch(e) { console.warn('Sheets save failed:', e); }
+    await _saveConfig(updates);
+  } catch(e) { console.warn('Sheets save failed, localStorage used:', e); }
   fecharModalMetas();
   renderTermico();
 }
@@ -5793,8 +5807,16 @@ async function salvarMetaComp() {
       throw new Error(txt);
     }
   } catch(e) {
-    status.textContent = '❌ Erro: '+e.message;
-    status.style.color = '#ff3b3b';
+    // Save locally anyway
+    if (!DATA.tercComp) DATA.tercComp = {};
+    Object.entries(updates).forEach(([k,v]) => {
+      const parts = k.replace('TERC_COMP_','').split('_');
+      DATA.tercComp[parts[0]+'-'+parts[1]] = v;
+      if (DATA.config) DATA.config[k] = v;
+    });
+    status.textContent = '⚠ Salvo localmente. Para salvar no Sheets, reimplante o Apps Script.';
+    status.style.color = '#f59e0b';
+    setTimeout(() => { fecharModalMetaComp(); renderServico(); }, 2500);
   }
 }
 
