@@ -2102,22 +2102,15 @@ function abrirModalMetas() {
 }
 function fecharModalMetas() { document.getElementById('modal-metas').style.display = 'none'; }
 async function _saveConfig(updates) {
-  // Use GET to avoid CORS issues — Apps Script handles acao=updateConfig
+  // Save locally to DATA.config and localStorage immediately
+  if (!DATA.config) DATA.config = {};
+  Object.entries(updates).forEach(([k,v]) => { DATA.config[k] = String(v); });
+  // Fire-and-forget to Sheets (no-cors = can't read response, but Sheets will receive it)
   const params = new URLSearchParams({acao:'updateConfig', data: JSON.stringify(updates), t: Date.now()});
-  const url = WEBAPP + '?' + params.toString();
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10000);
   try {
-    const res = await fetch(url, {signal: controller.signal});
-    clearTimeout(timeout);
-    const txt = await res.text();
-    console.log('_saveConfig response:', txt);
-    return txt;
-  } catch(e) {
-    clearTimeout(timeout);
-    if (e.name === 'AbortError') throw new Error('Timeout — Apps Script demorou demais');
-    throw e;
-  }
+    fetch(WEBAPP + '?' + params.toString(), {mode:'no-cors'});
+  } catch(e) { console.warn('Sheets fire-and-forget failed:', e); }
+  return 'ok';
 }
 
 async function salvarMetas() {
