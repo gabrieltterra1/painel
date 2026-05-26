@@ -950,21 +950,13 @@ document.addEventListener('DOMContentLoaded', () => {
   <!-- CARDS RESUMO POR ANO -->
   <div id="servico-kpis" style="margin-bottom:20px"></div>
 
-  <!-- Toggles globais acima dos gráficos -->
-  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
-    <div style="display:flex;gap:4px;align-items:center">
-      <span style="font-size:10px;color:var(--text-muted);letter-spacing:1px">LINHA DO TEMPO:</span>
-      <button id="tl-btn-comparativo" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setTLMode('comparativo')">📅 Comparativo até hoje</button>
-      <button id="tl-btn-2026" class="upload-btn" style="font-size:11px;padding:4px 10px;background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b" onclick="setTLMode('2026')">2026</button>
-      <button id="tl-btn-2025" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setTLMode('2025')">2025</button>
-      <button id="tl-btn-todos" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setTLMode('todos')">Todos os anos</button>
-    </div>
-    <div style="display:flex;gap:4px;align-items:center;margin-left:16px;flex-wrap:wrap">
-      <span style="font-size:10px;color:var(--text-muted);letter-spacing:1px">GRÁFICOS:</span>
-      <button id="graf-btn-acum" class="upload-btn" style="font-size:11px;padding:4px 10px;background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b" onclick="setGrafMode('acumulado')">📅 Acumulado até hoje</button>
-      <button id="graf-btn-completo" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setGrafMode('completo')">Ano completo</button>
-
-    </div>
+  <!-- Toggle LINHA DO TEMPO -->
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+    <span style="font-size:10px;color:var(--text-muted);letter-spacing:1px;white-space:nowrap">LINHA DO TEMPO:</span>
+    <button id="tl-btn-2026" class="upload-btn" style="font-size:11px;padding:4px 10px;background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b" onclick="setTLMode('2026')">2026</button>
+    <button id="tl-btn-2025" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setTLMode('2025')">2025</button>
+    <button id="tl-btn-comparativo" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setTLMode('comparativo')">📅 Comparativo até hoje</button>
+    <button id="tl-btn-todos" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setTLMode('todos')">Todos os anos</button>
   </div>
 
   <!-- LINHA DO TEMPO MATRIZ vs FILIAL -->
@@ -989,6 +981,15 @@ document.addEventListener('DOMContentLoaded', () => {
         <canvas id="servico-comparativo-chart"></canvas>
       </div></div>
     </div>
+  </div>
+
+  <!-- Toggle GRÁFICOS -->
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:16px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px">
+    <span style="font-size:10px;color:var(--text-muted);letter-spacing:1px;white-space:nowrap">GRÁFICOS:</span>
+    <button id="graf-btn-acum" class="upload-btn" style="font-size:11px;padding:4px 10px;background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b" onclick="setGrafMode('acumulado')">📅 Acumulado até hoje</button>
+    <button id="graf-btn-2026" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setGrafMode('2026')">2026</button>
+    <button id="graf-btn-2025" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setGrafMode('2025')">2025</button>
+    <button id="graf-btn-completo" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setGrafMode('completo')">Ano completo</button>
   </div>
 
   <!-- GRÁFICOS: EVOLUÇÃO + ACUMULADO lado a lado -->
@@ -2098,6 +2099,15 @@ function abrirModalMetas() {
   document.getElementById('modal-metas').style.display = 'flex';
 }
 function fecharModalMetas() { document.getElementById('modal-metas').style.display = 'none'; }
+async function _saveConfig(updates) {
+  // Use GET to avoid CORS issues with POST on Apps Script
+  const params = new URLSearchParams({acao:'updateConfig', data: JSON.stringify(updates), t: Date.now()});
+  const res = await fetch(WEBAPP + '?' + params.toString());
+  const txt = await res.text();
+  console.log('_saveConfig response:', txt);
+  return txt;
+}
+
 async function salvarMetas() {
   const metas = { TT: [], PM: [] };
   const updates = {};
@@ -2109,17 +2119,11 @@ async function salvarMetas() {
     updates['TT_META_'+mm] = tt;
     updates['PM_META_'+mm] = pm;
   }
-  // Save to localStorage as backup
   localStorage.setItem('termico_metas', JSON.stringify(metas));
-  // Save to Sheets
   try {
-    const res = await fetch(WEBAPP, {method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({action:'updateConfig', data: updates})});
-    const txt = await res.text();
-    if (txt.includes('ok') && DATA.config) {
-      Object.entries(updates).forEach(([k,v]) => { DATA.config[k] = v; });
-    }
-  } catch(e) { console.warn('Sheets save failed, localStorage used:', e); }
+    const txt = await _saveConfig(updates);
+    if (txt.includes('ok') && DATA.config) Object.entries(updates).forEach(([k,v])=>{ DATA.config[k]=v; });
+  } catch(e) { console.warn('Sheets save failed:', e); }
   fecharModalMetas();
   renderTermico();
 }
@@ -2146,8 +2150,7 @@ async function _salvarFeriadosSheets(feriados) {
   localStorage.setItem('termico_feriados', JSON.stringify(feriados));
   if (DATA.config) DATA.config['FERIADOS'] = ferStr;
   try {
-    await fetch(WEBAPP, {method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({action:'updateConfig', data:{FERIADOS: ferStr}})});
+    await _saveConfig({FERIADOS: ferStr});
   } catch(e) { console.warn('Sheets feriados save failed:', e); }
 }
 async function adicionarFeriado() {
@@ -4592,7 +4595,7 @@ function pvGerarPDF() {
 }
 
 // ── Estado dos toggles ───────────────────────────────────────────────────
-let servicoTLMode   = '2026'; // 'comparativo' | '2026' | 'todos'
+let servicoTLMode   = '2026';   // 'comparativo' | '2026' | '2025' | 'todos'
 let servicoGrafMode = 'acumulado';   // 'acumulado' | 'completo'
 
 function setTLMode(mode) {
@@ -4610,7 +4613,7 @@ function setTLMode(mode) {
 
 function setGrafMode(mode) {
   servicoGrafMode = mode;
-  ['acumulado','completo','2025'].forEach(m => {
+  ['acumulado','2026','2025','completo'].forEach(m => {
     const btn = document.getElementById('graf-btn-'+m);
     if (!btn) return;
     const active = m === mode;
@@ -4683,7 +4686,9 @@ function renderServico() {
 
   const todosAnos  = [...new Set(data.map(r => r.mes.split('-')[0]))].sort();
   const todosMeses = [...new Set(data.map(r => r.mes))].sort();
-  const anosGraf   = servicoTLMode === '2025' ? ['2025'] : servicoTLMode === '2026' ? [anoAtual] : todosAnos;
+  const anosGraf   = servicoGrafMode === '2025' ? ['2025']
+    : servicoGrafMode === '2026' ? [anoAtual]
+    : todosAnos;
 
   // ── Lê filtros ────────────────────────────────────────────────────────
   const searchFilt = (document.getElementById('servico-search')?.value||'').toLowerCase();
@@ -4825,7 +4830,7 @@ function renderServico() {
   if (servicoTLMode === '2026') anosTimeline = [anoAtual];
   else if (servicoTLMode === '2025') anosTimeline = ['2025'];
   else if (servicoTLMode === 'todos') anosTimeline = todosAnos;
-  else anosTimeline = todosAnos; // comparativo usa todos
+  else anosTimeline = todosAnos; // comparativo: todos os anos
 
   // Meses do anoFilt para timeline
   const mesesTL = [...new Set(dataGraf.filter(r=>anosTimeline.some(a=>r.mes.startsWith(a+'-'))).map(r=>r.mes))].sort();
@@ -4840,7 +4845,7 @@ function renderServico() {
 
   if (servicoTLMode === 'comparativo') {
     const mesesCal = Array.from({length:mesAtualNum},(_,i)=>String(i+1).padStart(2,'0'));
-    if (theadTl) theadTl.innerHTML = '<th style="'+thP+';text-align:left">ANO</th>'+mesesCal.map(m=>'<th style="'+thP+'">'+mesesLabel12[+m-1]+'</th>').join('')+'<th style="'+thP+'">ACUM.</th>';
+    if (theadTl) theadTl.innerHTML = '<th style="'+thP+';text-align:left">ANO</th>'+mesesCal.map(m=>'<th style="'+thP+'">'+mesesLabel12[+m-1]+'</th>').join('')+'<th style="'+thP+'">ACUM. até '+String(hoje.getDate()).padStart(2,'0')+'/'+String(mesAtualNum).padStart(2,'0')+'</th>';
     if (tbodyTl) tbodyTl.innerHTML = todosAnos.map(ano=>{
       const cor = ANOS_CORES[ano]||'#c8cfe8';
       const vals = mesesCal.map(m=>dataGraf.filter(r=>r.mes===ano+'-'+m).reduce((s,r)=>s+r.valor,0));
@@ -4960,12 +4965,14 @@ function renderServico() {
   // Helper: valor de um ano para gráficos considerando modo acumulado/completo/2025
   const valorAnoGraf = (ano, filterFn) => {
     if (servicoGrafMode === 'acumulado') {
+      // proporcional até mesmo dia/mês
       const anterior = dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&r.mes<ano+'-'+String(mesAtualNum).padStart(2,'0')&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
       const mesKey2 = ano+'-'+String(mesAtualNum).padStart(2,'0');
       const mesTotal = dataGraf.filter(r=>r.mes===mesKey2&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
-      const diasMes2 = diasNoMes(ano, mesAtualNum);
-      return anterior + mesTotal * (hoje.getDate() / diasMes2);
+      return anterior + mesTotal * (hoje.getDate() / diasNoMes(ano, mesAtualNum));
     }
+    if (servicoGrafMode === '2025') return dataGraf.filter(r=>r.mes.startsWith('2025-')&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
+    if (servicoGrafMode === '2026') return dataGraf.filter(r=>r.mes.startsWith(anoAtual+'-')&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
     return dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
   };
 
@@ -5089,7 +5096,9 @@ function renderServico() {
   const getMeta = (ano, mm) => { const v=tercMeta[ano+'-'+mm]; return (v!==undefined&&v!=='')?parseFloat(v):(TERC_META_FB[ano]?.[mm]||0); };
   const getComp = (ano, mm) => { const v=tercComp[ano+'-'+mm]; return (v!==undefined&&v!=='')?parseFloat(v):(TERC_COMP_FB[ano]?.[mm]||0); };
 
-  const anoMeta = servicoTLMode === '2025' ? '2025' : (anoFilt || anoAtual);
+  const anoMeta = servicoGrafMode === '2025' ? '2025'
+    : servicoGrafMode === '2026' ? anoAtual
+    : (anoFilt || anoAtual);
   const mesesMeta = Array.from({length:12},(_,i)=>String(i+1).padStart(2,'0'));
 
   // Ticket médio mensal
@@ -5769,12 +5778,7 @@ async function salvarMetaComp() {
     }
   });
   try {
-    const res = await fetch(WEBAPP, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({action: 'updateConfig', data: updates})
-    });
-    const txt = await res.text();
+    const txt = await _saveConfig(updates);
     if (txt.includes('ok')) {
       status.textContent = '✅ Salvo com sucesso!';
       status.style.color = '#00c97a';
