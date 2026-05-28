@@ -4656,8 +4656,8 @@ function _pvCalcMontarCompleto(proj, ofSemStr, ofCompStr, ofParcStr) {
   if (faltaAbrirOf > 0) partes.push(`${faltaAbrirOf} ✗ ABRIR OF`);
   if (partes.length === 0) partes.push(`${necessidade} ✗ ABRIR OF`);
 
-  // A MONTAR = apenas as OFs que existem (faltaAbrirOf só aparece no DETALHE)
-  const montar = totalMontavel > 0 ? totalMontavel : necessidade;
+  // A MONTAR = sempre a necessidade total (|proj|)
+  const montar = necessidade;
   return { montar, statusOf: partes.join(' + ') };
 }
 
