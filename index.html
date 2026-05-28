@@ -792,29 +792,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- ======= OF ABERTAS ======= -->
 <div id="tab-of" class="tab-content">
-  <div class="section-title">Carga de Montagem — OFM e OFA</div>
-  <div class="table-wrap">
-    <div class="scrollable">
-      <table id="of-table">
-        <thead class="blue">
-          <tr>
-            <th>DT FIM OF</th>
-            <th>TOMADA E MULT</th>
-            <th>BOMBA</th>
-            <th>CILINDRO</th>
-            <th>CONJ. EIXO</th>
-            <th>GUINCHO E ENROL.</th>
-            <th>COMANDO</th>
-            <th>VÁLVULA</th>
-            <th>KIT HIDR.</th>
-          </tr>
-        </thead>
-        <tbody id="of-foot-top"></tbody>
-        <tbody id="of-body"></tbody>
-        <tfoot id="of-foot"></tfoot>
-      </table>
-    </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+    <span class="section-title" style="margin:0">OF Abertas — Carga de Montagem</span>
   </div>
+  <div id="of-cards" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px"></div>
+  <div id="of-table-wrap"></div>
 </div>
 
 <!-- ======= MONTADOS ======= -->
@@ -1662,37 +1644,110 @@ function showTab(id) {
 
 // ===== OF ABERTAS =====
 function renderOF() {
-  const cols = ['TOMADA_MULT','BOMBA','CILINDRO','CONJ_EIXO','GUINCHO_ENROL','COMANDO','VALVULA','KIT_HIDR'];
-  const rows = DATA.of;
+  const cols     = ['TOMADA_MULT','BOMBA','CILINDRO','CONJ_EIXO','GUINCHO_ENROL','COMANDO','VALVULA','KIT_HIDR'];
+  const colLabels= ['TOMADA E MULT','BOMBA','CILINDRO','CONJ. EIXO','GUINCHO E ENROL.','COMANDO','VÁLVULA','KIT HIDR.'];
+  const PROD_META= {TOMADA_MULT:'TOMADA_MULT',BOMBA:'BOMBA',CILINDRO:'CILINDRO',GUINCHO_ENROL:'GUINCHO'};
+  const COR_CARD = '#3d8bff';
+  const rows = DATA.of || [];
+  if (!rows.length) return;
 
-  // Find TOTAL row
-  const totalRow = rows.find(r => r.DT_FIM_OF.toUpperCase().includes('TOTAL'));
-  const dataRows = rows.filter(r => !r.DT_FIM_OF.toUpperCase().includes('TOTAL'));
-  const sorted = dataRows.sort((a,b) => parseDate(a.DT_FIM_OF) - parseDate(b.DT_FIM_OF));
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const mesAtual = hoje.getMonth();
+  const feriados = getFeriados().map(f=>f.data);
 
-  // Use TOTAL from email if available, otherwise compute
+  const totalRow = rows.find(r => String(r.DT_FIM_OF||'').toUpperCase().includes('TOTAL'));
+  const dataRows = rows.filter(r => !String(r.DT_FIM_OF||'').toUpperCase().includes('TOTAL'));
+  const sorted = dataRows.sort((a,b) => parseDate(a.DT_FIM_OF||'01/01/2000') - parseDate(b.DT_FIM_OF||'01/01/2000'));
+
+  // Totals
   const totals = {};
-  if (totalRow) {
-    cols.forEach(c => totals[c] = totalRow[c]);
-  } else {
-    cols.forEach(c => totals[c] = 0);
-    sorted.forEach(r => cols.forEach(c => totals[c] += r[c]));
+  cols.forEach(c => {
+    totals[c] = totalRow ? (parseFloat(String(totalRow[c]||'0').replace(',','.'))||0)
+      : sorted.reduce((s,r)=>s+(parseFloat(String(r[c]||'0').replace(',','.'))||0),0);
+  });
+
+  // Atrasos em OF (datas passadas)
+  const atrasadosOf = {};
+  cols.forEach(c => {
+    atrasadosOf[c] = sorted.filter(r => isOverdue(r.DT_FIM_OF))
+      .reduce((s,r)=>s+(parseFloat(String(r[c]||'0').replace(',','.'))||0),0);
+  });
+
+  // Dias úteis restantes para cards
+  let duRestantes = 0;
+  const totalDiasMes = new Date(hoje.getFullYear(),mesAtual+1,0).getDate();
+  for(let d=hoje.getDate();d<=totalDiasMes;d++){
+    const dt=new Date(hoje.getFullYear(),mesAtual,d);
+    if(dt.getDay()===0||dt.getDay()===6) continue;
+    const iso=hoje.getFullYear()+'-'+String(mesAtual+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    if(feriados.includes(iso)) continue;
+    duRestantes++;
   }
 
-  const footHtml = `<tr class="tfoot-row">
-    <td>TOTAL</td>
-    ${cols.map(c => `<td>${totals[c].toLocaleString('pt-BR')}</td>`).join('')}
-  </tr>`;
-  document.getElementById('of-foot').innerHTML = footHtml;
-  document.getElementById('of-foot-top').innerHTML = footHtml;
+  // ── CARDS ─────────────────────────────────────────────────────────────
+  const cardsEl = document.getElementById('of-cards');
+  if (cardsEl) {
+    cardsEl.innerHTML = cols.map((col,ci) => {
+      const label = colLabels[ci];
+      const total = totals[col] || 0;
+      const atrasado = atrasadosOf[col] || 0;
+      const metaProd = PROD_META[col];
+      const metaDia = metaProd ? getMontadosMeta(metaProd, mesAtual) : 0;
+      const diasCobre = metaDia > 0 ? Math.floor(total / metaDia) : null;
+      const hasMeta = !!metaProd && metaDia > 0;
 
-  document.getElementById('of-body').innerHTML = sorted.map(r => {
+      return '<div style="background:#3d8bff12;border:'+(hasMeta?'2':'1')+'px solid #3d8bff'+(hasMeta?'':' +'+'44')+';border-radius:10px;padding:12px 14px;flex:1;min-width:'+(hasMeta?'175':'140')+'px">'
+        +'<div style="font-size:9px;font-weight:700;color:#3d8bff;letter-spacing:1px;margin-bottom:6px;white-space:nowrap">'+label+'</div>'
+        +'<div style="font-size:'+(hasMeta?'26':'20')+'px;font-weight:900;color:#3d8bff">'+Math.round(total).toLocaleString('pt-BR')+'</div>'
+        +'<div style="font-size:9px;color:var(--text-muted);margin-top:2px">Total em OF</div>'
+        +(hasMeta?
+          '<div style="margin-top:6px;font-size:10px;color:var(--text-muted)">Sustenta: <b style="color:'+(diasCobre>=duRestantes?'var(--green)':'var(--red)')+'">'+diasCobre+' du</b>'
+          +' <span style="color:#3a5a8a">(need '+duRestantes+' du)</span></div>'
+        :'')
+        +(atrasado>0?'<div style="margin-top:4px;font-size:10px;color:var(--red);font-weight:700">⚑ '+Math.round(atrasado).toLocaleString('pt-BR')+' em atraso</div>':'')
+        +'</div>';
+    }).join('');
+  }
+
+  // ── TABELA EXECUTIVE BLUE ──────────────────────────────────────────────
+  const fmtN = v => { const n=parseFloat(String(v||'').replace(',','.')); if(isNaN(n)||n===0) return '<span style="color:#1a2a4a">—</span>'; return Math.round(n).toLocaleString('pt-BR'); };
+  const thBase = 'padding:11px 14px;text-align:right;font-size:12px;font-weight:800;white-space:nowrap;';
+  const tdBase = 'padding:9px 14px;text-align:right;font-size:15px;';
+  const stickyTh = thBase+'text-align:left;position:sticky;left:0;z-index:3;';
+  const stickyTd = tdBase+'text-align:left;position:sticky;left:0;z-index:1;font-size:14px;';
+
+  const wrap = document.getElementById('of-table-wrap');
+  if (!wrap) return;
+
+  wrap.innerHTML = '<div style="border-radius:12px;overflow:hidden;border:1px solid #1a4a8a;box-shadow:0 4px 24px rgba(0,0,0,0.4)">'
+  +'<div style="max-height:520px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch">'
+  +'<table style="border-collapse:collapse;white-space:nowrap;width:max-content;min-width:100%">'
+  +'<thead style="position:sticky;top:0;z-index:5">'
+  +'<tr style="background:#0d2040">'
+  +'<th style="'+stickyTh+'background:#0a1830;color:#fff">DT FIM OF</th>'
+  +colLabels.map(l=>`<th style="${thBase}color:#fff">${l}</th>`).join('')
+  +'</tr>'
+  +'<tr style="background:#0a1830">'
+  +'<td style="'+stickyTd+'background:#08142a;color:#3d8bff;font-weight:700;font-size:12px;letter-spacing:1px">TOTAL EM OF</td>'
+  +cols.map(c=>`<td style="${tdBase}color:#c8d8ff;font-weight:800;font-size:17px">${fmtN(totals[c])}</td>`).join('')
+  +'</tr>'
+  +'<tr style="background:#08122a;border-bottom:2px solid #1a4a8a">'
+  +'<td style="'+stickyTd+'background:#060e20;color:#3d8bff;font-size:12px;letter-spacing:1px">EM ATRASO</td>'
+  +cols.map(c=>`<td style="${tdBase}color:${atrasadosOf[c]>0?'var(--red)':'#1a3a6a'};font-size:14px;font-weight:${atrasadosOf[c]>0?700:400}">${atrasadosOf[c]>0?fmtN(atrasadosOf[c]):'—'}</td>`).join('')
+  +'</tr>'
+  +'</thead>'
+  +'<tbody>'
+  +sorted.map((r,i)=>{
     const od = isOverdue(r.DT_FIM_OF);
-    return `<tr class="${od?'overdue':''}">
-      <td>${r.DT_FIM_OF}${od?' ⚑':''}</td>
-      ${cols.map(c => `<td>${r[c] ? r[c] : '<span class="zero">—</span>'}</td>`).join('')}
-    </tr>`;
-  }).join('');
+    const bg = od?'rgba(255,59,59,0.06)':i%2===0?'transparent':'rgba(20,30,50,0.4)';
+    return '<tr style="background:'+bg+'">'
+      +'<td style="'+stickyTd+'background:'+bg+';color:'+(od?'var(--red)':'#5a7aaa')+';font-size:14px;'+(od?'font-weight:700;':'')+'">'
+      +r.DT_FIM_OF+(od?' ⚑':'')+'</td>'
+      +cols.map(c=>'<td style="'+tdBase+'color:'+(od?'var(--red)':'#8899bb')+'">'+(r[c]?fmtN(r[c]):'<span style="color:#1a2a4a">—</span>')+'</td>').join('')
+      +'</tr>';
+  }).join('')
+  +'</tbody>'
+  +'</table></div></div>';
 }
 
 function abrirModalMetasMontados() {
@@ -1876,18 +1931,18 @@ function renderMontados() {
         <thead style="position:sticky;top:0;z-index:5">
           <!-- Cabeçalho das colunas -->
           <tr style="background:#0d3320">
-            <th style="${stickyTh}background:#0a2818;color:#2a8a52">DATA</th>
-            ${colLabels.map(l=>`<th style="${thBase}color:#2a8a52">${l}</th>`).join('')}
+            <th style="${stickyTh}background:#0a2818;color:#fff;font-size:12px;font-weight:800">DATA</th>
+            ${colLabels.map(l=>`<th style="${thBase}color:#fff;font-size:12px;font-weight:800">${l}</th>`).join('')}
           </tr>
           <!-- TOTAL -->
           <tr style="background:#0a2010">
-            <td style="${stickyTd}background:#08180e;color:#4caf82;font-weight:700;font-size:11px;letter-spacing:1px">TOTAL</td>
-            ${cols.map(c=>`<td style="${tdBase}color:#c8f0d8;font-weight:800;font-size:15px">${fmtN(totalRow?totalRow[c]:0)}</td>`).join('')}
+            <td style="${stickyTd}background:#08180e;color:#4caf82;font-weight:700;font-size:12px;letter-spacing:1px">TOTAL</td>
+            ${cols.map(c=>`<td style="${tdBase}color:#c8f0d8;font-weight:800;font-size:17px">${fmtN(totalRow?totalRow[c]:0)}</td>`).join('')}
           </tr>
           <!-- MÉDIA -->
           <tr style="background:#081810;border-bottom:2px solid #1a5a3a">
-            <td style="${stickyTd}background:#060e08;color:#4caf82;font-style:italic;font-size:11px;letter-spacing:1px">MÉDIA / DIA</td>
-            ${cols.map(c=>`<td style="${tdBase}color:#4caf82;font-style:italic;font-size:12px">${fmtM(mediaRow?mediaRow[c]:0)}</td>`).join('')}
+            <td style="${stickyTd}background:#060e08;color:#4caf82;font-style:italic;font-size:12px;letter-spacing:1px">MÉDIA / DIA</td>
+            ${cols.map(c=>`<td style="${tdBase}color:#4caf82;font-style:italic;font-size:14px">${fmtM(mediaRow?mediaRow[c]:0)}</td>`).join('')}
           </tr>
           <!-- DIAS ÚTEIS -->
           <tr style="background:#06090a;border-bottom:2px solid #0f2010">
@@ -1902,8 +1957,8 @@ function renderMontados() {
             const isToday=d.getTime()===hoje.getTime();
             const bg=isToday?'rgba(76,175,130,0.08)':i%2===0?'transparent':'rgba(10,40,20,0.25)';
             return `<tr style="background:${bg}">
-              <td style="${stickyTd}background:${bg};color:${isToday?'#4cff9a':'#5a9a6a'};${isToday?'font-weight:700;':''}">${r.DATA||''}${isToday?' ●':''}</td>
-              ${cols.map(c=>`<td style="${tdBase}color:${isToday?'#c8f0d8':'#8ab49a'}">${fmtN(r[c])}</td>`).join('')}
+              <td style="${stickyTd}background:${bg};color:${isToday?'#4cff9a':'#8ab49a'};font-size:14px;${isToday?'font-weight:700;':''}">${r.DATA||''}${isToday?' ●':''}</td>
+              ${cols.map(c=>`<td style="${tdBase}color:${isToday?'#c8f0d8':'#a8c4b4'};font-size:15px">${fmtN(r[c])}</td>`).join('')}
             </tr>`;
           }).join('')}
         </tbody>
