@@ -780,8 +780,8 @@ document.addEventListener('DOMContentLoaded', () => {
 </header>
 
 <nav class="tabs">
-  <div class="tab active" onclick="showTab('of')">OF Abertas</div>
-  <div class="tab" onclick="showTab('montados')">Itens Montados</div>
+  <div class="tab active" onclick="showTab('montados')">Itens Montados</div>
+  <div class="tab" onclick="showTab('of')">OF Abertas</div>
   <div class="tab" onclick="showTab('estoque')">Estoque & Trânsito</div>
   <div class="tab" onclick="showTab('servicos')">Serviços Terceiros</div>
   <div class="tab" onclick="showTab('termico')">Térmico & Polimento</div>
@@ -790,7 +790,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </nav>
 
 <!-- ======= OF ABERTAS ======= -->
-<div id="tab-of" class="tab-content active">
+<div id="tab-of" class="tab-content">
   <div class="section-title">Carga de Montagem — OFM e OFA</div>
   <div class="table-wrap">
     <div class="scrollable">
@@ -817,9 +817,30 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 <!-- ======= MONTADOS ======= -->
-<div id="tab-montados" class="tab-content">
-  <div class="section-title">Contagem de Itens Montados — EPP</div>
+<div id="tab-montados" class="tab-content active">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+    <span class="section-title" style="margin:0">Itens Montados — EPP</span>
+    <button onclick="abrirModalMetasMontados()" style="background:rgba(0,201,122,.15);border:1px solid #00c97a;color:#00c97a;padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✏ Definir Metas</button>
+  </div>
+  <div id="montados-cards" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px"></div>
   <div id="montados-content"></div>
+</div>
+
+<!-- Modal Metas Montados -->
+<div id="modal-metas-montados" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:#0d1b3e;border:1px solid var(--border);border-radius:12px;padding:24px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:#00c97a;letter-spacing:1px">✏ METAS — ITENS MONTADOS</div>
+      <button onclick="document.getElementById('modal-metas-montados').style.display='none'" style="background:none;border:none;color:#666;font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:16px">Meta diária por produto — salva no Google Sheets</div>
+    <div id="modal-metas-montados-form"></div>
+    <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="document.getElementById('modal-metas-montados').style.display='none'" style="background:#334;color:#aab;border:1px solid #556;padding:6px 16px;border-radius:6px;cursor:pointer">Cancelar</button>
+      <button onclick="salvarMetasMontados()" id="btn-salvar-metas-montados" style="background:#00c97a;color:#000;border:none;padding:6px 16px;border-radius:6px;font-weight:700;cursor:pointer">💾 Salvar no Sheets</button>
+    </div>
+    <div id="status-metas-montados" style="margin-top:8px;font-size:11px;text-align:center"></div>
+  </div>
 </div>
 
 <!-- ======= ESTOQUE & TRÂNSITO ======= -->
@@ -1631,7 +1652,7 @@ function msToggleAll(id) {
 
 function showTab(id) {
   document.querySelectorAll('.tab').forEach((t,i) => {
-    const ids = ['of','montados','estoque','servicos','termico','ife','pedidos'];
+    const ids = ['montados','of','estoque','servicos','termico','ife','pedidos'];
     t.classList.toggle('active', ids[i] === id);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -1673,89 +1694,231 @@ function renderOF() {
   }).join('');
 }
 
+function abrirModalMetasMontados() {
+  const modal = document.getElementById('modal-metas-montados');
+  const form  = document.getElementById('modal-metas-montados-form');
+  modal.style.display = 'flex';
+  const cfg = DATA.config || {};
+  const PRODS = ['TOMADA_MULT','BOMBA','CILINDRO','GUINCHO'];
+  const LABELS = ['Tomada e Mult','Bomba','Cilindro','Guincho e Enrol.'];
+  const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const hoje = new Date();
+  const mesAtual = hoje.getMonth(); // 0-based
+
+  let html = '';
+  PRODS.forEach((prod, pi) => {
+    html += `<div style="margin-bottom:18px;padding:12px;background:#0a1628;border-radius:8px;border:1px solid var(--border)">
+      <div style="font-size:11px;font-weight:700;color:#00c97a;letter-spacing:1px;margin-bottom:10px">${LABELS[pi].toUpperCase()}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">`;
+    for (let m = 0; m < 12; m++) {
+      const mm = String(m+1).padStart(2,'0');
+      const key = 'MONT_META_' + prod + '_' + mm;
+      const val = parseFloat(cfg[key]) || 0;
+      const duMes = diasUteisMes ? diasUteisMes(hoje.getFullYear(), m) : 22;
+      const isAtual = m === mesAtual;
+      html += `<div style="background:${isAtual?'#1a2235':'#0d1527'};border:1px solid ${isAtual?'#00c97a44':'var(--border)'};border-radius:6px;padding:8px">
+        <div style="font-size:9px;color:var(--text-muted);margin-bottom:4px">${MESES[m]}</div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <input id="mmeta-${prod}-${mm}" type="number" value="${val}" min="0"
+            style="width:60px;background:#1e2a4a;border:1px solid var(--border);color:#fff;padding:3px 6px;border-radius:4px;font-size:12px"
+            oninput="document.getElementById('mmeta-total-${prod}-${mm}').textContent=Math.round(this.value*${duMes})">
+          <span style="font-size:10px;color:var(--text-muted)">/dia → <b id="mmeta-total-${prod}-${mm}" style="color:#00c97a">${Math.round(val*duMes)}</b></span>
+        </div>
+      </div>`;
+    }
+    html += '</div></div>';
+  });
+  form.innerHTML = html;
+}
+
+async function salvarMetasMontados() {
+  const btn = document.getElementById('btn-salvar-metas-montados');
+  const status = document.getElementById('status-metas-montados');
+  btn.textContent = '⏳ Salvando...'; btn.disabled = true;
+  const PRODS = ['TOMADA_MULT','BOMBA','CILINDRO','GUINCHO'];
+  const updates = {};
+  PRODS.forEach(prod => {
+    for (let m = 1; m <= 12; m++) {
+      const mm = String(m).padStart(2,'0');
+      const el = document.getElementById('mmeta-' + prod + '-' + mm);
+      if (el) updates['MONT_META_' + prod + '_' + mm] = parseFloat(el.value)||0;
+    }
+  });
+  if (!DATA.config) DATA.config = {};
+  Object.entries(updates).forEach(([k,v]) => { DATA.config[k] = String(v); });
+  try {
+    await _saveConfig(updates);
+    btn.textContent = '✅ Salvo!'; btn.disabled = false;
+    setTimeout(() => { document.getElementById('modal-metas-montados').style.display='none'; renderMontados(); }, 800);
+  } catch(e) {
+    btn.textContent = '⚠ Salvo localmente'; btn.disabled = false;
+    setTimeout(() => { document.getElementById('modal-metas-montados').style.display='none'; renderMontados(); }, 1200);
+  }
+}
+
+function getMontadosMeta(prod, mes0) {
+  const cfg = DATA.config || {};
+  const mm = String(mes0+1).padStart(2,'0');
+  const v = parseFloat(cfg['MONT_META_' + prod + '_' + mm]);
+  return isNaN(v) ? 0 : v;
+}
+
 function renderMontados() {
   const el = document.getElementById('montados-content');
+  const cardsEl = document.getElementById('montados-cards');
   if (!DATA.montados || DATA.montados.length === 0) {
-    el.innerHTML = '<div class="no-data">Nenhum item montado registrado ainda.</div>';
+    if (el) el.innerHTML = '<div class="no-data">Nenhum item montado registrado ainda.</div>';
+    if (cardsEl) cardsEl.innerHTML = '';
     return;
   }
-  const cols = ['TOMADA_MULT','BOMBA','CILINDRO','CONJ_EIXO','GUINCHO','COMANDO','VALVULA','KIT_HIDR'];
-  const colLabels = ['TOMADA E MULT','BOMBA','CILINDRO','CONJ. EIXO','GUINCHO','COMANDO','VÁLVULA','KIT HIDR.'];
 
-  // Separate special rows from data rows
-  // norm: strip accents; isMediaLabel uses regex to handle encoding corruption (M◆DIA, MEDIA, MÉDIA)
+  const cols      = ['TOMADA_MULT','BOMBA','CILINDRO','CONJ_EIXO','GUINCHO','COMANDO','VALVULA','KIT_HIDR'];
+  const colLabels = ['TOMADA E MULT','BOMBA','CILINDRO','CONJ. EIXO','GUINCHO E ENROL.','COMANDO','VÁLVULA','KIT HIDR.'];
+  const PROD_CORES = {
+    TOMADA_MULT:'#f59e0b', BOMBA:'#3d8bff', CILINDRO:'#00c97a',
+    GUINCHO:'#a855f7', CONJ_EIXO:'#06b6d4', COMANDO:'#ff8c3b',
+    VALVULA:'#e74c3c', KIT_HIDR:'#64748b'
+  };
+  const HAS_META = ['TOMADA_MULT','BOMBA','CILINDRO','GUINCHO'];
+
   const norm = s => String(s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const isMediaLabel = s => { const n = norm(s); return /M.DIA/.test(n) && !n.includes('TOTAL'); };
 
   const totalRow = DATA.montados.find(r => norm(r.DATA).includes('TOTAL'));
   const mediaRow = DATA.montados.find(r => isMediaLabel(r.DATA));
-  const diasRow  = DATA.montados.find(r => norm(r.DATA).includes('DIAS'));
-  const dataRows = DATA.montados.filter(r => {
-    return !norm(r.DATA).includes('TOTAL') && !isMediaLabel(r.DATA) && !norm(r.DATA).includes('DIAS') && !norm(r.DATA).includes('UTEIS') && r.DATA;
-  });
+  const dataRows = DATA.montados.filter(r =>
+    !norm(r.DATA).includes('TOTAL') && !isMediaLabel(r.DATA) &&
+    !norm(r.DATA).includes('DIAS') && !norm(r.DATA).includes('UTEIS') && r.DATA
+  );
   const sorted = dataRows.sort((a,b) => parseDate(b.DATA||'01/01/2000') - parseDate(a.DATA||'01/01/2000'));
 
-  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const hojeStr = hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0')+'-'+String(hoje.getDate()).padStart(2,'0');
+  const mesAtual = hoje.getMonth();
+  const anoAtual = hoje.getFullYear();
+  const feriados = getFeriados().map(f=>f.data);
 
-  // Format a footer row — uses raw string values (not computed)
-  const fmtFootRow = (label, r, style, color, isMedia) => {
-    const cells = cols.map(c => {
-      const v = r ? r[c] : 0;
-      const num = parseFloat(String(v||'').replace(',','.'));
-      let display;
-      if (v === '' || v === null || v === undefined) {
-        display = '<span class="zero">—</span>';
-      } else if (isMedia && !isNaN(num)) {
-        // MÉDIA: exibir com 1 casa decimal para indicar que é média
-        display = num === 0 ? '<span class="zero">—</span>' : num.toLocaleString('pt-BR', {minimumFractionDigits:1, maximumFractionDigits:1});
-      } else {
-        const n = +v;
-        display = (!isNaN(n) && n !== 0) ? n.toLocaleString('pt-BR') : (v || '<span class="zero">—</span>');
-      }
-      return `<td style="color:${color||'inherit'}">${display}</td>`;
+  // Calcular dias úteis até ontem no mês atual
+  const duAteMes = diasUteisMes ? diasUteisMes(anoAtual, mesAtual) : 0;
+
+  // Dias úteis restantes no mês (de hoje até fim do mês)
+  let duRestantes = 0;
+  const totalDiasMes = new Date(anoAtual, mesAtual+1, 0).getDate();
+  for (let d = hoje.getDate(); d <= totalDiasMes; d++) {
+    const dt = new Date(anoAtual, mesAtual, d);
+    if (dt.getDay()===0||dt.getDay()===6) continue;
+    const iso = anoAtual+'-'+String(mesAtual+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    if (feriados.includes(iso)) continue;
+    duRestantes++;
+  }
+
+  // ── CARDS ────────────────────────────────────────────────────────────
+  if (cardsEl) {
+    cardsEl.innerHTML = cols.map(col => {
+      const cor = PROD_CORES[col] || '#c8cfe8';
+      const label = colLabels[cols.indexOf(col)];
+      const hasMeta = HAS_META.includes(col);
+      const metaDia = getMontadosMeta(col, mesAtual);
+      const metaAcum = metaDia * duAteMes;
+
+      // Total do mês atual (só linhas com data no mês atual)
+      const totalMes = sorted.filter(r => {
+        const d = parseDate(r.DATA||'01/01/2000');
+        return d.getMonth()===mesAtual && d.getFullYear()===anoAtual;
+      }).reduce((s,r) => s + (parseFloat(String(r[col]||'').replace(',','.'))||0), 0);
+
+      // Média diária (total ÷ dias úteis com dados)
+      const diasComDados = sorted.filter(r => {
+        const d = parseDate(r.DATA||'01/01/2000');
+        return d.getMonth()===mesAtual && d.getFullYear()===anoAtual;
+      }).length;
+      const mediaDia = diasComDados > 0 ? totalMes/diasComDados : 0;
+
+      // Saldo vs meta acumulada
+      const saldo = totalMes - metaAcum;
+      const saldoStr = (saldo>=0?'+':'')+Math.round(saldo).toLocaleString('pt-BR');
+      const saldoCor = saldo>=0?'var(--green)':'var(--red)';
+
+      // Média necessária para bater meta
+      const metaTotalMes = metaDia * (duAteMes + duRestantes);
+      const medNec = duRestantes>0 ? Math.ceil((metaTotalMes-totalMes)/duRestantes) : 0;
+
+      const isAbove = hasMeta && metaDia>0 && mediaDia>=metaDia;
+      const statusTxt = hasMeta && metaDia>0 ? (isAbove?'✓ acima da meta':'✗ abaixo da meta') : '';
+      const statusCor = isAbove ? 'var(--green)' : 'var(--red)';
+
+      return `<div style="background:${cor}12;border:${hasMeta?'2':'1'}px solid ${cor}${hasMeta?'':' +'+'44'};border-radius:12px;padding:14px 16px;flex:1;min-width:${hasMeta?'200':'160'}px">
+        <div style="font-size:9px;font-weight:700;color:${cor};letter-spacing:1px;margin-bottom:8px">${label}${hasMeta?'':' <span style="font-size:8px;color:var(--text-muted)">(sem meta)</span>'}</div>
+        <div style="font-size:${hasMeta?'28':'22'}px;font-weight:900;color:${cor}">${Math.round(totalMes).toLocaleString('pt-BR')}</div>
+        <div style="font-size:9px;color:var(--text-muted);margin-top:2px">total mês · ${diasComDados} du</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+          <div style="font-size:10px;color:var(--text-muted)">Média: <b style="color:${cor}">${mediaDia.toFixed(1)}/dia</b></div>
+          ${hasMeta && metaDia>0 ? `<div style="font-size:10px;color:var(--text-muted)">Meta: <b style="color:${cor}">${metaDia}/dia</b></div>` : ''}
+        </div>
+        ${hasMeta && metaDia>0 ? `
+        <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
+          <div style="font-size:10px">Saldo: <b style="color:${saldoCor}">${saldoStr}</b></div>
+          <div style="font-size:10px;color:${statusCor};font-weight:700">${statusTxt}</div>
+        </div>
+        <div style="margin-top:4px;font-size:10px;color:var(--text-muted)">Nec: <b style="color:${medNec>metaDia?'var(--red)':'var(--green)'}">${medNec}/dia</b> (${duRestantes} du rest.)</div>
+        ` : ''}
+      </div>`;
     }).join('');
-    return `<tr class="tfoot-row" style="${style}">
-      <td style="text-align:left;color:${color||'inherit'};font-style:${isMedia?'italic':''}">${label}</td>${cells}
-    </tr>`;
+  }
+
+  // ── TABELA MELHORADA ─────────────────────────────────────────────────
+  const fmtNum = (v, isMedia) => {
+    const num = parseFloat(String(v||'').replace(',','.'));
+    if (isNaN(num) || num===0) return '<span class="zero">—</span>';
+    return isMedia ? num.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})
+                   : Math.round(num).toLocaleString('pt-BR');
   };
 
-  el.innerHTML = `<div class="table-wrap"><div class="scrollable">
-    <table style="table-layout:auto;min-width:700px;">
-      <thead class="green"><tr>
-        <th style="text-align:left;min-width:100px">DATA</th>
-        ${colLabels.map(l=>`<th>${l}</th>`).join('')}
-      </tr></thead>
-      <tbody>
-        ${totalRow ? fmtFootRow('TOTAL', totalRow, 'background:#1e2a4a;border-bottom:2px solid var(--green-dark)', '', false) : ''}
-        ${mediaRow ? fmtFootRow('MÉDIA', mediaRow, 'background:#162a1e;border-bottom:1px solid var(--green);border-left:3px solid var(--green)', 'var(--green)', true) : ''}
-        ${diasRow  ? `<tr class="tfoot-row" style="background:#162a1e;border-bottom:2px solid var(--border)">
-          <td style="text-align:left;color:var(--text-muted)">DIAS ÚTEIS</td>
-          <td colspan="8" style="color:var(--text-muted);text-align:left">${
-            (Object.values(diasRow).join(' ').match(/\d+/) || [''])[0]
-          }</td>
+  const colWidths = colLabels.map(l => `<col style="width:${l.length>10?110:90}px">`).join('');
+
+  el.innerHTML = `
+  <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px;border:1px solid var(--border)">
+    <table style="border-collapse:collapse;white-space:nowrap;width:max-content;min-width:100%">
+      <colgroup><col style="width:110px">${colWidths}</colgroup>
+      <thead>
+        <tr style="background:#1a6d3a">
+          <th style="padding:10px 14px;text-align:left;font-size:10px;letter-spacing:1px;font-weight:700;color:#fff;position:sticky;left:0;background:#1a6d3a;z-index:2">DATA</th>
+          ${colLabels.map((l,i) => `<th style="padding:10px 14px;text-align:right;font-size:10px;letter-spacing:0.5px;font-weight:700;color:${PROD_CORES[cols[i]]}44!important">${l}</th>`).join('')}
+        </tr>
+        ${totalRow ? `<tr style="background:#1e3a2a">
+          <td style="padding:8px 14px;text-align:left;font-weight:700;color:#00c97a;font-size:11px;position:sticky;left:0;background:#1e3a2a;z-index:2">TOTAL</td>
+          ${cols.map(c=>`<td style="padding:8px 14px;text-align:right;font-weight:700;color:#00c97a;font-size:13px">${fmtNum(totalRow[c],false)}</td>`).join('')}
         </tr>` : ''}
-        ${sorted.map(r => {
+        ${mediaRow ? `<tr style="background:#162a1e;border-bottom:2px solid #00c97a44">
+          <td style="padding:7px 14px;text-align:left;font-style:italic;color:#00c97a;font-size:11px;position:sticky;left:0;background:#162a1e;z-index:2">MÉDIA/DIA</td>
+          ${cols.map(c=>`<td style="padding:7px 14px;text-align:right;font-style:italic;color:#00c97a;font-size:11px">${fmtNum(mediaRow[c],true)}</td>`).join('')}
+        </tr>` : ''}
+      </thead>
+      <tbody>
+        ${sorted.map((r,i) => {
           const d = parseDate(r.DATA||'01/01/2000');
-          const isToday = d.getTime() === todayMidnight.getTime();
-          return `<tr style="${isToday?'background:rgba(26,109,255,0.08)':''}">
-            <td style="text-align:left${isToday?';color:var(--blue-light);font-weight:600':''}">${r.DATA||''}${isToday?' (hoje)':''}</td>
-            ${cols.map(c=>`<td>${r[c]?r[c]:'<span class="zero">—</span>'}</td>`).join('')}
+          const isToday = d.getTime() === hoje.getTime();
+          const bg = isToday ? 'rgba(61,139,255,0.10)' : i%2===0 ? 'transparent' : 'rgba(255,255,255,0.02)';
+          return `<tr style="background:${bg}">
+            <td style="padding:7px 14px;text-align:left;font-size:12px;${isToday?'color:var(--blue-light);font-weight:700':'color:var(--text-muted)'};position:sticky;left:0;background:${bg};z-index:1">${r.DATA||''}${isToday?' ●':''}</td>
+            ${cols.map(c=>`<td style="padding:7px 14px;text-align:right;font-size:12px;color:var(--text)">${fmtNum(r[c],false)}</td>`).join('')}
           </tr>`;
         }).join('')}
       </tbody>
       <tfoot>
-        ${totalRow ? fmtFootRow('TOTAL', totalRow, 'background:#1e2a4a;border-top:2px solid var(--green-dark)', '', false) : ''}
-        ${mediaRow ? fmtFootRow('MÉDIA', mediaRow, 'background:#162a1e;border-top:1px solid var(--green);border-left:3px solid var(--green)', 'var(--green)', true) : ''}
-        ${diasRow  ? `<tr class="tfoot-row" style="background:#162a1e">
-          <td style="text-align:left;color:var(--text-muted)">DIAS ÚTEIS</td>
-          <td colspan="8" style="color:var(--text-muted);text-align:left">${
-            (Object.values(diasRow).join(' ').match(/\d+/) || [''])[0]
-          }</td>
+        ${totalRow ? `<tr style="background:#1e3a2a;border-top:2px solid #00c97a44">
+          <td style="padding:8px 14px;text-align:left;font-weight:700;color:#00c97a;font-size:11px;position:sticky;left:0;background:#1e3a2a;z-index:2">TOTAL</td>
+          ${cols.map(c=>`<td style="padding:8px 14px;text-align:right;font-weight:700;color:#00c97a;font-size:13px">${fmtNum(totalRow[c],false)}</td>`).join('')}
+        </tr>` : ''}
+        ${mediaRow ? `<tr style="background:#162a1e">
+          <td style="padding:7px 14px;text-align:left;font-style:italic;color:#00c97a;font-size:11px;position:sticky;left:0;background:#162a1e;z-index:2">MÉDIA/DIA</td>
+          ${cols.map(c=>`<td style="padding:7px 14px;text-align:right;font-style:italic;color:#00c97a;font-size:11px">${fmtNum(mediaRow[c],true)}</td>`).join('')}
         </tr>` : ''}
       </tfoot>
     </table>
-  </div></div>`;
+  </div>`;
 }
+
 
 // ===== ESTOQUE & TRÂNSITO =====
 let estoqueCharts = [];
