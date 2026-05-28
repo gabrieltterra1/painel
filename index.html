@@ -1740,10 +1740,26 @@ function renderOF() {
   +sorted.map((r,i)=>{
     const od = isOverdue(r.DT_FIM_OF);
     const bg = od?'rgba(255,59,59,0.06)':i%2===0?'transparent':'rgba(20,30,50,0.4)';
+    // Check triangle: any product exceeds meta diaria
+    const hasTri = cols.some((c,ci) => {
+      const metaCol = ['TOMADA_MULT','BOMBA','CILINDRO','GUINCHO_ENROL'].includes(c);
+      if (!metaCol) return false;
+      const prodKey = {TOMADA_MULT:'TOMADA_MULT',BOMBA:'BOMBA',CILINDRO:'CILINDRO',GUINCHO_ENROL:'GUINCHO'}[c];
+      const metaDiaCol = getMontadosMeta(prodKey, mesAtual);
+      const val = parseFloat(String(r[c]||'0').replace(',','.'))||0;
+      return metaDiaCol > 0 && val > metaDiaCol;
+    });
     return '<tr style="background:'+bg+'">'
-      +'<td style="'+stickyTd+'background:'+bg+';color:'+(od?'var(--red)':'#5a7aaa')+';font-size:14px;'+(od?'font-weight:700;':'')+'">'
-      +r.DT_FIM_OF+(od?' ⚑':'')+'</td>'
-      +cols.map(c=>'<td style="'+tdBase+'color:'+(od?'var(--red)':'#8899bb')+'">'+(r[c]?fmtN(r[c]):'<span style="color:#1a2a4a">—</span>')+'</td>').join('')
+      +'<td style="'+stickyTd+'background:'+bg+';color:'+(od?'var(--red)':'#ddeeff')+';font-size:14px;'+(od?'font-weight:700;':'')+'">'
+      +r.DT_FIM_OF+(od?' ⚑':'')+(hasTri?' ▲':'')+'</td>'
+      +cols.map((c,ci)=>{
+        const metaCol=['TOMADA_MULT','BOMBA','CILINDRO','GUINCHO_ENROL'].includes(c);
+        const prodKey={TOMADA_MULT:'TOMADA_MULT',BOMBA:'BOMBA',CILINDRO:'CILINDRO',GUINCHO_ENROL:'GUINCHO'}[c];
+        const metaDiaCol=metaCol?getMontadosMeta(prodKey,mesAtual):0;
+        const val=parseFloat(String(r[c]||'0').replace(',','.'))||0;
+        const overMeta=metaDiaCol>0&&val>metaDiaCol;
+        return '<td style="'+tdBase+'color:'+(od?'var(--red)':overMeta?'#ffaa00':'#ddeeff')+';font-weight:'+(overMeta?700:400)+'">'+(r[c]?fmtN(r[c])+'<span style="font-size:10px;color:#ffaa00">'+(overMeta?' ▲':'')+'</span>':'<span style="color:#1a2a4a">—</span>')+'</td>';
+      }).join('')
       +'</tr>';
   }).join('')
   +'</tbody>'
@@ -1891,11 +1907,15 @@ function renderMontados() {
       const totalMes=totalRow?parseFloat(String(totalRow[col]||'0').replace(',','.'))||0:0;
       // Média do email (já calculada corretamente)
       const mediaDia=mediaRow?parseFloat(String(mediaRow[col]||'0').replace(',','.'))||0:0;
-      const saldo=totalMes-metaAcum;
+      // Saldo = (meta/dia - média/dia) × du realizados
+      const saldo = hasMeta && metaDia>0 ? (mediaDia - metaDia) * duEmail : 0;
       const saldoStr=(saldo>=0?'+':'')+Math.round(saldo).toLocaleString('pt-BR');
       const saldoCor=saldo>=0?'var(--green)':'var(--red)';
-      const metaTotalMes=metaDia*(duAteMes+duRestantes);
-      const medNec=duRestantes>0?Math.ceil((metaTotalMes-totalMes)/duRestantes):0;
+      // Necessidade = (saldo_devendo / du_restantes) + meta/dia
+      const saldoDevendo = Math.min(0, saldo); // só quando negativo
+      const medNec = hasMeta && metaDia>0 && duRestantes>0
+        ? Math.ceil(metaDia + Math.abs(saldoDevendo) / duRestantes)
+        : 0;
       const isAbove=hasMeta&&metaDia>0&&mediaDia>=metaDia;
 
       return '<div style="background:'+cor+'12;border:'+(hasMeta?'2':'1')+'px solid '+cor+(hasMeta?'':'66')+';border-radius:10px;padding:12px 14px;flex:1;min-width:'+(hasMeta?'175':'140')+'px">'
@@ -1957,8 +1977,8 @@ function renderMontados() {
             const isToday=d.getTime()===hoje.getTime();
             const bg=isToday?'rgba(76,175,130,0.08)':i%2===0?'transparent':'rgba(10,40,20,0.25)';
             return `<tr style="background:${bg}">
-              <td style="${stickyTd}background:${bg};color:${isToday?'#4cff9a':'#8ab49a'};font-size:14px;${isToday?'font-weight:700;':''}">${r.DATA||''}${isToday?' ●':''}</td>
-              ${cols.map(c=>`<td style="${tdBase}color:${isToday?'#c8f0d8':'#a8c4b4'};font-size:15px">${fmtN(r[c])}</td>`).join('')}
+              <td style="${stickyTd}background:${bg};color:${isToday?'#4cff9a':'#ddeedd'};font-size:14px;${isToday?'font-weight:700;':''}">${r.DATA||''}${isToday?' ●':''}</td>
+              ${cols.map(c=>`<td style="${tdBase}color:${isToday?'#ffffff':'#ddeedd'};font-size:15px">${fmtN(r[c])}</td>`).join('')}
             </tr>`;
           }).join('')}
         </tbody>
