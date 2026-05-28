@@ -1391,6 +1391,21 @@ document.addEventListener('DOMContentLoaded', () => {
       <option value="neg">Somente negativos (necessita montar)</option>
       <option value="pos">Somente positivos (faturar)</option>
     </select>
+    <div class="ms-wrap" id="ms-pv-prior-status" style="min-width:160px">
+      <div class="ms-btn" onclick="toggleMsDropdown('ms-pv-prior-status')">
+        <span id="ms-pv-prior-status-label">Todos os status OF</span><span>▾</span>
+      </div>
+      <div class="ms-dropdown" id="ms-pv-prior-status-list">
+        <div class="ms-all" onclick="msToggleAll('ms-pv-prior-status')">
+          <input type="checkbox" id="ms-pv-prior-status-all" checked> Selecionar / Desmarcar Todos
+        </div>
+        <label class="ms-item"><input type="checkbox" value="SEPARADO" checked onchange="msChange('ms-pv-prior-status')"> ▣ Separado</label>
+        <label class="ms-item"><input type="checkbox" value="FALTA SEPARAR" checked onchange="msChange('ms-pv-prior-status')"> ⚙ Falta Separar</label>
+        <label class="ms-item"><input type="checkbox" value="SEP. PARCIAL" checked onchange="msChange('ms-pv-prior-status')"> ◑ Sep. Parcial</label>
+        <label class="ms-item"><input type="checkbox" value="ABRIR OF" checked onchange="msChange('ms-pv-prior-status')"> ✗ Abrir OF</label>
+        <label class="ms-item"><input type="checkbox" value="MISTO" checked onchange="msChange('ms-pv-prior-status')"> ◑ Misto</label>
+      </div>
+    </div>
     <input class="search-input" type="text" id="pv-search2" placeholder="Buscar código ou descrição..." oninput="renderPvPrioridades()" style="width:200px">
     <button id="pv-btn-ocultos" onclick="pvOcultos.clear();renderPvPrioridades()" style="display:none;background:rgba(0,201,122,0.15);border:1px solid var(--green);color:var(--green);padding:7px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">👁 Mostrar ocultos</button>
     <button onclick="pvLimparFiltros()" style="background:rgba(255,59,59,0.12);border:1px solid var(--red);color:var(--red);padding:7px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">✕ Limpar filtros</button>
@@ -1608,7 +1623,7 @@ function msChange(id) {
   // trigger render
   if (id === 'ms-produto') renderTransito();
   else if (id.startsWith('ms-est')) renderEstoque();
-  else if (id === 'ms-pv-dias' || id === 'ms-pv-fam2') renderPvPrioridades();
+  else if (id === 'ms-pv-dias' || id === 'ms-pv-fam2' || id === 'ms-pv-prior-status') renderPvPrioridades();
   else if (id.startsWith('ms-pv')) renderPedidos();
 }
 function transitoLimparFiltros() {
@@ -4306,6 +4321,10 @@ function renderPvPrioridades() {
 
   // Filtrar
   const projFilt = document.getElementById('pv-proj-filt')?.value || '';
+  const statusFiltEl = document.getElementById('ms-pv-prior-status-list');
+  const statusFilt = statusFiltEl
+    ? [...statusFiltEl.querySelectorAll('input[type=checkbox]:not(#ms-pv-prior-status-all):checked')].map(i=>i.value)
+    : null;
   const _sortVal = (g, k) => {
     if (k === 'codigo')    return g.codigo;
     if (k === 'descricao') return g.descricao;
@@ -4319,6 +4338,18 @@ function renderPvPrioridades() {
     .filter(g => !pvOcultos.has(g.codigo))
     .filter(g => !famSel.length || famSel.includes(g.familia))
     .filter(g => projFilt === 'neg' ? g.proj < 0 : projFilt === 'pos' ? g.proj >= 0 : true)
+    .filter(g => {
+      if (!statusFilt || statusFilt.length === 0) return true;
+      const sof = (g.statusOf||'').toUpperCase();
+      return statusFilt.some(s => {
+        if (s==='SEPARADO')      return sof.includes('SEPARADO') && !sof.includes('FALTA') && !sof.includes('PARCIAL') && !sof.includes('MISTO');
+        if (s==='FALTA SEPARAR') return sof.includes('FALTA SEPARAR');
+        if (s==='SEP. PARCIAL')  return sof.includes('SEP. PARCIAL') || sof.includes('PARCIAL');
+        if (s==='ABRIR OF')      return sof.includes('ABRIR OF');
+        if (s==='MISTO')         return sof.includes('MISTO');
+        return false;
+      });
+    })
     .filter(g => !search || g.codigo.toLowerCase().includes(search) || g.descricao.toLowerCase().includes(search))
     .sort((a,b) => {
       const va = _sortVal(a, pvSortKey), vb = _sortVal(b, pvSortKey);
@@ -4773,7 +4804,7 @@ function pvGerarPDF() {
   // ── Cards HTML ─────────────────────────────────────────────────────────
   let cardsHtml = '';
   famCards.forEach(function(c) {
-    cardsHtml += '<div style="background:' + c.color + '12;border:2px solid ' + c.color + ';border-radius:8px;padding:8px 12px;min-width:110px;flex:1">';
+    cardsHtml += '<div class="card-item" style="background:' + c.color + '12;border:2px solid ' + c.color + ';border-radius:8px;padding:8px 12px;">';
     cardsHtml += '<div style="font-size:10px;font-weight:900;color:' + c.color + ';margin-bottom:4px">' + c.label + '</div>';
     cardsHtml += '<div style="font-size:20px;font-weight:900;color:' + c.color + ';margin-bottom:5px">' + c.tot + ' <span style="font-size:10px">itens</span></div>';
     cardsHtml += '<div style="font-size:11px;line-height:2;color:#333">';
@@ -4797,7 +4828,8 @@ function pvGerarPDF() {
   doc.write('.header h2 { font-size:18px; font-weight:900; color:#0d1b3e; }');
   doc.write('.header h2 span { color:#1a6fcc; }');
   doc.write('.header .sub { font-size:9px; color:#666; text-align:right; line-height:1.5; }');
-  doc.write('.cards { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }');
+  doc.write('.cards { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; max-width:100%; page-break-inside:avoid; }');
+  doc.write('.card-item { flex:1; min-width:100px; max-width:180px; box-sizing:border-box; }');
   doc.write('.cards-title { font-size:9px; font-weight:700; color:#666; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:6px; }');
   doc.write('table { width:100%; border-collapse:collapse; font-size:10px; }');
   doc.write('thead tr { background:#0d1b3e; }');
