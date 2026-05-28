@@ -4656,8 +4656,9 @@ function _pvCalcMontarCompleto(proj, ofSemStr, ofCompStr, ofParcStr) {
   if (faltaAbrirOf > 0) partes.push(`${faltaAbrirOf} ✗ ABRIR OF`);
   if (partes.length === 0) partes.push(`${necessidade} ✗ ABRIR OF`);
 
-  // A MONTAR = sempre a necessidade total (|proj|)
-  const montar = necessidade;
+  // A MONTAR = OFs existentes (respeitando qtde inteira) + o que falta abrir OF
+  // Se OFs cobrem mais que a necessidade, usa a OF inteira (não corta)
+  const montar = totalMontavel + faltaAbrirOf;
   return { montar, statusOf: partes.join(' + ') };
 }
 
