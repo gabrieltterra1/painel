@@ -1247,6 +1247,17 @@ document.addEventListener('DOMContentLoaded', () => {
   </div></div>
 </div>
 
+<!-- ═══ MODAL IFE POR MÊS ═══ -->
+<div id="modal-ife-mes" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center" onclick="if(event.target===this)fecharModalIFEMes()">
+  <div style="background:#151a2e;border:1px solid #1e2a4a;border-radius:12px;padding:24px;width:1100px;max-width:95vw;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div id="ife-mes-titulo" style="font-size:15px;font-weight:700;color:#fff"></div>
+      <button onclick="fecharModalIFEMes()" style="background:none;border:none;color:#666;font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <div id="ife-mes-conteudo"></div>
+  </div>
+</div>
+
 <!-- ═══ MODAL METAS ═══ -->
 <div id="modal-metas" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center">
   <div style="background:#151a2e;border:1px solid #1e2a4a;border-radius:12px;padding:24px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto">
@@ -1299,7 +1310,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </select>
     <select class="filter-select" id="ife-view" onchange="renderIFE()">
       <option value="mensal">Visão Mensal</option>
-      <option value="historico">Histórico Completo (Consolidado / Matriz / Filial / Famílias)</option>
+      <option value="historico" selected>Histórico Completo (Consolidado / Matriz / Filial / Famílias)</option>
       <option value="classe">Por Classificação</option>
       <option value="comp">Comparativo Ano a Ano</option>
     </select>
@@ -3708,8 +3719,8 @@ function _renderIFEHistorico(meses) {
     const famCells = FAM.map(f =>
       cell(matrMes.filter(r => famDe(r.clas) === f.key))
     ).join('');
-    return '<tr>'
-      + '<td style="position:sticky;left:0;background:var(--surface);z-index:1">'+_ifeFmt(m)+'</td>'
+    return '<tr style="cursor:pointer" onclick="abrirModalIFEMes(\''+m+'\')" title="Ver cards deste mês">'
+      + '<td style="position:sticky;left:0;background:var(--surface);z-index:1">'+_ifeFmt(m)+' <span style="color:var(--text-muted);font-size:9px">🔍</span></td>'
       + cell(dCons.filter(r => r.mesKey === m))
       + cell(matrMes)
       + cell(dFili.filter(r => r.mesKey === m))
@@ -3727,6 +3738,75 @@ function _renderIFEHistorico(meses) {
     + '<td style="position:sticky;left:0;background:#1e2a4a;text-align:left;color:var(--text-muted)">TOTAL PERÍODO</td>'
     + cell(dCons) + cell(dMatr) + cell(dFili) + famFoot
     + '</tr>';
+}
+
+function fecharModalIFEMes() {
+  document.getElementById('modal-ife-mes').style.display = 'none';
+}
+
+function abrirModalIFEMes(mesKey) {
+  const FAM = [
+    { key:'Walvoil',  label:'WALVOIL',           color:'#10b981', prefixos:['6'] },
+    { key:'Guinchos', label:'GUINCHOS',          color:'#f59e0b', prefixos:['8'] },
+    { key:'Forca',    label:'FORÇA',             color:'#3d8bff', prefixos:['3'] },
+    { key:'Hydrocar', label:'HYDROCAR/HYDROVEN', color:'#a855f7', prefixos:['4','5'] },
+    { key:'Pecas',    label:'PEÇAS E COMP.',     color:'#06b6d4', prefixos:['1','2'] },
+  ];
+  const famDe = clas => {
+    const c = String(clas||'').trim();
+    for (const f of FAM) if (f.prefixos.some(p => c.startsWith(p))) return f.key;
+    return null;
+  };
+
+  const ifeEmp = emp => _ifeCalc(DATA.ife.filter(_ifeFiltrar(emp)).filter(r=>r.mesKey===mesKey)).ife;
+  const ifeConsolidado = ifeEmp('CONSOLIDADO');
+  const ifeMatriz      = ifeEmp('1');
+  const ifeFilial      = ifeEmp('2');
+
+  // Cards de resumo (mesmo visual do topo)
+  const ifeList = [
+    {label:'CONSOLIDADO', val:ifeConsolidado, big:true},
+    {label:'MATRIZ',      val:ifeMatriz,      big:false},
+    {label:'FILIAL SP',   val:ifeFilial,      big:false},
+  ];
+  const resumoHtml = ifeList.map((c,i) => {
+    const cor = c.val!==null?_ifeColor(c.val):'var(--text-muted)';
+    const meta = c.val!==null?(c.val>=95?'✓ acima da meta':'✗ abaixo da meta (95%)'):'—';
+    const metaCor = c.val!==null?(c.val>=95?'var(--green)':'var(--red)'):'var(--text-muted)';
+    const sz = c.big?'36px':'28px';
+    const border = i<ifeList.length-1?'border-right:1px solid var(--border);':'';
+    return '<div style="text-align:center;padding:20px 32px;'+border+'flex:1">'
+      + '<div style="font-size:10px;color:var(--text-muted);letter-spacing:1px;margin-bottom:6px">'+c.label+'</div>'
+      + '<div style="font-size:'+sz+';font-weight:900;color:'+cor+';line-height:1">'+(c.val!==null?c.val.toFixed(2)+'%':'—')+'</div>'
+      + '<div style="font-size:11px;font-weight:700;margin-top:6px;color:'+metaCor+'">'+meta+'</div>'
+      + '</div>';
+  }).join('');
+
+  // Famílias da Matriz no mês
+  const matrMes = DATA.ife.filter(_ifeFiltrar('1')).filter(r=>r.mesKey===mesKey);
+  const famHtml = FAM.map(f => {
+    let atrasado=0, total=0;
+    matrMes.filter(r=>famDe(r.clas)===f.key).forEach(r=>{ atrasado+=r.atrasado; total+=r.total; });
+    const ife = total>0?(1-atrasado/total)*100:null;
+    const cor = ife!==null?_ifeColor(ife):'var(--text-muted)';
+    return '<div style="background:'+f.color+'18;border:2px solid '+f.color+';border-radius:8px;padding:10px 14px;min-width:100px;flex:1;text-align:center">'
+      + '<div style="font-size:9px;font-weight:900;color:'+f.color+';margin-bottom:4px;letter-spacing:0.4px">'+f.label+'</div>'
+      + '<div style="font-size:20px;font-weight:900;color:'+cor+'">'+(ife!==null?ife.toFixed(1)+'%':'—')+'</div>'
+      + '<div style="font-size:9px;color:var(--text-muted)">'+total.toLocaleString('pt-BR')+' entregas</div>'
+      + '<div style="font-size:9px;font-weight:700;color:'+(ife!==null?(ife>=95?'var(--green)':'var(--red)'):'var(--text-muted)')+'">'+(ife!==null?(ife>=95?'✓':'✗ -'+(95-ife).toFixed(1)+'%'):'—')+'</div>'
+      + '</div>';
+  }).join('');
+
+  document.getElementById('ife-mes-titulo').innerHTML = '📊 IFE ' + _ifeFmtLg(mesKey);
+  document.getElementById('ife-mes-conteudo').innerHTML =
+    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px">'
+    + '<div style="background:#1e2a4a;padding:10px 20px;font-size:11px;letter-spacing:1px;color:var(--text-muted)">RESUMO</div>'
+    + '<div style="display:flex;flex-wrap:wrap">'+resumoHtml+'</div>'
+    + '</div>'
+    + '<div style="margin-bottom:6px;font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:1px">IFE MATRIZ — POR FAMÍLIA</div>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap">'+famHtml+'</div>';
+
+  document.getElementById('modal-ife-mes').style.display = 'flex';
 }
 
 function _renderIFEClasse(dados, meses) {
