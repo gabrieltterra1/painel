@@ -2805,15 +2805,13 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
 
   // Agregar TT e PM por dia do mês atual
   const diarioTT = {}, diarioPM = {};
-  (DATA.termico.diarioTT||[]).forEach(r => {
+    (DATA.termico.diarioTT||[]).forEach(r => {
     if (!r.dt) return;
-    const [a,m] = r.dt.split('-').map(Number);
-    if (a === ano && m === mesAtual+1) diarioTT[r.dt] = (diarioTT[r.dt]||0) + r.qtde;
+    diarioTT[r.dt] = (diarioTT[r.dt]||0) + r.qtde;
   });
   (DATA.termico.diarioPM||[]).forEach(r => {
     if (!r.dt) return;
-    const [a,m] = r.dt.split('-').map(Number);
-    if (a === ano && m === mesAtual+1) diarioPM[r.dt] = (diarioPM[r.dt]||0) + r.qtde; // já em pares
+    diarioPM[r.dt] = (diarioPM[r.dt]||0) + r.qtde; // já em pares
   });
 
   // Dias com NF no mês atual (sem hoje) — para gráficos e médias
