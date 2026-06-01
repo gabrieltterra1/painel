@@ -807,6 +807,31 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
   <div id="montados-cards" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px"></div>
   <div id="montados-content"></div>
+
+  <!-- HISTÓRICO ANUAL + COMPARAÇÃO MONTADO × VENDIDO -->
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:32px 0 16px">
+    <span class="section-title" style="margin:0">Histórico do Ano — Montagem &amp; Vendas</span>
+    <button onclick="abrirModalVendasMontados()" style="background:rgba(61,139,255,.15);border:1px solid #3d8bff;color:#3d8bff;padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✏ Informar Vendas</button>
+  </div>
+  <div id="montados-historico"></div>
+  <div id="montados-comparacao" style="margin-top:24px"></div>
+</div>
+
+<!-- Modal Vendas Montados -->
+<div id="modal-vendas-montados" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:#0d1b3e;border:1px solid var(--border);border-radius:12px;padding:24px;width:680px;max-width:95vw;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:#3d8bff;letter-spacing:1px">✏ VENDAS POR FAMÍLIA — MÊS A MÊS</div>
+      <button onclick="document.getElementById('modal-vendas-montados').style.display='none'" style="background:none;border:none;color:#666;font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:16px">Quantidade vendida por família em cada mês — salva no Google Sheets</div>
+    <div id="modal-vendas-montados-form"></div>
+    <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="document.getElementById('modal-vendas-montados').style.display='none'" style="background:#334;color:#aab;border:1px solid #556;padding:6px 16px;border-radius:6px;cursor:pointer">Cancelar</button>
+      <button onclick="salvarVendasMontados()" id="btn-salvar-vendas-montados" style="background:#3d8bff;color:#fff;border:none;padding:6px 16px;border-radius:6px;font-weight:700;cursor:pointer">💾 Salvar no Sheets</button>
+    </div>
+    <div id="status-vendas-montados" style="margin-top:8px;font-size:11px;text-align:center"></div>
+  </div>
 </div>
 
 <!-- Modal Metas Montados -->
@@ -1865,6 +1890,7 @@ function renderMontados() {
   if(!DATA.montados||DATA.montados.length===0){
     if(el) el.innerHTML='<div class="no-data">Nenhum item montado registrado ainda.</div>';
     if(cardsEl) cardsEl.innerHTML='';
+    renderMontadosHistorico();
     return;
   }
 
@@ -1876,18 +1902,28 @@ function renderMontados() {
   const norm=s=>String(s||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
   const isMediaLabel=s=>{const n=norm(s);return /M.DIA/.test(n)&&!n.includes('TOTAL');};
 
-  const totalRow=DATA.montados.find(r=>norm(r.DATA).includes('TOTAL'));
-  const mediaRow=DATA.montados.find(r=>isMediaLabel(r.DATA));
-  const diasRow =DATA.montados.find(r=>norm(r.DATA).includes('DIAS')&&norm(r.DATA).includes('UTEIS'));
-  const dataRows=DATA.montados.filter(r=>
+  // Linhas de dados do email (ANO COMPLETO = todas as datas do ano). Ignora TOTAL/MÉDIA/DIAS do email,
+  // pois esses são do ano inteiro — o topo recalcula tudo só para o mês corrente.
+  const dataRowsAno=DATA.montados.filter(r=>
     !norm(r.DATA).includes('TOTAL')&&!isMediaLabel(r.DATA)&&
     !norm(r.DATA).includes('DIAS')&&!norm(r.DATA).includes('UTEIS')&&r.DATA
   );
-  const sorted=dataRows.sort((a,b)=>parseDate(b.DATA||'01/01/2000')-parseDate(a.DATA||'01/01/2000'));
 
   const hoje=new Date(); hoje.setHours(0,0,0,0);
   const mesAtual=hoje.getMonth(); const anoAtual=hoje.getFullYear();
   const feriados=getFeriados().map(f=>f.data);
+
+  // Apenas as linhas do MÊS CORRENTE (calendário puro)
+  const dataRows=dataRowsAno.filter(r=>{
+    const d=parseDate(r.DATA||'');
+    return d && d.getMonth()===mesAtual && d.getFullYear()===anoAtual;
+  });
+  const sorted=dataRows.slice().sort((a,b)=>parseDate(b.DATA||'01/01/2000')-parseDate(a.DATA||'01/01/2000'));
+
+  // TOTAL e MÉDIA recalculados a partir das linhas do mês
+  const num=v=>{const n=parseFloat(String(v||'').replace('.','').replace(',','.'));return isNaN(n)?0:n;};
+  const totalRow={DATA:'TOTAL'};
+  cols.forEach(c=>{ totalRow[c]=dataRows.reduce((s,r)=>s+num(r[c]),0); });
 
   // Dias úteis até ontem (respeitando feriados)
   let duAteMes=0;
@@ -1909,8 +1945,21 @@ function renderMontados() {
     duRestantes++;
   }
 
-  // Extrair du do email
-  const duEmail = diasRow ? parseInt(Object.values(diasRow).join(' ').match(/\d+/)?.[0]||'0') : duAteMes;
+  // du efetivos = nº de dias do mês com registro (exclui o dia de hoje, ainda em curso)
+  const duEmail = dataRows.filter(r=>{
+    const d=parseDate(r.DATA||''); return d && d.getTime()!==hoje.getTime();
+  }).length || duAteMes;
+
+  // MÉDIA/dia = TOTAL (sem hoje) ÷ duEmail
+  const hojeKey=hoje.getTime();
+  const mediaRow={DATA:'MÉDIA'};
+  cols.forEach(c=>{
+    const semHoje=dataRows.reduce((s,r)=>{
+      const d=parseDate(r.DATA||''); if(d && d.getTime()===hojeKey) return s;
+      return s+num(r[c]);
+    },0);
+    mediaRow[c]= duEmail>0 ? semHoje/duEmail : 0;
+  });
 
   // ── CARDS ─────────────────────────────────────────────────────────────
   const PROD_CARD_MAP={TOMADA_MULT:'TOMADA_MULT',BOMBA:'BOMBA',CILINDRO:'CILINDRO',GUINCHO:'GUINCHO'};
@@ -2018,6 +2067,187 @@ function renderMontados() {
       </table>
     </div>
   </div>`;
+
+  renderMontadosHistorico();
+}
+
+
+// ===== HISTÓRICO ANUAL MONTAGEM + COMPARAÇÃO MONTADO × VENDIDO =====
+const MONT_FAMILIAS=[
+  {col:'TOMADA_MULT',label:'TOMADA E MULT'},
+  {col:'BOMBA',label:'BOMBA'},
+  {col:'CILINDRO',label:'CILINDRO'},
+  {col:'CONJ_EIXO',label:'CONJ. EIXO'},
+  {col:'GUINCHO',label:'GUINCHO E ENROL.'},
+  {col:'COMANDO',label:'COMANDO'},
+  {col:'VALVULA',label:'VÁLVULA'},
+  {col:'KIT_HIDR',label:'KIT HIDR.'}
+];
+const MONT_MESES=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+
+function _montNum(v){const n=parseFloat(String(v||'').replace('.','').replace(',','.'));return isNaN(n)?0:n;}
+
+// Agrega montagem por mês (0-11) e família → {qtd, du} ; ano = ano predominante dos dados
+function _montAgrupaAno(){
+  const norm=s=>String(s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const isMedia=s=>{const n=norm(s);return /M.DIA/.test(n)&&!n.includes('TOTAL');};
+  const linhas=(DATA.montados||[]).filter(r=>
+    r.DATA&&!norm(r.DATA).includes('TOTAL')&&!isMedia(r.DATA)&&
+    !norm(r.DATA).includes('DIAS')&&!norm(r.DATA).includes('UTEIS')
+  );
+  const feriados=getFeriados().map(f=>f.data);
+  let ano=new Date().getFullYear();
+  const anos={};
+  linhas.forEach(r=>{const d=parseDate(r.DATA||'');if(d)anos[d.getFullYear()]=(anos[d.getFullYear()]||0)+1;});
+  const anosK=Object.keys(anos); if(anosK.length) ano=+anosK.sort((a,b)=>anos[b]-anos[a])[0];
+
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+  const porMes={};
+  for(let m=0;m<12;m++) porMes[m]={qtd:{},duReg:0,duUteis:diasUteisMes(ano,m)};
+  linhas.forEach(r=>{
+    const d=parseDate(r.DATA||''); if(!d||d.getFullYear()!==ano) return;
+    const m=d.getMonth();
+    MONT_FAMILIAS.forEach(f=>{porMes[m].qtd[f.col]=(porMes[m].qtd[f.col]||0)+_montNum(r[f.col]);});
+    // dia registrado (não conta hoje, ainda em curso)
+    if(d.getTime()!==hoje.getTime()) porMes[m].duReg++;
+  });
+  return {ano,porMes,hoje};
+}
+
+function getMontadosVenda(col,ano,mes0){
+  const cfg=DATA.config||{};
+  const key='MONT_VENDA_'+col+'_'+ano+String(mes0+1).padStart(2,'0');
+  const v=parseFloat(cfg[key]); return isNaN(v)?0:v;
+}
+
+function renderMontadosHistorico(){
+  const elH=document.getElementById('montados-historico');
+  const elC=document.getElementById('montados-comparacao');
+  if(!elH||!elC) return;
+  if(!DATA.montados||DATA.montados.length===0){ elH.innerHTML=''; elC.innerHTML=''; return; }
+
+  const {ano,porMes}=_montAgrupaAno();
+  const mesesComDados=[];
+  for(let m=0;m<12;m++){ if(porMes[m].duReg>0) mesesComDados.push(m); }
+
+  const thB='padding:9px 12px;text-align:right;font-size:10px;letter-spacing:0.5px;white-space:nowrap;color:#fff;font-weight:800;';
+  const tdB='padding:8px 12px;text-align:right;font-size:13px;';
+  const stickyTh=thB+'text-align:left;position:sticky;left:0;z-index:3;background:#0a2818;';
+  const stickyTd=tdB+'text-align:left;position:sticky;left:0;z-index:1;';
+  const fmt=n=>n?Math.round(n).toLocaleString('pt-BR'):'<span style="color:#1a3a24">—</span>';
+  const fmt1=n=>n?n.toFixed(1):'<span style="color:#1a3a24">—</span>';
+
+  // ── TABELA 1: HISTÓRICO DE MONTAGEM (qtd + média/dia por família/mês) ──
+  let h1='<div style="font-size:11px;font-weight:700;color:#4caf82;letter-spacing:1px;margin-bottom:8px">PRODUÇÃO MONTADA — '+ano+' (qtd · média/dia)</div>'
+    +'<div style="border-radius:12px;overflow:hidden;border:1px solid #1a5a3a"><div style="max-height:520px;overflow:auto">'
+    +'<table style="border-collapse:collapse;white-space:nowrap;width:max-content;min-width:100%">'
+    +'<thead style="position:sticky;top:0;z-index:5"><tr style="background:#0d3320">'
+    +'<th style="'+stickyTh+'">MÊS</th>'
+    +MONT_FAMILIAS.map(f=>'<th style="'+thB+'">'+f.label+'</th>').join('')
+    +'</tr></thead><tbody>';
+  mesesComDados.forEach((m,i)=>{
+    const bg=i%2===0?'transparent':'rgba(10,40,20,0.25)';
+    h1+='<tr style="background:'+bg+'"><td style="'+stickyTd+'background:'+(i%2===0?'#08180e':'#0a2014')+';color:#c8f0d8;font-weight:700">'+MONT_MESES[m]+'/'+String(ano).slice(2)+'</td>'
+      +MONT_FAMILIAS.map(f=>{
+        const q=porMes[m].qtd[f.col]||0;
+        const med=porMes[m].duReg>0?q/porMes[m].duReg:0;
+        return '<td style="'+tdB+'color:#ddeedd"><b>'+fmt(q)+'</b><div style="font-size:9px;color:#4caf82">'+fmt1(med)+'/d</div></td>';
+      }).join('')+'</tr>';
+  });
+  // total ano
+  h1+='<tr style="background:#0a2010;border-top:2px solid #1a5a3a"><td style="'+stickyTd+'background:#08180e;color:#4caf82;font-weight:800">TOTAL '+ano+'</td>'
+    +MONT_FAMILIAS.map(f=>{
+      const q=mesesComDados.reduce((s,m)=>s+(porMes[m].qtd[f.col]||0),0);
+      return '<td style="'+tdB+'color:#c8f0d8;font-weight:800">'+fmt(q)+'</td>';
+    }).join('')+'</tr>';
+  h1+='</tbody></table></div></div>';
+  elH.innerHTML=h1;
+
+  // ── TABELA 2: COMPARAÇÃO MONTADO × VENDIDO (por família, mês a mês) ──
+  // Layout: uma seção por família, linhas = meses, colunas = Montado / Vendido / Dif / Méd.Mont
+  let h2='<div style="font-size:11px;font-weight:700;color:#3d8bff;letter-spacing:1px;margin-bottom:8px">MONTADO × VENDIDO — '+ano+'</div>';
+  h2+='<div style="display:flex;flex-wrap:wrap;gap:14px">';
+  MONT_FAMILIAS.forEach(f=>{
+    let totM=0,totV=0;
+    let rows='';
+    mesesComDados.forEach(m=>{
+      const mont=porMes[m].qtd[f.col]||0;
+      const vend=getMontadosVenda(f.col,ano,m);
+      const dif=mont-vend;
+      totM+=mont; totV+=vend;
+      const difCor=dif>=0?'var(--green)':'var(--red)';
+      rows+='<tr><td style="padding:5px 8px;color:#aab;font-size:11px">'+MONT_MESES[m]+'</td>'
+        +'<td style="padding:5px 8px;text-align:right;color:#c8f0d8">'+fmt(mont)+'</td>'
+        +'<td style="padding:5px 8px;text-align:right;color:#9cc4ff">'+(vend?fmt(vend):'<span style="color:#334a6e">—</span>')+'</td>'
+        +'<td style="padding:5px 8px;text-align:right;color:'+(vend?difCor:'#334a6e')+'">'+(vend?((dif>=0?'+':'')+Math.round(dif).toLocaleString('pt-BR')):'—')+'</td></tr>';
+    });
+    const difTot=totM-totV;
+    h2+='<div style="flex:1;min-width:300px;background:#0a1628;border:1px solid var(--border);border-radius:10px;padding:12px">'
+      +'<div style="font-size:11px;font-weight:700;color:#3d8bff;letter-spacing:0.5px;margin-bottom:8px">'+f.label+'</div>'
+      +'<table style="width:100%;border-collapse:collapse"><thead><tr style="border-bottom:1px solid var(--border)">'
+      +'<th style="text-align:left;padding:4px 8px;font-size:9px;color:var(--text-muted)">MÊS</th>'
+      +'<th style="text-align:right;padding:4px 8px;font-size:9px;color:#4caf82">MONTADO</th>'
+      +'<th style="text-align:right;padding:4px 8px;font-size:9px;color:#3d8bff">VENDIDO</th>'
+      +'<th style="text-align:right;padding:4px 8px;font-size:9px;color:var(--text-muted)">DIF.</th>'
+      +'</tr></thead><tbody>'+rows
+      +'<tr style="border-top:2px solid var(--border);font-weight:800"><td style="padding:6px 8px;color:#fff;font-size:11px">TOTAL</td>'
+      +'<td style="padding:6px 8px;text-align:right;color:#c8f0d8">'+fmt(totM)+'</td>'
+      +'<td style="padding:6px 8px;text-align:right;color:#9cc4ff">'+(totV?fmt(totV):'—')+'</td>'
+      +'<td style="padding:6px 8px;text-align:right;color:'+(totV?(difTot>=0?'var(--green)':'var(--red)'):'#334a6e')+'">'+(totV?((difTot>=0?'+':'')+Math.round(difTot).toLocaleString('pt-BR')):'—')+'</td></tr>'
+      +'</tbody></table></div>';
+  });
+  h2+='</div>';
+  elC.innerHTML=h2;
+}
+
+function abrirModalVendasMontados(){
+  const modal=document.getElementById('modal-vendas-montados');
+  const form=document.getElementById('modal-vendas-montados-form');
+  const cfg=DATA.config||{};
+  const {ano}=_montAgrupaAno();
+  modal.style.display='flex';
+  let html='<div style="font-size:11px;color:#3d8bff;margin-bottom:10px;font-weight:700">Ano de referência: '+ano+'</div>';
+  MONT_FAMILIAS.forEach(f=>{
+    html+='<div style="margin-bottom:14px;padding:12px;background:#0a1628;border-radius:8px;border:1px solid var(--border)">'
+      +'<div style="font-size:11px;font-weight:700;color:#3d8bff;letter-spacing:0.5px;margin-bottom:8px">'+f.label+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">';
+    for(let m=0;m<12;m++){
+      const key='MONT_VENDA_'+f.col+'_'+ano+String(m+1).padStart(2,'0');
+      const val=parseFloat(cfg[key])||0;
+      html+='<div style="background:#0d1527;border:1px solid var(--border);border-radius:6px;padding:6px">'
+        +'<div style="font-size:9px;color:var(--text-muted);margin-bottom:3px">'+MONT_MESES[m]+'</div>'
+        +'<input id="mvenda-'+f.col+'-'+String(m+1).padStart(2,'0')+'" type="number" min="0" value="'+(val||'')+'" placeholder="0" '
+        +'style="width:100%;background:#1e2a4a;border:1px solid var(--border);color:#fff;padding:3px 5px;border-radius:4px;font-size:12px;box-sizing:border-box"></div>';
+    }
+    html+='</div></div>';
+  });
+  form.innerHTML=html;
+  form.dataset.ano=ano;
+}
+
+async function salvarVendasMontados(){
+  const btn=document.getElementById('btn-salvar-vendas-montados');
+  const form=document.getElementById('modal-vendas-montados-form');
+  const ano=form.dataset.ano||new Date().getFullYear();
+  btn.textContent='⏳ Salvando...'; btn.disabled=true;
+  const updates={};
+  MONT_FAMILIAS.forEach(f=>{
+    for(let m=1;m<=12;m++){
+      const mm=String(m).padStart(2,'0');
+      const el=document.getElementById('mvenda-'+f.col+'-'+mm);
+      if(el){ updates['MONT_VENDA_'+f.col+'_'+ano+mm]=parseFloat(el.value)||0; }
+    }
+  });
+  if(!DATA.config) DATA.config={};
+  Object.entries(updates).forEach(([k,v])=>{DATA.config[k]=String(v);});
+  try{
+    await _saveConfig(updates);
+    btn.textContent='✅ Salvo!'; btn.disabled=false;
+    setTimeout(()=>{document.getElementById('modal-vendas-montados').style.display='none';renderMontadosHistorico();},800);
+  }catch(e){
+    btn.textContent='⚠ Salvo localmente'; btn.disabled=false;
+    setTimeout(()=>{document.getElementById('modal-vendas-montados').style.display='none';renderMontadosHistorico();},1200);
+  }
 }
 
 
