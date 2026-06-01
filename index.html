@@ -2143,19 +2143,24 @@ function renderMontadosHistorico(){
     +'<table style="border-collapse:collapse;white-space:nowrap;width:max-content;min-width:100%">'
     +'<thead style="position:sticky;top:0;z-index:5"><tr style="background:#0d3320">'
     +'<th style="'+stickyTh+'">MÊS</th>'
+    +'<th style="'+thB+'">DIAS ÚTEIS</th>'
     +MONT_FAMILIAS.map(f=>'<th style="'+thB+'">'+f.label+'</th>').join('')
     +'</tr></thead><tbody>';
   mesesComDados.forEach((m,i)=>{
     const bg=i%2===0?'transparent':'rgba(10,40,20,0.25)';
+    const du=porMes[m].duUteis||0;
     h1+='<tr style="background:'+bg+'"><td style="'+stickyTd+'background:'+(i%2===0?'#08180e':'#0a2014')+';color:#c8f0d8;font-weight:700">'+MONT_MESES[m]+'/'+String(ano).slice(2)+'</td>'
+      +'<td style="'+tdB+'color:#7ec99e;font-weight:700">'+du+'</td>'
       +MONT_FAMILIAS.map(f=>{
         const q=porMes[m].qtd[f.col]||0;
-        const med=porMes[m].duReg>0?q/porMes[m].duReg:0;
+        const med=du>0?q/du:0;
         return '<td style="'+tdB+'color:#ddeedd"><b>'+fmt(q)+'</b><div style="font-size:9px;color:#4caf82">'+fmt1(med)+'/d</div></td>';
       }).join('')+'</tr>';
   });
   // total ano
+  const duAno=mesesComDados.reduce((s,m)=>s+(porMes[m].duUteis||0),0);
   h1+='<tr style="background:#0a2010;border-top:2px solid #1a5a3a"><td style="'+stickyTd+'background:#08180e;color:#4caf82;font-weight:800">TOTAL '+ano+'</td>'
+    +'<td style="'+tdB+'color:#4caf82;font-weight:800">'+duAno+'</td>'
     +MONT_FAMILIAS.map(f=>{
       const q=mesesComDados.reduce((s,m)=>s+(porMes[m].qtd[f.col]||0),0);
       return '<td style="'+tdB+'color:#c8f0d8;font-weight:800">'+fmt(q)+'</td>';
@@ -2550,7 +2555,10 @@ function getFeriados() {
   const cfg = DATA.config || {};
   if (cfg.FERIADOS !== undefined) {
     const lista = String(cfg.FERIADOS||'').split(',').map(f=>f.trim()).filter(Boolean);
-    if (lista.length) return lista.map(d => ({data:d, nome: d}));
+    if (lista.length) {
+      const nomePorData = {}; FERIADOS_DEFAULT.forEach(f=>{ nomePorData[f.data]=f.nome; });
+      return lista.map(d => ({data:d, nome: nomePorData[d] || '—'}));
+    }
   }
   try { const s = localStorage.getItem('termico_feriados'); return s ? JSON.parse(s) : FERIADOS_DEFAULT; }
   catch { return FERIADOS_DEFAULT; }
@@ -2636,7 +2644,21 @@ function abrirModalFeriados() {
 function fecharModalFeriados() { document.getElementById('modal-feriados').style.display = 'none'; renderTermico(); }
 function renderFeriadosLista() {
   const feriados = getFeriados().sort((a,b) => a.data.localeCompare(b.data));
-  document.getElementById('feriados-lista').innerHTML = feriados.length === 0
+  // Resumo de dias úteis por mês (com base nesta lista de feriados)
+  const anoRef = (feriados[0] && parseInt(feriados[0].data.slice(0,4))) || new Date().getFullYear();
+  const MES3 = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  let resumo = '<div style="margin-bottom:14px;padding:10px;background:#0a1628;border:1px solid #1e2a4a;border-radius:8px">'
+    + '<div style="font-size:10px;color:#7a8299;letter-spacing:1px;margin-bottom:8px">DIAS ÚTEIS POR MÊS — '+anoRef+'</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">';
+  for (let m=0;m<12;m++){
+    const du = diasUteisMes(anoRef, m);
+    resumo += '<div style="text-align:center;background:#0d1527;border:1px solid #1e2a4a;border-radius:5px;padding:5px 2px">'
+      + '<div style="font-size:9px;color:#7a8299">'+MES3[m]+'</div>'
+      + '<div style="font-size:15px;font-weight:800;color:#3d8bff">'+du+'</div></div>';
+  }
+  resumo += '</div></div>';
+
+  const lista = feriados.length === 0
     ? '<div style="color:#5a6380;font-size:12px;padding:8px">Nenhum feriado cadastrado.</div>'
     : feriados.map(f => `
       <div style="display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid #1e2a4a">
@@ -2645,6 +2667,7 @@ function renderFeriadosLista() {
         <button onclick="removerFeriado('${f.data}')"
           style="background:rgba(255,59,59,.15);border:1px solid var(--red);color:var(--red);width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px">×</button>
       </div>`).join('');
+  document.getElementById('feriados-lista').innerHTML = resumo + lista;
 }
 async function _salvarFeriadosSheets(feriados) {
   const ferStr = feriados.map(f=>f.data).join(',');
