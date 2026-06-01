@@ -3158,15 +3158,7 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
       if (cfg[k] !== undefined) metas.PM[m] = parseFloat(cfg[k]);
     }
   }
-  // Override feriados from CONFIG
-  if (cfg.FERIADOS && cfg.FERIADOS.trim()) {
-    const feriadosList = cfg.FERIADOS.split(',').map(f=>f.trim()).filter(Boolean);
-    if (feriadosList.length) {
-      // Merge with existing feriados
-      const existing = getFeriados().map(f=>f.data);
-      feriadosList.forEach(d => { if (!existing.includes(d)) saveFeriado(d,''); });
-    }
-  }
+  // Feriados já são lidos do CONFIG diretamente por getFeriados(); não é necessário mesclar aqui.
   const metaTTDia = metas.TT[mesAtual];
   const metaPMDia = metas.PM[mesAtual];
   const metaTTAcum = metaTTDia * duAteMes;
