@@ -2155,7 +2155,9 @@ function renderMontadosHistorico(){
       +MONT_FAMILIAS.map(f=>{
         const q=porMes[m].qtd[f.col]||0;
         const med=du>0?q/du:0;
-        return '<td style="'+tdB+'color:#ddeedd"><b>'+fmt(q)+'</b><div style="font-size:9px;color:#4caf82">'+fmt1(med)+'/d</div></td>';
+        const meta=getMontadosMeta(f.col,m);
+        const medCor = meta>0 ? (med>=meta?'#4caf82':'#ff5a5a') : '#4caf82';
+        return '<td style="'+tdB+'color:#ddeedd"><b>'+fmt(q)+'</b><div style="font-size:9px;color:'+medCor+'">'+fmt1(med)+'/d</div></td>';
       }).join('')+'</tr>';
   });
   // total ano
