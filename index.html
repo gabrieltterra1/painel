@@ -2172,24 +2172,30 @@ function renderMontadosHistorico(){
   elH.innerHTML=h1;
 
   // ── TABELA 2: COMPARAÇÃO MONTADO × VENDIDO (por família, mês a mês) ──
-  // Layout: uma seção por família, linhas = meses, colunas = Montado / Vendido / Dif / Méd.Mont
-  let h2='<div style="font-size:11px;font-weight:700;color:#3d8bff;letter-spacing:1px;margin-bottom:8px">MONTADO × VENDIDO — '+ano+'</div>';
+  // Cada célula mostra a quantidade + média/dia útil. Rodapé com médias do período.
+  let h2='<div style="font-size:11px;font-weight:700;color:#3d8bff;letter-spacing:1px;margin-bottom:8px">MONTADO × VENDIDO — '+ano+' (qtd · média/dia útil)</div>';
   h2+='<div style="display:flex;flex-wrap:wrap;gap:14px">';
   MONT_FAMILIAS.forEach(f=>{
-    let totM=0,totV=0;
+    let totM=0,totV=0,duM=0,duV=0;
     let rows='';
     mesesComDados.forEach(m=>{
+      const du=porMes[m].duUteis||0;
       const mont=porMes[m].qtd[f.col]||0;
       const vend=getMontadosVenda(f.col,ano,m);
       const dif=mont-vend;
-      totM+=mont; totV+=vend;
+      totM+=mont; duM+=du;
+      if(vend){ totV+=vend; duV+=du; }
       const difCor=dif>=0?'var(--green)':'var(--red)';
+      const medM=du>0?mont/du:0;
+      const medV=du>0?vend/du:0;
       rows+='<tr><td style="padding:5px 8px;color:#aab;font-size:11px">'+MONT_MESES[m]+'</td>'
-        +'<td style="padding:5px 8px;text-align:right;color:#c8f0d8">'+fmt(mont)+'</td>'
-        +'<td style="padding:5px 8px;text-align:right;color:#9cc4ff">'+(vend?fmt(vend):'<span style="color:#334a6e">—</span>')+'</td>'
+        +'<td style="padding:5px 8px;text-align:right;color:#c8f0d8">'+fmt(mont)+'<div style="font-size:9px;color:#4caf82">'+fmt1(medM)+'/d</div></td>'
+        +'<td style="padding:5px 8px;text-align:right;color:#9cc4ff">'+(vend?fmt(vend)+'<div style="font-size:9px;color:#5a8fd8">'+fmt1(medV)+'/d</div>':'<span style="color:#334a6e">—</span>')+'</td>'
         +'<td style="padding:5px 8px;text-align:right;color:'+(vend?difCor:'#334a6e')+'">'+(vend?((dif>=0?'+':'')+Math.round(dif).toLocaleString('pt-BR')):'—')+'</td></tr>';
     });
     const difTot=totM-totV;
+    const medMTot=duM>0?totM/duM:0;
+    const medVTot=duV>0?totV/duV:0;
     h2+='<div style="flex:1;min-width:300px;background:#0a1628;border:1px solid var(--border);border-radius:10px;padding:12px">'
       +'<div style="font-size:11px;font-weight:700;color:#3d8bff;letter-spacing:0.5px;margin-bottom:8px">'+f.label+'</div>'
       +'<table style="width:100%;border-collapse:collapse"><thead><tr style="border-bottom:1px solid var(--border)">'
@@ -2199,8 +2205,8 @@ function renderMontadosHistorico(){
       +'<th style="text-align:right;padding:4px 8px;font-size:9px;color:var(--text-muted)">DIF.</th>'
       +'</tr></thead><tbody>'+rows
       +'<tr style="border-top:2px solid var(--border);font-weight:800"><td style="padding:6px 8px;color:#fff;font-size:11px">TOTAL</td>'
-      +'<td style="padding:6px 8px;text-align:right;color:#c8f0d8">'+fmt(totM)+'</td>'
-      +'<td style="padding:6px 8px;text-align:right;color:#9cc4ff">'+(totV?fmt(totV):'—')+'</td>'
+      +'<td style="padding:6px 8px;text-align:right;color:#c8f0d8">'+fmt(totM)+'<div style="font-size:9px;color:#4caf82;font-weight:700">'+fmt1(medMTot)+'/d</div></td>'
+      +'<td style="padding:6px 8px;text-align:right;color:#9cc4ff">'+(totV?fmt(totV)+'<div style="font-size:9px;color:#5a8fd8;font-weight:700">'+fmt1(medVTot)+'/d</div>':'—')+'</td>'
       +'<td style="padding:6px 8px;text-align:right;color:'+(totV?(difTot>=0?'var(--green)':'var(--red)'):'#334a6e')+'">'+(totV?((difTot>=0?'+':'')+Math.round(difTot).toLocaleString('pt-BR')):'—')+'</td></tr>'
       +'</tbody></table></div>';
   });
