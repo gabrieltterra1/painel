@@ -1314,7 +1314,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <button onclick="adicionarFeriado()" style="background:var(--green);border:none;color:#fff;padding:7px 12px;border-radius:6px;font-weight:700;cursor:pointer">+</button>
     </div>
     <div id="feriados-lista" style="max-height:300px;overflow-y:auto"></div>
-    <div style="display:flex;justify-content:flex-end;margin-top:16px">
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button onclick="document.getElementById('modal-feriados').style.display='none'" style="background:#334;color:#aab;border:1px solid #556;padding:8px 18px;border-radius:6px;font-weight:700;cursor:pointer">Cancelar</button>
       <button onclick="fecharModalFeriados()" style="background:var(--blue);border:none;color:#fff;padding:8px 18px;border-radius:6px;font-weight:700;cursor:pointer">✅ Fechar (salvo no Sheets)</button>
     </div>
   </div>
@@ -2554,10 +2555,15 @@ function getFeriados() {
   // Try Sheets CONFIG first
   const cfg = DATA.config || {};
   if (cfg.FERIADOS !== undefined) {
-    const lista = String(cfg.FERIADOS||'').split(',').map(f=>f.trim()).filter(Boolean);
-    if (lista.length) {
+    const itens = String(cfg.FERIADOS||'').split(',').map(f=>f.trim()).filter(Boolean);
+    if (itens.length) {
       const nomePorData = {}; FERIADOS_DEFAULT.forEach(f=>{ nomePorData[f.data]=f.nome; });
-      return lista.map(d => ({data:d, nome: nomePorData[d] || '—'}));
+      return itens.map(it => {
+        const [d, ...resto] = it.split('|');
+        const data = d.trim();
+        const nome = resto.length ? resto.join('|').trim() : (nomePorData[data] || '—');
+        return {data, nome};
+      });
     }
   }
   try { const s = localStorage.getItem('termico_feriados'); return s ? JSON.parse(s) : FERIADOS_DEFAULT; }
@@ -2565,7 +2571,7 @@ function getFeriados() {
 }
 
 // Calcular dias úteis de um mês descontando fins de semana e feriados
-function diasUteisMes(ano, mes1idx) { // mes1idx = 0-based
+function diasUteisMes(ano, mes1idx, mesInteiro) { // mes1idx = 0-based; mesInteiro=true ignora "até ontem"
   const feriados = getFeriados().map(f => f.data);
   const hoje = new Date(); hoje.setHours(0,0,0,0);
   const isMesAtual = (ano === hoje.getFullYear() && mes1idx === hoje.getMonth());
@@ -2573,8 +2579,8 @@ function diasUteisMes(ano, mes1idx) { // mes1idx = 0-based
   const totalDias = new Date(ano, mes1idx+1, 0).getDate();
   for (let d = 1; d <= totalDias; d++) {
     const dt = new Date(ano, mes1idx, d);
-    // Para o mês atual: contar apenas até ontem (exclusive hoje)
-    if (isMesAtual && dt >= hoje) break;
+    // Para o mês atual: contar apenas até ontem (exclusive hoje), salvo se mesInteiro
+    if (!mesInteiro && isMesAtual && dt >= hoje) break;
     const dw = dt.getDay();
     if (dw === 0 || dw === 6) continue; // fim de semana
     const iso = `${ano}-${String(mes1idx+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -2651,7 +2657,7 @@ function renderFeriadosLista() {
     + '<div style="font-size:10px;color:#7a8299;letter-spacing:1px;margin-bottom:8px">DIAS ÚTEIS POR MÊS — '+anoRef+'</div>'
     + '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">';
   for (let m=0;m<12;m++){
-    const du = diasUteisMes(anoRef, m);
+    const du = diasUteisMes(anoRef, m, true);
     resumo += '<div style="text-align:center;background:#0d1527;border:1px solid #1e2a4a;border-radius:5px;padding:5px 2px">'
       + '<div style="font-size:9px;color:#7a8299">'+MES3[m]+'</div>'
       + '<div style="font-size:15px;font-weight:800;color:#3d8bff">'+du+'</div></div>';
@@ -2670,7 +2676,8 @@ function renderFeriadosLista() {
   document.getElementById('feriados-lista').innerHTML = resumo + lista;
 }
 async function _salvarFeriadosSheets(feriados) {
-  const ferStr = feriados.map(f=>f.data).join(',');
+  // Formato data|nome (retrocompatível: leitura aceita só "data" também)
+  const ferStr = feriados.map(f=> f.nome && f.nome!=='—' ? f.data+'|'+f.nome : f.data).join(',');
   localStorage.setItem('termico_feriados', JSON.stringify(feriados));
   if (DATA.config) DATA.config['FERIADOS'] = ferStr;
   try {
