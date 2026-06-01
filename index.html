@@ -2713,6 +2713,24 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
 }
 
 // ═══════════ RENDER TERMICO =====
+// Mês de referência do painel = mês do último dia útil fechado.
+// Enquanto o mês corrente não tiver nenhum dia útil concluído (ex: dia 01 de mês novo),
+// o painel reflete o mês anterior. Vira sozinho no 1º dia útil fechado do novo mês.
+function mesReferencia() {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const feriados = new Set(getFeriados().map(f => f.data));
+  let ref = null;
+  for (let i = 1; i <= 10; i++) {
+    const d = new Date(hoje); d.setDate(d.getDate() - i);
+    const dw = d.getDay();
+    const iso = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if (dw !== 0 && dw !== 6 && !feriados.has(iso)) { ref = d; break; }
+  }
+  if (!ref) ref = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  return { ano: ref.getFullYear(), mes: ref.getMonth(), ultDiaUtil:
+    ref.getFullYear()+'-'+String(ref.getMonth()+1).padStart(2,'0')+'-'+String(ref.getDate()).padStart(2,'0') };
+}
+
 function renderTermico() {
   if (!DATA.termico || !DATA.termico.polimento || DATA.termico.polimento.length === 0) {
     const msg = '<div class="kpi-card"><div class="kpi-label" style="color:var(--text-muted)">Clique em ↻ Atualizar para carregar os dados</div></div>';
@@ -2720,10 +2738,9 @@ function renderTermico() {
     return;
   }
 
-  // Determinar ano atual dos dados
-  const todosItens = [...DATA.termico.polimento, ...DATA.termico.termico];
-  const anos = [...new Set(todosItens.map(r => r.mes?.split('-')[0]))].filter(Boolean).sort();
-  const ano = parseInt(anos[anos.length-1]) || new Date().getFullYear();
+  // Mês/ano de referência = último dia útil fechado (trava no mês anterior na virada de mês)
+  const _ref = mesReferencia();
+  const ano = _ref.ano;
 
   // Agregar TT e PM por mês (índice 0=jan...11=dez)
   // PM: dividir por 2 (contagem em PARES)
@@ -2739,7 +2756,7 @@ function renderTermico() {
 
   // KPI de metas — mês atual
   const metas = getMetas();
-  const mesAtual = new Date().getMonth(); // 0-based
+  const mesAtual = _ref.mes; // 0-based — mês do último dia útil fechado
   const duMesAtual = diasUteisMes(ano, mesAtual);
   const ttMetaDia = metas.TT[mesAtual];
   const pmMetaDia = metas.PM[mesAtual];
@@ -2805,7 +2822,7 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
 
   // Agregar TT e PM por dia do mês atual
   const diarioTT = {}, diarioPM = {};
-    (DATA.termico.diarioTT||[]).forEach(r => {
+  (DATA.termico.diarioTT||[]).forEach(r => {
     if (!r.dt) return;
     diarioTT[r.dt] = (diarioTT[r.dt]||0) + r.qtde;
   });
@@ -2837,14 +2854,20 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
   const feriados = getFeriados().map(f=>f.data);
   const duAteMes = diasUteisMes(ano, mesAtual); // dias úteis até ontem
   const totalDiasMes = new Date(ano, mesAtual+1, 0).getDate();
-  // Dias úteis restantes no mês (de hoje até fim do mês)
+  // Dias úteis restantes no mês (de hoje até fim do mês).
+  // Se o mês de referência não é o mês corrente (painel travado no mês anterior já fechado),
+  // não há dias restantes a cumprir.
+  const _hojeRef = new Date(); _hojeRef.setHours(0,0,0,0);
+  const _refEhMesCorrente = (ano === _hojeRef.getFullYear() && mesAtual === _hojeRef.getMonth());
   let duRestantes = 0;
-  for (let d = hoje.getDate(); d <= totalDiasMes; d++) {
-    const dt = new Date(ano, mesAtual, d);
-    if (dt.getDay()===0||dt.getDay()===6) continue;
-    const iso = `${ano}-${String(mesAtual+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    if (feriados.includes(iso)) continue;
-    duRestantes++;
+  if (_refEhMesCorrente) {
+    for (let d = _hojeRef.getDate(); d <= totalDiasMes; d++) {
+      const dt = new Date(ano, mesAtual, d);
+      if (dt.getDay()===0||dt.getDay()===6) continue;
+      const iso = `${ano}-${String(mesAtual+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      if (feriados.includes(iso)) continue;
+      duRestantes++;
+    }
   }
 
   // Use CONFIG from Sheets if available
@@ -2880,8 +2903,8 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
   const realPMMes = pmPorMes[mesAtual]||0;
   const saldoTT = realTTMes - metaTTAcum;
   const saldoPM = realPMMes - metaPMAcum;
-  const medNecTT = duRestantes > 0 ? Math.ceil((metaTTDia * (duAteMes + duRestantes) - realTTMes) / duRestantes) : 0;
-  const medNecPM = duRestantes > 0 ? Math.ceil((metaPMDia * (duAteMes + duRestantes) - realPMMes) / duRestantes) : 0;
+  const medNecTT = duRestantes > 0 ? Math.ceil((metaTTDia * (duAteMes + duRestantes) - realTTMes) / duRestantes) : metaTTDia;
+  const medNecPM = duRestantes > 0 ? Math.ceil((metaPMDia * (duAteMes + duRestantes) - realPMMes) / duRestantes) : metaPMDia;
   const _cor = v => v >= 0 ? 'var(--green)' : 'var(--red)';
   const _sinal = v => (v>=0?'+':'')+v.toLocaleString('pt-BR');
   const _cardBox = (title, color, inner) =>
