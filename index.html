@@ -2180,7 +2180,7 @@ function renderMontadosHistorico(){
   let h2='<div style="font-size:11px;font-weight:700;color:#3d8bff;letter-spacing:1px;margin-bottom:8px">MONTADO × VENDIDO — '+ano+' (qtd · média/dia útil)</div>';
   h2+='<div style="display:flex;flex-wrap:wrap;gap:14px">';
   MONT_FAMILIAS.forEach(f=>{
-    let totM=0,totV=0,duM=0,duV=0;
+    let totM=0,totV=0,duM=0,duV=0,totMcomV=0;
     let rows='';
     mesesComDados.forEach(m=>{
       const du=porMes[m].duUteis||0;
@@ -2188,7 +2188,7 @@ function renderMontadosHistorico(){
       const vend=getMontadosVenda(f.col,ano,m);
       const dif=mont-vend;
       totM+=mont; duM+=du;
-      if(vend){ totV+=vend; duV+=du; }
+      if(vend){ totV+=vend; duV+=du; totMcomV+=mont; } // só meses fechados (com venda) entram na DIF.
       const difCor=dif>=0?'var(--green)':'var(--red)';
       const medM=du>0?mont/du:0;
       const medV=du>0?vend/du:0;
@@ -2197,7 +2197,7 @@ function renderMontadosHistorico(){
         +'<td style="padding:5px 8px;text-align:right;color:#9cc4ff">'+(vend?fmt(vend)+'<div style="font-size:9px;color:#5a8fd8">'+fmt1(medV)+'/d</div>':'<span style="color:#334a6e">—</span>')+'</td>'
         +'<td style="padding:5px 8px;text-align:right;color:'+(vend?difCor:'#334a6e')+'">'+(vend?((dif>=0?'+':'')+Math.round(dif).toLocaleString('pt-BR')):'—')+'</td></tr>';
     });
-    const difTot=totM-totV;
+    const difTot=totMcomV-totV; // só meses fechados (montado E vendido)
     const medMTot=duM>0?totM/duM:0;
     const medVTot=duV>0?totV/duV:0;
     h2+='<div style="flex:1;min-width:300px;background:#0a1628;border:1px solid var(--border);border-radius:10px;padding:12px">'
