@@ -3115,10 +3115,11 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
     diarioPM[r.dt] = (diarioPM[r.dt]||0) + r.qtde; // já em pares
   });
 
-  // Dias com NF no mês atual (sem hoje) — para gráficos e médias
+  // Dias com NF no mês de referência (sem hoje) — para gráficos e médias
   const hojeStr = hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0')+'-'+String(hoje.getDate()).padStart(2,'0');
+  const _mesRefPrefix = ano+'-'+String(mesAtual+1).padStart(2,'0')+'-'; // AAAA-MM- do mês de referência
   const diasComNF = [...new Set([...Object.keys(diarioTT), ...Object.keys(diarioPM)])]
-    .filter(d => d < hojeStr).sort();
+    .filter(d => d.startsWith(_mesRefPrefix) && d < hojeStr).sort();
 
   // Último dia com NF por tipo (podem ser dias diferentes)
   // Último dia útil antes de hoje (independente de ter NF)
