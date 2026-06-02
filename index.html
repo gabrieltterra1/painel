@@ -73,7 +73,7 @@
     /* ===== TEMA ESCURO (padrão) ===== */
     --bg: #0f1117;
     --surface: #181c27;
-    --surface2: var(--surface2);
+    --surface2: #1e2334;
     --border: #2a3047;
     --blue: #1a6dff;
     --blue-light: #3d8bff;
@@ -82,19 +82,20 @@
     --red: #ff3b3b;
     --amber: #ffaa00;
     --text: #e8ecf4;
-    --text-muted: var(--text-muted);
+    --text-muted: #7a8299;
     /* Tons auxiliares (usados em tabelas/cards; trocam no tema claro) */
-    --panel: var(--panel);          /* fundo de cards internos (ex: comparação) */
-    --panel2: var(--panel2);         /* fundo de inputs/células */
-    --th-bg: var(--th-bg);          /* cabeçalho de tabela sticky */
-    --tfoot-bg: var(--border);       /* rodapé de tabela */
+    --panel: #0a1628;          /* fundo de cards internos (ex: comparação) */
+    --panel2: #0d1527;         /* fundo de inputs/células */
+    --th-bg: #1a4fcc;          /* cabeçalho de tabela sticky */
+    --tfoot-bg: #1e2a4a;       /* rodapé de tabela */
     --row-alt: rgba(255,255,255,0.02); /* zebra */
-    --green-panel: var(--green-panel);    /* fundo esverdeado (montados) */
-    --green-panel2: var(--green-panel2);
-    --green-head: var(--green-head);
-    --green-text: var(--green-text);
+    --green-panel: #08180e;    /* fundo esverdeado (montados) */
+    --green-panel2: #0a2014;
+    --green-head: #0d3320;
+    --green-text: #c8f0d8;
     --green-soft: #4caf82;
-    --muted-dim: var(--muted-dim);      /* texto bem apagado / traços */
+    --muted-dim: #334a6e;      /* texto bem apagado / traços */
+    --grid: rgba(255,255,255,0.06); /* linhas de grade dos gráficos */
     --font-display: 'Barlow Condensed', sans-serif;
     --font-body: 'Barlow', sans-serif;
   }
@@ -124,6 +125,7 @@
     --green-text: #0e5530;
     --green-soft: #0a8d57;
     --muted-dim: #7e8aa0;
+    --grid: rgba(20,30,50,0.10);
     --header-bg: linear-gradient(135deg, #1558d6 0%, #1c4fb0 100%);
     --card-shadow: 0 1px 3px rgba(20,30,50,0.12), 0 1px 2px rgba(20,30,50,0.08);
   }
@@ -1832,7 +1834,7 @@ function renderOF() {
       const diasCobre = metaDia > 0 ? (total / metaDia) : null;
       const hasMeta = !!metaProd && metaDia > 0;
 
-      return '<div style="background:#3d8bff12;border:'+(hasMeta?'2':'1')+'px solid #3d8bff'+(hasMeta?'':' +'+'44')+';border-radius:10px;padding:12px 14px;flex:1;min-width:'+(hasMeta?'175':'140')+'px">'
+      return '<div style="background:var(--surface);border:'+(hasMeta?'2px':'1px')+' solid '+(hasMeta?'#3d8bff':'var(--border)')+';border-radius:10px;padding:12px 14px;flex:1;min-width:'+(hasMeta?'175':'140')+'px;box-shadow:var(--card-shadow,none)">'
         +'<div style="font-size:9px;font-weight:700;color:#3d8bff;letter-spacing:1px;margin-bottom:6px;white-space:nowrap">'+label+'</div>'
         +'<div style="font-size:'+(hasMeta?'26':'20')+'px;font-weight:900;color:#3d8bff">'+Math.round(total).toLocaleString('pt-BR')+'</div>'
         +'<div style="font-size:9px;color:var(--text-muted);margin-top:2px">Total em OF</div>'
@@ -2873,7 +2875,7 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
       },
       scales: {
         x: { ticks:{color:cssVar('--text-muted')}, grid:{display:false} },
-        y: { ticks:{color:cssVar('--text-muted')}, grid:{color:cssVar('--surface2')} }
+        y: { ticks:{color:cssVar('--text-muted')}, grid:{color:cssVar('--grid')} }
       },
       layout: { padding:{top:24} }
     }, plugins:[ChartDataLabels]
@@ -2913,7 +2915,7 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
       },
       scales: {
         x:{ticks:{color:cssVar('--text-muted')},grid:{display:false}},
-        y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--surface2')}}
+        y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}}
       },
       layout:{padding:{top:24}}
     }, plugins:[ChartDataLabels]
@@ -2937,7 +2939,7 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:false}, datalabels:{display:true} },
-      scales:{ x:{ticks:{color:cssVar('--text-muted')},grid:{display:false}}, y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--surface2')}} },
+      scales:{ x:{ticks:{color:cssVar('--text-muted')},grid:{display:false}}, y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}} },
       layout:{padding:{top:24}}
     }, plugins:[ChartDataLabels]
   });
@@ -2960,7 +2962,7 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:false}, datalabels:{display:true} },
-      scales:{ x:{ticks:{color:cssVar('--text-muted')},grid:{display:false}}, y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--surface2')}} },
+      scales:{ x:{ticks:{color:cssVar('--text-muted')},grid:{display:false}}, y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}} },
       layout:{padding:{top:24}}
     }, plugins:[ChartDataLabels]
   });
@@ -2989,7 +2991,7 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
       plugins:{ legend:{display:false}, datalabels:{display:true} },
       scales:{
         x:{ticks:{color:cssVar('--text-muted')},grid:{display:false}},
-        y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--surface2')},
+        y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')},
           afterDataLimits(s){const e=Math.max(Math.abs(s.min),Math.abs(s.max))*.2;s.min-=e;s.max+=e;}}
       }, layout:{padding:{top:24,bottom:24}}
     }, plugins:[ChartDataLabels]
@@ -3017,7 +3019,7 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:false}, datalabels:{display:true} },
-      scales:{ x:{ticks:{color:cssVar('--text-muted')},grid:{display:false}}, y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--surface2')}} },
+      scales:{ x:{ticks:{color:cssVar('--text-muted')},grid:{display:false}}, y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}} },
       layout:{padding:{top:24}}
     }, plugins:[ChartDataLabels]
   });
@@ -3045,7 +3047,7 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:true,labels:{color:cssVar('--text-muted'),boxWidth:12,font:{size:11}}}, datalabels:{display:true} },
-      scales:{ x:{ticks:{color:cssVar('--text-muted')},grid:{display:false}}, y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--surface2')}} },
+      scales:{ x:{ticks:{color:cssVar('--text-muted')},grid:{display:false}}, y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}} },
       layout:{padding:{top:28}}
     }, plugins:[ChartDataLabels]
   });
@@ -3073,7 +3075,7 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:true,labels:{color:cssVar('--text-muted'),boxWidth:12,font:{size:11}}}, datalabels:{display:true} },
-      scales:{ x:{ticks:{color:cssVar('--text-muted')},grid:{display:false}}, y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--surface2')}} },
+      scales:{ x:{ticks:{color:cssVar('--text-muted')},grid:{display:false}}, y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}} },
       layout:{padding:{top:28}}
     }, plugins:[ChartDataLabels]
   });
@@ -3139,14 +3141,14 @@ function renderTermico() {
   const _kpi = (label, val, color, sub, ok) => {
     const subHtml = sub ? '<div style="font-size:9px;color:var(--text-muted);margin-top:2px">'+sub+'</div>' : '';
     const okHtml  = (ok!==null&&ok!==undefined) ? '<div style="font-size:9px;font-weight:700;color:'+(ok?'var(--green)':'var(--red)')+'">'+  (ok?'✓ acima':'✗ abaixo')+' da meta</div>' : '';
-    return '<div style="background:'+color+'18;border:1px solid '+color+'44;border-radius:8px;padding:10px 12px;text-align:center;min-width:120px;flex-shrink:0">'
+    return '<div style="background:'+color+'22;border:1px solid '+color+'77;border-radius:8px;padding:10px 12px;text-align:center;min-width:120px;flex-shrink:0">'
       + '<div style="font-size:9px;color:'+color+';letter-spacing:0.5px;font-weight:700;white-space:nowrap">'+label+'</div>'
       + '<div style="font-size:22px;font-weight:800;color:'+color+';line-height:1.1">'+val+'</div>'
       + subHtml + okHtml + '</div>';
   };
 
   const _cardBox = (title, color, inner) =>
-    '<div style="background:'+color+'0e;border:1px solid '+color+'44;border-radius:10px;padding:12px 16px;margin-bottom:8px">'
+    '<div style="background:'+color+'1a;border:1px solid '+color+'66;border-radius:10px;padding:12px 16px;margin-bottom:8px">'
     + '<div style="font-size:10px;font-weight:700;color:'+color+';letter-spacing:1px;margin-bottom:10px">'+title+'</div>'
     + '<div style="display:flex;gap:8px;flex-wrap:wrap">'+inner+'</div>'
     + '</div>';
@@ -3268,20 +3270,20 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
   const _cor = v => v >= 0 ? 'var(--green)' : 'var(--red)';
   const _sinal = v => (v>=0?'+':'')+v.toLocaleString('pt-BR');
   const _cardBox = (title, color, inner) =>
-    '<div style="background:'+color+'0e;border:1px solid '+color+'44;border-radius:10px;padding:12px 16px;margin-bottom:8px">'
+    '<div style="background:'+color+'1a;border:1px solid '+color+'66;border-radius:10px;padding:12px 16px;margin-bottom:8px">'
     + '<div style="font-size:10px;font-weight:700;color:'+color+';letter-spacing:1px;margin-bottom:10px">'+title+'</div>'
     + '<div style="display:flex;gap:10px;flex-wrap:wrap">'+inner+'</div>'
     + '</div>';
   const _kpi = (label, val, color, sub, ok) => {
     const subHtml = sub ? '<div style="font-size:9px;color:var(--text-muted);margin-top:2px">'+sub+'</div>' : '';
     const okHtml  = (ok!==null&&ok!==undefined) ? '<div style="font-size:9px;font-weight:700;color:'+(ok?'var(--green)':'var(--red)')+'">'+  (ok?'✓ acima':'✗ abaixo')+' da meta</div>' : '';
-    return '<div style="background:'+color+'18;border:1px solid '+color+'44;border-radius:8px;padding:10px 12px;text-align:center;min-width:120px;flex-shrink:0">'
+    return '<div style="background:'+color+'22;border:1px solid '+color+'77;border-radius:8px;padding:10px 12px;text-align:center;min-width:120px;flex-shrink:0">'
       + '<div style="font-size:9px;color:'+color+';letter-spacing:0.5px;font-weight:700;white-space:nowrap">'+label+'</div>'
       + '<div style="font-size:22px;font-weight:800;color:'+color+';line-height:1.1">'+val+'</div>'
       + subHtml + okHtml + '</div>';
   };
   const _box = (title, color, inner) =>
-    '<div style="background:'+color+'0e;border:1px solid '+color+'44;border-radius:10px;padding:12px 16px">'
+    '<div style="background:'+color+'1a;border:1px solid '+color+'66;border-radius:10px;padding:12px 16px">'
     + '<div style="font-size:10px;font-weight:700;color:'+color+';letter-spacing:1px;margin-bottom:10px">'+title+'</div>'
     + '<div style="display:flex;gap:10px;flex-wrap:wrap">'+inner+'</div>'
     + '</div>';
@@ -3315,7 +3317,7 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
         ${ok!==null?`<div style="font-size:10px;font-weight:700;color:${ok?'var(--green)':'var(--red)'}">${ok?'✓ acima':'✗ abaixo'} da meta</div>`:''}
       </div>`;
     const _cardBox = (title, color, inner) =>
-      '<div style="background:'+color+'0e;border:1px solid '+color+'44;border-radius:10px;padding:12px 16px">'
+      '<div style="background:'+color+'1a;border:1px solid '+color+'66;border-radius:10px;padding:12px 16px">'
       + '<div style="font-size:10px;font-weight:700;color:'+color+';letter-spacing:1px;margin-bottom:10px">'+title+'</div>'
       + '<div style="display:flex;gap:10px;flex-wrap:wrap">'+inner+'</div>'
       + '</div>';
@@ -3393,7 +3395,7 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
       },
       scales:{
         x:{ticks:{color:cssVar('--text-muted'),font:{size:10}},grid:{display:false}},
-        y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--surface2')}}
+        y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}}
       },
       layout:{padding:{top:24}}
     }, plugins:[ChartDataLabels]
@@ -4394,7 +4396,7 @@ function renderPedidos() {
       }]},
       options:{ responsive:true, maintainAspectRatio:false,
         plugins:{ legend:{display:false}, datalabels:{display:true} },
-        scales:{ x:{ticks:{color:cssVar('--text-muted')},grid:{display:false}}, y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--surface2')}} }
+        scales:{ x:{ticks:{color:cssVar('--text-muted')},grid:{display:false}}, y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}} }
       }, plugins:[ChartDataLabels]
     });
     pvCharts.push(c);
@@ -4453,7 +4455,7 @@ function renderPedidos() {
         },
         scales:{
           x:{stacked:true, ticks:{color:cssVar('--text-muted')}, grid:{display:false}},
-          y:{stacked:true, ticks:{color:cssVar('--text-muted')}, grid:{color:cssVar('--surface2')}}
+          y:{stacked:true, ticks:{color:cssVar('--text-muted')}, grid:{color:cssVar('--grid')}}
         },
         layout:{ padding:{top:24} }
       },
@@ -5336,7 +5338,7 @@ function pvGerarPDF() {
   // ── Cards HTML ─────────────────────────────────────────────────────────
   let cardsHtml = '';
   famCards.forEach(function(c) {
-    cardsHtml += '<div class="card-item" style="background:' + c.color + '12;border:2px solid ' + c.color + ';border-radius:8px;padding:8px 12px;">';
+    cardsHtml += '<div class="card-item" style="background:' + c.color + '28;border:2px solid ' + c.color + ';border-radius:8px;padding:8px 12px;">';
     cardsHtml += '<div style="font-size:10px;font-weight:900;color:' + c.color + ';margin-bottom:4px">' + c.label + '</div>';
     cardsHtml += '<div style="font-size:20px;font-weight:900;color:' + c.color + ';margin-bottom:5px">' + c.tot + ' <span style="font-size:10px">itens</span></div>';
     cardsHtml += '<div style="font-size:11px;line-height:2;color:#333">';
@@ -5613,13 +5615,13 @@ function renderServico() {
       '<div style="background:#ffaa0022;border:2px solid #ffaa00;border-radius:10px;padding:12px 16px;flex:1;min-width:130px">'
         +'<div style="font-size:9px;font-weight:700;color:#ffaa00;letter-spacing:1px;margin-bottom:4px">MÊS ATUAL ('+mesLabel(mesAtualKey)+')</div>'
         +'<div style="font-size:22px;font-weight:900;color:#ffaa00">'+fmt(totalMesAtual)+'</div></div>'
-      +'<div style="background:#3d8bff18;border:1px solid #3d8bff44;border-radius:10px;padding:12px 16px;flex:1;min-width:130px">'
+      +'<div style="background:#3d8bff28;border:1px solid #3d8bff44;border-radius:10px;padding:12px 16px;flex:1;min-width:130px">'
         +'<div style="font-size:9px;font-weight:700;color:#3d8bff;letter-spacing:1px;margin-bottom:4px">MATRIZ '+anoAtual+'</div>'
         +'<div style="font-size:22px;font-weight:900;color:#3d8bff">'+fmt(totalMatriz)+'</div></div>'
-      +'<div style="background:#ff8c3b18;border:1px solid #ff8c3b44;border-radius:10px;padding:12px 16px;flex:1;min-width:130px">'
+      +'<div style="background:#ff8c3b28;border:1px solid #ff8c3b44;border-radius:10px;padding:12px 16px;flex:1;min-width:130px">'
         +'<div style="font-size:9px;font-weight:700;color:#ff8c3b;letter-spacing:1px;margin-bottom:4px">FILIAL SP '+anoAtual+'</div>'
         +'<div style="font-size:22px;font-weight:900;color:#ff8c3b">'+fmt(totalFilial)+'</div></div>'
-      +'<div style="background:#00c97a18;border:1px solid #00c97a44;border-radius:10px;padding:12px 16px;flex:1;min-width:110px;text-align:center">'
+      +'<div style="background:#00c97a28;border:1px solid #00c97a44;border-radius:10px;padding:12px 16px;flex:1;min-width:110px;text-align:center">'
         +'<div style="font-size:9px;font-weight:700;color:#00c97a;letter-spacing:1px;margin-bottom:4px">FORNECEDORES '+anoAtual+'</div>'
         +'<div style="font-size:32px;font-weight:900;color:#00c97a">'+nFornecedores+'</div></div>';
 
@@ -5716,7 +5718,7 @@ function renderServico() {
       ]},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:'var(--text)'}},datalabels:{}},
-        scales:{x:{stacked:true,ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--surface2')}},y:{stacked:true,ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--surface2')}}},
+        scales:{x:{stacked:true,ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}},y:{stacked:true,ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}}},
         layout:{padding:{top:30}}
       },plugins:[ChartDataLabels]
     }));
@@ -5737,7 +5739,7 @@ function renderServico() {
       data:{labels:mesesLabel12.slice(0,mesAtualNum),datasets:compDatasets},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:'var(--text)'}},datalabels:{display:false}},
-        scales:{x:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--surface2')}},y:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--surface2')}}}
+        scales:{x:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}},y:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}}}
       },plugins:[ChartDataLabels]
     }));
   }
@@ -5761,7 +5763,7 @@ function renderServico() {
       type:'line',data:{labels:mesesLabel12,datasets},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:'var(--text)',font:{size:11}}},datalabels:{display:false}},
-        scales:{x:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--surface2')}},y:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--surface2')}}}
+        scales:{x:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}},y:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}}}
       },plugins:[ChartDataLabels]
     }));
   }
@@ -5856,7 +5858,7 @@ function renderServico() {
       type:'bar',data:{labels:top10.map(shortName),datasets:topDatasets},
       options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:'var(--text)',font:{size:11}}},datalabels:{}},
-        scales:{x:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--surface2')}},y:{ticks:{color:'var(--text)',font:{size:10}},grid:{display:false}}},
+        scales:{x:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}},y:{ticks:{color:'var(--text)',font:{size:10}},grid:{display:false}}},
         layout:{padding:{right:50}}
       },plugins:[ChartDataLabels]
     }));
@@ -5880,7 +5882,7 @@ function renderServico() {
       type:'bar',data:{labels:procOrder,datasets:procDatasets},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:'var(--text)',font:{size:11}}},datalabels:{}},
-        scales:{x:{ticks:{color:cssVar('--text-muted'),font:{size:10}},grid:{display:false}},y:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--surface2')}}},
+        scales:{x:{ticks:{color:cssVar('--text-muted'),font:{size:10}},grid:{display:false}},y:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}}},
         layout:{padding:{top:28}}
       },plugins:[ChartDataLabels]
     }));
@@ -5943,7 +5945,7 @@ function renderServico() {
       ]},
       options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:'var(--text)',font:{size:11}}},datalabels:{}},
-        scales:{x:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--surface2')}},y:{ticks:{color:'var(--text)',font:{size:10}},grid:{display:false}}},
+        scales:{x:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}},y:{ticks:{color:'var(--text)',font:{size:10}},grid:{display:false}}},
         layout:{padding:{right:40}}
       },plugins:[ChartDataLabels]
     }));
@@ -5965,7 +5967,7 @@ function renderServico() {
       ]},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:'var(--text)',font:{size:11}}},datalabels:{}},
-        scales:{x:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--surface2')}},y:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--surface2')}}},
+        scales:{x:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}},y:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}}},
         layout:{padding:{top:24}}
       },plugins:[ChartDataLabels]
     }));
@@ -5996,7 +5998,7 @@ function renderServico() {
       ]},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:'var(--text)',font:{size:11}}},datalabels:{}},
-        scales:{x:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--surface2')}},y:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--surface2')}}},
+        scales:{x:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}},y:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}}},
         layout:{padding:{right:60}}
       },plugins:[ChartDataLabels]
     }));
