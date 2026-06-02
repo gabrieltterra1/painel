@@ -3241,7 +3241,7 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
 
     // Build all TT cards in correct order
     const ttHeaderEl = document.getElementById('tt-header');
-    if (ttHeaderEl) ttHeaderEl.innerHTML = '📅 '+dtFmtTT+diaUtilLabel+' — TRATAMENTO TÉRMICO <span style="color:var(--text-muted);font-weight:400;font-size:10px">· '+duAteMes+' du até ontem</span>';
+    if (ttHeaderEl) ttHeaderEl.innerHTML = '📅 '+dtFmtTT+diaUtilLabel+' — TRATAMENTO TÉRMICO <span style="color:var(--text-muted);font-weight:400;font-size:10px">· '+duAteMes+' du até ontem · '+duRestantes+' du restantes</span>';
     const ttCardsEl2 = document.getElementById('tt-cards');
     const ttA = window._ttAcomp || {};
     if (ttCardsEl2) ttCardsEl2.innerHTML =
@@ -3255,7 +3255,7 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
 
     // Build all PM cards in correct order
     const pmHeaderEl = document.getElementById('pm-header');
-    if (pmHeaderEl) pmHeaderEl.innerHTML = '📅 '+dtFmtPM+' — POLIMENTO (PM) <span style="color:var(--text-muted);font-weight:400;font-size:10px">· '+duAteMes+' du até ontem</span>';
+    if (pmHeaderEl) pmHeaderEl.innerHTML = '📅 '+dtFmtPM+' — POLIMENTO (PM) <span style="color:var(--text-muted);font-weight:400;font-size:10px">· '+duAteMes+' du até ontem · '+duRestantes+' du restantes</span>';
     const pmCardsEl2 = document.getElementById('pm-cards');
     const pmA = window._pmAcomp || {};
     if (pmCardsEl2) pmCardsEl2.innerHTML =
@@ -3295,10 +3295,12 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
       },
       { label:'Meta TT/dia', data:Array(labels.length).fill(metaTTDia),
         type:'line', borderColor:'#f59e0b', borderDash:[4,3], borderWidth:2,
-        pointRadius:0, fill:false, datalabels:{display:false} },
+        pointRadius: labels.length<=2?4:0, pointBackgroundColor:'#f59e0b',
+        fill:false, datalabels:{display:false} },
       { label:'Meta PM/dia', data:Array(labels.length).fill(metaPMDia),
         type:'line', borderColor:'#a855f7', borderDash:[4,3], borderWidth:2,
-        pointRadius:0, fill:false, datalabels:{display:false} }
+        pointRadius: labels.length<=2?4:0, pointBackgroundColor:'#a855f7',
+        fill:false, datalabels:{display:false} }
     ]},
     options:{
       responsive:true, maintainAspectRatio:false,
