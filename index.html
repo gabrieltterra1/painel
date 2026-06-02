@@ -2104,7 +2104,11 @@ function _montAgrupaAno(){
 
   const hoje=new Date(); hoje.setHours(0,0,0,0);
   const porMes={};
-  for(let m=0;m<12;m++) porMes[m]={qtd:{},duReg:0,duUteis:diasUteisMes(ano,m)};
+  for(let m=0;m<12;m++){
+    const ehMesCorrente = (ano===hoje.getFullYear() && m===hoje.getMonth());
+    // Meses fechados: mês inteiro (feriados atuais). Mês corrente: dias úteis até ontem.
+    porMes[m]={qtd:{},duReg:0,duUteis:diasUteisMes(ano,m,!ehMesCorrente)};
+  }
   linhas.forEach(r=>{
     const d=parseDate(r.DATA||''); if(!d||d.getFullYear()!==ano) return;
     const m=d.getMonth();
@@ -2655,7 +2659,7 @@ function abrirModalFeriados() {
   renderFeriadosLista();
   document.getElementById('modal-feriados').style.display = 'flex';
 }
-function fecharModalFeriados() { document.getElementById('modal-feriados').style.display = 'none'; renderTermico(); }
+function fecharModalFeriados() { document.getElementById('modal-feriados').style.display = 'none'; renderTermico(); if(typeof renderMontados==='function') renderMontados(); }
 function renderFeriadosLista() {
   const feriados = getFeriados().sort((a,b) => a.data.localeCompare(b.data));
   // Resumo de dias úteis por mês (com base nesta lista de feriados)
