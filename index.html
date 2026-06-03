@@ -660,9 +660,9 @@
   .timeline-table th:first-child { text-align: left; background: var(--header-table-bg); }
   .timeline-table td { padding: 9px 16px; text-align: right; font-size: 13px; min-width: 100px; }
   .timeline-table td:first-child { text-align: left; font-family: var(--font-display); font-weight: 700; letter-spacing: 1px; }
-  .timeline-table tr.emp-matriz td { color: var(--txt-azul); font-weight: 600; }
-  .timeline-table tr.emp-filial td { color: var(--amber); font-weight: 600; }
-  .timeline-table tr.emp-total td { color: var(--amber); font-weight: 700; border-top: 2px solid var(--border); }
+  .timeline-table tr.emp-matriz td { color: var(--serie-azul); font-weight: 700; }
+  .timeline-table tr.emp-filial td { color: var(--serie-laranja); font-weight: 700; }
+  .timeline-table tr.emp-total td { color: var(--serie-laranja); font-weight: 800; border-top: 2px solid var(--border); }
 
   /* NS PRODUCT BUTTONS */
   .ns-btn {
@@ -6682,11 +6682,24 @@ function renderAll() {
 }
 
 // Mostra ícone 📧 discreto com a data do último email de cada aba (tooltip ao passar o mouse)
+function _fmtDataEmail(s){
+  if(!s) return '';
+  s = String(s).trim();
+  // Já está no formato BR DD/MM/AAAA [HH:MM]
+  if(/^\d{2}\/\d{2}\/\d{4}/.test(s)) return s;
+  // ISO (2026-02-07T01:50:00.000Z ou similar) → converte para horário local BR
+  const d = new Date(s);
+  if(!isNaN(d.getTime())){
+    const p = n => String(n).padStart(2,'0');
+    return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes());
+  }
+  return s;
+}
 function injetarDataEmail() {
   const cfg = DATA.config || {};
   document.querySelectorAll('.email-badge').forEach(b => {
     const sheet = b.getAttribute('data-sheet');
-    const data = cfg['DATA_EMAIL_' + sheet];
+    const data = _fmtDataEmail(cfg['DATA_EMAIL_' + sheet]);
     if (data) {
       b.textContent = '📧';
       b.title = 'Dados recebidos por e-mail em ' + data;
