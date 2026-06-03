@@ -103,7 +103,7 @@
     --serie-ciano: #13c0d8;
     --serie-roxo: #b15cff;
     --serie-vermelho: #ff4d4d;
-    --header-table-bg: #1a4fcc; /* cabeçalho azul das tabelas (OF etc.) */
+    --header-table-bg: #3d8bff; /* cabeçalho azul das tabelas (= cor dos cards de OF) */
     --font-display: 'Barlow Condensed', sans-serif;
     --font-body: 'Barlow', sans-serif;
   }
@@ -5026,7 +5026,7 @@ function renderPvPrioridades() {
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: {
-          legend: { display: true, position: 'right', labels: { color: 'var(--text-muted)', font: { size: 11 }, boxWidth: 12 } },
+          legend: { display: true, position: 'right', labels: { color: cssVar('--text-muted'), font: { size: 11 }, boxWidth: 12 } },
           datalabels: {
             display: true, color: '#fff', font: { size: 12, weight: '700' },
             formatter: (v, ctx) => v > 0 ? v : ''
@@ -5085,8 +5085,8 @@ function renderPvPrioridades() {
           }
         },
         scales: {
-          x: { ticks: { color: 'var(--text-muted)', font: { size: 11 } }, grid: { display: false } },
-          y: { ticks: { color: 'var(--text-muted)' }, grid: { color: 'var(--surface2)' } }
+          x: { ticks: { color: cssVar('--text-muted'), font: { size: 11 } }, grid: { display: false } },
+          y: { ticks: { color: cssVar('--text-muted') }, grid: { color: cssVar('--grid') } }
         },
         layout: { padding: { top: 32 } }
       },
@@ -5754,7 +5754,7 @@ function renderServico() {
           datalabels:{display:true,color:'#ffaa00',font:{size:10,weight:'700'},anchor:'end',align:'top',formatter:fmtK}}
       ]},
       options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{labels:{color:'var(--text)'}},datalabels:{}},
+        plugins:{legend:{labels:{color:cssVar('--text')}},datalabels:{}},
         scales:{x:{stacked:true,ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}},y:{stacked:true,ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}}},
         layout:{padding:{top:30}}
       },plugins:[ChartDataLabels]
@@ -5775,7 +5775,7 @@ function renderServico() {
       type:'line',
       data:{labels:mesesLabel12.slice(0,mesAtualNum),datasets:compDatasets},
       options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{labels:{color:'var(--text)'}},datalabels:{display:false}},
+        plugins:{legend:{labels:{color:cssVar('--text')}},datalabels:{display:false}},
         scales:{x:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}},y:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}}}
       },plugins:[ChartDataLabels]
     }));
@@ -5799,7 +5799,7 @@ function renderServico() {
     servicoCharts.push(new Chart(evolCanvas,{
       type:'line',data:{labels:mesesLabel12,datasets},
       options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{labels:{color:'var(--text)',font:{size:11}}},datalabels:{display:false}},
+        plugins:{legend:{labels:{color:cssVar('--text'),font:{size:11}}},datalabels:{display:false}},
         scales:{x:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}},y:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}}}
       },plugins:[ChartDataLabels]
     }));
@@ -5863,12 +5863,12 @@ function renderServico() {
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: {
-          legend: { labels: { color: 'var(--text)', font: { size: 11 } } },
+          legend: { labels: { color: cssVar('--text'), font: { size: 11 } } },
           datalabels: {}
         },
         scales: {
-          x: { ticks: { color: 'var(--text-muted)' }, grid: { color: 'var(--surface2)' } },
-          y: { ticks: { color: 'var(--text-muted)', callback: fmtK }, grid: { color: 'var(--surface2)' } }
+          x: { ticks: { color: cssVar('--text-muted') }, grid: { color: cssVar('--grid') } },
+          y: { ticks: { color: cssVar('--text-muted'), callback: fmtK }, grid: { color: cssVar('--grid') } }
         },
         layout: { padding: { right: 50 } }
       },
@@ -5894,8 +5894,8 @@ function renderServico() {
     servicoCharts.push(new Chart(topCanvas,{
       type:'bar',data:{labels:top10.map(shortName),datasets:topDatasets},
       options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{labels:{color:'var(--text)',font:{size:11}}},datalabels:{}},
-        scales:{x:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}},y:{ticks:{color:'var(--text)',font:{size:10}},grid:{display:false}}},
+        plugins:{legend:{labels:{color:cssVar('--text'),font:{size:11}}},datalabels:{}},
+        scales:{x:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}},y:{ticks:{color:cssVar('--text'),font:{size:10}},grid:{display:false}}},
         layout:{padding:{right:50}}
       },plugins:[ChartDataLabels]
     }));
@@ -5918,7 +5918,7 @@ function renderServico() {
     servicoCharts.push(new Chart(procCanvas,{
       type:'bar',data:{labels:procOrder,datasets:procDatasets},
       options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{labels:{color:'var(--text)',font:{size:11}}},datalabels:{}},
+        plugins:{legend:{labels:{color:cssVar('--text'),font:{size:11}}},datalabels:{}},
         scales:{x:{ticks:{color:cssVar('--text-muted'),font:{size:10}},grid:{display:false}},y:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}}},
         layout:{padding:{top:28}}
       },plugins:[ChartDataLabels]
@@ -5981,8 +5981,8 @@ function renderServico() {
           datalabels:{display:true,color:'#f59e0b',font:{size:9,weight:'700'},anchor:'end',align:'right',formatter:v=>v?fmtK(v):''}}
       ]},
       options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{labels:{color:'var(--text)',font:{size:11}}},datalabels:{}},
-        scales:{x:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}},y:{ticks:{color:'var(--text)',font:{size:10}},grid:{display:false}}},
+        plugins:{legend:{labels:{color:cssVar('--text'),font:{size:11}}},datalabels:{}},
+        scales:{x:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}},y:{ticks:{color:cssVar('--text'),font:{size:10}},grid:{display:false}}},
         layout:{padding:{right:40}}
       },plugins:[ChartDataLabels]
     }));
@@ -6003,7 +6003,7 @@ function renderServico() {
         {type:'line',label:'Meta Compet.',data:compVals,borderColor:cssVar('--serie-verde'),backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:3,tension:0,datalabels:{display:false}}
       ]},
       options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{labels:{color:'var(--text)',font:{size:11}}},datalabels:{}},
+        plugins:{legend:{labels:{color:cssVar('--text'),font:{size:11}}},datalabels:{}},
         scales:{x:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}},y:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}}},
         layout:{padding:{top:24}}
       },plugins:[ChartDataLabels]
@@ -6034,7 +6034,7 @@ function renderServico() {
           datalabels:{display:ctx=>compAcum[ctx.dataIndex]!==null&&(ctx.dataIndex===11||compAcum[ctx.dataIndex+1]===null),color:'#00c97a',font:{size:10,weight:'700'},anchor:'end',align:'right',formatter:v=>v?fmtK(v):''}}
       ]},
       options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{labels:{color:'var(--text)',font:{size:11}}},datalabels:{}},
+        plugins:{legend:{labels:{color:cssVar('--text'),font:{size:11}}},datalabels:{}},
         scales:{x:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}},y:{ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}}},
         layout:{padding:{right:60}}
       },plugins:[ChartDataLabels]
@@ -6479,7 +6479,7 @@ function renderNSChart() {
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: '#c0c8d8', font: { size: 12 } } },
+        legend: { labels: { color: cssVar('--text'), font: { size: 12 } } },
         tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%` } },
         datalabels: {
           display: ctx => ctx.dataset.type !== 'line',
@@ -6489,8 +6489,8 @@ function renderNSChart() {
         }
       },
       scales: {
-        x: { ticks: { color: '#e8ecf4', font: { size: 14, weight: '700' } }, grid: { color: 'var(--surface2)' } },
-        y: { min: 0, max: 105, ticks: { color: 'var(--text-muted)', callback: v => v + '%' }, grid: { color: 'var(--surface2)' } }
+        x: { ticks: { color: cssVar('--text-muted'), font: { size: 14, weight: '700' } }, grid: { color: cssVar('--grid') } },
+        y: { min: 0, max: 105, ticks: { color: cssVar('--text-muted'), callback: v => v + '%' }, grid: { color: cssVar('--grid') } }
       }
     }
   });
@@ -6651,6 +6651,7 @@ async function salvarMetaComp() {
 
 function renderAll() {
   window._dadosCarregados = true;
+  try { aplicarChartDefaults(); } catch(e){}
   renderOF();
   renderMontados();
   renderEstoque();
