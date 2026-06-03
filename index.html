@@ -3958,7 +3958,7 @@ function renderIFE() {
       },
       scales:{
         y:{ min:70, max:100, ticks:{callback:v=>v+'%',color:cssVar('--text-muted')},
-            grid:{color:'rgba(255,255,255,0.05)'} },
+            grid:{color:cssVar('--grid')} },
         x:{ ticks:{color:cssVar('--text-muted'),maxRotation:45}, grid:{display:false} }
       }
     },
@@ -4014,7 +4014,7 @@ function _renderIFEComp(dados, anos, anoFilt) {
       },
       scales:{
         y:{ min:75, max:100, ticks:{callback:v=>v+'%',color:cssVar('--text-muted')},
-            grid:{color:'rgba(255,255,255,0.05)'} },
+            grid:{color:cssVar('--grid')} },
         x:{ ticks:{color:cssVar('--text-muted')}, grid:{display:false} }
       }
     },
