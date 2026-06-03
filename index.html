@@ -289,6 +289,9 @@
     gap: 10px;
   }
   .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .email-badge { display: none; margin-left: 8px; font-size: 12px; cursor: help; opacity: 0.55; transition: opacity .15s; vertical-align: middle; }
+  .email-badge:hover { opacity: 1; }
+  .email-badge.show { display: inline-block; }
 
   /* TABLES */
   .table-wrap {
@@ -873,7 +876,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- ======= OF ABERTAS ======= -->
 <div id="tab-of" class="tab-content">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
-    <span class="section-title" style="margin:0">OF Abertas — Carga de Montagem</span>
+    <span class="section-title" style="margin:0">OF Abertas — Carga de Montagem<span class="email-badge" data-sheet="OF_ABERTAS"></span></span>
   </div>
   <div id="of-cards" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px"></div>
   <div id="of-table-wrap"></div>
@@ -882,7 +885,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- ======= MONTADOS ======= -->
 <div id="tab-montados" class="tab-content active">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
-    <span class="section-title" style="margin:0">Itens Montados — EPP</span>
+    <span class="section-title" style="margin:0">Itens Montados — EPP<span class="email-badge" data-sheet="ITENS_MONTADOS"></span></span>
     <button onclick="abrirModalMetasMontados()" style="background:rgba(0,201,122,.15);border:1px solid #00c97a;color:#00c97a;padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✏ Definir Metas</button>
   </div>
   <div id="montados-cards" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px"></div>
@@ -933,7 +936,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- ======= ESTOQUE & TRÂNSITO ======= -->
 <div id="tab-estoque" class="tab-content">
-  <div class="section-title">Estoque em Trânsito por Empresa</div>
+  <div class="section-title">Estoque em Trânsito por Empresa<span class="email-badge" data-sheet="TRANSITO"></span></div>
   <div class="transit-grid" id="transit-grid"></div>
 
   <div class="section-title" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -1054,7 +1057,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- ======= SERVIÇOS ======= -->
 <div id="tab-servicos" class="tab-content">
-  <div class="section-title">Gastos com Serviços de Terceiros</div>
+  <div class="section-title">Gastos com Serviços de Terceiros<span class="email-badge" data-sheet="SERVICO_TERCEIROS"></span></div>
 
   <!-- CARDS RESUMO POR ANO -->
   <div id="servico-kpis" style="margin-bottom:20px"></div>
@@ -1331,7 +1334,7 @@ document.addEventListener('DOMContentLoaded', () => {
   </div></div>
 
   <!-- ═══ TRATAMENTO TÉRMICO ═══ -->
-  <div class="section-title" style="margin-top:36px">TRATAMENTO TÉRMICO — Thermix / Tecnohard / Metaltecnica</div>
+  <div class="section-title" style="margin-top:36px">TRATAMENTO TÉRMICO — Thermix / Tecnohard / Metaltecnica<span class="email-badge" data-sheet="TERMICO_POLIMENTO"></span></div>
   <div class="kpi-bar" id="term-kpis"></div>
   <div class="filter-row" style="margin-bottom:16px;margin-top:12px">
     <select class="filter-select" id="term-mes" onchange="renderTermico()"><option value="">Todos os meses</option></select>
@@ -1455,7 +1458,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 <div id="tab-pedidos" class="tab-content">
-  <div class="section-title">Pedidos de Venda — Carteira e Prioridades</div>
+  <div class="section-title">Pedidos de Venda — Carteira e Prioridades<span class="email-badge" data-sheet="PEDIDOS_DE_VENDA"></span></div>
 
   <!-- KPIs atraso -->
   <div class="kpi-bar" id="pv-kpis" style="margin-bottom:20px"></div>
@@ -6675,6 +6678,23 @@ function renderAll() {
   renderIFE();
   renderPedidos();
   renderTransito();
+  try { injetarDataEmail(); } catch(e){}
+}
+
+// Mostra ícone 📧 discreto com a data do último email de cada aba (tooltip ao passar o mouse)
+function injetarDataEmail() {
+  const cfg = DATA.config || {};
+  document.querySelectorAll('.email-badge').forEach(b => {
+    const sheet = b.getAttribute('data-sheet');
+    const data = cfg['DATA_EMAIL_' + sheet];
+    if (data) {
+      b.textContent = '📧';
+      b.title = 'Dados recebidos por e-mail em ' + data;
+      b.classList.add('show');
+    } else {
+      b.classList.remove('show');
+    }
+  });
 }
 
 // ===== GOOGLE SHEETS MONITOR =====
