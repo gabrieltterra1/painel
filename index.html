@@ -96,6 +96,14 @@
     --green-soft: #4caf82;
     --muted-dim: #334a6e;      /* texto bem apagado / traços */
     --grid: rgba(255,255,255,0.06); /* linhas de grade dos gráficos */
+    /* Paleta de séries dos gráficos (vivas) — tema escuro */
+    --serie-azul: #2e8bff;
+    --serie-laranja: #ff9500;
+    --serie-verde: #16c784;
+    --serie-ciano: #13c0d8;
+    --serie-roxo: #b15cff;
+    --serie-vermelho: #ff4d4d;
+    --header-table-bg: #1a4fcc; /* cabeçalho azul das tabelas (OF etc.) */
     --font-display: 'Barlow Condensed', sans-serif;
     --font-body: 'Barlow', sans-serif;
   }
@@ -126,6 +134,14 @@
     --green-soft: #07a85f;
     --muted-dim: #6b7790;
     --grid: rgba(20,30,50,0.07);
+    /* Paleta de séries dos gráficos (saturadas) — tema claro */
+    --serie-azul: #0a5cf5;
+    --serie-laranja: #ef7d00;
+    --serie-verde: #03a85a;
+    --serie-ciano: #0497b0;
+    --serie-roxo: #8e35e0;
+    --serie-vermelho: #e01515;
+    --header-table-bg: #0a5cf5; /* cabeçalho azul das tabelas no claro */
     --header-bg: linear-gradient(135deg, #1366ff 0%, #0d4fd6 100%);
     --card-shadow: 0 1px 4px rgba(20,30,50,0.14), 0 2px 8px rgba(20,30,50,0.06);
   }
@@ -1878,27 +1894,27 @@ function renderOF() {
   const wrap = document.getElementById('of-table-wrap');
   if (!wrap) return;
 
-  wrap.innerHTML = '<div style="border-radius:12px;overflow:hidden;border:1px solid #1a4a8a;box-shadow:0 4px 24px rgba(0,0,0,0.4)">'
+  wrap.innerHTML = '<div style="border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--card-shadow,0 4px 24px rgba(0,0,0,0.4))">'
   +'<div style="max-height:520px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch">'
   +'<table style="border-collapse:collapse;white-space:nowrap;width:max-content;min-width:100%">'
   +'<thead style="position:sticky;top:0;z-index:5">'
-  +'<tr style="background:var(--th-bg)">'
-  +'<th style="'+stickyTh+'background:var(--th-bg);color:#fff">DT FIM OF</th>'
+  +'<tr style="background:var(--header-table-bg)">'
+  +'<th style="'+stickyTh+'background:var(--header-table-bg);color:#fff">DT FIM OF</th>'
   +colLabels.map(l=>`<th style="${thBase}color:#fff">${l}</th>`).join('')
   +'</tr>'
-  +'<tr style="background:var(--th-bg)">'
-  +'<td style="'+stickyTd+'background:var(--th-bg);color:#3d8bff;font-weight:700;font-size:12px;letter-spacing:1px">TOTAL EM OF</td>'
-  +cols.map(c=>`<td style="${tdBase}color:var(--blue-light);font-weight:800;font-size:17px">${fmtN(totals[c])}</td>`).join('')
+  +'<tr style="background:var(--header-table-bg)">'
+  +'<td style="'+stickyTd+'background:var(--header-table-bg);color:#fff;font-weight:700;font-size:12px;letter-spacing:1px">TOTAL EM OF</td>'
+  +cols.map(c=>`<td style="${tdBase}color:#fff;font-weight:800;font-size:17px">${fmtN(totals[c])}</td>`).join('')
   +'</tr>'
-  +'<tr style="background:var(--th-bg);border-bottom:2px solid #1a4a8a">'
-  +'<td style="'+stickyTd+'background:var(--th-bg);color:#3d8bff;font-size:12px;letter-spacing:1px">EM ATRASO</td>'
-  +cols.map(c=>`<td style="${tdBase}color:${atrasadosOf[c]>0?'var(--red)':'#1a3a6a'};font-size:14px;font-weight:${atrasadosOf[c]>0?700:400}">${atrasadosOf[c]>0?fmtN(atrasadosOf[c]):'—'}</td>`).join('')
+  +'<tr style="background:var(--header-table-bg);border-bottom:2px solid var(--border)">'
+  +'<td style="'+stickyTd+'background:var(--header-table-bg);color:#fff;font-size:12px;letter-spacing:1px">EM ATRASO</td>'
+  +cols.map(c=>`<td style="${tdBase}color:${atrasadosOf[c]>0?'#ffd0d0':'#cfe0ff'};font-size:14px;font-weight:${atrasadosOf[c]>0?700:400}">${atrasadosOf[c]>0?fmtN(atrasadosOf[c]):'—'}</td>`).join('')
   +'</tr>'
   +'</thead>'
   +'<tbody>'
   +sorted.map((r,i)=>{
     const od = isOverdue(r.DT_FIM_OF);
-    const bg = od?'rgba(255,59,59,0.06)':i%2===0?'transparent':'rgba(20,30,50,0.4)';
+    const bg = od?'rgba(255,59,59,0.10)':i%2===0?'transparent':'var(--row-alt)';
     // Check triangle: any product exceeds meta diaria
     const hasTri = cols.some((c,ci) => {
       const metaCol = ['TOMADA_MULT','BOMBA','CILINDRO','GUINCHO_ENROL'].includes(c);
@@ -1909,7 +1925,7 @@ function renderOF() {
       return metaDiaCol > 0 && val > metaDiaCol;
     });
     return '<tr style="background:'+bg+'">'
-      +'<td style="'+stickyTd+'background:'+bg+';color:'+(od?'var(--red)':'#ddeeff')+';font-size:14px;'+(od?'font-weight:700;':'')+'">'
+      +'<td style="'+stickyTd+'background:'+(od?'rgba(255,59,59,0.10)':i%2===0?'var(--surface)':'var(--surface2)')+';color:'+(od?'var(--red)':'var(--text)')+';font-size:14px;'+(od?'font-weight:700;':'')+'">'
       +r.DT_FIM_OF+(od?' ⚑':'')+(hasTri?' ▲':'')+'</td>'
       +cols.map((c,ci)=>{
         const metaCol=['TOMADA_MULT','BOMBA','CILINDRO','GUINCHO_ENROL'].includes(c);
@@ -1917,7 +1933,7 @@ function renderOF() {
         const metaDiaCol=metaCol?getMontadosMeta(prodKey,mesAtual):0;
         const val=parseFloat(String(r[c]||'0').replace(',','.'))||0;
         const overMeta=metaDiaCol>0&&val>metaDiaCol;
-        return '<td style="'+tdBase+'color:'+(od?'var(--red)':overMeta?'#ffaa00':'#ddeeff')+';font-weight:'+(overMeta?700:400)+'">'+(r[c]?fmtN(r[c])+'<span style="font-size:10px;color:#ffaa00">'+(overMeta?' ▲':'')+'</span>':'<span style="color:var(--th-bg)">—</span>')+'</td>';
+        return '<td style="'+tdBase+'color:'+(od?'var(--red)':overMeta?'var(--amber)':'var(--text)')+';font-weight:'+(overMeta?700:400)+'">'+(r[c]?fmtN(r[c])+'<span style="font-size:10px;color:var(--amber)">'+(overMeta?' ▲':'')+'</span>':'<span style="color:var(--muted-dim)">—</span>')+'</td>';
       }).join('')
       +'</tr>';
   }).join('')
@@ -2145,13 +2161,13 @@ function renderMontados() {
           </tr>
           <!-- TOTAL -->
           <tr style="background:var(--green-panel2)">
-            <td style="${stickyTd}background:var(--green-panel);color:#4caf82;font-weight:700;font-size:12px;letter-spacing:1px">TOTAL</td>
+            <td style="${stickyTd}background:var(--green-panel);color:var(--green-text);font-weight:700;font-size:12px;letter-spacing:1px">TOTAL</td>
             ${cols.map(c=>`<td style="${tdBase}color:var(--green-text);font-weight:800;font-size:17px">${fmtN(totalRow?totalRow[c]:0)}</td>`).join('')}
           </tr>
           <!-- MÉDIA -->
           <tr style="background:var(--green-head);border-bottom:2px solid var(--border)">
-            <td style="${stickyTd}background:var(--green-panel);color:#4caf82;font-style:italic;font-size:12px;letter-spacing:1px">MÉDIA / DIA</td>
-            ${cols.map(c=>`<td style="${tdBase}color:#4caf82;font-style:italic;font-size:14px">${fmtM(mediaRow?mediaRow[c]:0)}</td>`).join('')}
+            <td style="${stickyTd}background:var(--green-panel);color:var(--green-text);font-style:italic;font-size:12px;letter-spacing:1px">MÉDIA / DIA</td>
+            ${cols.map(c=>`<td style="${tdBase}color:var(--green-text);font-style:italic;font-size:14px">${fmtM(mediaRow?mediaRow[c]:0)}</td>`).join('')}
           </tr>
           <!-- DIAS ÚTEIS -->
           <tr style="background:var(--th-bg);border-bottom:2px solid #0f2010">
@@ -2164,7 +2180,7 @@ function renderMontados() {
           ${sorted.map((r,i)=>{
             const d=parseDate(r.DATA||'01/01/2000');
             const isToday=d.getTime()===hoje.getTime();
-            const bg=isToday?'rgba(76,175,130,0.08)':i%2===0?'transparent':'rgba(10,40,20,0.25)';
+            const bg=isToday?'rgba(76,175,130,0.18)':i%2===0?'transparent':'var(--row-alt)';
             return `<tr style="background:${bg}">
               <td style="${stickyTd}background:${bg};color:${isToday?'#4cff9a':'var(--text)'};font-size:14px;${isToday?'font-weight:700;':''}">${r.DATA||''}${isToday?' ●':''}</td>
               ${cols.map(c=>`<td style="${tdBase}color:${isToday?'#ffffff':'var(--text)'};font-size:15px">${fmtN(r[c])}</td>`).join('')}
@@ -2249,7 +2265,7 @@ function renderMontadosHistorico(){
   const fmt1=n=>n?n.toFixed(1):'<span style="color:var(--muted-dim)">—</span>';
 
   // ── TABELA 1: HISTÓRICO DE MONTAGEM (qtd + média/dia por família/mês) ──
-  let h1='<div style="font-size:11px;font-weight:700;color:#4caf82;letter-spacing:1px;margin-bottom:8px">PRODUÇÃO MONTADA — '+ano+' (qtd · média/dia)</div>'
+  let h1='<div style="font-size:11px;font-weight:700;color:var(--green-text);letter-spacing:1px;margin-bottom:8px">PRODUÇÃO MONTADA — '+ano+' (qtd · média/dia)</div>'
     +'<div style="border-radius:12px;overflow:hidden;border:1px solid var(--border)"><div style="max-height:520px;overflow:auto">'
     +'<table style="border-collapse:collapse;white-space:nowrap;width:max-content;min-width:100%">'
     +'<thead style="position:sticky;top:0;z-index:5"><tr style="background:var(--green-head)">'
@@ -2258,22 +2274,22 @@ function renderMontadosHistorico(){
     +MONT_FAMILIAS.map(f=>'<th style="'+thB+'">'+f.label+'</th>').join('')
     +'</tr></thead><tbody>';
   mesesComDados.forEach((m,i)=>{
-    const bg=i%2===0?'transparent':'rgba(10,40,20,0.25)';
+    const bg=i%2===0?'transparent':'var(--row-alt)';
     const du=porMes[m].duUteis||0;
     h1+='<tr style="background:'+bg+'"><td style="'+stickyTd+'background:'+(i%2===0?'var(--green-panel)':'var(--green-panel2)')+';color:var(--green-text);font-weight:700">'+MONT_MESES[m]+'/'+String(ano).slice(2)+'</td>'
-      +'<td style="'+tdB+'color:#7ec99e;font-weight:700">'+du+'</td>'
+      +'<td style="'+tdB+'color:var(--green-text);font-weight:700">'+du+'</td>'
       +MONT_FAMILIAS.map(f=>{
         const q=porMes[m].qtd[f.col]||0;
         const med=du>0?q/du:0;
         const meta=getMontadosMeta(f.col,m);
-        const medCor = meta>0 ? (med>=meta?'#4caf82':'#ff5a5a') : '#4caf82';
+        const medCor = meta>0 ? (med>=meta?'var(--green-text)':'var(--red)') : 'var(--green-text)';
         return '<td style="'+tdB+'color:var(--text)"><b>'+fmt(q)+'</b><div style="font-size:9px;color:'+medCor+'">'+fmt1(med)+'/d</div></td>';
       }).join('')+'</tr>';
   });
   // total ano
   const duAno=mesesComDados.reduce((s,m)=>s+(porMes[m].duUteis||0),0);
-  h1+='<tr style="background:var(--green-panel2);border-top:2px solid var(--border)"><td style="'+stickyTd+'background:var(--green-panel);color:#4caf82;font-weight:800">TOTAL '+ano+'</td>'
-    +'<td style="'+tdB+'color:#4caf82;font-weight:800">'+duAno+'</td>'
+  h1+='<tr style="background:var(--green-panel2);border-top:2px solid var(--border)"><td style="'+stickyTd+'background:var(--green-panel);color:var(--green-text);font-weight:800">TOTAL '+ano+'</td>'
+    +'<td style="'+tdB+'color:var(--green-text);font-weight:800">'+duAno+'</td>'
     +MONT_FAMILIAS.map(f=>{
       const q=mesesComDados.reduce((s,m)=>s+(porMes[m].qtd[f.col]||0),0);
       return '<td style="'+tdB+'color:var(--green-text);font-weight:800">'+fmt(q)+'</td>';
@@ -2299,7 +2315,7 @@ function renderMontadosHistorico(){
       const medM=du>0?mont/du:0;
       const medV=du>0?vend/du:0;
       rows+='<tr><td style="padding:5px 8px;color:var(--text-muted);font-size:11px">'+MONT_MESES[m]+'</td>'
-        +'<td style="padding:5px 8px;text-align:right;color:var(--green-text)">'+fmt(mont)+'<div style="font-size:9px;color:#4caf82">'+fmt1(medM)+'/d</div></td>'
+        +'<td style="padding:5px 8px;text-align:right;color:var(--green-text)">'+fmt(mont)+'<div style="font-size:9px;color:var(--green-text)">'+fmt1(medM)+'/d</div></td>'
         +'<td style="padding:5px 8px;text-align:right;color:var(--blue-light)">'+(vend?fmt(vend)+'<div style="font-size:9px;color:#5a8fd8">'+fmt1(medV)+'/d</div>':'<span style="color:var(--muted-dim)">—</span>')+'</td>'
         +'<td style="padding:5px 8px;text-align:right;color:'+(vend?difCor:'var(--muted-dim)')+'">'+(vend?((dif>=0?'+':'')+Math.round(dif).toLocaleString('pt-BR')):'—')+'</td></tr>';
     });
@@ -2310,12 +2326,12 @@ function renderMontadosHistorico(){
       +'<div style="font-size:11px;font-weight:700;color:#3d8bff;letter-spacing:0.5px;margin-bottom:8px">'+f.label+'</div>'
       +'<table style="width:100%;border-collapse:collapse"><thead><tr style="border-bottom:1px solid var(--border)">'
       +'<th style="text-align:left;padding:4px 8px;font-size:9px;color:var(--text-muted)">MÊS</th>'
-      +'<th style="text-align:right;padding:4px 8px;font-size:9px;color:#4caf82">MONTADO</th>'
+      +'<th style="text-align:right;padding:4px 8px;font-size:9px;color:var(--green-text)">MONTADO</th>'
       +'<th style="text-align:right;padding:4px 8px;font-size:9px;color:#3d8bff">VENDIDO</th>'
       +'<th style="text-align:right;padding:4px 8px;font-size:9px;color:var(--text-muted)">DIF.</th>'
       +'</tr></thead><tbody>'+rows
       +'<tr style="border-top:2px solid var(--border);font-weight:800"><td style="padding:6px 8px;color:var(--text);font-size:11px">TOTAL</td>'
-      +'<td style="padding:6px 8px;text-align:right;color:var(--green-text)">'+fmt(totM)+'<div style="font-size:9px;color:#4caf82;font-weight:700">'+fmt1(medMTot)+'/d</div></td>'
+      +'<td style="padding:6px 8px;text-align:right;color:var(--green-text)">'+fmt(totM)+'<div style="font-size:9px;color:var(--green-text);font-weight:700">'+fmt1(medMTot)+'/d</div></td>'
       +'<td style="padding:6px 8px;text-align:right;color:var(--blue-light)">'+(totV?fmt(totV)+'<div style="font-size:9px;color:#5a8fd8;font-weight:700">'+fmt1(medVTot)+'/d</div>':'—')+'</td>'
       +'<td style="padding:6px 8px;text-align:right;color:'+(totV?(difTot>=0?'var(--green)':'var(--red)'):'var(--muted-dim)')+'">'+(totV?((difTot>=0?'+':'')+Math.round(difTot).toLocaleString('pt-BR')):'—')+'</td></tr>'
       +'</tbody></table></div>';
@@ -2922,7 +2938,7 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
           data: metas.PM,
           type: 'line',
           borderColor: '#06b6d4', borderWidth:2, borderDash:[5,3],
-          pointRadius:4, pointBackgroundColor:'#06b6d4',
+          pointRadius:4, pointBackgroundColor:cssVar('--serie-ciano'),
           fill:false, tension:0,
           datalabels: { display:false }
         }
@@ -2949,13 +2965,13 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
     data:{ labels:labelsAcum, datasets:[
       { label:'TT Enviado',
         data: ttRealAcum,
-        backgroundColor: '#f59e0b99', borderColor:'#f59e0b', borderWidth:1, borderRadius:4,
+        backgroundColor: '#f59e0b99', borderColor:cssVar('--serie-laranja'), borderWidth:1, borderRadius:4,
         datalabels:{ color:cssVar('--text'), anchor:'end', align:'top', font:{size:10,weight:'700'},
           formatter: v => v>0 ? v.toLocaleString('pt-BR') : '' }
       },
       { label:'Meta TT', data: ttMetaAcum, type:'line',
-        borderColor:'#f59e0b', borderDash:[5,3], borderWidth:2, pointRadius:3,
-        pointBackgroundColor:'#f59e0b', fill:false, datalabels:{display:false} }
+        borderColor:cssVar('--serie-laranja'), borderDash:[5,3], borderWidth:2, pointRadius:3,
+        pointBackgroundColor:cssVar('--serie-laranja'), fill:false, datalabels:{display:false} }
     ]},
     options:{
       responsive:true, maintainAspectRatio:false,
@@ -2972,13 +2988,13 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
     data:{ labels:labelsAcum, datasets:[
       { label:'PM Enviado (pares)',
         data: pmRealAcum,
-        backgroundColor: '#06b6d499', borderColor:'#06b6d4', borderWidth:1, borderRadius:4,
+        backgroundColor: '#06b6d499', borderColor:cssVar('--serie-ciano'), borderWidth:1, borderRadius:4,
         datalabels:{ color:cssVar('--text'), anchor:'end', align:'top', font:{size:10,weight:'700'},
           formatter: v => v>0 ? v.toLocaleString('pt-BR') : '' }
       },
       { label:'Meta PM (pares)', data: pmMetaAcum, type:'line',
-        borderColor:'#06b6d4', borderDash:[5,3], borderWidth:2, pointRadius:3,
-        pointBackgroundColor:'#06b6d4', fill:false, datalabels:{display:false} }
+        borderColor:cssVar('--serie-ciano'), borderDash:[5,3], borderWidth:2, pointRadius:3,
+        pointBackgroundColor:cssVar('--serie-ciano'), fill:false, datalabels:{display:false} }
     ]},
     options:{
       responsive:true, maintainAspectRatio:false,
@@ -3025,7 +3041,7 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
     data:{ labels, datasets:[
       { label:'Acumulado TT',
         data: ttSaldoAcum,
-        borderColor:'#3d8bff', backgroundColor:'rgba(61,139,255,.1)', fill:true,
+        borderColor:cssVar('--serie-azul'), backgroundColor:'rgba(61,139,255,.1)', fill:true,
         tension:.3, pointRadius:5,
         pointBackgroundColor: ttSaldoAcum.map((v,i) => i===mesAtual ? '#fff' : (v>=0?'#00c97a':'#ff3b3b')),
         pointBorderColor: ttSaldoAcum.map((v,i) => i===mesAtual ? '#3d8bff' : 'transparent'),
@@ -3053,14 +3069,14 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
       { label:'Meta mensal TT',
         data:ttMetaMes,
         backgroundColor: ttMetaMes.map((_,i) => i===mesAtual ? '#f59e0b55' : '#f59e0b33'),
-        borderColor:'#f59e0b', borderWidth:1, borderRadius:4,
+        borderColor:cssVar('--serie-laranja'), borderWidth:1, borderRadius:4,
         datalabels:{ color:'#f59e0b', anchor:'end', align:'top', font:{size:9},
           formatter:v=>v>0?v.toLocaleString('pt-BR'):'' }
       },
       { label:'Realizado TT',
         data:ttReal,
         backgroundColor: ttReal.map((_,i) => i===mesAtual ? '#3d8bffcc' : '#3d8bff77'),
-        borderColor:'#3d8bff', borderWidth:1, borderRadius:4,
+        borderColor:cssVar('--serie-azul'), borderWidth:1, borderRadius:4,
         datalabels:{ color:cssVar('--text'), anchor:'center', align:'center', font:{size:10,weight:'700'},
           formatter:v=>v>0?v.toLocaleString('pt-BR'):'' }
       }
@@ -3081,14 +3097,14 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
       { label:'Meta mensal PM (pares)',
         data:pmMetaMes,
         backgroundColor: pmMetaMes.map((_,i) => i===mesAtual ? '#06b6d455' : '#06b6d433'),
-        borderColor:'#06b6d4', borderWidth:1, borderRadius:4,
+        borderColor:cssVar('--serie-ciano'), borderWidth:1, borderRadius:4,
         datalabels:{ color:'#06b6d4', anchor:'end', align:'top', font:{size:9},
           formatter:v=>v>0?v.toLocaleString('pt-BR'):'' }
       },
       { label:'Realizado PM (pares)',
         data:pmReal,
         backgroundColor: pmReal.map((_,i) => i===mesAtual ? '#a855f7cc' : '#a855f777'),
-        borderColor:'#a855f7', borderWidth:1, borderRadius:4,
+        borderColor:cssVar('--serie-roxo'), borderWidth:1, borderRadius:4,
         datalabels:{ color:cssVar('--text'), anchor:'center', align:'center', font:{size:10,weight:'700'},
           formatter:v=>v>0?v.toLocaleString('pt-BR'):'' }
       }
@@ -3390,22 +3406,22 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
       { label:'TT (pçs)',
         data:ttVals,
         backgroundColor: ttVals.map((_,i)=>isUlt[i]?'#f59e0bff':'#f59e0b66'),
-        borderColor:'#f59e0b', borderWidth:1, borderRadius:4,
+        borderColor:cssVar('--serie-laranja'), borderWidth:1, borderRadius:4,
         datalabels:{color:cssVar('--text'),anchor:'end',align:'top',font:{size:9,weight:'700'},formatter:v=>v>0?v.toLocaleString('pt-BR'):''}
       },
       { label:'PM (pares)',
         data:pmVals,
         backgroundColor: pmVals.map((_,i)=>isUlt[i]?'#a855f7ff':'#a855f766'),
-        borderColor:'#a855f7', borderWidth:1, borderRadius:4,
+        borderColor:cssVar('--serie-roxo'), borderWidth:1, borderRadius:4,
         datalabels:{color:cssVar('--text'),anchor:'end',align:'top',font:{size:9,weight:'700'},formatter:v=>v>0?v.toLocaleString('pt-BR'):''}
       },
       { label:'Meta TT/dia', data:Array(labels.length).fill(metaTTDia),
-        type:'line', borderColor:'#f59e0b', borderDash:[4,3], borderWidth:2,
-        pointRadius: labels.length<=2?4:0, pointBackgroundColor:'#f59e0b',
+        type:'line', borderColor:cssVar('--serie-laranja'), borderDash:[4,3], borderWidth:2,
+        pointRadius: labels.length<=2?4:0, pointBackgroundColor:cssVar('--serie-laranja'),
         fill:false, datalabels:{display:false} },
       { label:'Meta PM/dia', data:Array(labels.length).fill(metaPMDia),
-        type:'line', borderColor:'#a855f7', borderDash:[4,3], borderWidth:2,
-        pointRadius: labels.length<=2?4:0, pointBackgroundColor:'#a855f7',
+        type:'line', borderColor:cssVar('--serie-roxo'), borderDash:[4,3], borderWidth:2,
+        pointRadius: labels.length<=2?4:0, pointBackgroundColor:cssVar('--serie-roxo'),
         fill:false, datalabels:{display:false} }
     ]},
     options:{
@@ -3915,7 +3931,7 @@ function renderIFE() {
       labels: meses.map(_ifeFmt),
       datasets:[{
         label:'IFE %', data:ifeVals,
-        borderColor:'#3d8bff', backgroundColor:'rgba(61,139,255,0.08)',
+        borderColor:cssVar('--serie-azul'), backgroundColor:'rgba(61,139,255,0.08)',
         borderWidth:2, pointRadius:5,
         pointBackgroundColor: ifeVals.map(v=>v!=null?_ifeHex(v):'#888'),
         tension:0.3, fill:true, spanGaps:true
@@ -5732,9 +5748,9 @@ function renderServico() {
     const totalBarras = mesesBarras.map(m=>(matByM[m]||0)+(filByM[m]||0));
     servicoCharts.push(new Chart(tlCanvas,{
       data:{labels:mesesBarras.map(mesLabel),datasets:[
-        {type:'bar',label:'Filial SP',data:mesesBarras.map(m=>filByM[m]),backgroundColor:'#ff8c3b99',borderColor:'#ff8c3b',borderWidth:1,stack:'s',datalabels:{display:false}},
-        {type:'bar',label:'Matriz',data:mesesBarras.map(m=>matByM[m]),backgroundColor:'#3d8bff99',borderColor:'#3d8bff',borderWidth:1,stack:'s',datalabels:{display:false}},
-        {type:'line',label:'Total',data:totalBarras,borderColor:'#ffaa00',backgroundColor:'transparent',borderWidth:2.5,pointRadius:4,tension:0.3,
+        {type:'bar',label:'Filial SP',data:mesesBarras.map(m=>filByM[m]),backgroundColor:'#ff8c3b99',borderColor:cssVar('--serie-laranja'),borderWidth:1,stack:'s',datalabels:{display:false}},
+        {type:'bar',label:'Matriz',data:mesesBarras.map(m=>matByM[m]),backgroundColor:'#3d8bff99',borderColor:cssVar('--serie-azul'),borderWidth:1,stack:'s',datalabels:{display:false}},
+        {type:'line',label:'Total',data:totalBarras,borderColor:cssVar('--serie-laranja'),backgroundColor:'transparent',borderWidth:2.5,pointRadius:4,tension:0.3,
           datalabels:{display:true,color:'#ffaa00',font:{size:10,weight:'700'},anchor:'end',align:'top',formatter:fmtK}}
       ]},
       options:{responsive:true,maintainAspectRatio:false,
@@ -5959,9 +5975,9 @@ function renderServico() {
     servicoCharts.push(new Chart(ticketCanvas,{
       type:'bar',
       data:{labels:top10t.map(shortN),datasets:[
-        {label:anoAnt+' média/mês',data:ticketAntVals,backgroundColor:'#06b6d455',borderColor:'#06b6d4',borderWidth:1,
+        {label:anoAnt+' média/mês',data:ticketAntVals,backgroundColor:'#06b6d455',borderColor:cssVar('--serie-ciano'),borderWidth:1,
           datalabels:{display:true,color:'#06b6d4',font:{size:9,weight:'700'},anchor:'end',align:'right',formatter:v=>v?fmtK(v):''}},
-        {label:anoMeta+' média/mês',data:ticketVals,backgroundColor:'#f59e0bcc',borderColor:'#f59e0b',borderWidth:1,
+        {label:anoMeta+' média/mês',data:ticketVals,backgroundColor:'#f59e0bcc',borderColor:cssVar('--serie-laranja'),borderWidth:1,
           datalabels:{display:true,color:'#f59e0b',font:{size:9,weight:'700'},anchor:'end',align:'right',formatter:v=>v?fmtK(v):''}}
       ]},
       options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
@@ -5981,10 +5997,10 @@ function renderServico() {
     servicoCharts.push(new Chart(metaMesCanvas,{
       type:'bar',
       data:{labels:mesesLabel12,datasets:[
-        {label:'Realizado '+anoMeta,data:realVals,backgroundColor:'#f59e0b99',borderColor:'#f59e0b',borderWidth:1,
+        {label:'Realizado '+anoMeta,data:realVals,backgroundColor:'#f59e0b99',borderColor:cssVar('--serie-laranja'),borderWidth:1,
           datalabels:{display:true,color:cssVar('--text'),font:{size:8,weight:'700'},anchor:'end',align:'top',formatter:v=>v?fmtK(v):''}},
-        {type:'line',label:'Meta',data:metaVals,borderColor:'#ff3b3b',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:0,datalabels:{display:false}},
-        {type:'line',label:'Meta Compet.',data:compVals,borderColor:'#00c97a',backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:3,tension:0,datalabels:{display:false}}
+        {type:'line',label:'Meta',data:metaVals,borderColor:cssVar('--serie-vermelho'),backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:0,datalabels:{display:false}},
+        {type:'line',label:'Meta Compet.',data:compVals,borderColor:cssVar('--serie-verde'),backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:3,tension:0,datalabels:{display:false}}
       ]},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:'var(--text)',font:{size:11}}},datalabels:{}},
@@ -6010,11 +6026,11 @@ function renderServico() {
     servicoCharts.push(new Chart(metaAcumCanvas,{
       type:'line',
       data:{labels:mesesLabel12,datasets:[
-        {label:'Realizado Acum.',data:realAcum,borderColor:'#f59e0b',backgroundColor:'#f59e0b22',borderWidth:2.5,fill:true,tension:0.2,pointRadius:4,
+        {label:'Realizado Acum.',data:realAcum,borderColor:cssVar('--serie-laranja'),backgroundColor:'#f59e0b22',borderWidth:2.5,fill:true,tension:0.2,pointRadius:4,
           datalabels:{display:ctx=>realAcum[ctx.dataIndex]!==null&&(ctx.dataIndex===11||realAcum[ctx.dataIndex+1]===null),color:'#f59e0b',font:{size:10,weight:'700'},anchor:'end',align:'right',formatter:v=>v?fmtK(v):''}},
-        {label:'Meta Acum.',data:metaAcum2,borderColor:'#ff3b3b',backgroundColor:'transparent',borderWidth:2,tension:0,pointRadius:3,
+        {label:'Meta Acum.',data:metaAcum2,borderColor:cssVar('--serie-vermelho'),backgroundColor:'transparent',borderWidth:2,tension:0,pointRadius:3,
           datalabels:{display:ctx=>metaAcum2[ctx.dataIndex]!==null&&(ctx.dataIndex===11||metaAcum2[ctx.dataIndex+1]===null),color:'#ff3b3b',font:{size:10,weight:'700'},anchor:'end',align:'right',formatter:v=>v?fmtK(v):''}},
-        {label:'Meta Compet. Acum.',data:compAcum,borderColor:'#00c97a',backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],tension:0,pointRadius:3,
+        {label:'Meta Compet. Acum.',data:compAcum,borderColor:cssVar('--serie-verde'),backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],tension:0,pointRadius:3,
           datalabels:{display:ctx=>compAcum[ctx.dataIndex]!==null&&(ctx.dataIndex===11||compAcum[ctx.dataIndex+1]===null),color:'#00c97a',font:{size:10,weight:'700'},anchor:'end',align:'right',formatter:v=>v?fmtK(v):''}}
       ]},
       options:{responsive:true,maintainAspectRatio:false,
@@ -6455,7 +6471,7 @@ function renderNSChart() {
     });
     if (cilData.some(v=>v>0)) datasets.push({label:'CILINDRO',data:cilData,backgroundColor:'#00c97acc',borderRadius:4});
   }
-  datasets.push({ label:'META', data:[90,90,90,90,90], type:'line', borderColor:'#00c97a', borderWidth:2, borderDash:[6,4], pointRadius:0, fill:false, tension:0 });
+  datasets.push({ label:'META', data:[90,90,90,90,90], type:'line', borderColor:cssVar('--serie-verde'), borderWidth:2, borderDash:[6,4], pointRadius:0, fill:false, tension:0 });
 
   window._nsChart = new Chart(document.getElementById('ns-chart'), {
     type: 'bar',
