@@ -291,9 +291,10 @@
     gap: 10px;
   }
   .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-  .email-badge { display: none; margin-left: 8px; font-size: 12px; cursor: help; opacity: 0.55; transition: opacity .15s; vertical-align: middle; }
+  .email-badge { display: none; margin-left: 8px; font-size: 13px; cursor: pointer; opacity: 0.6; transition: opacity .15s; vertical-align: middle; -webkit-tap-highlight-color: transparent; }
   .email-badge:hover { opacity: 1; }
   .email-badge.show { display: inline-block; }
+  .email-balao { position: absolute; z-index: 9998; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 12px; font-family: var(--font-body); box-shadow: 0 4px 16px rgba(0,0,0,0.3); max-width: 80vw; white-space: nowrap; pointer-events: none; }
 
   /* TABLES */
   .table-wrap {
@@ -6705,12 +6706,38 @@ function injetarDataEmail() {
     if (data) {
       b.textContent = '📧';
       b.title = 'Dados recebidos por e-mail em ' + data;
+      b.setAttribute('data-info', 'Dados de ' + data);
       b.classList.add('show');
     } else {
       b.classList.remove('show');
     }
   });
 }
+
+// Balão de info ao tocar/clicar no 📧 (funciona no celular, onde não há hover)
+function _mostrarBalaoEmail(badge){
+  document.querySelectorAll('.email-balao').forEach(e=>e.remove());
+  const txt = badge.getAttribute('data-info'); if(!txt) return;
+  const balao = document.createElement('div');
+  balao.className = 'email-balao';
+  balao.textContent = txt;
+  document.body.appendChild(balao);
+  const r = badge.getBoundingClientRect();
+  let left = r.left + window.scrollX;
+  const top = r.bottom + window.scrollY + 6;
+  // não deixar sair da tela à direita
+  const maxLeft = window.scrollX + document.documentElement.clientWidth - balao.offsetWidth - 10;
+  if(left > maxLeft) left = maxLeft;
+  if(left < 8) left = 8;
+  balao.style.left = left + 'px';
+  balao.style.top = top + 'px';
+  setTimeout(()=>{ document.addEventListener('click', function fecha(ev){ if(ev.target!==badge){ balao.remove(); document.removeEventListener('click', fecha); } }); }, 10);
+  setTimeout(()=>balao.remove(), 5000);
+}
+document.addEventListener('click', function(ev){
+  const badge = ev.target.closest && ev.target.closest('.email-badge');
+  if(badge){ ev.stopPropagation(); _mostrarBalaoEmail(badge); }
+});
 
 // ===== GOOGLE SHEETS MONITOR =====
 const WEBAPP = 'https://script.google.com/macros/s/AKfycbyFeoCDp-ROgWP_n8xImPFehmPbHlg0pjf5TiC7tW4O6BUAewqh9We0v6ROAiC0rnSn/exec';
