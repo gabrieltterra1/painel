@@ -1408,7 +1408,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 <div id="tab-ife" class="tab-content">
-  <div class="section-title">Indicador IFE — Índice de Fornecimento no Prazo</div>
+  <div class="section-title" style="display:flex;align-items:center;gap:12px">Indicador IFE — Índice de Fornecimento no Prazo<span class="email-badge" data-sheet="IFE"></span><button id="ife-refresh-btn" class="upload-btn" style="background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);font-size:11px;padding:5px 12px;white-space:nowrap" onclick="atualizarIFE()">↻ Atualizar IFE</button></div>
 
   <!-- Quadro resumo mês atual -->
   <div id="ife-resumo" style="margin-bottom:28px"></div>
@@ -6776,6 +6776,22 @@ async function startMonitor() {
   await readSheets();
   monitorTimer = setInterval(readSheets, READ_INTERVAL_MS);
   startCountdown();
+}
+
+// Processa o IFE sob demanda (o IFE não entra no ciclo automático, só roda às 3h ou aqui)
+async function atualizarIFE() {
+  const btn = document.getElementById('ife-refresh-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Processando IFE...'; }
+  setStatus('active', '⚡ Processando IFE...');
+  try {
+    await fetch(WEBAPP+'?acao=processarIFE&t='+Date.now());
+    // dá um tempo pro Apps Script gravar antes de reler
+    await new Promise(r=>setTimeout(r, 2000));
+    await readSheets();
+  } catch(e) {
+    console.warn('Atualizar IFE:', e);
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '↻ Atualizar IFE'; }
 }
 
 async function readSheets() {
