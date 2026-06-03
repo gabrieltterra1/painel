@@ -894,7 +894,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <!-- HISTÓRICO ANUAL + COMPARAÇÃO MONTADO × VENDIDO -->
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:32px 0 16px">
     <span class="section-title" style="margin:0">Histórico do Ano — Montagem &amp; Vendas</span>
-    <button onclick="abrirModalVendasMontados()" style="background:rgba(61,139,255,.15);border:1px solid #3d8bff;color:#3d8bff;padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✏ Informar Vendas</button>
+    <button onclick="abrirModalVendasMontados()" style="background:rgba(61,139,255,.15);border:1px solid #3d8bff;color:var(--serie-azul);padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✏ Informar Vendas</button>
   </div>
   <div id="montados-historico"></div>
   <div id="montados-comparacao" style="margin-top:24px"></div>
@@ -904,7 +904,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <div id="modal-vendas-montados" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;align-items:center;justify-content:center">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;width:680px;max-width:95vw;max-height:90vh;overflow-y:auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:#3d8bff;letter-spacing:1px">✏ VENDAS POR FAMÍLIA — MÊS A MÊS</div>
+      <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--serie-azul);letter-spacing:1px">✏ VENDAS POR FAMÍLIA — MÊS A MÊS</div>
       <button onclick="document.getElementById('modal-vendas-montados').style.display='none'" style="background:none;border:none;color:#666;font-size:18px;cursor:pointer">✕</button>
     </div>
     <div style="font-size:11px;color:var(--text-muted);margin-bottom:16px">Quantidade vendida por família em cada mês — salva no Google Sheets</div>
@@ -1890,8 +1890,8 @@ function renderOF() {
       const hasMeta = !!metaProd && metaDia > 0;
 
       return '<div style="background:var(--surface);border:'+(hasMeta?'2px':'1px')+' solid '+(hasMeta?'#3d8bff':'var(--border)')+';border-radius:10px;padding:12px 14px;flex:1;min-width:'+(hasMeta?'175':'140')+'px;box-shadow:var(--card-shadow,none)">'
-        +'<div style="font-size:9px;font-weight:700;color:#3d8bff;letter-spacing:1px;margin-bottom:6px;white-space:nowrap">'+label+'</div>'
-        +'<div style="font-size:'+(hasMeta?'26':'20')+'px;font-weight:900;color:#3d8bff">'+Math.round(total).toLocaleString('pt-BR')+'</div>'
+        +'<div style="font-size:9px;font-weight:700;color:var(--serie-azul);letter-spacing:1px;margin-bottom:6px;white-space:nowrap">'+label+'</div>'
+        +'<div style="font-size:'+(hasMeta?'26':'20')+'px;font-weight:900;color:var(--serie-azul)">'+Math.round(total).toLocaleString('pt-BR')+'</div>'
         +'<div style="font-size:9px;color:var(--text-muted);margin-top:2px">Total em OF</div>'
         +(hasMeta?
           '<div style="margin-top:6px;font-size:10px;color:var(--text-muted)">Programado: <b style="color:'+(diasCobre>=duRestantes?'var(--green)':'var(--red)')+'">'+( diasCobre!==null?(diasCobre).toFixed(1):' —')+' du</b>'
@@ -2317,7 +2317,7 @@ function renderMontadosHistorico(){
 
   // ── TABELA 2: COMPARAÇÃO MONTADO × VENDIDO (por família, mês a mês) ──
   // Cada célula mostra a quantidade + média/dia útil. Rodapé com médias do período.
-  let h2='<div style="font-size:11px;font-weight:700;color:#3d8bff;letter-spacing:1px;margin-bottom:8px">MONTADO × VENDIDO — '+ano+' (qtd · média/dia útil)</div>';
+  let h2='<div style="font-size:11px;font-weight:700;color:var(--serie-azul);letter-spacing:1px;margin-bottom:8px">MONTADO × VENDIDO — '+ano+' (qtd · média/dia útil)</div>';
   h2+='<div style="display:flex;flex-wrap:wrap;gap:14px">';
   MONT_FAMILIAS.forEach(f=>{
     let totM=0,totV=0,duM=0,duV=0,totMcomV=0;
@@ -2364,10 +2364,10 @@ function abrirModalVendasMontados(){
   const cfg=DATA.config||{};
   const {ano}=_montAgrupaAno();
   modal.style.display='flex';
-  let html='<div style="font-size:11px;color:#3d8bff;margin-bottom:10px;font-weight:700">Ano de referência: '+ano+'</div>';
+  let html='<div style="font-size:11px;color:var(--serie-azul);margin-bottom:10px;font-weight:700">Ano de referência: '+ano+'</div>';
   MONT_FAMILIAS.forEach(f=>{
     html+='<div style="margin-bottom:14px;padding:12px;background:var(--panel);border-radius:8px;border:1px solid var(--border)">'
-      +'<div style="font-size:11px;font-weight:700;color:#3d8bff;letter-spacing:0.5px;margin-bottom:8px">'+f.label+'</div>'
+      +'<div style="font-size:11px;font-weight:700;color:var(--serie-azul);letter-spacing:0.5px;margin-bottom:8px">'+f.label+'</div>'
       +'<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">';
     for(let m=0;m<12;m++){
       const key='MONT_VENDA_'+f.col+'_'+ano+String(m+1).padStart(2,'0');
@@ -2812,7 +2812,7 @@ function renderFeriadosLista() {
     const du = diasUteisMes(anoRef, m, true);
     resumo += '<div style="text-align:center;background:var(--panel2);border:1px solid var(--border);border-radius:5px;padding:5px 2px">'
       + '<div style="font-size:9px;color:var(--text-muted)">'+MES3[m]+'</div>'
-      + '<div style="font-size:15px;font-weight:800;color:#3d8bff">'+du+'</div></div>';
+      + '<div style="font-size:15px;font-weight:800;color:var(--serie-azul)">'+du+'</div></div>';
   }
   resumo += '</div></div>';
 
@@ -4587,7 +4587,7 @@ function renderPedidos() {
         <div style="font-size:11px;letter-spacing:1px;color:var(--text-muted)">${isHoje?'PRIORIDADES DE HOJE':'ENTREGA '+dia_+'/'+m+'/'+a}</div>
         <div style="display:flex;gap:20px;flex-wrap:wrap">
           <span style="color:var(--green);font-weight:700">✓ ${sFaturar} p/ faturar</span>
-          <span style="color:#3d8bff;font-weight:700">⚙ ${sOf} tem OF</span>
+          <span style="color:var(--serie-azul);font-weight:700">⚙ ${sOf} tem OF</span>
           <span style="color:var(--orange);font-weight:700">✗ ${sSemOf} sem OF</span>
           ${sAtrasado?`<span style="color:var(--red);font-weight:700">⚠ ${sAtrasado} atrasados</span>`:''}
           ${totalMontar?`<span style="color:#a855f7;font-weight:700">🔧 ${totalMontar} peças a montar (OF inteira)</span>`:''}
@@ -4989,7 +4989,7 @@ function renderPvPrioridades() {
         });
       });
       let breakdown = '';
-      if (sep   > 0) breakdown += `<div style="font-size:11px;color:#3d8bff;line-height:1.8">▣ ${sep} sep.</div>`;
+      if (sep   > 0) breakdown += `<div style="font-size:11px;color:var(--serie-azul);line-height:1.8">▣ ${sep} sep.</div>`;
       if (parc  > 0) breakdown += `<div style="font-size:11px;color:#06b6d4;line-height:1.8">◑ ${parc} parc.</div>`;
       if (falta > 0) breakdown += `<div style="font-size:11px;color:#f59e0b;line-height:1.8">⚙ ${falta} falta sep.</div>`;
       if (abrir > 0) breakdown += `<div style="font-size:11px;color:#ff3b3b;line-height:1.8">✗ ${abrir} abrir OF</div>`;
@@ -5397,7 +5397,7 @@ function pvGerarPDF() {
     cardsHtml += '<div style="font-size:10px;font-weight:900;color:' + c.color + ';margin-bottom:4px">' + c.label + '</div>';
     cardsHtml += '<div style="font-size:20px;font-weight:900;color:' + c.color + ';margin-bottom:5px">' + c.tot + ' <span style="font-size:10px">itens</span></div>';
     cardsHtml += '<div style="font-size:11px;line-height:2;color:#333">';
-    if (c.sep   > 0) cardsHtml += '<span style="color:#3d8bff">\u25a3 ' + c.sep   + ' sep.</span><br>';
+    if (c.sep   > 0) cardsHtml += '<span style="color:var(--serie-azul)">\u25a3 ' + c.sep   + ' sep.</span><br>';
     if (c.parc  > 0) cardsHtml += '<span style="color:#06b6d4">\u25d1 ' + c.parc  + ' parc.</span><br>';
     if (c.falta > 0) cardsHtml += '<span style="color:#f59e0b">\u2699 ' + c.falta + ' falta sep.</span><br>';
     if (c.abrir > 0) cardsHtml += '<span style="color:#ff3b3b">\u2717 ' + c.abrir + ' abrir OF</span>';
@@ -5731,9 +5731,9 @@ function renderServico() {
       const sumM=Object.values(matrizVals).reduce((s,v)=>s+v,0);
       const sumF=Object.values(filialVals).reduce((s,v)=>s+v,0);
       const cor=ANOS_CORES[ano]||'var(--text)';
-      return '<tr><td style="'+tdP+';color:'+cor+';font-weight:900;position:sticky;left:0;background:var(--bg);z-index:2;min-width:50px">'+ano+'</td><td style="'+tdP+';color:#3d8bff;font-weight:700;position:sticky;left:50px;background:var(--bg);z-index:2">Matriz</td>'+allMeses.map(mm=>{const k=ano+'-'+mm;return '<td class="money" style="'+tdP+';color:#3d8bff">'+(matrizVals[k]?fmt(matrizVals[k]):'—')+'</td>';}).join('')+'<td class="money" style="'+tdP+';color:#3d8bff;font-weight:700">'+fmt(sumM)+'</td></tr>'
-        +'<tr><td style="'+tdP+';position:sticky;left:0;background:var(--bg);z-index:2"></td><td style="'+tdP+';color:#ff8c3b;font-weight:700;position:sticky;left:50px;background:var(--bg);z-index:2">Filial SP</td>'+allMeses.map(mm=>{const k=ano+'-'+mm;return '<td class="money" style="'+tdP+';color:#ff8c3b">'+(filialVals[k]?fmt(filialVals[k]):'—')+'</td>';}).join('')+'<td class="money" style="'+tdP+';color:#ff8c3b;font-weight:700">'+fmt(sumF)+'</td></tr>'
-        +'<tr style="background:var(--surface2)"><td style="'+tdP+';position:sticky;left:0;background:var(--surface2);z-index:2"></td><td style="'+tdP+';color:#ffaa00;font-weight:700;position:sticky;left:50px;background:var(--surface2);z-index:2">Total</td>'+allMeses.map(mm=>{const k=ano+'-'+mm;return '<td class="money" style="'+tdP+';color:#ffaa00;font-weight:700">'+fmt((matrizVals[k]||0)+(filialVals[k]||0))+'</td>';}).join('')+'<td class="money" style="'+tdP+';color:#ffaa00;font-weight:700">'+fmt(sumM+sumF)+'</td></tr>'
+      return '<tr><td style="'+tdP+';color:'+cor+';font-weight:900;position:sticky;left:0;background:var(--bg);z-index:2;min-width:50px">'+ano+'</td><td style="'+tdP+';color:var(--serie-azul);font-weight:700;position:sticky;left:50px;background:var(--bg);z-index:2">Matriz</td>'+allMeses.map(mm=>{const k=ano+'-'+mm;return '<td class="money" style="'+tdP+';color:var(--serie-azul)">'+(matrizVals[k]?fmt(matrizVals[k]):'—')+'</td>';}).join('')+'<td class="money" style="'+tdP+';color:var(--serie-azul);font-weight:700">'+fmt(sumM)+'</td></tr>'
+        +'<tr><td style="'+tdP+';position:sticky;left:0;background:var(--bg);z-index:2"></td><td style="'+tdP+';color:var(--serie-laranja);font-weight:700;position:sticky;left:50px;background:var(--bg);z-index:2">Filial SP</td>'+allMeses.map(mm=>{const k=ano+'-'+mm;return '<td class="money" style="'+tdP+';color:var(--serie-laranja)">'+(filialVals[k]?fmt(filialVals[k]):'—')+'</td>';}).join('')+'<td class="money" style="'+tdP+';color:var(--serie-laranja);font-weight:700">'+fmt(sumF)+'</td></tr>'
+        +'<tr style="background:var(--surface2)"><td style="'+tdP+';position:sticky;left:0;background:var(--surface2);z-index:2"></td><td style="'+tdP+';color:var(--serie-laranja);font-weight:700;position:sticky;left:50px;background:var(--surface2);z-index:2">Total</td>'+allMeses.map(mm=>{const k=ano+'-'+mm;return '<td class="money" style="'+tdP+';color:var(--serie-laranja);font-weight:700">'+fmt((matrizVals[k]||0)+(filialVals[k]||0))+'</td>';}).join('')+'<td class="money" style="'+tdP+';color:var(--serie-laranja);font-weight:700">'+fmt(sumM+sumF)+'</td></tr>'
         +'<tr><td colspan="'+(allMeses.length+3)+'" style="height:6px"></td></tr>';
     }).join('');
     // Thead usa o ano com mais meses
@@ -6082,7 +6082,7 @@ function renderServico() {
   const tdTab = 'padding:8px 14px;white-space:nowrap';
   const thead=document.getElementById('servico-thead-row');
   if (thead) thead.innerHTML=
-    '<th style="'+tdTab+';text-align:left;cursor:pointer;position:sticky;left:0;background:var(--surface2);z-index:3" onclick="servicoSort(&#39;nome&#39;)">FORNECEDOR</th>'
+    '<th style="'+tdTab+';text-align:left;cursor:pointer;color:var(--text);font-weight:700;position:sticky;left:0;background:var(--surface2);z-index:3" onclick="servicoSort(&#39;nome&#39;)">FORNECEDOR</th>'
     +'<th style="'+tdTab+';text-align:center;cursor:pointer;font-size:10px" onclick="servicoSort(&#39;emp&#39;)">EMP</th>'
     +'<th style="'+tdTab+';text-align:left;font-size:10px;cursor:pointer" onclick="servicoSort(&#39;proc&#39;)">PROCESSO</th>'
     +filtMeses.map(m=>'<th style="'+tdTab+';text-align:right;cursor:pointer" onclick="servicoSort(&#39;mes:'+m+'&#39;)">'+mesLabel(m)+'</th>').join('')
@@ -6106,7 +6106,7 @@ function renderServico() {
     const d=dataFilt.find(r=>r.empresa===emp)||{};
     const cor=d.empresa_num==='1'?'#3d8bff':d.empresa_num==='2'?'#ff8c3b':'var(--text)';
     return '<tr>'
-      +'<td style="'+tdTab+';font-size:11px;color:'+cor+';position:sticky;left:0;background:var(--bg);z-index:1;max-width:180px;overflow:hidden;text-overflow:ellipsis" title="'+emp+'">'+emp.substring(0,35)+(emp.length>35?'…':'')+'</td>'
+      +'<td style="'+tdTab+';font-size:11px;color:var(--text);font-weight:600;position:sticky;left:0;background:var(--bg);z-index:1;max-width:180px;overflow:hidden;text-overflow:ellipsis" title="'+emp+'">'+emp.substring(0,35)+(emp.length>35?'…':'')+'</td>'
       +'<td style="'+tdTab+';text-align:center;font-size:10px;color:'+cor+';font-weight:700">'+(d.empresa_num==='1'?'MTZ':'FIL')+'</td>'
       +'<td style="'+tdTab+';font-size:10px;color:var(--text-muted)">'+(d.processo||'—')+'</td>'
       +filtMeses.map(m=>{const e=dataFilt.find(r=>r.empresa===emp&&r.mes===m);return '<td class="money" style="'+tdTab+'">'+(e?fmt(e.valor):'—')+'</td>';}).join('')
@@ -6116,8 +6116,8 @@ function renderServico() {
 
   const foot=document.getElementById('servico-foot');
   if (foot) foot.innerHTML='<tr><td colspan="3"><strong>TOTAL ('+sorted.length+' fornecedores)</strong></td>'
-    +filtMeses.map(m=>'<td class="money" style="color:#ffaa00;font-weight:700">'+fmt(mesTotals[m])+'</td>').join('')
-    +'<td class="money" style="color:#ffaa00;font-weight:700">'+fmt(sorted.reduce((s,e)=>s+rowTotals[e],0))+'</td></tr>';
+    +filtMeses.map(m=>'<td class="money" style="color:var(--serie-laranja);font-weight:700">'+fmt(mesTotals[m])+'</td>').join('')
+    +'<td class="money" style="color:var(--serie-laranja);font-weight:700">'+fmt(sorted.reduce((s,e)=>s+rowTotals[e],0))+'</td></tr>';
 }
 
 
