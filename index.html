@@ -103,7 +103,8 @@
     --serie-ciano: #13c0d8;
     --serie-roxo: #b15cff;
     --serie-vermelho: #ff4d4d;
-    --header-table-bg: #3d8bff; /* cabeçalho azul das tabelas (= cor dos cards de OF) */
+    --header-table-bg: #1a4fcc; /* cabeçalho azul das tabelas (= azul do estoque em trânsito) */
+    --header-grad: linear-gradient(90deg,#1a3a6e,#1a4fcc);
     --font-display: 'Barlow Condensed', sans-serif;
     --font-body: 'Barlow', sans-serif;
   }
@@ -142,6 +143,7 @@
     --serie-roxo: #8e35e0;
     --serie-vermelho: #e01515;
     --header-table-bg: #0a5cf5; /* cabeçalho azul das tabelas no claro */
+    --header-grad: linear-gradient(90deg,#0a4fd6,#0a5cf5);
     --header-bg: linear-gradient(135deg, #1366ff 0%, #0d4fd6 100%);
     --card-shadow: 0 1px 4px rgba(20,30,50,0.14), 0 2px 8px rgba(20,30,50,0.06);
   }
@@ -419,7 +421,7 @@
   }
   .transit-card .transit-row { flex: 1; }
   .transit-card-header {
-    background: linear-gradient(90deg, #1a3a6e, #1a4fcc);
+    background: var(--header-table-bg);
     padding: 10px 16px;
     font-family: var(--font-display);
     font-size: 16px;
@@ -647,8 +649,8 @@
   .timeline-table th { white-space: nowrap; }
   .timeline-table td { white-space: nowrap; }
   .timeline-table th:first-child, .timeline-table td:first-child { position: sticky; left: 0; background: var(--surface); z-index: 1; min-width: 120px; }
-  .timeline-table th { background: #1a3a6e; color: #fff; font-family: var(--font-display); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; padding: 10px 16px; text-align: right; }
-  .timeline-table th:first-child { text-align: left; background: #1a3a6e; }
+  .timeline-table th { background: var(--header-table-bg); color: #fff; font-family: var(--font-display); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; padding: 10px 16px; text-align: right; }
+  .timeline-table th:first-child { text-align: left; background: var(--header-table-bg); }
   .timeline-table td { padding: 9px 16px; text-align: right; font-size: 13px; min-width: 100px; }
   .timeline-table td:first-child { text-align: left; font-family: var(--font-display); font-weight: 700; letter-spacing: 1px; }
   .timeline-table tr.emp-matriz td { color: #3d8bff; }
@@ -1908,7 +1910,7 @@ function renderOF() {
   +'</tr>'
   +'<tr style="background:var(--header-table-bg);border-bottom:2px solid var(--border)">'
   +'<td style="'+stickyTd+'background:var(--header-table-bg);color:#fff;font-size:12px;letter-spacing:1px">EM ATRASO</td>'
-  +cols.map(c=>`<td style="${tdBase}color:${atrasadosOf[c]>0?'#ffd0d0':'#cfe0ff'};font-size:14px;font-weight:${atrasadosOf[c]>0?700:400}">${atrasadosOf[c]>0?fmtN(atrasadosOf[c]):'—'}</td>`).join('')
+  +cols.map(c=>`<td style="${tdBase}font-size:14px;font-weight:${atrasadosOf[c]>0?800:400};${atrasadosOf[c]>0?'background:#fff;color:var(--red);border-radius:4px;':'color:#cfe0ff;'}">${atrasadosOf[c]>0?fmtN(atrasadosOf[c]):'—'}</td>`).join('')
   +'</tr>'
   +'</thead>'
   +'<tbody>'
@@ -5723,8 +5725,8 @@ function renderServico() {
     const mesesRef=[...new Set(dataGraf.filter(r=>r.mes.startsWith(anoRef+'-')).map(r=>r.mes))].sort();
     const shortMes = m => { const [y,mo]=m.split('-'); return new Date(+y,+mo-1,1).toLocaleDateString('pt-BR',{month:'short'}).toUpperCase().replace('.',''); };
     if (theadTl) theadTl.innerHTML=
-      '<th style="'+thP+';text-align:left;position:sticky;left:0;background:var(--surface2);z-index:3;min-width:50px">ANO</th>'
-      +'<th style="'+thP+';text-align:left;position:sticky;left:50px;background:var(--surface2);z-index:3">EMPRESA</th>'
+      '<th style="'+thP+';text-align:left;position:sticky;left:0;background:var(--header-table-bg);color:#fff;z-index:3;min-width:50px">ANO</th>'
+      +'<th style="'+thP+';text-align:left;position:sticky;left:50px;background:var(--header-table-bg);color:#fff;z-index:3">EMPRESA</th>'
       +allMeses.map(mm=>{ const [y2,mo2]=['2000',mm]; return '<th style="'+thP+'">'+new Date(2000,+mm-1,1).toLocaleDateString('pt-BR',{month:'short'}).toUpperCase().replace('.','')+'</th>'; }).join('')
       +'<th style="'+thP+'">TOTAL</th>';
     if (tbodyTl) tbodyTl.innerHTML=htmlRows;
