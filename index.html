@@ -107,6 +107,7 @@
     --header-grad: linear-gradient(90deg,#1a3a6e,#1a4fcc);
     --txt-verde: #16c784; /* número verde (claro no escuro) */
     --txt-azul: #4da3ff;  /* número azul (claro no escuro) */
+    --txt-laranja: #ffa64d; /* número laranja (claro no escuro) */
     --font-display: 'Barlow Condensed', sans-serif;
     --font-body: 'Barlow', sans-serif;
   }
@@ -148,6 +149,7 @@
     --header-grad: linear-gradient(90deg,#0a4fd6,#0a5cf5);
     --txt-verde: #0a6e42; /* número verde bem escuro no claro */
     --txt-azul: #0a4fd6;  /* número azul bem escuro no claro */
+    --txt-laranja: #b35600; /* número laranja bem escuro no claro */
     --header-bg: linear-gradient(135deg, #1366ff 0%, #0d4fd6 100%);
     --card-shadow: 0 1px 4px rgba(20,30,50,0.14), 0 2px 8px rgba(20,30,50,0.06);
   }
@@ -5731,9 +5733,9 @@ function renderServico() {
       const sumM=Object.values(matrizVals).reduce((s,v)=>s+v,0);
       const sumF=Object.values(filialVals).reduce((s,v)=>s+v,0);
       const cor=ANOS_CORES[ano]||'var(--text)';
-      return '<tr><td style="'+tdP+';color:'+cor+';font-weight:900;position:sticky;left:0;background:var(--bg);z-index:2;min-width:50px">'+ano+'</td><td style="'+tdP+';color:var(--serie-azul);font-weight:700;position:sticky;left:50px;background:var(--bg);z-index:2">Matriz</td>'+allMeses.map(mm=>{const k=ano+'-'+mm;return '<td class="money" style="'+tdP+';color:var(--serie-azul)">'+(matrizVals[k]?fmt(matrizVals[k]):'—')+'</td>';}).join('')+'<td class="money" style="'+tdP+';color:var(--serie-azul);font-weight:700">'+fmt(sumM)+'</td></tr>'
-        +'<tr><td style="'+tdP+';position:sticky;left:0;background:var(--bg);z-index:2"></td><td style="'+tdP+';color:var(--serie-laranja);font-weight:700;position:sticky;left:50px;background:var(--bg);z-index:2">Filial SP</td>'+allMeses.map(mm=>{const k=ano+'-'+mm;return '<td class="money" style="'+tdP+';color:var(--serie-laranja)">'+(filialVals[k]?fmt(filialVals[k]):'—')+'</td>';}).join('')+'<td class="money" style="'+tdP+';color:var(--serie-laranja);font-weight:700">'+fmt(sumF)+'</td></tr>'
-        +'<tr style="background:var(--surface2)"><td style="'+tdP+';position:sticky;left:0;background:var(--surface2);z-index:2"></td><td style="'+tdP+';color:var(--serie-laranja);font-weight:700;position:sticky;left:50px;background:var(--surface2);z-index:2">Total</td>'+allMeses.map(mm=>{const k=ano+'-'+mm;return '<td class="money" style="'+tdP+';color:var(--serie-laranja);font-weight:700">'+fmt((matrizVals[k]||0)+(filialVals[k]||0))+'</td>';}).join('')+'<td class="money" style="'+tdP+';color:var(--serie-laranja);font-weight:700">'+fmt(sumM+sumF)+'</td></tr>'
+      return '<tr><td style="'+tdP+';color:'+cor+';font-weight:900;position:sticky;left:0;background:var(--bg);z-index:2;min-width:50px">'+ano+'</td><td style="'+tdP+';color:var(--txt-azul);font-weight:700;position:sticky;left:50px;background:var(--bg);z-index:2">Matriz</td>'+allMeses.map(mm=>{const k=ano+'-'+mm;return '<td class="money" style="'+tdP+';color:var(--txt-azul)">'+(matrizVals[k]?fmt(matrizVals[k]):'—')+'</td>';}).join('')+'<td class="money" style="'+tdP+';color:var(--txt-azul);font-weight:700">'+fmt(sumM)+'</td></tr>'
+        +'<tr><td style="'+tdP+';position:sticky;left:0;background:var(--bg);z-index:2"></td><td style="'+tdP+';color:var(--txt-laranja);font-weight:700;position:sticky;left:50px;background:var(--bg);z-index:2">Filial SP</td>'+allMeses.map(mm=>{const k=ano+'-'+mm;return '<td class="money" style="'+tdP+';color:var(--txt-laranja)">'+(filialVals[k]?fmt(filialVals[k]):'—')+'</td>';}).join('')+'<td class="money" style="'+tdP+';color:var(--txt-laranja);font-weight:700">'+fmt(sumF)+'</td></tr>'
+        +'<tr style="background:var(--surface2)"><td style="'+tdP+';position:sticky;left:0;background:var(--surface2);z-index:2"></td><td style="'+tdP+';color:var(--txt-laranja);font-weight:700;position:sticky;left:50px;background:var(--surface2);z-index:2">Total</td>'+allMeses.map(mm=>{const k=ano+'-'+mm;return '<td class="money" style="'+tdP+';color:var(--txt-laranja);font-weight:700">'+fmt((matrizVals[k]||0)+(filialVals[k]||0))+'</td>';}).join('')+'<td class="money" style="'+tdP+';color:var(--txt-laranja);font-weight:700">'+fmt(sumM+sumF)+'</td></tr>'
         +'<tr><td colspan="'+(allMeses.length+3)+'" style="height:6px"></td></tr>';
     }).join('');
     // Thead usa o ano com mais meses
