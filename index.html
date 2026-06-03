@@ -6741,7 +6741,7 @@ document.addEventListener('click', function(ev){
 
 // ===== GOOGLE SHEETS MONITOR =====
 const WEBAPP = 'https://script.google.com/macros/s/AKfycbyFeoCDp-ROgWP_n8xImPFehmPbHlg0pjf5TiC7tW4O6BUAewqh9We0v6ROAiC0rnSn/exec';
-const READ_INTERVAL_MS = 30 * 60 * 1000;
+const READ_INTERVAL_MS = 15 * 60 * 1000;
 let monitorTimer = null, countdownTimer = null, nextRead = null, isMonitoring = false;
 
 function setStatus(state, msg) {
@@ -6864,7 +6864,7 @@ async function readSheets() {
     const t = new Date().toLocaleTimeString('pt-BR');
     setStatus('active', errors.length
       ? 'Atualizado '+t+' ('+errors.length+' erros)'
-      : 'Atualizado as '+t+' - prox. 30min');
+      : 'Atualizado as '+t+' - prox. '+(READ_INTERVAL_MS/60000)+'min');
     startCountdown();
   } else {
     setStatus('error', 'Erro ao ler planilha');
