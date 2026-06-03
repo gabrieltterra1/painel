@@ -103,7 +103,7 @@
     --serie-ciano: #13c0d8;
     --serie-roxo: #b15cff;
     --serie-vermelho: #ff4d4d;
-    --header-table-bg: #1a4fcc; /* cabeçalho azul das tabelas (= azul do estoque em trânsito) */
+    --header-table-bg: #1a3a6e; /* cabeçalho azul escuro das tabelas (tom mais escuro do gradiente) */
     --header-grad: linear-gradient(90deg,#1a3a6e,#1a4fcc);
     --font-display: 'Barlow Condensed', sans-serif;
     --font-body: 'Barlow', sans-serif;
@@ -421,7 +421,7 @@
   }
   .transit-card .transit-row { flex: 1; }
   .transit-card-header {
-    background: var(--header-table-bg);
+    background: linear-gradient(90deg, #1a3a6e, #1a4fcc);
     padding: 10px 16px;
     font-family: var(--font-display);
     font-size: 16px;
@@ -653,8 +653,8 @@
   .timeline-table th:first-child { text-align: left; background: var(--header-table-bg); }
   .timeline-table td { padding: 9px 16px; text-align: right; font-size: 13px; min-width: 100px; }
   .timeline-table td:first-child { text-align: left; font-family: var(--font-display); font-weight: 700; letter-spacing: 1px; }
-  .timeline-table tr.emp-matriz td { color: #3d8bff; }
-  .timeline-table tr.emp-filial td { color: #ff8c3b; }
+  .timeline-table tr.emp-matriz td { color: var(--serie-azul); font-weight: 600; }
+  .timeline-table tr.emp-filial td { color: var(--serie-laranja); font-weight: 600; }
   .timeline-table tr.emp-total td { color: var(--amber); font-weight: 700; border-top: 2px solid var(--border); }
 
   /* NS PRODUCT BUTTONS */
@@ -1910,7 +1910,7 @@ function renderOF() {
   +'</tr>'
   +'<tr style="background:var(--header-table-bg);border-bottom:2px solid var(--border)">'
   +'<td style="'+stickyTd+'background:var(--header-table-bg);color:#fff;font-size:12px;letter-spacing:1px">EM ATRASO</td>'
-  +cols.map(c=>`<td style="${tdBase}font-size:14px;font-weight:${atrasadosOf[c]>0?800:400};${atrasadosOf[c]>0?'background:#fff;color:var(--red);border-radius:4px;':'color:#cfe0ff;'}">${atrasadosOf[c]>0?fmtN(atrasadosOf[c]):'—'}</td>`).join('')
+  +cols.map(c=>`<td style="${tdBase}font-size:14px;font-weight:${atrasadosOf[c]>0?800:400};color:${atrasadosOf[c]>0?'#ff6b6b':'#cfe0ff'}">${atrasadosOf[c]>0?fmtN(atrasadosOf[c]):'—'}</td>`).join('')
   +'</tr>'
   +'</thead>'
   +'<tbody>'
@@ -2182,10 +2182,10 @@ function renderMontados() {
           ${sorted.map((r,i)=>{
             const d=parseDate(r.DATA||'01/01/2000');
             const isToday=d.getTime()===hoje.getTime();
-            const bg=isToday?'rgba(76,175,130,0.18)':i%2===0?'transparent':'var(--row-alt)';
+            const bg=isToday?'rgba(76,175,130,0.22)':i%2===0?'transparent':'var(--row-alt)';
             return `<tr style="background:${bg}">
-              <td style="${stickyTd}background:${bg};color:${isToday?'#4cff9a':'var(--text)'};font-size:14px;${isToday?'font-weight:700;':''}">${r.DATA||''}${isToday?' ●':''}</td>
-              ${cols.map(c=>`<td style="${tdBase}color:${isToday?'#ffffff':'var(--text)'};font-size:15px">${fmtN(r[c])}</td>`).join('')}
+              <td style="${stickyTd}background:${bg};color:${isToday?'var(--green-text)':'var(--text)'};font-size:14px;font-weight:${isToday?'700':'400'}">${r.DATA||''}${isToday?' ●':''}</td>
+              ${cols.map(c=>`<td style="${tdBase}color:var(--text);font-size:15px;${isToday?'font-weight:700;':''}">${fmtN(r[c])}</td>`).join('')}
             </tr>`;
           }).join('')}
         </tbody>
@@ -5750,8 +5750,8 @@ function renderServico() {
     const totalBarras = mesesBarras.map(m=>(matByM[m]||0)+(filByM[m]||0));
     servicoCharts.push(new Chart(tlCanvas,{
       data:{labels:mesesBarras.map(mesLabel),datasets:[
-        {type:'bar',label:'Filial SP',data:mesesBarras.map(m=>filByM[m]),backgroundColor:'#ff8c3b99',borderColor:cssVar('--serie-laranja'),borderWidth:1,stack:'s',datalabels:{display:false}},
-        {type:'bar',label:'Matriz',data:mesesBarras.map(m=>matByM[m]),backgroundColor:'#3d8bff99',borderColor:cssVar('--serie-azul'),borderWidth:1,stack:'s',datalabels:{display:false}},
+        {type:'bar',label:'Filial SP',data:mesesBarras.map(m=>filByM[m]),backgroundColor:cssVar('--serie-laranja'),borderColor:cssVar('--serie-laranja'),borderWidth:1,stack:'s',datalabels:{display:false}},
+        {type:'bar',label:'Matriz',data:mesesBarras.map(m=>matByM[m]),backgroundColor:cssVar('--serie-azul'),borderColor:cssVar('--serie-azul'),borderWidth:1,stack:'s',datalabels:{display:false}},
         {type:'line',label:'Total',data:totalBarras,borderColor:cssVar('--serie-laranja'),backgroundColor:'transparent',borderWidth:2.5,pointRadius:4,tension:0.3,
           datalabels:{display:true,color:'#ffaa00',font:{size:10,weight:'700'},anchor:'end',align:'top',formatter:fmtK}}
       ]},
@@ -5977,9 +5977,9 @@ function renderServico() {
     servicoCharts.push(new Chart(ticketCanvas,{
       type:'bar',
       data:{labels:top10t.map(shortN),datasets:[
-        {label:anoAnt+' média/mês',data:ticketAntVals,backgroundColor:'#06b6d455',borderColor:cssVar('--serie-ciano'),borderWidth:1,
+        {label:anoAnt+' média/mês',data:ticketAntVals,backgroundColor:cssVar('--serie-ciano'),borderColor:cssVar('--serie-ciano'),borderWidth:1,
           datalabels:{display:true,color:'#06b6d4',font:{size:9,weight:'700'},anchor:'end',align:'right',formatter:v=>v?fmtK(v):''}},
-        {label:anoMeta+' média/mês',data:ticketVals,backgroundColor:'#f59e0bcc',borderColor:cssVar('--serie-laranja'),borderWidth:1,
+        {label:anoMeta+' média/mês',data:ticketVals,backgroundColor:cssVar('--serie-laranja'),borderColor:cssVar('--serie-laranja'),borderWidth:1,
           datalabels:{display:true,color:'#f59e0b',font:{size:9,weight:'700'},anchor:'end',align:'right',formatter:v=>v?fmtK(v):''}}
       ]},
       options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
@@ -5999,7 +5999,7 @@ function renderServico() {
     servicoCharts.push(new Chart(metaMesCanvas,{
       type:'bar',
       data:{labels:mesesLabel12,datasets:[
-        {label:'Realizado '+anoMeta,data:realVals,backgroundColor:'#f59e0b99',borderColor:cssVar('--serie-laranja'),borderWidth:1,
+        {label:'Realizado '+anoMeta,data:realVals,backgroundColor:cssVar('--serie-laranja'),borderColor:cssVar('--serie-laranja'),borderWidth:1,
           datalabels:{display:true,color:cssVar('--text'),font:{size:8,weight:'700'},anchor:'end',align:'top',formatter:v=>v?fmtK(v):''}},
         {type:'line',label:'Meta',data:metaVals,borderColor:cssVar('--serie-vermelho'),backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:0,datalabels:{display:false}},
         {type:'line',label:'Meta Compet.',data:compVals,borderColor:cssVar('--serie-verde'),backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:3,tension:0,datalabels:{display:false}}
@@ -6438,8 +6438,8 @@ function renderNSChart() {
   let datasets = [];
 
   if (_nsProduct === 'tomada_bomba' || _nsProduct === 'todos') {
-    datasets.push({ label:'TOMADA', data: empsNS.map(e=>(n[e]||{}).TOM||0), backgroundColor:'#3d8bffcc', borderRadius:4 });
-    datasets.push({ label:'BOMBA',  data: empsNS.map(e=>(n[e]||{}).BOM||0), backgroundColor:'#ff8c3bcc', borderRadius:4 });
+    datasets.push({ label:'TOMADA', data: empsNS.map(e=>(n[e]||{}).TOM||0), backgroundColor:cssVar('--serie-azul'), borderRadius:4 });
+    datasets.push({ label:'BOMBA',  data: empsNS.map(e=>(n[e]||{}).BOM||0), backgroundColor:cssVar('--serie-laranja'), borderRadius:4 });
   }
   if (_nsProduct === 'guincho_enrol' || _nsProduct === 'todos') {
     const guinchoOSM = empsNS.map(e => {
@@ -6448,21 +6448,21 @@ function renderNSChart() {
       const totAbast = rows.reduce((s,r)=>s+r.qtde_abast,0);
       return totParam>0 ? Math.round(totAbast/totParam*1000)/10 : 0;
     });
-    datasets.push({ label:'GUINCHO OS-M', data: guinchoOSM, backgroundColor:'#f59e0bcc', borderRadius:4 });
+    datasets.push({ label:'GUINCHO OS-M', data: guinchoOSM, backgroundColor:cssVar('--serie-laranja'), borderRadius:4 });
     const guinchoOP = empsNS.map(e => {
       const rows = DATA.estoque.filter(r => r.uf === e && r.classificacao === '800.010.040');
       const totParam = rows.reduce((s,r)=>s+r.qtde_param_es,0);
       const totAbast = rows.reduce((s,r)=>s+r.qtde_abast,0);
       return totParam>0 ? Math.round(totAbast/totParam*1000)/10 : 0;
     });
-    datasets.push({ label:'GUINCHO OP', data: guinchoOP, backgroundColor:'#ffaa00cc', borderRadius:4 });
+    datasets.push({ label:'GUINCHO OP', data: guinchoOP, backgroundColor:cssVar('--serie-laranja'), borderRadius:4 });
     const enrolData = empsNS.map(e => {
       const rows = DATA.estoque.filter(r => r.uf === e && r.classificacao.startsWith('800.050'));
       const totParam = rows.reduce((s,r)=>s+r.qtde_param_es,0);
       const totAbast = rows.reduce((s,r)=>s+r.qtde_abast,0);
       return totParam>0 ? Math.round(totAbast/totParam*1000)/10 : 0;
     });
-    datasets.push({ label:'ENROLADOR', data: enrolData, backgroundColor:'#c97affcc', borderRadius:4 });
+    datasets.push({ label:'ENROLADOR', data: enrolData, backgroundColor:cssVar('--serie-roxo'), borderRadius:4 });
   }
 
   if (_nsProduct === 'cilindro' || _nsProduct === 'todos') {
@@ -6471,7 +6471,7 @@ function renderNSChart() {
       const avg = rows.length > 0 ? rows.reduce((s,r)=>s+r.pct_es,0)/rows.length : 0;
       return parseFloat(avg.toFixed(1));
     });
-    if (cilData.some(v=>v>0)) datasets.push({label:'CILINDRO',data:cilData,backgroundColor:'#00c97acc',borderRadius:4});
+    if (cilData.some(v=>v>0)) datasets.push({label:'CILINDRO',data:cilData,backgroundColor:cssVar('--serie-verde'),borderRadius:4});
   }
   datasets.push({ label:'META', data:[90,90,90,90,90], type:'line', borderColor:cssVar('--serie-verde'), borderWidth:2, borderDash:[6,4], pointRadius:0, fill:false, tension:0 });
 
