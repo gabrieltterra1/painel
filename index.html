@@ -106,14 +106,14 @@
     --surface: #ffffff;
     --surface2: #e4eaf5;
     --border: #9fabc4;
-    --blue: #1366ff;
-    --blue-light: #1366ff;
-    --green: #07a85f;
-    --green-dark: #07a85f;
-    --red: #e62121;
-    --amber: #e08600;
-    --text: #0c1320;
-    --text-muted: #3f4a5e;
+    --blue: #0a5cf5;
+    --blue-light: #0a5cf5;
+    --green: #03a85a;
+    --green-dark: #03a85a;
+    --red: #e01515;
+    --amber: #ef8a00;
+    --text: #0a1019;
+    --text-muted: #2f3a4e;
     --panel: #eaeff8;
     --panel2: #dde4f0;
     --th-bg: #1366ff;
@@ -125,7 +125,7 @@
     --green-text: #0a6e42;
     --green-soft: #07a85f;
     --muted-dim: #6b7790;
-    --grid: rgba(20,30,50,0.12);
+    --grid: rgba(20,30,50,0.07);
     --header-bg: linear-gradient(135deg, #1366ff 0%, #0d4fd6 100%);
     --card-shadow: 0 1px 4px rgba(20,30,50,0.14), 0 2px 8px rgba(20,30,50,0.06);
   }
@@ -1630,6 +1630,7 @@ function aplicarTema(tema){
   const btn = document.getElementById('theme-toggle');
   if (btn) btn.textContent = (tema === 'light') ? '☀️' : '🌙';
   try { localStorage.setItem('painel_tema', tema); } catch(e){}
+  try { aplicarChartDefaults(); } catch(e){}
   // Re-render dos gráficos para pegar as cores do novo tema, se já houver dados
   try { if (typeof renderAll === 'function' && window._dadosCarregados) renderAll(); } catch(e){}
 }
@@ -1641,6 +1642,25 @@ function toggleTema(){
 function cssVar(name){
   try { return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#888'; }
   catch(e){ return '#888'; }
+}
+// Aplica cores padrão do Chart.js conforme o tema (eixos, grade, legenda)
+function aplicarChartDefaults(){
+  if (typeof Chart === 'undefined') return;
+  const txt = cssVar('--text');
+  const muted = cssVar('--text-muted');
+  const grid = cssVar('--grid');
+  Chart.defaults.color = muted;
+  Chart.defaults.borderColor = grid;
+  if (Chart.defaults.scale) {
+    Chart.defaults.scale.grid = Chart.defaults.scale.grid || {};
+    Chart.defaults.scale.grid.color = grid;
+    Chart.defaults.scale.ticks = Chart.defaults.scale.ticks || {};
+    Chart.defaults.scale.ticks.color = muted;
+  }
+  if (Chart.defaults.plugins && Chart.defaults.plugins.legend) {
+    Chart.defaults.plugins.legend.labels = Chart.defaults.plugins.legend.labels || {};
+    Chart.defaults.plugins.legend.labels.color = txt;
+  }
 }
 // Aplicar tema salvo o quanto antes
 (function(){
@@ -1657,6 +1677,7 @@ function cssVar(name){
 // Register datalabels globally — opt-in per chart
 Chart.register(ChartDataLabels);
 Chart.defaults.plugins.datalabels.display = false;
+try { aplicarChartDefaults(); } catch(e){}
 
 const today = new Date();
 const todayStr = today.toLocaleDateString('pt-BR');
@@ -4938,7 +4959,7 @@ function renderPvPrioridades() {
       if (parc  > 0) breakdown += `<div style="font-size:11px;color:#06b6d4;line-height:1.8">◑ ${parc} parc.</div>`;
       if (falta > 0) breakdown += `<div style="font-size:11px;color:#f59e0b;line-height:1.8">⚙ ${falta} falta sep.</div>`;
       if (abrir > 0) breakdown += `<div style="font-size:11px;color:#ff3b3b;line-height:1.8">✗ ${abrir} abrir OF</div>`;
-      return `<div style="background:${color}12;border:2px solid ${color};border-radius:10px;padding:10px 14px;min-width:120px;flex:1">
+      return `<div style="background:var(--surface);border:2px solid ${color};border-radius:10px;padding:10px 14px;min-width:120px;flex:1;box-shadow:var(--card-shadow,none)">
         <div style="font-size:10px;color:${color};font-weight:900;letter-spacing:0.5px;margin-bottom:4px">${FAM_LABEL[f].toUpperCase()}</div>
         <div style="font-size:24px;font-weight:900;color:${color};margin-bottom:4px;line-height:1">${v.montar} <span style="font-size:10px;font-weight:600;color:var(--text-muted)">itens · ${v.pv} PV</span></div>
         ${breakdown}
