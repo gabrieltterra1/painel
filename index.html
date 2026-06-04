@@ -5682,14 +5682,16 @@ function renderServico() {
         extra = '<div style="font-size:10px;color:var(--text-muted);margin-top:3px">Acum. até '+mesLabel2+': <b style="color:'+cor+'">'+fmt(acum)+'</b></div>';
       }
 
-      // Sub-linhas Força/Guincho do ano (só Matriz) quando "Por linha"
+      // Sub-linhas Força/Guincho/Filial do ano quando "Por linha" — % sobre o total geral
       let subLinha = '';
       if (servicoPorLinha) {
         const fAno = dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&r.empresa_num==='1'&&r.linha!=='GUINCHO').reduce((s,r)=>s+r.valor,0);
         const gAno = dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&r.empresa_num==='1'&&r.linha==='GUINCHO').reduce((s,r)=>s+r.valor,0);
-        const baseAno = fAno + gAno;
+        const filAno = dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&r.empresa_num==='2').reduce((s,r)=>s+r.valor,0);
+        const baseAno = fAno + gAno + filAno;
         subLinha = '<div style="font-size:10px;color:var(--serie-azul);font-weight:700;margin-top:3px">Força: '+fmt(fAno)+pctDe(fAno,baseAno)+'</div>'
-          +'<div style="font-size:10px;color:var(--serie-vermelho);font-weight:700">Guincho: '+fmt(gAno)+pctDe(gAno,baseAno)+'</div>';
+          +'<div style="font-size:10px;color:var(--serie-vermelho);font-weight:700">Guincho: '+fmt(gAno)+pctDe(gAno,baseAno)+'</div>'
+          +'<div style="font-size:10px;color:var(--serie-laranja);font-weight:700">Filial SP: '+fmt(filAno)+pctDe(filAno,baseAno)+'</div>';
       }
 
       return '<div style="background:var(--surface);border:'+(isAtual?'2':'1')+'px solid '+(isAtual?cor:'var(--border)')+';border-radius:10px;padding:12px 16px;flex:'+(isAtual?'2':'1')+';min-width:160px;box-shadow:var(--card-shadow,none)">'
@@ -5706,12 +5708,13 @@ function renderServico() {
     const totalForca     = dataGraf.filter(r=>r.mes.startsWith(anoAtual+'-')&&r.empresa_num==='1'&&r.linha!=='GUINCHO').reduce((s,r)=>s+r.valor,0);
     const totalGuincho   = dataGraf.filter(r=>r.mes.startsWith(anoAtual+'-')&&r.empresa_num==='1'&&r.linha==='GUINCHO').reduce((s,r)=>s+r.valor,0);
     const baseMatriz     = totalForca + totalGuincho;
-    // Mês atual: Força/Guincho (só Matriz)
+    // Mês atual: Força/Guincho (Matriz) + Filial
     const mesForca       = dataGraf.filter(r=>r.mes===mesAtualKey&&r.empresa_num==='1'&&r.linha!=='GUINCHO').reduce((s,r)=>s+r.valor,0);
     const mesGuincho     = dataGraf.filter(r=>r.mes===mesAtualKey&&r.empresa_num==='1'&&r.linha==='GUINCHO').reduce((s,r)=>s+r.valor,0);
-    const baseMes        = mesForca + mesGuincho;
+    const mesFilial      = dataGraf.filter(r=>r.mes===mesAtualKey&&r.empresa_num==='2').reduce((s,r)=>s+r.valor,0);
+    const baseMes        = mesForca + mesGuincho + mesFilial;
     const nFornecedores  = new Set(dataGraf.filter(r=>r.mes.startsWith(anoAtual+'-')).map(r=>r.empresa)).size;
-    // Sub-linhas Força/Guincho no card Matriz (só quando "Por linha")
+    // Card MATRIZ: Força/Guincho sobre a Matriz (Filial tem card próprio)
     const matrizSub = servicoPorLinha
       ? '<div style="font-size:11px;color:var(--serie-azul);font-weight:700;margin-top:4px">Força: '+fmt(totalForca)+pctDe(totalForca,baseMatriz)+'</div>'
         +'<div style="font-size:11px;color:var(--serie-vermelho);font-weight:700">Guincho: '+fmt(totalGuincho)+pctDe(totalGuincho,baseMatriz)+'</div>'
@@ -5719,6 +5722,7 @@ function renderServico() {
     const mesSub = servicoPorLinha
       ? '<div style="font-size:11px;color:var(--serie-azul);font-weight:700;margin-top:4px">Força: '+fmt(mesForca)+pctDe(mesForca,baseMes)+'</div>'
         +'<div style="font-size:11px;color:var(--serie-vermelho);font-weight:700">Guincho: '+fmt(mesGuincho)+pctDe(mesGuincho,baseMes)+'</div>'
+        +'<div style="font-size:11px;color:var(--serie-laranja);font-weight:700">Filial SP: '+fmt(mesFilial)+pctDe(mesFilial,baseMes)+'</div>'
       : '';
 
     const extraCards =
