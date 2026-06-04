@@ -1122,18 +1122,6 @@ document.addEventListener('DOMContentLoaded', () => {
       <div style="overflow-x:auto"><div style="position:relative;height:280px;min-width:400px"><canvas id="servico-acum-chart"></canvas></div></div>
     </div>
   </div>
-  <!-- TOP 10 | TICKET MÉDIO MENSAL -->
-  <div class="charts-grid" style="margin-bottom:24px;">
-    <div class="chart-card">
-      <div class="chart-title">Top 10 Fornecedores</div>
-      <div style="overflow-x:auto"><div style="position:relative;height:320px;min-width:400px"><canvas id="servico-top-chart"></canvas></div></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Gasto Médio Mensal por Fornecedor (Top 10)</div>
-      <div style="font-size:10px;color:var(--text-muted);margin-bottom:6px">Total do ano ÷ meses com dados — identifica gastos regulares vs esporádicos</div>
-      <div style="overflow-x:auto"><div style="position:relative;height:300px;min-width:400px"><canvas id="servico-ticket-chart"></canvas></div></div>
-    </div>
-  </div>
 
   <!-- META x REALIZADO — MENSAL | ACUMULADO -->
   <div class="charts-grid" style="margin-bottom:24px;">
@@ -1149,6 +1137,19 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="chart-title">Meta x Realizado — Acumulado (R$)</div>
       <div style="overflow-x:auto"><div style="position:relative;height:280px;min-width:400px"><canvas id="servico-meta-acum-chart"></canvas></div></div>
       <div id="servico-meta-acum-tabela" style="margin-top:12px;overflow-x:auto"></div>
+    </div>
+  </div>
+
+  <!-- TOP 10 | GASTO MÉDIO MENSAL -->
+  <div class="charts-grid" style="margin-bottom:24px;">
+    <div class="chart-card">
+      <div class="chart-title">Top 10 Fornecedores</div>
+      <div style="overflow-x:auto"><div style="position:relative;height:320px;min-width:400px"><canvas id="servico-top-chart"></canvas></div></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Gasto Médio Mensal por Fornecedor (Top 10)</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:6px">Total do ano ÷ meses com dados — identifica gastos regulares vs esporádicos</div>
+      <div style="overflow-x:auto"><div style="position:relative;height:300px;min-width:400px"><canvas id="servico-ticket-chart"></canvas></div></div>
     </div>
   </div>
 
@@ -6301,7 +6302,18 @@ function renderServico() {
         }
         return '<td class="money" style="'+tdTab+'">'+cell+'</td>';
       }).join('')
-      +'<td class="money" style="'+tdTab+';color:'+cor+';font-weight:700">'+fmt(rowTotals[emp])+'</td>'
+      +(function(){
+        let cell = fmt(rowTotals[emp]);
+        if (servicoPorLinha && d.empresa_num==='1' && rowTotals[emp]>0) {
+          const tForca=dataFilt.filter(r=>r.empresa===emp&&r.linha!=='GUINCHO').reduce((s,r)=>s+r.valor,0);
+          const tGuincho=dataFilt.filter(r=>r.empresa===emp&&r.linha==='GUINCHO').reduce((s,r)=>s+r.valor,0);
+          let sub='';
+          if(tForca>0) sub+='<div style="font-size:9px;color:var(--serie-azul)">F: '+fmt(tForca)+'</div>';
+          if(tGuincho>0) sub+='<div style="font-size:9px;color:var(--serie-vermelho)">G: '+fmt(tGuincho)+'</div>';
+          cell = fmt(rowTotals[emp])+sub;
+        }
+        return '<td class="money" style="'+tdTab+';color:'+cor+';font-weight:700">'+cell+'</td>';
+      })()
       +'</tr>';
   }).join('');
 
