@@ -713,6 +713,10 @@
   .content { padding: 12px; }
   .section-title { font-size: 9px; letter-spacing: 1px; }
 
+  /* Cards de Serviços (KPIs) — um por linha, sem transbordar no mobile */
+  #servico-kpis > div { flex-direction: column; }
+  #servico-kpis > div > div { width: 100% !important; min-width: 0 !important; flex: none !important; box-sizing: border-box; word-break: break-word; }
+
   /* KPI bar — scroll horizontal */
   /* KPI cards mobile */
   .kpi-bar { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 8px; gap: 8px; -webkit-overflow-scrolling: touch; }
@@ -5676,11 +5680,20 @@ function renderServico() {
         extra = '<div style="font-size:10px;color:var(--text-muted);margin-top:3px">Acum. até '+mesLabel2+': <b style="color:'+cor+'">'+fmt(acum)+'</b></div>';
       }
 
+      // Sub-linhas Força/Guincho do ano (só Matriz) quando "Por linha"
+      let subLinha = '';
+      if (servicoPorLinha) {
+        const fAno = dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&r.empresa_num==='1'&&r.linha!=='GUINCHO').reduce((s,r)=>s+r.valor,0);
+        const gAno = dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&r.empresa_num==='1'&&r.linha==='GUINCHO').reduce((s,r)=>s+r.valor,0);
+        subLinha = '<div style="font-size:10px;color:var(--serie-azul);font-weight:700;margin-top:3px">Força: '+fmt(fAno)+'</div>'
+          +'<div style="font-size:10px;color:var(--serie-vermelho);font-weight:700">Guincho: '+fmt(gAno)+'</div>';
+      }
+
       return '<div style="background:var(--surface);border:'+(isAtual?'2':'1')+'px solid '+(isAtual?cor:'var(--border)')+';border-radius:10px;padding:12px 16px;flex:'+(isAtual?'2':'1')+';min-width:160px;box-shadow:var(--card-shadow,none)">'
         +'<div style="font-size:10px;font-weight:900;color:'+cor+';letter-spacing:1px;margin-bottom:4px">'+ano+(isAtual?' ★':'')+' <span style="font-weight:400;font-size:9px">('+mesesComDados+' meses)</span></div>'
         +'<div style="font-size:'+(isAtual?'26':'20')+'px;font-weight:900;color:'+cor+'">'+fmt(totalAno)+'</div>'
         +'<div style="font-size:10px;color:var(--text-muted);margin-top:2px">Média/mês'+(isAtual?' (meses fechados)':'')+': <b style="color:'+cor+'">'+fmt(media)+'</b></div>'
-        +extra+'</div>';
+        +extra+subLinha+'</div>';
     }).join('');
 
     // Cards extras
