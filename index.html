@@ -6201,7 +6201,7 @@ function renderServico() {
     const ultMesCheio = (anoMeta === anoAtual) ? (mesAtualNum - 1) : 12;
     const fmtR = v => 'R$ ' + Math.round(v).toLocaleString('pt-BR');
     const dif = (r,m) => { const d = r - m; const sinal = d>=0?'+':'−'; const cor = d>0?'var(--red)':'var(--green-text)'; return '<span style="color:'+cor+';font-weight:700">'+sinal+'R$ '+Math.abs(Math.round(d)).toLocaleString('pt-BR')+'</span>'; };
-    const thS = 'padding:6px 8px;font-size:10px;color:var(--text-muted);text-align:right;border-bottom:1px solid var(--border)';
+    const thS = 'padding:6px 8px;font-size:10px;color:var(--text-muted);text-align:right;border-bottom:1px solid var(--border);white-space:nowrap';
     const tdS = 'padding:5px 8px;font-size:11px;text-align:right;white-space:nowrap';
     // Linhas mensais (até o último mês cheio)
     let rowsMes='', accR=0, accM=0, accC=0;
@@ -6219,7 +6219,7 @@ function renderServico() {
     }
     const cab = '<thead><tr><th style="'+thS+';text-align:left">MÊS</th><th style="'+thS+'">REALIZADO</th><th style="'+thS+'">META</th><th style="'+thS+'">META COMP.</th><th style="'+thS+'">vs META</th><th style="'+thS+'">vs COMP.</th></tr></thead>';
     if (elMes) {
-      elMes.innerHTML = '<table style="width:100%;border-collapse:collapse">'+cab+'<tbody>'+rowsMes+'</tbody></table>';
+      elMes.innerHTML = '<table style="width:100%;min-width:520px;border-collapse:collapse">'+cab+'<tbody>'+rowsMes+'</tbody></table>';
     }
     // Tabela acumulada + comparação final
     if (elAcum) {
