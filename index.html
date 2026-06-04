@@ -5579,9 +5579,6 @@ function renderServico() {
   const anosGraf   = servicoGrafMode === '2025' ? ['2025']
     : servicoGrafMode === '2026' ? [anoAtual]
     : todosAnos;
-  // Ano de referência para os gráficos no modo "Por linha" (Força/Guincho)
-  // Respeita os botões 2025/2026; em 'todos'/'comparativo' usa o ano atual
-  const anoLinha = servicoGrafMode === '2025' ? '2025' : anoAtual;
 
   // ── Lê filtros ────────────────────────────────────────────────────────
   const searchFilt = (document.getElementById('servico-search')?.value||'').toLowerCase();
@@ -5589,6 +5586,7 @@ function renderServico() {
   const procFilt   = document.getElementById('servico-processo')?.value||'';
   const mesFilt    = document.getElementById('servico-mes')?.value||'';
   const anoFilt    = document.getElementById('servico-ano')?.value || '';
+  let anoFiltAtivo = anoFilt;
 
   // ── Populate filtro de ano ────────────────────────────────────────────
   const anoEl = document.getElementById('servico-ano');
@@ -5598,10 +5596,16 @@ function renderServico() {
     todosAnos.forEach(a => {
       const opt = document.createElement('option');
       opt.value = a; opt.textContent = a;
-      if (a === prevAno) opt.selected = true;
       anoEl.appendChild(opt);
     });
+    // Padrão: ano atual (2026) na primeira renderização; senão mantém a seleção anterior
+    if (prevAno !== '' && todosAnos.includes(prevAno)) anoEl.value = prevAno;
+    else if (!anoEl.dataset.init) anoEl.value = anoAtual;
+    anoEl.dataset.init = '1';
   }
+  // Ano de referência p/ gráficos no modo "Por linha": segue o dropdown; vazio ("Todos") → ano atual
+  const anoLinha = (anoEl?.value) || anoAtual;
+  anoFiltAtivo = anoEl?.value || '';
 
   // ── Populate filtro de mês (só do ano selecionado) ────────────────────
   const mesEl = document.getElementById('servico-mes');
@@ -5609,7 +5613,7 @@ function renderServico() {
     const prevM = mesEl.value;
     while (mesEl.options.length > 1) mesEl.remove(1);
     todosMeses
-      .filter(m => !anoFilt || m.startsWith(anoFilt + '-'))
+      .filter(m => !anoFiltAtivo || m.startsWith(anoFiltAtivo + '-'))
       .forEach(m => {
         const opt = document.createElement('option');
         opt.value = m; opt.textContent = mesLabel(m);
@@ -5632,7 +5636,7 @@ function renderServico() {
   // Para tabela: filtra por ano+mês também
   const dataFilt = data.filter(r => {
     const ano = r.mes.split('-')[0];
-    if (anoFilt && ano !== anoFilt) return false;
+    if (anoFiltAtivo && ano !== anoFiltAtivo) return false;
     if (mesFilt && r.mes !== mesFilt) return false;
     return passaFiltroBase(r);
   });
@@ -6033,7 +6037,8 @@ function renderServico() {
   const procCanvas = document.getElementById('servico-processo-chart');
   if (procCanvas) {
     // Sort processos by anoAtual value descending
-    const procValsAtual = processos.map(p=>valorAnoGraf(anoAtual,r=>(r.processo||'SEM PROCESSO')===p));
+    const anoOrd = servicoPorLinha ? anoLinha : anoAtual;
+    const procValsAtual = processos.map(p=>valorAnoGraf(anoOrd,r=>(r.processo||'SEM PROCESSO')===p));
     const procOrder = processos.map((p,i)=>({p,v:procValsAtual[i]})).sort((a,b)=>b.v-a.v).map(x=>x.p);
     let procDatasets;
     if (servicoPorLinha) {
@@ -6083,7 +6088,7 @@ function renderServico() {
 
   const anoMeta = servicoGrafMode === '2025' ? '2025'
     : servicoGrafMode === '2026' ? anoAtual
-    : (anoFilt || anoAtual);
+    : (anoFiltAtivo || anoAtual);
   const mesesMeta = Array.from({length:12},(_,i)=>String(i+1).padStart(2,'0'));
 
   // Ticket médio mensal
