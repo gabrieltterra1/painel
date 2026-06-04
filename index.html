@@ -1069,9 +1069,9 @@ document.addEventListener('DOMContentLoaded', () => {
   <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
     <span style="font-size:10px;color:var(--text-muted);letter-spacing:1px;white-space:nowrap">LINHA DO TEMPO:</span>
     <button id="tl-btn-2026" class="upload-btn" style="font-size:11px;padding:4px 10px;background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b" onclick="setTLMode('2026')">2026</button>
-    <button id="tl-btn-2025" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setTLMode('2025')">2025</button>
-    <button id="tl-btn-comparativo" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setTLMode('comparativo')">📅 Comparativo até hoje</button>
-    <button id="tl-btn-todos" class="upload-btn" style="font-size:11px;padding:4px 10px" onclick="setTLMode('todos')">Todos os anos</button>
+    <button id="tl-btn-2025" class="upload-btn" style="font-size:11px;padding:4px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text-muted)" onclick="setTLMode('2025')">2025</button>
+    <button id="tl-btn-comparativo" class="upload-btn" style="font-size:11px;padding:4px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text-muted)" onclick="setTLMode('comparativo')">📅 Comparativo até hoje</button>
+    <button id="tl-btn-todos" class="upload-btn" style="font-size:11px;padding:4px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text-muted)" onclick="setTLMode('todos')">Todos os anos</button>
   </div>
 
   <!-- LINHA DO TEMPO MATRIZ vs FILIAL -->
@@ -5487,7 +5487,7 @@ function setTLMode(mode) {
     const btn = document.getElementById('tl-btn-'+m);
     if (!btn) return;
     const active = m === mode;
-    btn.style.background  = active ? '#f59e0b22' : '';
+    btn.style.background  = active ? '#f59e0b22' : 'var(--surface2)';
     btn.style.border      = active ? '1px solid #f59e0b' : '1px solid var(--border)';
     btn.style.color       = active ? '#f59e0b' : 'var(--text-muted)';
   });
@@ -5687,7 +5687,14 @@ function renderServico() {
     const totalMesAtual  = dataGraf.filter(r=>r.mes===mesAtualKey).reduce((s,r)=>s+r.valor,0);
     const totalMatriz    = dataGraf.filter(r=>r.mes.startsWith(anoAtual+'-')&&r.empresa_num==='1').reduce((s,r)=>s+r.valor,0);
     const totalFilial    = dataGraf.filter(r=>r.mes.startsWith(anoAtual+'-')&&r.empresa_num==='2').reduce((s,r)=>s+r.valor,0);
+    const totalForca     = dataGraf.filter(r=>r.mes.startsWith(anoAtual+'-')&&r.empresa_num==='1'&&r.linha!=='GUINCHO').reduce((s,r)=>s+r.valor,0);
+    const totalGuincho   = dataGraf.filter(r=>r.mes.startsWith(anoAtual+'-')&&r.empresa_num==='1'&&r.linha==='GUINCHO').reduce((s,r)=>s+r.valor,0);
     const nFornecedores  = new Set(dataGraf.filter(r=>r.mes.startsWith(anoAtual+'-')).map(r=>r.empresa)).size;
+    // Sub-linhas Força/Guincho no card Matriz (só quando "Por linha")
+    const matrizSub = servicoPorLinha
+      ? '<div style="font-size:11px;color:var(--serie-azul);font-weight:700;margin-top:4px">Força: '+fmt(totalForca)+'</div>'
+        +'<div style="font-size:11px;color:var(--serie-vermelho);font-weight:700">Guincho: '+fmt(totalGuincho)+'</div>'
+      : '';
 
     const extraCards =
       '<div style="background:var(--surface);border:2px solid #ffaa00;border-radius:10px;padding:12px 16px;flex:1;min-width:130px;box-shadow:var(--card-shadow,none)">'
@@ -5695,7 +5702,7 @@ function renderServico() {
         +'<div style="font-size:22px;font-weight:900;color:var(--amber)">'+fmt(totalMesAtual)+'</div></div>'
       +'<div style="background:var(--surface);border:2px solid #3d8bff;border-radius:10px;padding:12px 16px;flex:1;min-width:130px;box-shadow:var(--card-shadow,none)">'
         +'<div style="font-size:9px;font-weight:700;color:var(--blue-light);letter-spacing:1px;margin-bottom:4px">MATRIZ '+anoAtual+'</div>'
-        +'<div style="font-size:22px;font-weight:900;color:var(--blue-light)">'+fmt(totalMatriz)+'</div></div>'
+        +'<div style="font-size:22px;font-weight:900;color:var(--blue-light)">'+fmt(totalMatriz)+'</div>'+matrizSub+'</div>'
       +'<div style="background:var(--surface);border:2px solid #ff8c3b;border-radius:10px;padding:12px 16px;flex:1;min-width:130px;box-shadow:var(--card-shadow,none)">'
         +'<div style="font-size:9px;font-weight:700;color:#e2701f;letter-spacing:1px;margin-bottom:4px">FILIAL SP '+anoAtual+'</div>'
         +'<div style="font-size:22px;font-weight:900;color:#e2701f">'+fmt(totalFilial)+'</div></div>'
@@ -5964,9 +5971,9 @@ function renderServico() {
       const guinchoT = top10.map(emp=>dataGraf.filter(r=>r.empresa===emp&&r.mes.startsWith(anoAtual+'-')&&r.mes<=mesAtualKey&&r.empresa_num==='1'&&r.linha==='GUINCHO').reduce((s,r)=>s+r.valor,0));
       const filialT = top10.map(emp=>dataGraf.filter(r=>r.empresa===emp&&r.mes.startsWith(anoAtual+'-')&&r.mes<=mesAtualKey&&r.empresa_num==='2').reduce((s,r)=>s+r.valor,0));
       topDatasets = [
+        {label:'Filial SP',data:filialT,backgroundColor:serieFill('--serie-laranja'),borderColor:cssVar('--serie-laranja'),borderWidth:1,stack:'t',datalabels:{display:false}},
         {label:'Força',data:forcaT,backgroundColor:serieFill('--serie-azul'),borderColor:cssVar('--serie-azul'),borderWidth:1,stack:'t',datalabels:{display:false}},
-        {label:'Guincho',data:guinchoT,backgroundColor:serieFill('--serie-vermelho'),borderColor:cssVar('--serie-vermelho'),borderWidth:1,stack:'t',datalabels:{display:false}},
-        {label:'Filial SP',data:filialT,backgroundColor:serieFill('--serie-laranja'),borderColor:cssVar('--serie-laranja'),borderWidth:1,stack:'t',
+        {label:'Guincho',data:guinchoT,backgroundColor:serieFill('--serie-vermelho'),borderColor:cssVar('--serie-vermelho'),borderWidth:1,stack:'t',
           datalabels:{display:true,color:cssVar('--text'),font:{size:9,weight:'700'},anchor:'end',align:'right',formatter:(v,ctx)=>{const tot=forcaT[ctx.dataIndex]+guinchoT[ctx.dataIndex]+filialT[ctx.dataIndex];return tot>0?fmtCheio(tot):'';}}}
       ];
     } else {
@@ -6001,9 +6008,9 @@ function renderServico() {
       const guinchoP = procOrder.map(p=>dataGraf.filter(r=>(r.processo||'SEM PROCESSO')===p&&r.mes.startsWith(anoAtual+'-')&&r.mes<=mesAtualKey&&r.empresa_num==='1'&&r.linha==='GUINCHO').reduce((s,r)=>s+r.valor,0));
       const filialP = procOrder.map(p=>dataGraf.filter(r=>(r.processo||'SEM PROCESSO')===p&&r.mes.startsWith(anoAtual+'-')&&r.mes<=mesAtualKey&&r.empresa_num==='2').reduce((s,r)=>s+r.valor,0));
       procDatasets = [
+        {label:'Filial SP',data:filialP,backgroundColor:serieFill('--serie-laranja'),borderColor:cssVar('--serie-laranja'),borderWidth:1,stack:'p',datalabels:{display:false}},
         {label:'Força',data:forcaP,backgroundColor:serieFill('--serie-azul'),borderColor:cssVar('--serie-azul'),borderWidth:1,stack:'p',datalabels:{display:false}},
-        {label:'Guincho',data:guinchoP,backgroundColor:serieFill('--serie-vermelho'),borderColor:cssVar('--serie-vermelho'),borderWidth:1,stack:'p',datalabels:{display:false}},
-        {label:'Filial SP',data:filialP,backgroundColor:serieFill('--serie-laranja'),borderColor:cssVar('--serie-laranja'),borderWidth:1,stack:'p',
+        {label:'Guincho',data:guinchoP,backgroundColor:serieFill('--serie-vermelho'),borderColor:cssVar('--serie-vermelho'),borderWidth:1,stack:'p',
           datalabels:{display:true,color:cssVar('--text'),font:{size:9,weight:'700'},anchor:'end',align:'top',formatter:(v,ctx)=>{const tot=forcaP[ctx.dataIndex]+guinchoP[ctx.dataIndex]+filialP[ctx.dataIndex];return tot>0?fmtCheio(tot):'';}}}
       ];
     } else {
@@ -6102,9 +6109,9 @@ function renderServico() {
       const guinchoM=mesesMeta.map(mm=>dataGraf.filter(r=>r.mes===anoMeta+'-'+mm&&r.empresa_num==='1'&&r.linha==='GUINCHO').reduce((s,r)=>s+r.valor,0));
       const filialM=mesesMeta.map(mm=>dataGraf.filter(r=>r.mes===anoMeta+'-'+mm&&r.empresa_num==='2').reduce((s,r)=>s+r.valor,0));
       realDatasets=[
+        {label:'Filial SP',data:filialM,backgroundColor:serieFill('--serie-laranja'),borderColor:cssVar('--serie-laranja'),borderWidth:1,stack:'r',datalabels:{display:false}},
         {label:'Força',data:forcaM,backgroundColor:serieFill('--serie-azul'),borderColor:cssVar('--serie-azul'),borderWidth:1,stack:'r',datalabels:{display:false}},
-        {label:'Guincho',data:guinchoM,backgroundColor:serieFill('--serie-vermelho'),borderColor:cssVar('--serie-vermelho'),borderWidth:1,stack:'r',datalabels:{display:false}},
-        {label:'Filial SP',data:filialM,backgroundColor:serieFill('--serie-laranja'),borderColor:cssVar('--serie-laranja'),borderWidth:1,stack:'r',
+        {label:'Guincho',data:guinchoM,backgroundColor:serieFill('--serie-vermelho'),borderColor:cssVar('--serie-vermelho'),borderWidth:1,stack:'r',
           datalabels:{display:true,color:cssVar('--text'),font:{size:8,weight:'700'},anchor:'end',align:'top',formatter:(v,ctx)=>{const tot=forcaM[ctx.dataIndex]+guinchoM[ctx.dataIndex]+filialM[ctx.dataIndex];return tot>0?fmtK(tot):'';}}}
       ];
     } else {
