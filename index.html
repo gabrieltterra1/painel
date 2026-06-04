@@ -5579,6 +5579,9 @@ function renderServico() {
   const anosGraf   = servicoGrafMode === '2025' ? ['2025']
     : servicoGrafMode === '2026' ? [anoAtual]
     : todosAnos;
+  // Ano de referência para os gráficos no modo "Por linha" (Força/Guincho)
+  // Respeita os botões 2025/2026; em 'todos'/'comparativo' usa o ano atual
+  const anoLinha = servicoGrafMode === '2025' ? '2025' : anoAtual;
 
   // ── Lê filtros ────────────────────────────────────────────────────────
   const searchFilt = (document.getElementById('servico-search')?.value||'').toLowerCase();
@@ -5996,9 +5999,10 @@ function renderServico() {
     let topDatasets;
     if (servicoPorLinha) {
       // Empilhado Força (azul) / Guincho (vermelho) — ano atual, só Matriz tem linha; Filial entra como "Filial SP"
-      const forcaT = top10.map(emp=>dataGraf.filter(r=>r.empresa===emp&&r.mes.startsWith(anoAtual+'-')&&r.mes<=mesAtualKey&&r.empresa_num==='1'&&r.linha!=='GUINCHO').reduce((s,r)=>s+r.valor,0));
-      const guinchoT = top10.map(emp=>dataGraf.filter(r=>r.empresa===emp&&r.mes.startsWith(anoAtual+'-')&&r.mes<=mesAtualKey&&r.empresa_num==='1'&&r.linha==='GUINCHO').reduce((s,r)=>s+r.valor,0));
-      const filialT = top10.map(emp=>dataGraf.filter(r=>r.empresa===emp&&r.mes.startsWith(anoAtual+'-')&&r.mes<=mesAtualKey&&r.empresa_num==='2').reduce((s,r)=>s+r.valor,0));
+      const limMesT = anoLinha === anoAtual ? mesAtualKey : anoLinha+'-12';
+      const forcaT = top10.map(emp=>dataGraf.filter(r=>r.empresa===emp&&r.mes.startsWith(anoLinha+'-')&&r.mes<=limMesT&&r.empresa_num==='1'&&r.linha!=='GUINCHO').reduce((s,r)=>s+r.valor,0));
+      const guinchoT = top10.map(emp=>dataGraf.filter(r=>r.empresa===emp&&r.mes.startsWith(anoLinha+'-')&&r.mes<=limMesT&&r.empresa_num==='1'&&r.linha==='GUINCHO').reduce((s,r)=>s+r.valor,0));
+      const filialT = top10.map(emp=>dataGraf.filter(r=>r.empresa===emp&&r.mes.startsWith(anoLinha+'-')&&r.mes<=limMesT&&r.empresa_num==='2').reduce((s,r)=>s+r.valor,0));
       topDatasets = [
         {label:'Filial SP',data:filialT,backgroundColor:serieFill('--serie-laranja'),borderColor:cssVar('--serie-laranja'),borderWidth:1,stack:'t',datalabels:{display:false}},
         {label:'Força',data:forcaT,backgroundColor:serieFill('--serie-azul'),borderColor:cssVar('--serie-azul'),borderWidth:1,stack:'t',datalabels:{display:false}},
@@ -6033,9 +6037,10 @@ function renderServico() {
     const procOrder = processos.map((p,i)=>({p,v:procValsAtual[i]})).sort((a,b)=>b.v-a.v).map(x=>x.p);
     let procDatasets;
     if (servicoPorLinha) {
-      const forcaP = procOrder.map(p=>dataGraf.filter(r=>(r.processo||'SEM PROCESSO')===p&&r.mes.startsWith(anoAtual+'-')&&r.mes<=mesAtualKey&&r.empresa_num==='1'&&r.linha!=='GUINCHO').reduce((s,r)=>s+r.valor,0));
-      const guinchoP = procOrder.map(p=>dataGraf.filter(r=>(r.processo||'SEM PROCESSO')===p&&r.mes.startsWith(anoAtual+'-')&&r.mes<=mesAtualKey&&r.empresa_num==='1'&&r.linha==='GUINCHO').reduce((s,r)=>s+r.valor,0));
-      const filialP = procOrder.map(p=>dataGraf.filter(r=>(r.processo||'SEM PROCESSO')===p&&r.mes.startsWith(anoAtual+'-')&&r.mes<=mesAtualKey&&r.empresa_num==='2').reduce((s,r)=>s+r.valor,0));
+      const limMes = anoLinha === anoAtual ? mesAtualKey : anoLinha+'-12';
+      const forcaP = procOrder.map(p=>dataGraf.filter(r=>(r.processo||'SEM PROCESSO')===p&&r.mes.startsWith(anoLinha+'-')&&r.mes<=limMes&&r.empresa_num==='1'&&r.linha!=='GUINCHO').reduce((s,r)=>s+r.valor,0));
+      const guinchoP = procOrder.map(p=>dataGraf.filter(r=>(r.processo||'SEM PROCESSO')===p&&r.mes.startsWith(anoLinha+'-')&&r.mes<=limMes&&r.empresa_num==='1'&&r.linha==='GUINCHO').reduce((s,r)=>s+r.valor,0));
+      const filialP = procOrder.map(p=>dataGraf.filter(r=>(r.processo||'SEM PROCESSO')===p&&r.mes.startsWith(anoLinha+'-')&&r.mes<=limMes&&r.empresa_num==='2').reduce((s,r)=>s+r.valor,0));
       procDatasets = [
         {label:'Filial SP',data:filialP,backgroundColor:serieFill('--serie-laranja'),borderColor:cssVar('--serie-laranja'),borderWidth:1,stack:'p',datalabels:{display:false}},
         {label:'Força',data:forcaP,backgroundColor:serieFill('--serie-azul'),borderColor:cssVar('--serie-azul'),borderWidth:1,stack:'p',datalabels:{display:false}},
