@@ -5558,6 +5558,7 @@ function renderServico() {
   const fmt  = v => v > 0 ? 'R$\u00a0' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
   const fmtK = v => 'R$' + Math.round(v/1000) + 'k';
   const fmtCheio = v => 'R$' + Math.round(v).toLocaleString('pt-BR');
+  const pctDe = (parte, todo) => todo>0 ? ' <span style="font-size:9px;opacity:0.8">('+Math.round(parte/todo*100)+'%)</span>' : '';
   const mesLabel = m => {
     const [y,mo] = m.split('-');
     return new Date(+y,+mo-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}).toUpperCase();
@@ -5685,8 +5686,9 @@ function renderServico() {
       if (servicoPorLinha) {
         const fAno = dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&r.empresa_num==='1'&&r.linha!=='GUINCHO').reduce((s,r)=>s+r.valor,0);
         const gAno = dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&r.empresa_num==='1'&&r.linha==='GUINCHO').reduce((s,r)=>s+r.valor,0);
-        subLinha = '<div style="font-size:10px;color:var(--serie-azul);font-weight:700;margin-top:3px">Força: '+fmt(fAno)+'</div>'
-          +'<div style="font-size:10px;color:var(--serie-vermelho);font-weight:700">Guincho: '+fmt(gAno)+'</div>';
+        const baseAno = fAno + gAno;
+        subLinha = '<div style="font-size:10px;color:var(--serie-azul);font-weight:700;margin-top:3px">Força: '+fmt(fAno)+pctDe(fAno,baseAno)+'</div>'
+          +'<div style="font-size:10px;color:var(--serie-vermelho);font-weight:700">Guincho: '+fmt(gAno)+pctDe(gAno,baseAno)+'</div>';
       }
 
       return '<div style="background:var(--surface);border:'+(isAtual?'2':'1')+'px solid '+(isAtual?cor:'var(--border)')+';border-radius:10px;padding:12px 16px;flex:'+(isAtual?'2':'1')+';min-width:160px;box-shadow:var(--card-shadow,none)">'
@@ -5702,17 +5704,26 @@ function renderServico() {
     const totalFilial    = dataGraf.filter(r=>r.mes.startsWith(anoAtual+'-')&&r.empresa_num==='2').reduce((s,r)=>s+r.valor,0);
     const totalForca     = dataGraf.filter(r=>r.mes.startsWith(anoAtual+'-')&&r.empresa_num==='1'&&r.linha!=='GUINCHO').reduce((s,r)=>s+r.valor,0);
     const totalGuincho   = dataGraf.filter(r=>r.mes.startsWith(anoAtual+'-')&&r.empresa_num==='1'&&r.linha==='GUINCHO').reduce((s,r)=>s+r.valor,0);
+    const baseMatriz     = totalForca + totalGuincho;
+    // Mês atual: Força/Guincho (só Matriz)
+    const mesForca       = dataGraf.filter(r=>r.mes===mesAtualKey&&r.empresa_num==='1'&&r.linha!=='GUINCHO').reduce((s,r)=>s+r.valor,0);
+    const mesGuincho     = dataGraf.filter(r=>r.mes===mesAtualKey&&r.empresa_num==='1'&&r.linha==='GUINCHO').reduce((s,r)=>s+r.valor,0);
+    const baseMes        = mesForca + mesGuincho;
     const nFornecedores  = new Set(dataGraf.filter(r=>r.mes.startsWith(anoAtual+'-')).map(r=>r.empresa)).size;
     // Sub-linhas Força/Guincho no card Matriz (só quando "Por linha")
     const matrizSub = servicoPorLinha
-      ? '<div style="font-size:11px;color:var(--serie-azul);font-weight:700;margin-top:4px">Força: '+fmt(totalForca)+'</div>'
-        +'<div style="font-size:11px;color:var(--serie-vermelho);font-weight:700">Guincho: '+fmt(totalGuincho)+'</div>'
+      ? '<div style="font-size:11px;color:var(--serie-azul);font-weight:700;margin-top:4px">Força: '+fmt(totalForca)+pctDe(totalForca,baseMatriz)+'</div>'
+        +'<div style="font-size:11px;color:var(--serie-vermelho);font-weight:700">Guincho: '+fmt(totalGuincho)+pctDe(totalGuincho,baseMatriz)+'</div>'
+      : '';
+    const mesSub = servicoPorLinha
+      ? '<div style="font-size:11px;color:var(--serie-azul);font-weight:700;margin-top:4px">Força: '+fmt(mesForca)+pctDe(mesForca,baseMes)+'</div>'
+        +'<div style="font-size:11px;color:var(--serie-vermelho);font-weight:700">Guincho: '+fmt(mesGuincho)+pctDe(mesGuincho,baseMes)+'</div>'
       : '';
 
     const extraCards =
       '<div style="background:var(--surface);border:2px solid #ffaa00;border-radius:10px;padding:12px 16px;flex:1;min-width:130px;box-shadow:var(--card-shadow,none)">'
         +'<div style="font-size:9px;font-weight:700;color:var(--amber);letter-spacing:1px;margin-bottom:4px">MÊS ATUAL ('+mesLabel(mesAtualKey)+')</div>'
-        +'<div style="font-size:22px;font-weight:900;color:var(--amber)">'+fmt(totalMesAtual)+'</div></div>'
+        +'<div style="font-size:22px;font-weight:900;color:var(--amber)">'+fmt(totalMesAtual)+'</div>'+mesSub+'</div>'
       +'<div style="background:var(--surface);border:2px solid #3d8bff;border-radius:10px;padding:12px 16px;flex:1;min-width:130px;box-shadow:var(--card-shadow,none)">'
         +'<div style="font-size:9px;font-weight:700;color:var(--blue-light);letter-spacing:1px;margin-bottom:4px">MATRIZ '+anoAtual+'</div>'
         +'<div style="font-size:22px;font-weight:900;color:var(--blue-light)">'+fmt(totalMatriz)+'</div>'+matrizSub+'</div>'
@@ -6134,8 +6145,8 @@ function renderServico() {
     servicoCharts.push(new Chart(metaMesCanvas,{
       type:'bar',
       data:{labels:mesesLabel12,datasets:realDatasets.concat([
-        {type:'line',label:'Meta',data:metaVals,borderColor:cssVar('--serie-vermelho'),backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:0,datalabels:{display:false}},
-        {type:'line',label:'Meta Compet.',data:compVals,borderColor:cssVar('--serie-verde'),backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:3,tension:0,datalabels:{display:false}}
+        {type:'line',label:'Meta',data:metaVals,borderColor:cssVar('--serie-vermelho'),backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:0,stack:'meta',datalabels:{display:false}},
+        {type:'line',label:'Meta Compet.',data:compVals,borderColor:cssVar('--serie-verde'),backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:3,tension:0,stack:'comp',datalabels:{display:false}}
       ])},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:cssVar('--text'),font:{size:11}}},datalabels:{}},
