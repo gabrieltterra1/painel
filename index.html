@@ -1060,7 +1060,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- ======= SERVIÇOS ======= -->
 <div id="tab-servicos" class="tab-content">
-  <div class="section-title" style="display:flex;align-items:center;gap:12px">Gastos com Serviços de Terceiros<span class="email-badge" data-sheet="SERVICO_TERCEIROS"></span><button id="servico-linha-btn" class="upload-btn" style="font-size:11px;padding:5px 12px;background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);white-space:nowrap" onclick="toggleServicoLinha()">⊞ Total</button></div>
+  <div class="section-title" style="display:flex;align-items:center;gap:8px">Gastos com Serviços de Terceiros<span class="email-badge" data-sheet="SERVICO_TERCEIROS"></span><button id="servico-btn-total" class="upload-btn" style="font-size:11px;padding:5px 12px;background:var(--serie-azul);color:#fff;border:1px solid var(--serie-azul);white-space:nowrap" onclick="setServicoLinha(false)">Total</button><button id="servico-btn-linha" class="upload-btn" style="font-size:11px;padding:5px 12px;background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);white-space:nowrap" onclick="setServicoLinha(true)">Por linha (Força/Guincho)</button></div>
 
   <!-- CARDS RESUMO POR ANO -->
   <div id="servico-kpis" style="margin-bottom:20px"></div>
@@ -5463,13 +5463,18 @@ let servicoTLMode   = '2026';   // 'comparativo' | '2026' | '2025' | 'todos'
 let servicoGrafMode = 'acumulado';   // 'acumulado' | 'completo'
 let servicoPorLinha = false;    // false = Total | true = Por linha (Força/Guincho)
 
-function toggleServicoLinha() {
-  servicoPorLinha = !servicoPorLinha;
-  const btn = document.getElementById('servico-linha-btn');
-  if (btn) {
-    btn.textContent = servicoPorLinha ? '⊟ Por linha (Força/Guincho)' : '⊞ Total';
-    btn.style.background = servicoPorLinha ? 'var(--serie-azul)' : 'var(--surface2)';
-    btn.style.color = servicoPorLinha ? '#fff' : 'var(--text-muted)';
+function setServicoLinha(v) {
+  servicoPorLinha = v;
+  const bt = document.getElementById('servico-btn-total');
+  const bl = document.getElementById('servico-btn-linha');
+  if (bt && bl) {
+    if (v) {
+      bl.style.background='var(--serie-azul)'; bl.style.color='#fff'; bl.style.borderColor='var(--serie-azul)';
+      bt.style.background='var(--surface2)'; bt.style.color='var(--text-muted)'; bt.style.borderColor='var(--border)';
+    } else {
+      bt.style.background='var(--serie-azul)'; bt.style.color='#fff'; bt.style.borderColor='var(--serie-azul)';
+      bl.style.background='var(--surface2)'; bl.style.color='var(--text-muted)'; bl.style.borderColor='var(--border)';
+    }
   }
   renderServico();
 }
@@ -5664,7 +5669,7 @@ function renderServico() {
         extra = '<div style="font-size:10px;color:var(--text-muted);margin-top:3px">Projeção 12m: <b style="color:'+cor+'">'+fmt(projecao)+'</b></div>';
       } else {
         const acum = acumAteHoje(ano);
-        const mesLabel2 = String(mesAtualNum).padStart(2,'0')+'/'+String(hoje.getDate()).padStart(2,'0');
+        const mesLabel2 = String(hoje.getDate()).padStart(2,'0')+'/'+String(mesAtualNum).padStart(2,'0');
         extra = '<div style="font-size:10px;color:var(--text-muted);margin-top:3px">Acum. até '+mesLabel2+': <b style="color:'+cor+'">'+fmt(acum)+'</b></div>';
       }
 
@@ -5817,7 +5822,7 @@ function renderServico() {
     servicoCharts.push(new Chart(tlCanvas,{
       data:{labels:mesesBarras.map(mesLabel),datasets:barDatasets.concat([
         {type:'line',label:'Total',data:totalBarras,borderColor:cssVar('--serie-laranja'),backgroundColor:'transparent',borderWidth:2.5,pointRadius:4,tension:0.3,
-          datalabels:{display:true,color:'#ffaa00',font:{size:10,weight:'700'},anchor:'end',align:'top',formatter:fmtK}}
+          datalabels:{display:true,color:'#ffaa00',font:{size:10,weight:'700'},anchor:'end',align:'top',formatter:(v)=> v ? (anosBarras.length===1 ? 'R$'+Math.round(v).toLocaleString('pt-BR') : fmtK(v)) : ''}}
       ])},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:cssVar('--text')}},datalabels:{}},
@@ -5858,7 +5863,7 @@ function renderServico() {
         const v=dataGraf.filter(r=>r.mes===mk).reduce((s,r)=>s+r.valor,0);
         return v||null;
       });
-      return {label:ano+(servicoGrafMode==='acumulado'&&ano!==anoAtual?' (até '+String(mesAtualNum).padStart(2,'0')+'/'+String(hoje.getDate()).padStart(2,'0')+')':''),
+      return {label:ano+(servicoGrafMode==='acumulado'&&ano!==anoAtual?' (até '+String(hoje.getDate()).padStart(2,'0')+'/'+String(mesAtualNum).padStart(2,'0')+')':''),
         data:vals,borderColor:cor,backgroundColor:cor+'33',
         borderWidth:ano===anoAtual?3:1.5,pointRadius:ano===anoAtual?4:2,tension:0.3,fill:false,spanGaps:true,datalabels:{display:false}};
     });
@@ -5907,7 +5912,7 @@ function renderServico() {
         return acum || null;
       });
       const label = servicoGrafMode === 'acumulado' && ano !== anoAtual
-        ? ano + ' (até ' + String(mesAtualNum).padStart(2,'0') + '/' + String(hoje.getDate()).padStart(2,'0') + ')'
+        ? ano + ' (até ' + String(hoje.getDate()).padStart(2,'0')+'/'+String(mesAtualNum).padStart(2,'0') + ')'
         : ano;
       return {
         label, data: vals,
@@ -5964,7 +5969,7 @@ function renderServico() {
     } else {
       topDatasets=anosGraf.map(ano=>{
         const cor=ANOS_CORES[ano]||'#475569';
-        return {label:ano+(servicoGrafMode==='acumulado'?' (até '+String(mesAtualNum).padStart(2,'0')+'/'+String(hoje.getDate()).padStart(2,'0')+')':''),
+        return {label:ano+(servicoGrafMode==='acumulado'?' (até '+String(hoje.getDate()).padStart(2,'0')+'/'+String(mesAtualNum).padStart(2,'0')+')':''),
           data:top10.map(emp=>valorAnoGraf(ano,r=>r.empresa===emp)),
           backgroundColor:cor+(ano===anoAtual?'cc':'55'),borderColor:cor,borderWidth:ano===anoAtual?2:1,
           datalabels:{display:true,color:cssVar('--text'),font:{size:9,weight:'700'},anchor:'end',align:'right',
@@ -5989,7 +5994,7 @@ function renderServico() {
     const procOrder = processos.map((p,i)=>({p,v:procValsAtual[i]})).sort((a,b)=>b.v-a.v).map(x=>x.p);
     const procDatasets=anosGraf.map(ano=>{
       const cor=ANOS_CORES[ano]||'#475569';
-      return {label:ano+(servicoGrafMode==='acumulado'?' (até '+String(mesAtualNum).padStart(2,'0')+'/'+String(hoje.getDate()).padStart(2,'0')+')':''),
+      return {label:ano+(servicoGrafMode==='acumulado'?' (até '+String(hoje.getDate()).padStart(2,'0')+'/'+String(mesAtualNum).padStart(2,'0')+')':''),
         data:procOrder.map(p=>valorAnoGraf(ano,r=>(r.processo||'SEM PROCESSO')===p)),
         backgroundColor:cor+(ano===anoAtual?'cc':'55'),borderColor:cor,borderWidth:ano===anoAtual?2:1,
         datalabels:{display:true,color:cssVar('--text'),font:{size:9,weight:'700'},anchor:'end',align:'top',
