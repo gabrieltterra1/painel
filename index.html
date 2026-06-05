@@ -891,7 +891,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <!-- ======= DETALHAMENTO DAS OFs (tabela crua do email) ======= -->
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:32px 0 14px">
     <span class="section-title" style="margin:0">Detalhamento das OFs Abertas</span>
-    <button id="of-detail-clear" onclick="limparFiltroOFDetalhe()" style="display:none;background:rgba(255,59,59,.12);border:1px solid #ff3b3b;color:#ff6b6b;padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✕ Limpar filtro</button>
+    <button id="of-detail-clear" onclick="limparFiltroOFDetalhe()" style="background:rgba(255,59,59,.08);border:1px solid var(--border);color:var(--text-muted);padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✕ Limpar filtros</button>
   </div>
   <div id="of-detail-cards" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px"></div>
   <div id="of-detail-wrap"></div>
@@ -2051,6 +2051,7 @@ function renderOFDetalhe() {
   const valAtraso= atrasadas.reduce((s,it)=>s+it.VLR_TOTAL,0);
   const naoSep   = itens.filter(it=>it.MOVIMENTO==='NADA').length;
   const semFam   = itens.filter(it=>!it.FAMILIA).length;
+  const custoTot = itens.reduce((s,it)=>s+it.CUSTO_MED_TOT,0);
 
   const card = (label,valor,sub,cor)=>'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;flex:1;min-width:150px;box-shadow:var(--card-shadow,none)">'
     +'<div style="font-size:9px;font-weight:700;color:'+(cor||'var(--serie-azul)')+';letter-spacing:1px;margin-bottom:6px;white-space:nowrap">'+label+'</div>'
@@ -2062,12 +2063,14 @@ function renderOFDetalhe() {
        card('OFs EM ABERTO', qtOFs.toLocaleString('pt-BR'), qtLinhas.toLocaleString('pt-BR')+' itens')
       +card('QTDE PENDENTE', Math.round(totPend).toLocaleString('pt-BR'), 'soma QTDE_PENDENTE')
       +card('VALOR TOTAL', ofFmtMoney(valTotal), 'soma VLR_TOTAL_ORDEM')
+      +card('CUSTO TOTAL', ofFmtMoney(custoTot), 'soma CUSTO_MÉDIO_TOTAL', 'var(--green)')
       +card('OFs EM ATRASO', qtAtraso.toLocaleString('pt-BR'), ofFmtMoney(valAtraso), '#ff6b6b')
       +card('NÃO SEPARADAS', naoSep.toLocaleString('pt-BR'), 'movimento NADA', 'var(--amber)')
       +card('SEM CLASSIF.', semFam.toLocaleString('pt-BR'), 'fora das 8 famílias', 'var(--text-muted)');
   }
 
   renderOFDetalheTabela();
+  atualizarBotaoLimparOF();
 }
 
 // ── Só a tabela (re-render rápido quando muda filtro/busca) ──
@@ -2203,7 +2206,11 @@ function atualizarBotaoLimparOF(){
   const btn=document.getElementById('of-detail-clear');
   if(!btn) return;
   const ativo = Object.keys(ofDetFiltros).length>0 || ofDetBusca.trim();
-  btn.style.display = ativo ? 'inline-block' : 'none';
+  if (ativo) {
+    btn.style.background='rgba(255,59,59,.12)'; btn.style.borderColor='#ff3b3b'; btn.style.color='#ff6b6b';
+  } else {
+    btn.style.background='rgba(255,59,59,.08)'; btn.style.borderColor='var(--border)'; btn.style.color='var(--text-muted)';
+  }
 }
 function limparFiltroOFDetalhe(){
   ofDetFiltros = {}; ofDetBusca = '';
@@ -2238,22 +2245,22 @@ function mostrarPopupResumoOF(itens, subtitulo){
   if(!modal||!body) return;
   const totPend = itens.reduce((s,it)=>s+it.QTDE_PEND,0);
   sub.textContent = subtitulo+'  •  '+itens.length+' OFs  •  '+Math.round(totPend).toLocaleString('pt-BR')+' pç pendentes';
-  const th='padding:8px 12px;text-align:left;font-size:11px;font-weight:800;color:#fff;white-space:nowrap';
-  const td='padding:7px 12px;font-size:12px;white-space:nowrap';
+  const th='padding:8px 12px;text-align:center;font-size:11px;font-weight:800;color:#fff;white-space:nowrap';
+  const td='padding:7px 12px;text-align:center;font-size:12px;white-space:nowrap';
   const movCor={EPP:'var(--serie-azul)',REP:'var(--green)',NADA:'var(--amber)'};
   body.innerHTML =
      '<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border)">'
     +'<div style="max-height:420px;overflow:auto">'
     +'<table style="border-collapse:collapse;width:100%">'
     +'<thead style="position:sticky;top:0"><tr style="background:var(--header-table-bg)">'
-    +'<th style="'+th+'">Nº OF</th><th style="'+th+'">ENTREGA</th><th style="'+th+';text-align:right">PENDENTE</th><th style="'+th+'">MOVIMENTO</th>'
+    +'<th style="'+th+'">Nº OF</th><th style="'+th+'">ENTREGA</th><th style="'+th+'">PENDENTE</th><th style="'+th+'">MOVIMENTO</th>'
     +'</tr></thead><tbody>'
     + itens.slice().sort((a,b)=>parseDate(a.DT_FINAL||'01/01/2000')-parseDate(b.DT_FINAL||'01/01/2000')).map((it,i)=>{
         const od = it.DT_FINAL && isOverdue(it.DT_FINAL);
         return '<tr style="background:'+(i%2===0?'transparent':'var(--row-alt)')+'">'
           +'<td style="'+td+';font-weight:600">'+it.NUM_ORDEM+'</td>'
           +'<td style="'+td+';'+(od?'color:var(--red);font-weight:700':'')+'">'+(it.DT_FINAL||'—')+(od?' ⚑':'')+'</td>'
-          +'<td style="'+td+';text-align:right;font-weight:700">'+Math.round(it.QTDE_PEND).toLocaleString('pt-BR')+'</td>'
+          +'<td style="'+td+';font-weight:700">'+Math.round(it.QTDE_PEND).toLocaleString('pt-BR')+'</td>'
           +'<td style="'+td+';color:'+(movCor[it.MOVIMENTO]||'var(--text)')+';font-weight:600">'+ofMovLabel(it.MOVIMENTO)+'</td>'
           +'</tr>';
       }).join('')
