@@ -883,10 +883,30 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- ======= OF ABERTAS ======= -->
 <div id="tab-of" class="tab-content">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
-    <span class="section-title" style="margin:0">OF Abertas — Carga de Montagem<span class="email-badge" data-sheet="OF_ABERTAS"></span></span>
+    <span class="section-title" style="margin:0">OF Abertas — Sem Roteiro<span class="email-badge" data-sheet="OF_ABERTAS"></span></span>
   </div>
   <div id="of-cards" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px"></div>
   <div id="of-table-wrap"></div>
+
+  <!-- ======= DETALHAMENTO DAS OFs (tabela crua do email) ======= -->
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:32px 0 14px">
+    <span class="section-title" style="margin:0">Detalhamento das OFs Abertas</span>
+    <button id="of-detail-clear" onclick="limparFiltroOFDetalhe()" style="display:none;background:rgba(255,59,59,.12);border:1px solid #ff3b3b;color:#ff6b6b;padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✕ Limpar filtro</button>
+  </div>
+  <div id="of-detail-cards" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px"></div>
+  <div id="of-detail-wrap"></div>
+</div>
+
+<!-- Modal Resumo OF (pop-up ao clicar numa célula) -->
+<div id="modal-of-resumo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;width:720px;max-width:95vw;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div id="modal-of-resumo-titulo" style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--serie-azul);letter-spacing:1px">RESUMO DAS OFs</div>
+      <button onclick="document.getElementById('modal-of-resumo').style.display='none'" style="background:none;border:none;color:#666;font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <div id="modal-of-resumo-sub" style="font-size:11px;color:var(--text-muted);margin-bottom:16px"></div>
+    <div id="modal-of-resumo-body"></div>
+  </div>
 </div>
 
 <!-- ======= MONTADOS ======= -->
@@ -1728,6 +1748,7 @@ const todayStr = today.toLocaleDateString('pt-BR');
 
 const DATA = {
   of: [{"DT_FIM_OF":"02/05/2026","TOMADA_MULT":50,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":0,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"23/04/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":2,"COMANDO":0,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"29/04/2026","TOMADA_MULT":13,"BOMBA":10,"CILINDRO":0,"CONJ_EIXO":20,"GUINCHO_ENROL":0,"COMANDO":58,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"30/04/2026","TOMADA_MULT":54,"BOMBA":24,"CILINDRO":0,"CONJ_EIXO":29,"GUINCHO_ENROL":2,"COMANDO":1,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"04/05/2026","TOMADA_MULT":191,"BOMBA":96,"CILINDRO":20,"CONJ_EIXO":38,"GUINCHO_ENROL":9,"COMANDO":43,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"05/05/2026","TOMADA_MULT":178,"BOMBA":92,"CILINDRO":20,"CONJ_EIXO":40,"GUINCHO_ENROL":14,"COMANDO":31,"VALVULA":0,"KIT_HIDR":1},{"DT_FIM_OF":"06/05/2026","TOMADA_MULT":112,"BOMBA":5,"CILINDRO":22,"CONJ_EIXO":0,"GUINCHO_ENROL":13,"COMANDO":39,"VALVULA":0,"KIT_HIDR":4},{"DT_FIM_OF":"07/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":20,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":29,"VALVULA":30,"KIT_HIDR":0},{"DT_FIM_OF":"08/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":20,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":49,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"11/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":20,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":2,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"12/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":25,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"13/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":26,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"14/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":37,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"15/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":18,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"18/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":10,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"19/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":14,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"20/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":2,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"21/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":0,"VALVULA":60,"KIT_HIDR":0},{"DT_FIM_OF":"22/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":38,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"26/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":13,"VALVULA":0,"KIT_HIDR":0}],
+  ofItens: [],
   montados: [],
   transito: [{"EMPRESA":"SP","TOM":290,"BOM":93,"CIL":0,"GUI":7},{"EMPRESA":"MG","TOM":33,"BOM":7,"CIL":0,"GUI":2},{"EMPRESA":"GO","TOM":105,"BOM":128,"CIL":12,"GUI":7},{"EMPRESA":"PE","TOM":90,"BOM":41,"CIL":6,"GUI":3}],
   estoque: [{"cod_emp":1,"uf":"RS","classificacao":"300.200.001","descricao":"TOMADA DE FORCA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":43,"qtde_param_es":439,"custo_tdt":"258835,53","tot_falta":-61,"custo_abast":"-38148,61","cod_zerados":1,"estoque_total":1182,"custo_saldo":"757119,65","estoque_excesso":804,"custo_exces":"536432,73","qtde_abast":378,"perc_abast_mtz":86.104783599088,"pct_es":87.040695377321},{"cod_emp":1,"uf":"RS","classificacao":"300.500.001","descricao":"BOMBA HIDRAULICA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":12,"qtde_param_es":283,"custo_tdt":"150282,99","tot_falta":-5,"custo_abast":"-3841,11","cod_zerados":0,"estoque_total":507,"custo_saldo":"270950,03","estoque_excesso":229,"custo_exces":"124508,15","qtde_abast":278,"perc_abast_mtz":98.233215547703,"pct_es":83.963963963963},{"cod_emp":1,"uf":"RS","classificacao":"800.010.020","descricao":"GUINCHO LINHA OS-M","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":6,"qtde_param_es":11,"custo_tdt":"78269,93","tot_falta":-9,"custo_abast":"-61282,01","cod_zerados":4,"estoque_total":4,"custo_saldo":"28433,35","estoque_excesso":2,"custo_exces":"11445,43","qtde_abast":2,"perc_abast_mtz":18.181818181818,"pct_es":18.181818181818},{"cod_emp":1,"uf":"RS","classificacao":"800.010.040","descricao":"GUINCHO LINHA OP","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":10,"qtde_param_es":16,"custo_tdt":"53324,16","tot_falta":-11,"custo_abast":"-37919,59","cod_zerados":6,"estoque_total":16,"custo_saldo":"45413,26","estoque_excesso":11,"custo_exces":"30008,68","qtde_abast":5,"perc_abast_mtz":31.25,"pct_es":31.25},{"cod_emp":1,"uf":"RS","classificacao":"800.050.010","descricao":"ENROLADOR DE MANGUEIRA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":1,"qtde_param_es":1,"custo_tdt":"7628,84","tot_falta":-1,"custo_abast":"-7628,84","cod_zerados":1,"estoque_total":0,"custo_saldo":"0","estoque_excesso":0,"custo_exces":"0","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":2,"uf":"SP","classificacao":"300.200.001","descricao":"TOMADA DE FORCA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":86,"qtde_param_es":663,"custo_tdt":"449435,2","tot_falta":-68,"custo_abast":"-46764,1","cod_zerados":1,"estoque_total":827,"custo_saldo":"557410,47","estoque_excesso":232,"custo_exces":"154739,38","qtde_abast":595,"perc_abast_mtz":89.743589743589,"pct_es":87.040695377321},{"cod_emp":2,"uf":"SP","classificacao":"300.500.001","descricao":"BOMBA HIDRAULICA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":23,"qtde_param_es":230,"custo_tdt":"132200,98","tot_falta":-14,"custo_abast":"-8479","cod_zerados":1,"estoque_total":272,"custo_saldo":"163273,45","estoque_excesso":56,"custo_exces":"39551,47","qtde_abast":216,"perc_abast_mtz":93.91304347826,"pct_es":83.963963963963},{"cod_emp":2,"uf":"SP","classificacao":"800.010.020","descricao":"GUINCHO LINHA OS-M","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":4,"qtde_param_es":4,"custo_tdt":"28250,78","tot_falta":-4,"custo_abast":"-28250,78","cod_zerados":4,"estoque_total":0,"custo_saldo":"0","estoque_excesso":0,"custo_exces":"0","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":2,"uf":"SP","classificacao":"800.010.040","descricao":"GUINCHO LINHA OP","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":4,"qtde_param_es":18,"custo_tdt":"50083,04","tot_falta":-12,"custo_abast":"-29085,08","cod_zerados":2,"estoque_total":8,"custo_saldo":"29048,63","estoque_excesso":2,"custo_exces":"8050,68","qtde_abast":6,"perc_abast_mtz":33.333333333333,"pct_es":33.333333333333},{"cod_emp":2,"uf":"SP","classificacao":"800.050.010","descricao":"ENROLADOR DE MANGUEIRA","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":0,"qtde_param_es":0,"custo_tdt":"0","tot_falta":0,"custo_abast":"0","cod_zerados":0,"estoque_total":0,"custo_saldo":"0","estoque_excesso":0,"custo_exces":"0","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":3,"uf":"MG","classificacao":"300.200.001","descricao":"TOMADA DE FORCA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":119,"qtde_param_es":324,"custo_tdt":"206950,43","tot_falta":-7,"custo_abast":"-4069,54","cod_zerados":1,"estoque_total":405,"custo_saldo":"254852,77","estoque_excesso":88,"custo_exces":"51971,89","qtde_abast":317,"perc_abast_mtz":97.839506172839,"pct_es":87.040695377321},{"cod_emp":3,"uf":"MG","classificacao":"300.500.001","descricao":"BOMBA HIDRAULICA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":27,"qtde_param_es":99,"custo_tdt":"58848,02","tot_falta":-10,"custo_abast":"-6495,75","cod_zerados":3,"estoque_total":114,"custo_saldo":"68537,17","estoque_excesso":25,"custo_exces":"16184,9","qtde_abast":89,"perc_abast_mtz":89.898989898989,"pct_es":83.963963963963},{"cod_emp":3,"uf":"MG","classificacao":"800.010.020","descricao":"GUINCHO LINHA OS-M","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":0,"qtde_param_es":0,"custo_tdt":"0","tot_falta":0,"custo_abast":"0","cod_zerados":0,"estoque_total":0,"custo_saldo":"0","estoque_excesso":0,"custo_exces":"0","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":3,"uf":"MG","classificacao":"800.010.040","descricao":"GUINCHO LINHA OP","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":6,"qtde_param_es":20,"custo_tdt":"48646,49","tot_falta":-18,"custo_abast":"-41757,93","cod_zerados":4,"estoque_total":3,"custo_saldo":"9365,41","estoque_excesso":1,"custo_exces":"2476,86","qtde_abast":2,"perc_abast_mtz":10,"pct_es":10},{"cod_emp":8,"uf":"GO","classificacao":"300.200.001","descricao":"TOMADA DE FORCA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":125,"qtde_param_es":466,"custo_tdt":"292513,99","tot_falta":-130,"custo_abast":"-79855,49","cod_zerados":10,"estoque_total":521,"custo_saldo":"327008,03","estoque_excesso":185,"custo_exces":"114349,53","qtde_abast":336,"perc_abast_mtz":72.103004291845,"pct_es":87.040695377321},{"cod_emp":8,"uf":"GO","classificacao":"300.500.001","descricao":"BOMBA HIDRAULICA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":37,"qtde_param_es":290,"custo_tdt":"182731,78","tot_falta":-119,"custo_abast":"-75355,01","cod_zerados":2,"estoque_total":237,"custo_saldo":"161442,13","estoque_excesso":66,"custo_exces":"54065,37","qtde_abast":171,"perc_abast_mtz":58.965517241379,"pct_es":83.963963963963},{"cod_emp":8,"uf":"GO","classificacao":"800.010.020","descricao":"GUINCHO LINHA OS-M","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":0,"qtde_param_es":0,"custo_tdt":"0","tot_falta":0,"custo_abast":"0","cod_zerados":0,"estoque_total":2,"custo_saldo":"13420,99","estoque_excesso":2,"custo_exces":"13420,99","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":8,"uf":"GO","classificacao":"800.010.040","descricao":"GUINCHO LINHA OP","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":6,"qtde_param_es":14,"custo_tdt":"20204,94","tot_falta":-13,"custo_abast":"-14063,86","cod_zerados":5,"estoque_total":1,"custo_saldo":"6141,08","estoque_excesso":0,"custo_exces":"0","qtde_abast":1,"perc_abast_mtz":7.1428571428571,"pct_es":7.1428571428571},{"cod_emp":9,"uf":"PE","classificacao":"300.200.001","descricao":"TOMADA DE FORCA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":98,"qtde_param_es":639,"custo_tdt":"396650,27","tot_falta":-62,"custo_abast":"-26743,74","cod_zerados":3,"estoque_total":698,"custo_saldo":"444991","estoque_excesso":121,"custo_exces":"75084,46","qtde_abast":577,"perc_abast_mtz":90.297339593114,"pct_es":87.040695377321},{"cod_emp":9,"uf":"PE","classificacao":"300.500.001","descricao":"BOMBA HIDRAULICA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":22,"qtde_param_es":208,"custo_tdt":"130145,67","tot_falta":-30,"custo_abast":"-21394,77","cod_zerados":0,"estoque_total":188,"custo_saldo":"114483,22","estoque_excesso":10,"custo_exces":"5732,32","qtde_abast":178,"perc_abast_mtz":85.576923076923,"pct_es":83.963963963963},{"cod_emp":9,"uf":"PE","classificacao":"800.010.020","descricao":"GUINCHO LINHA OS-M","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":0,"qtde_param_es":0,"custo_tdt":"0","tot_falta":0,"custo_abast":"0","cod_zerados":0,"estoque_total":1,"custo_saldo":"5822,17","estoque_excesso":1,"custo_exces":"5822,17","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":9,"uf":"PE","classificacao":"800.010.040","descricao":"GUINCHO LINHA OP","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":3,"qtde_param_es":15,"custo_tdt":"50755","tot_falta":-15,"custo_abast":"-50755","cod_zerados":3,"estoque_total":6,"custo_saldo":"29871,11","estoque_excesso":6,"custo_exces":"29871,11","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":9,"uf":"PE","classificacao":"800.050.010","descricao":"ENROLADOR DE MANGUEIRA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":0,"qtde_param_es":0,"custo_tdt":"0","tot_falta":0,"custo_abast":"0","cod_zerados":0,"estoque_total":0,"custo_saldo":"0","estoque_excesso":0,"custo_exces":"0","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0}],
@@ -1852,7 +1873,7 @@ function renderOF() {
   const PROD_META= {TOMADA_MULT:'TOMADA_MULT',BOMBA:'BOMBA',CILINDRO:'CILINDRO',GUINCHO_ENROL:'GUINCHO'};
   const COR_CARD = '#3d8bff';
   const rows = DATA.of || [];
-  if (!rows.length) return;
+  if (!rows.length) { renderOFDetalhe(); return; }
 
   const hoje = new Date(); hoje.setHours(0,0,0,0);
   const mesAtual = hoje.getMonth();
@@ -1936,7 +1957,7 @@ function renderOF() {
   +'</tr>'
   +'<tr style="background:var(--header-table-bg);border-bottom:2px solid var(--border)">'
   +'<td style="'+stickyTd+'background:var(--header-table-bg);color:#fff;font-size:12px;letter-spacing:1px">EM ATRASO</td>'
-  +cols.map(c=>`<td style="${tdBase}font-size:14px;font-weight:${atrasadosOf[c]>0?800:400};color:${atrasadosOf[c]>0?'#ff3b3b':'#cfe0ff'}">${atrasadosOf[c]>0?fmtN(atrasadosOf[c]):'—'}</td>`).join('')
+  +cols.map(c=>`<td onclick="${atrasadosOf[c]>0?`filtrarOFAtraso('${c}')`:''}" style="${tdBase}font-size:14px;font-weight:${atrasadosOf[c]>0?800:400};color:${atrasadosOf[c]>0?'#ff3b3b':'#cfe0ff'};${atrasadosOf[c]>0?'cursor:pointer':''}"${atrasadosOf[c]>0?' title="Clique para ver as OFs em atraso"':''}>${atrasadosOf[c]>0?fmtN(atrasadosOf[c]):'—'}</td>`).join('')
   +'</tr>'
   +'</thead>'
   +'<tbody>'
@@ -1961,12 +1982,283 @@ function renderOF() {
         const metaDiaCol=metaCol?getMontadosMeta(prodKey,mesAtual):0;
         const val=parseFloat(String(r[c]||'0').replace(',','.'))||0;
         const overMeta=metaDiaCol>0&&val>metaDiaCol;
-        return '<td style="'+tdBase+'color:'+(od?'var(--red)':overMeta?'var(--amber)':'var(--text)')+';font-weight:'+(overMeta?700:400)+'">'+(r[c]?fmtN(r[c])+'<span style="font-size:10px;color:var(--amber)">'+(overMeta?' ▲':'')+'</span>':'<span style="color:var(--muted-dim)">—</span>')+'</td>';
+        const clickAttr = val>0
+          ? ' onclick="abrirResumoOF(&#39;'+c+'&#39;,&#39;'+r.DT_FIM_OF+'&#39;)" style="cursor:pointer;'
+          : ' style="';
+        return '<td'+clickAttr+tdBase+'color:'+(od?'var(--red)':overMeta?'var(--amber)':'var(--text)')+';font-weight:'+(overMeta?700:400)+'"'+(val>0?' title="Clique para ver as OFs"':'')+'>'+(r[c]?fmtN(r[c])+'<span style="font-size:10px;color:var(--amber)">'+(overMeta?' ▲':'')+'</span>':'<span style="color:var(--muted-dim)">—</span>')+'</td>';
       }).join('')
       +'</tr>';
   }).join('')
   +'</tbody>'
   +'</table></div></div>';
+
+  // Renderiza a seção de detalhamento (cards + tabela crua com filtros)
+  renderOFDetalhe();
+}
+
+// ===== OF DETALHE — estado de filtros por coluna =====
+const OF_FAM_LABEL = {TOMADA_MULT:'TOMADA E MULT',BOMBA:'BOMBA',CILINDRO:'CILINDRO',CONJ_EIXO:'CONJ. EIXO',GUINCHO_ENROL:'GUINCHO E ENROL.',COMANDO:'COMANDO',VALVULA:'VÁLVULA',KIT_HIDR:'KIT HIDR.'};
+const OF_MOV_LABEL = {EPP:'OF Entregue Parcial',REP:'Separada',NADA:'Não Separada'};
+// Colunas exibidas na tabela detalhada (chave interna → rótulo)
+const OF_DET_COLS = [
+  ['NUM_ORDEM','Nº ORDEM'], ['DT_EMISSAO','EMISSÃO'], ['DT_FINAL','ENTREGA'],
+  ['COD_ITEM','COD ITEM'], ['DESC','DESCRIÇÃO'], ['QTDE','QTDE'], ['QTDE_PEND','PENDENTE'],
+  ['VLR_UNIT','VLR UNIT'], ['VLR_TOTAL','VLR TOTAL'], ['CUSTO_MED','CUSTO MÉD'],
+  ['CUSTO_MED_TOT','CUSTO MÉD TOT'], ['UM','UM'], ['CLAS','CLAS ESTOQUE'],
+  ['MOVIMENTO','MOVIMENTO'], ['DEM_PARCIAIS','DEM PARCIAIS'], ['COD_ALMOX','ALMOX'], ['SITUACAO','SIT']
+];
+// Estado dos filtros por coluna: { coluna: Set(valores selecionados) }  (vazio = todos)
+let ofDetFiltros = {};
+let ofDetBusca = '';          // busca global (texto)
+let ofDetDropdownAberto = null;
+
+function ofMovLabel(m){ return OF_MOV_LABEL[String(m||'').toUpperCase()] || (m||'—'); }
+function ofFmtMoney(n){ return 'R$ '+(Number(n)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+// Aplica filtros + busca aos itens; retorna array filtrado
+function ofDetItensFiltrados() {
+  let itens = (DATA.ofItens||[]).slice();
+  Object.keys(ofDetFiltros).forEach(col => {
+    const set = ofDetFiltros[col];
+    if (set && set.size) itens = itens.filter(it => set.has(String(it[col]==null?'':it[col])));
+  });
+  if (ofDetBusca.trim()) {
+    const q = ofDetBusca.trim().toLowerCase();
+    itens = itens.filter(it => OF_DET_COLS.some(([k]) => String(it[k]==null?'':it[k]).toLowerCase().includes(q)));
+  }
+  return itens;
+}
+
+// ── CARDS DE INDICADORES + TABELA DETALHADA ──
+function renderOFDetalhe() {
+  const itens = DATA.ofItens || [];
+  const cardsEl = document.getElementById('of-detail-cards');
+  const wrap    = document.getElementById('of-detail-wrap');
+  if (!wrap) return;
+
+  if (!itens.length) {
+    if (cardsEl) cardsEl.innerHTML = '';
+    wrap.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Sem dados de OFs Abertas. Aguardando o e-mail "OF ABERTAS SEM ROTEIRO".</div>';
+    return;
+  }
+
+  const qtOFs    = new Set(itens.map(it=>it.NUM_ORDEM)).size;
+  const qtLinhas = itens.length;
+  const totPend  = itens.reduce((s,it)=>s+it.QTDE_PEND,0);
+  const valTotal = itens.reduce((s,it)=>s+it.VLR_TOTAL,0);
+  const atrasadas= itens.filter(it=>it.DT_FINAL && isOverdue(it.DT_FINAL));
+  const qtAtraso = new Set(atrasadas.map(it=>it.NUM_ORDEM)).size;
+  const valAtraso= atrasadas.reduce((s,it)=>s+it.VLR_TOTAL,0);
+  const naoSep   = itens.filter(it=>it.MOVIMENTO==='NADA').length;
+  const semFam   = itens.filter(it=>!it.FAMILIA).length;
+
+  const card = (label,valor,sub,cor)=>'<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;flex:1;min-width:150px;box-shadow:var(--card-shadow,none)">'
+    +'<div style="font-size:9px;font-weight:700;color:'+(cor||'var(--serie-azul)')+';letter-spacing:1px;margin-bottom:6px;white-space:nowrap">'+label+'</div>'
+    +'<div style="font-size:22px;font-weight:900;color:'+(cor||'var(--serie-azul)')+'">'+valor+'</div>'
+    +(sub?'<div style="font-size:9px;color:var(--text-muted);margin-top:2px">'+sub+'</div>':'')+'</div>';
+
+  if (cardsEl) {
+    cardsEl.innerHTML =
+       card('OFs EM ABERTO', qtOFs.toLocaleString('pt-BR'), qtLinhas.toLocaleString('pt-BR')+' itens')
+      +card('QTDE PENDENTE', Math.round(totPend).toLocaleString('pt-BR'), 'soma QTDE_PENDENTE')
+      +card('VALOR TOTAL', ofFmtMoney(valTotal), 'soma VLR_TOTAL_ORDEM')
+      +card('OFs EM ATRASO', qtAtraso.toLocaleString('pt-BR'), ofFmtMoney(valAtraso), '#ff6b6b')
+      +card('NÃO SEPARADAS', naoSep.toLocaleString('pt-BR'), 'movimento NADA', 'var(--amber)')
+      +card('SEM CLASSIF.', semFam.toLocaleString('pt-BR'), 'fora das 8 famílias', 'var(--text-muted)');
+  }
+
+  renderOFDetalheTabela();
+}
+
+// ── Só a tabela (re-render rápido quando muda filtro/busca) ──
+function renderOFDetalheTabela() {
+  const wrap = document.getElementById('of-detail-wrap');
+  if (!wrap) return;
+  const itens = ofDetItensFiltrados();
+  const todos = DATA.ofItens || [];
+
+  const thBase = 'padding:9px 12px;text-align:left;font-size:11px;font-weight:800;white-space:nowrap;color:#fff;position:relative';
+  const tdBase = 'padding:7px 12px;text-align:left;font-size:12px;white-space:nowrap';
+
+  const head = OF_DET_COLS.map(([k,lbl])=>{
+    const ativo = ofDetFiltros[k] && ofDetFiltros[k].size;
+    return '<th style="'+thBase+'">'
+      +'<span>'+lbl+'</span>'
+      +' <span onclick="toggleOFFiltro(event,&#39;'+k+'&#39;)" title="Filtrar" style="cursor:pointer;font-size:11px;opacity:'+(ativo?'1':'.6')+';color:'+(ativo?'#ffd24d':'#cfe0ff')+'">▾</span>'
+      +'</th>';
+  }).join('');
+
+  const numCols = new Set(['QTDE','QTDE_PEND','VLR_UNIT','VLR_TOTAL','CUSTO_MED','CUSTO_MED_TOT']);
+  const moneyCols = new Set(['VLR_UNIT','VLR_TOTAL','CUSTO_MED','CUSTO_MED_TOT']);
+
+  const body = itens.map((it,i)=>{
+    const od = it.DT_FINAL && isOverdue(it.DT_FINAL);
+    const bg = od?'rgba(255,59,59,0.08)':i%2===0?'transparent':'var(--row-alt)';
+    const tds = OF_DET_COLS.map(([k])=>{
+      let v = it[k];
+      let disp;
+      if (k==='DEM_PARCIAIS') {
+        const s = String(v||'');
+        if (!s) disp = '<span style="color:var(--muted-dim)">—</span>';
+        else if (s.length>28) disp = '<span class="of-dem" title="clique p/ expandir" onclick="this.textContent=this.getAttribute(&#39;data-full&#39;);this.onclick=null;this.style.whiteSpace=&#39;normal&#39;" data-full="'+s.replace(/"/g,'&quot;')+'" style="cursor:pointer;color:var(--serie-azul)">'+s.slice(0,28)+'… ⊕</span>';
+        else disp = s;
+      } else if (k==='MOVIMENTO') {
+        disp = ofMovLabel(v);
+      } else if (moneyCols.has(k)) {
+        disp = (Number(v)||0)===0?'<span style="color:var(--muted-dim)">—</span>':ofFmtMoney(v);
+      } else if (numCols.has(k)) {
+        disp = (Number(v)||0)===0?'<span style="color:var(--muted-dim)">—</span>':Math.round(Number(v)).toLocaleString('pt-BR');
+      } else {
+        disp = (v==null||v==='')?'<span style="color:var(--muted-dim)">—</span>':String(v);
+      }
+      const align = (numCols.has(k))?'text-align:right;':'';
+      const colr = (k==='DT_FINAL'&&od)?'color:var(--red);font-weight:700;':'';
+      return '<td style="'+tdBase+';'+align+colr+'">'+disp+(k==='DT_FINAL'&&od?' ⚑':'')+'</td>';
+    }).join('');
+    return '<tr style="background:'+bg+'">'+tds+'</tr>';
+  }).join('');
+
+  wrap.innerHTML =
+     '<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap">'
+    +'<input id="of-det-busca" type="text" placeholder="🔍 Buscar em todas as colunas..." value="'+ofDetBusca.replace(/"/g,'&quot;')+'" oninput="ofDetBusca=this.value;renderOFDetalheTabela();setTimeout(function(){var el=document.getElementById(&#39;of-det-busca&#39;);if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length);}},0)" style="flex:1;min-width:220px;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:8px;font-size:13px">'
+    +'<span style="font-size:12px;color:var(--text-muted)">'+itens.length.toLocaleString('pt-BR')+' de '+todos.length.toLocaleString('pt-BR')+' itens</span>'
+    +'</div>'
+    +'<div style="border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--card-shadow,0 4px 24px rgba(0,0,0,0.4))">'
+    +'<div style="max-height:560px;overflow:auto;-webkit-overflow-scrolling:touch">'
+    +'<table style="border-collapse:collapse;white-space:nowrap;width:max-content;min-width:100%">'
+    +'<thead style="position:sticky;top:0;z-index:5"><tr style="background:var(--header-table-bg)">'+head+'</tr></thead>'
+    +'<tbody>'+(body||'<tr><td colspan="'+OF_DET_COLS.length+'" style="padding:20px;text-align:center;color:var(--text-muted)">Nenhum item para os filtros aplicados.</td></tr>')+'</tbody>'
+    +'</table></div></div>';
+}
+
+// ── Dropdown de filtro por coluna (tipo Excel) ──
+function toggleOFFiltro(ev, col) {
+  ev.stopPropagation();
+  const exist = document.getElementById('of-filtro-pop');
+  if (exist) { exist.remove(); if (ofDetDropdownAberto===col){ ofDetDropdownAberto=null; return; } }
+  ofDetDropdownAberto = col;
+
+  const todos = DATA.ofItens || [];
+  const valores = Array.from(new Set(todos.map(it=>String(it[col]==null?'':it[col])))).sort((a,b)=>{
+    const na=parseFloat(a.replace(',','.')), nb=parseFloat(b.replace(',','.'));
+    if(!isNaN(na)&&!isNaN(nb)) return na-nb;
+    return a.localeCompare(b,'pt-BR');
+  });
+  const sel = ofDetFiltros[col] || new Set();
+  const isMov = col==='MOVIMENTO';
+
+  const pop = document.createElement('div');
+  pop.id = 'of-filtro-pop';
+  pop.style.cssText = 'position:fixed;z-index:1100;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.5);padding:10px;width:280px;max-height:360px;display:flex;flex-direction:column';
+  pop.innerHTML =
+     '<div style="font-size:11px;font-weight:700;color:var(--serie-azul);letter-spacing:1px;margin-bottom:8px">FILTRAR: '+(OF_DET_COLS.find(c=>c[0]===col)||[,col])[1]+'</div>'
+    +'<input id="of-filtro-search" type="text" placeholder="Buscar valor..." oninput="ofFiltroBuscaValor(this.value)" style="background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;margin-bottom:8px">'
+    +'<div style="display:flex;gap:6px;margin-bottom:8px">'
+    +'<button onclick="ofFiltroTodos(true)" style="flex:1;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:4px;border-radius:6px;font-size:11px;cursor:pointer">Todos</button>'
+    +'<button onclick="ofFiltroTodos(false)" style="flex:1;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:4px;border-radius:6px;font-size:11px;cursor:pointer">Nenhum</button>'
+    +'</div>'
+    +'<div id="of-filtro-lista" style="overflow-y:auto;flex:1;font-size:12px">'
+    + valores.map(v=>{
+        const checked = sel.size===0 || sel.has(v);
+        const lbl = isMov ? ofMovLabel(v) : (v===''?'(vazio)':v);
+        return '<label class="of-filtro-item" data-val="'+v.replace(/"/g,'&quot;').toLowerCase()+'" style="display:flex;gap:6px;align-items:center;padding:3px 2px;cursor:pointer">'
+          +'<input type="checkbox" '+(checked?'checked':'')+' data-rawval="'+v.replace(/"/g,'&quot;')+'">'
+          +'<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+lbl+'</span></label>';
+      }).join('')
+    +'</div>'
+    +'<div style="display:flex;gap:6px;margin-top:8px">'
+    +'<button onclick="aplicarOFFiltro(&#39;'+col+'&#39;)" style="flex:1;background:var(--serie-azul);border:none;color:#fff;padding:6px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">Aplicar</button>'
+    +'<button onclick="document.getElementById(&#39;of-filtro-pop&#39;).remove();ofDetDropdownAberto=null" style="background:var(--panel2);border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer">✕</button>'
+    +'</div>';
+  document.body.appendChild(pop);
+  const x = Math.min(ev.clientX, window.innerWidth-296);
+  const y = Math.min(ev.clientY+12, window.innerHeight-376);
+  pop.style.left = Math.max(8,x)+'px';
+  pop.style.top  = Math.max(8,y)+'px';
+}
+function ofFiltroBuscaValor(q){
+  const ql=(q||'').toLowerCase();
+  document.querySelectorAll('#of-filtro-lista .of-filtro-item').forEach(el=>{
+    el.style.display = el.getAttribute('data-val').includes(ql) ? 'flex' : 'none';
+  });
+}
+function ofFiltroTodos(marcar){
+  document.querySelectorAll('#of-filtro-lista .of-filtro-item').forEach(el=>{
+    if (el.style.display==='none') return;
+    const cb=el.querySelector('input'); if(cb) cb.checked=marcar;
+  });
+}
+function aplicarOFFiltro(col){
+  const checks = document.querySelectorAll('#of-filtro-lista input[type=checkbox]');
+  const marcados = new Set(); const total = checks.length; let nMarcados = 0;
+  checks.forEach(cb=>{ if(cb.checked){ marcados.add(cb.getAttribute('data-rawval')); nMarcados++; } });
+  if (nMarcados===total || nMarcados===0) delete ofDetFiltros[col];
+  else ofDetFiltros[col] = marcados;
+  const pop=document.getElementById('of-filtro-pop'); if(pop) pop.remove();
+  ofDetDropdownAberto=null;
+  atualizarBotaoLimparOF();
+  renderOFDetalheTabela();
+}
+function atualizarBotaoLimparOF(){
+  const btn=document.getElementById('of-detail-clear');
+  if(!btn) return;
+  const ativo = Object.keys(ofDetFiltros).length>0 || ofDetBusca.trim();
+  btn.style.display = ativo ? 'inline-block' : 'none';
+}
+function limparFiltroOFDetalhe(){
+  ofDetFiltros = {}; ofDetBusca = '';
+  atualizarBotaoLimparOF();
+  renderOFDetalheTabela();
+}
+
+// ── Clique numa célula da tabela de cima: filtra detalhe + abre pop-up resumido ──
+function abrirResumoOF(familia, dataFim){
+  const itens = (DATA.ofItens||[]).filter(it=>it.FAMILIA===familia && it.DT_FINAL===dataFim);
+  const classesFam = new Set(itens.map(it=>it.CLAS));
+  ofDetFiltros = { CLAS: classesFam, DT_FINAL: new Set([dataFim]) };
+  ofDetBusca = '';
+  atualizarBotaoLimparOF();
+  renderOFDetalheTabela();
+  mostrarPopupResumoOF(itens, OF_FAM_LABEL[familia]+' — entrega '+dataFim);
+}
+function filtrarOFAtraso(familia){
+  const itens = (DATA.ofItens||[]).filter(it=>it.FAMILIA===familia && it.DT_FINAL && isOverdue(it.DT_FINAL));
+  const classesFam = new Set(itens.map(it=>it.CLAS));
+  ofDetFiltros = { CLAS: classesFam };
+  ofDetBusca = '';
+  atualizarBotaoLimparOF();
+  renderOFDetalheTabela();
+  mostrarPopupResumoOF(itens, OF_FAM_LABEL[familia]+' — EM ATRASO');
+  const wrap=document.getElementById('of-detail-wrap'); if(wrap) wrap.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function mostrarPopupResumoOF(itens, subtitulo){
+  const modal=document.getElementById('modal-of-resumo');
+  const body =document.getElementById('modal-of-resumo-body');
+  const sub  =document.getElementById('modal-of-resumo-sub');
+  if(!modal||!body) return;
+  const totPend = itens.reduce((s,it)=>s+it.QTDE_PEND,0);
+  sub.textContent = subtitulo+'  •  '+itens.length+' OFs  •  '+Math.round(totPend).toLocaleString('pt-BR')+' pç pendentes';
+  const th='padding:8px 12px;text-align:left;font-size:11px;font-weight:800;color:#fff;white-space:nowrap';
+  const td='padding:7px 12px;font-size:12px;white-space:nowrap';
+  const movCor={EPP:'var(--serie-azul)',REP:'var(--green)',NADA:'var(--amber)'};
+  body.innerHTML =
+     '<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border)">'
+    +'<div style="max-height:420px;overflow:auto">'
+    +'<table style="border-collapse:collapse;width:100%">'
+    +'<thead style="position:sticky;top:0"><tr style="background:var(--header-table-bg)">'
+    +'<th style="'+th+'">Nº OF</th><th style="'+th+'">ENTREGA</th><th style="'+th+';text-align:right">PENDENTE</th><th style="'+th+'">MOVIMENTO</th>'
+    +'</tr></thead><tbody>'
+    + itens.slice().sort((a,b)=>parseDate(a.DT_FINAL||'01/01/2000')-parseDate(b.DT_FINAL||'01/01/2000')).map((it,i)=>{
+        const od = it.DT_FINAL && isOverdue(it.DT_FINAL);
+        return '<tr style="background:'+(i%2===0?'transparent':'var(--row-alt)')+'">'
+          +'<td style="'+td+';font-weight:600">'+it.NUM_ORDEM+'</td>'
+          +'<td style="'+td+';'+(od?'color:var(--red);font-weight:700':'')+'">'+(it.DT_FINAL||'—')+(od?' ⚑':'')+'</td>'
+          +'<td style="'+td+';text-align:right;font-weight:700">'+Math.round(it.QTDE_PEND).toLocaleString('pt-BR')+'</td>'
+          +'<td style="'+td+';color:'+(movCor[it.MOVIMENTO]||'var(--text)')+';font-weight:600">'+ofMovLabel(it.MOVIMENTO)+'</td>'
+          +'</tr>';
+      }).join('')
+    +'</tbody></table></div></div>';
+  modal.style.display='flex';
 }
 
 function abrirModalMetasMontados() {
@@ -4778,6 +5070,14 @@ document.addEventListener('click', function(e) {
   });
 });
 
+// Fecha o dropdown de filtro da tabela de OFs ao clicar fora dele
+document.addEventListener('click', function(e) {
+  const pop = document.getElementById('of-filtro-pop');
+  if (pop && !pop.contains(e.target) && !e.target.closest('[onclick*="toggleOFFiltro"]')) {
+    pop.remove(); ofDetDropdownAberto = null;
+  }
+});
+
 // ── Estado da tabela de prioridades ──────────────────────────────────────
 let pvSortKey = 'a_montar', pvSortAsc = false;
 let pvOcultos = new Set(); // códigos ocultos na sessão
@@ -6378,22 +6678,101 @@ function handleFiles(files) {
   });
 }
 
+// ===== OF ABERTAS — mapa de classificações → família =====
+// Email "OF ABERTAS SEM ROTEIRO". CLAS_ESTOQUE vem concatenada: "300.200.001 - TOMADA DE FORCA".
+// Usa-se só o código (parte antes do espaço/hífen) para classificar.
+const OF_CLASS_MAP = (() => {
+  const grupos = {
+    TOMADA_MULT:   ['300.200.001','300.200.100','300.300.001','300.300.005'],
+    BOMBA:         ['300.500.001','300.500.100'],
+    CILINDRO:      ['300.400.001','300.400.010'],
+    CONJ_EIXO:     ['300.200.002','300.200.005'],
+    GUINCHO_ENROL: ['800.010.020','800.010.040','800.050.010'],
+    COMANDO:       ['600.100.001','600.100.002','600.100.003','600.100.004','600.100.005','600.100.006','600.100.007','600.100.008','600.100.009','600.100.010','600.100.100','600.100.101','600.100.102','600.100.103','600.100.104','600.100.105','600.100.106','600.200.001','600.200.002','600.200.003','600.200.004','600.200.005','600.200.006','600.200.007','600.200.008','600.200.009','600.200.010','600.300.001','600.300.002','600.300.003','600.300.004','600.400.001','600.400.002','600.400.003','600.400.004','600.400.005','600.400.006'],
+    VALVULA:       ['600.400.007','600.400.008','600.400.009','600.400.010','600.400.011','600.400.012','600.400.013','600.400.014','601.100.000','601.200.000','601.300.000','601.400.000'],
+    KIT_HIDR:      ['300.600.001','300.600.002','300.600.005','300.600.010','300.600.020','300.600.025','300.600.030','300.600.035','300.600.040','300.600.045','300.600.050','300.600.055','300.600.060','300.600.065','300.600.070','300.600.075','400.030.005']
+  };
+  const m = {};
+  Object.keys(grupos).forEach(fam => grupos[fam].forEach(cod => { m[cod] = fam; }));
+  return m;
+})();
+
+// Extrai o código (ex.: "300.200.001") de uma CLAS_ESTOQUE concatenada
+function ofCodigoClasse(clas) {
+  const s = String(clas||'').trim();
+  const mm = s.match(/(\d{3}\.\d{3}\.\d{3})/);
+  return mm ? mm[1] : '';
+}
+// Converte número BR ("66,31225" / "1.234,56") em float
+function ofNum(v) {
+  let s = String(v==null?'':v).trim();
+  if (!s) return 0;
+  // remove separador de milhar (ponto) só quando há vírgula decimal
+  if (s.indexOf(',') >= 0) s = s.replace(/\./g,'').replace(',', '.');
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+
 function parseOF(text) {
-  const rows = parseCSV(text);
-  // Skip only header row, keep TOTAL and all data rows exactly as in email
-  DATA.of = rows
-    .filter(r => {
-      const v = String(r[0]||'').trim();
-      if (!v) return false;
-      const u = v.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-      return u !== 'DT FIM OF';
-    })
-    .map(r => ({
-      DT_FIM_OF: normDate(r[0]),
-      TOMADA_MULT:+r[1]||0, BOMBA:+r[2]||0, CILINDRO:+r[3]||0,
-      CONJ_EIXO:+r[4]||0, GUINCHO_ENROL:+r[5]||0, COMANDO:+r[6]||0,
-      VALVULA:+r[7]||0, KIT_HIDR:+r[8]||0
-    }));
+  if (!text || !text.trim()) { DATA.of = []; DATA.ofItens = []; return; }
+  const rows = parseCSV(text, ';');
+  if (!rows.length) { DATA.of = []; DATA.ofItens = []; return; }
+
+  // Detecta header (procura "NUM_ORDEM"/"CLAS_ESTOQUE"); descarta-o.
+  const isHeader = r => {
+    const j = r.map(c => String(c||'').toUpperCase()).join('|');
+    return j.includes('NUM_ORDEM') || j.includes('CLAS_ESTOQUE') || j.includes('QTDE_PENDENTE');
+  };
+
+  // Índices das colunas do email OF ABERTAS SEM ROTEIRO
+  const C = { ID:0, NUM_ORDEM:1, DT_EMISSAO:2, DT_FINAL:3, COD_ITEM:4, DESC:5,
+              QTDE:6, QTDE_PEND:7, VLR_UNIT:8, VLR_TOTAL:9, CUSTO_MED:10,
+              CUSTO_MED_TOT:11, UM:12, CLAS:13, MOVIMENTO:14, DEM_PARCIAIS:15,
+              COD_ALMOX:16, SITUACAO:17 };
+
+  const itens = rows
+    .filter(r => r && r.length > 1 && !isHeader(r))
+    .filter(r => String(r[C.NUM_ORDEM]||'').trim() !== '')   // ignora linhas vazias/total
+    .map(r => {
+      const clasFull = String(r[C.CLAS]||'').trim();
+      const cod = ofCodigoClasse(clasFull);
+      return {
+        ID:           String(r[C.ID]||'').trim(),
+        NUM_ORDEM:    String(r[C.NUM_ORDEM]||'').trim(),
+        DT_EMISSAO:   normDate(r[C.DT_EMISSAO]),
+        DT_FINAL:     normDate(r[C.DT_FINAL]),
+        COD_ITEM:     String(r[C.COD_ITEM]||'').trim(),
+        DESC:         String(r[C.DESC]||'').trim(),
+        QTDE:         ofNum(r[C.QTDE]),
+        QTDE_PEND:    ofNum(r[C.QTDE_PEND]),
+        VLR_UNIT:     ofNum(r[C.VLR_UNIT]),
+        VLR_TOTAL:    ofNum(r[C.VLR_TOTAL]),
+        CUSTO_MED:    ofNum(r[C.CUSTO_MED]),
+        CUSTO_MED_TOT:ofNum(r[C.CUSTO_MED_TOT]),
+        UM:           String(r[C.UM]||'').trim(),
+        CLAS:         clasFull,
+        COD_CLASSE:   cod,
+        FAMILIA:      OF_CLASS_MAP[cod] || null,
+        MOVIMENTO:    String(r[C.MOVIMENTO]||'').trim().toUpperCase(),
+        DEM_PARCIAIS: String(r[C.DEM_PARCIAIS]||'').trim(),
+        COD_ALMOX:    String(r[C.COD_ALMOX]||'').trim(),
+        SITUACAO:     String(r[C.SITUACAO]||'').trim()
+      };
+    });
+
+  DATA.ofItens = itens;
+
+  // ── AGREGAÇÃO família × DT_FINAL (soma QTDE_PENDENTE) ──
+  // Reproduz o formato antigo de DATA.of (1 linha por data, 8 colunas-família)
+  const famCols = ['TOMADA_MULT','BOMBA','CILINDRO','CONJ_EIXO','GUINCHO_ENROL','COMANDO','VALVULA','KIT_HIDR'];
+  const porData = {};
+  itens.forEach(it => {
+    if (!it.FAMILIA) return;            // classificação fora das 8 famílias → ignora na tabela de cima
+    const d = it.DT_FINAL || '';
+    if (!porData[d]) { porData[d] = { DT_FIM_OF: d }; famCols.forEach(c => porData[d][c] = 0); }
+    porData[d][it.FAMILIA] += it.QTDE_PEND;
+  });
+  DATA.of = Object.keys(porData).map(d => porData[d]);
 }
 function parseMontados(text) {
   if (!text.trim()) { DATA.montados=[]; return; }
