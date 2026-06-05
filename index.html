@@ -895,28 +895,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
   <!-- ======= DETALHAMENTO DAS OFs (tabela crua do email) ======= -->
   <div style="margin:32px 0 14px">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+    <div style="margin-bottom:12px">
       <span class="section-title" style="margin:0">Detalhamento das OFs Abertas</span>
+    </div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;justify-content:space-between">
+      <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:10px;color:var(--text-muted);font-weight:700;letter-spacing:.5px">ESCOPO</span>
+          <div id="of-grp-escopo" style="display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden">
+            <button data-v="todas"    onclick="setOFEscopo('todas')"    class="of-seg">Todas</button>
+            <button data-v="montagem" onclick="setOFEscopo('montagem')" class="of-seg">Montagem</button>
+            <button data-v="producao" onclick="setOFEscopo('producao')" class="of-seg">Produção</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:10px;color:var(--text-muted);font-weight:700;letter-spacing:.5px">SITUAÇÃO</span>
+          <div id="of-grp-situacao" style="display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden">
+            <button data-v="tudo"   onclick="setOFSituacao('tudo')"   class="of-seg">Tudo</button>
+            <button data-v="atraso" onclick="setOFSituacao('atraso')" class="of-seg">Em atraso</button>
+          </div>
+        </div>
+      </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button id="of-detail-clear" onclick="limparFiltroOFDetalhe()" style="background:rgba(255,59,59,.08);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✕ Limpar filtros</button>
         <button onclick="exportarOFExcel()" style="background:rgba(0,201,122,.15);border:1px solid var(--green);color:var(--green);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700">⤓ Gerar Excel</button>
-      </div>
-    </div>
-    <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
-      <div style="display:flex;gap:8px;align-items:center">
-        <span style="font-size:10px;color:var(--text-muted);font-weight:700;letter-spacing:.5px">ESCOPO</span>
-        <div id="of-grp-escopo" style="display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden">
-          <button data-v="todas"    onclick="setOFEscopo('todas')"    class="of-seg">Todas</button>
-          <button data-v="montagem" onclick="setOFEscopo('montagem')" class="of-seg">Montagem</button>
-          <button data-v="producao" onclick="setOFEscopo('producao')" class="of-seg">Produção</button>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <span style="font-size:10px;color:var(--text-muted);font-weight:700;letter-spacing:.5px">SITUAÇÃO</span>
-        <div id="of-grp-situacao" style="display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden">
-          <button data-v="tudo"   onclick="setOFSituacao('tudo')"   class="of-seg">Tudo</button>
-          <button data-v="atraso" onclick="setOFSituacao('atraso')" class="of-seg">Em atraso</button>
-        </div>
       </div>
     </div>
   </div>
@@ -2041,6 +2043,8 @@ let ofDetDropdownAberto = null;
 let ofFiltroAsc = true;   // direção de ordenação dos valores no dropdown de filtro
 let ofEscopo = 'todas';   // 'todas' | 'montagem' | 'producao'
 let ofSituacao = 'tudo';  // 'tudo' | 'atraso'
+let ofFiltroSelTemp = null;   // Set com valores marcados no dropdown aberto (estado em memória)
+let ofFiltroValores = [];     // valores únicos da coluna do dropdown aberto
 
 // Detecta se a coluna é de data (dd/mm/aaaa) e ordena os valores adequadamente
 function ofOrdenarValores(valores, col, asc) {
@@ -2062,20 +2066,25 @@ function ofOrdenarValores(valores, col, asc) {
 function ofMovLabel(m){ return OF_MOV_LABEL[String(m||'').toUpperCase()] || (m||'—'); }
 function ofFmtMoney(n){ return 'R$ '+(Number(n)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
-// Aplica filtros + busca aos itens; retorna array filtrado
-function ofDetItensFiltrados() {
+// Aplica filtros + busca aos itens; retorna array filtrado.
+// excetoCol: se informado, ignora o filtro de coluna daquela coluna (para montar a
+// lista do próprio dropdown — comportamento tipo Excel). A busca global também é
+// ignorada quando excetoCol é passado, pois o dropdown tem busca própria.
+function ofDetItensFiltrados(excetoCol) {
   let itens = (DATA.ofItens||[]).slice();
   // Escopo: todas / montagem (8 famílias) / produção (sem família)
   if (ofEscopo === 'montagem') itens = itens.filter(it => it.FAMILIA);
   else if (ofEscopo === 'producao') itens = itens.filter(it => !it.FAMILIA);
   // Situação: tudo / em atraso
   if (ofSituacao === 'atraso') itens = itens.filter(it => it.DT_FINAL && isOverdue(it.DT_FINAL));
-  // Filtros por coluna (dropdown tipo Excel)
+  // Filtros por coluna (dropdown tipo Excel), pulando a própria coluna se pedido
   Object.keys(ofDetFiltros).forEach(col => {
+    if (excetoCol && col===excetoCol) return;
     const set = ofDetFiltros[col];
     if (set && set.size) itens = itens.filter(it => set.has(String(it[col]==null?'':it[col])));
   });
-  if (ofDetBusca.trim()) {
+  // Busca global só conta quando montando a TABELA (sem excetoCol)
+  if (!excetoCol && ofDetBusca.trim()) {
     const q = ofDetBusca.trim().toLowerCase();
     itens = itens.filter(it => OF_DET_COLS.some(([k]) => String(it[k]==null?'':it[k]).toLowerCase().includes(q)));
   }
@@ -2203,11 +2212,15 @@ function toggleOFFiltro(ev, col) {
   if (exist) { exist.remove(); if (ofDetDropdownAberto===col){ ofDetDropdownAberto=null; return; } }
   ofDetDropdownAberto = col;
 
-  const todos = DATA.ofItens || [];
-  const valoresUnicos = Array.from(new Set(todos.map(it=>String(it[col]==null?'':it[col]))));
+  const baseItens = ofDetItensFiltrados(col);
+  const valoresUnicos = Array.from(new Set(baseItens.map(it=>String(it[col]==null?'':it[col]))));
   const valores = ofOrdenarValores(valoresUnicos, col, ofFiltroAsc);
   const sel = ofDetFiltros[col] || new Set();
   const isMov = col==='MOVIMENTO';
+  // Estado em memória: marca os valores disponíveis. Se há filtro salvo, marca só os
+  // que estão nele E ainda existem na lista; sem filtro, marca todos os disponíveis.
+  ofFiltroValores = valoresUnicos.slice();
+  ofFiltroSelTemp = new Set(sel.size===0 ? valoresUnicos : valoresUnicos.filter(v=>sel.has(v)));
 
   const pop = document.createElement('div');
   pop.id = 'of-filtro-pop';
@@ -2224,10 +2237,11 @@ function toggleOFFiltro(ev, col) {
     +'</div>'
     +'<div id="of-filtro-lista" style="overflow-y:auto;flex:1;font-size:12px;min-height:80px">'
     + valores.map(v=>{
-        const checked = sel.size===0 || sel.has(v);
+        const checked = ofFiltroSelTemp.has(v);
         const lbl = isMov ? ofMovLabel(v) : (v===''?'(vazio)':v);
-        return '<label class="of-filtro-item" data-val="'+v.replace(/"/g,'&quot;').toLowerCase()+'" style="display:flex;gap:6px;align-items:center;padding:3px 2px;cursor:pointer">'
-          +'<input type="checkbox" '+(checked?'checked':'')+' data-rawval="'+v.replace(/"/g,'&quot;')+'">'
+        const vEsc = v.replace(/"/g,'&quot;');
+        return '<label class="of-filtro-item" data-val="'+vEsc.toLowerCase()+'" style="display:flex;gap:6px;align-items:center;padding:3px 2px;cursor:pointer">'
+          +'<input type="checkbox" '+(checked?'checked':'')+' data-rawval="'+vEsc+'" onchange="ofFiltroMarcar(this)">'
           +'<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+lbl+'</span></label>';
       }).join('')
     +'</div>'
@@ -2244,28 +2258,27 @@ function toggleOFFiltro(ev, col) {
 }
 // Inverte a ordem dos valores no dropdown sem perder os checkboxes marcados
 function ofFiltroInverter(col){
-  // preserva o que está marcado agora
-  const marcados = new Set();
-  document.querySelectorAll('#of-filtro-lista input[type=checkbox]').forEach(cb=>{ if(cb.checked) marcados.add(cb.getAttribute('data-rawval')); });
   ofFiltroAsc = !ofFiltroAsc;
-  // re-renderiza o dropdown na nova ordem, restaurando marcações
-  const todos = DATA.ofItens || [];
-  const valoresUnicos = Array.from(new Set(todos.map(it=>String(it[col]==null?'':it[col]))));
-  const valores = ofOrdenarValores(valoresUnicos, col, ofFiltroAsc);
+  const valores = ofOrdenarValores(ofFiltroValores.slice(), col, ofFiltroAsc);
   const isMov = col==='MOVIMENTO';
   const lista = document.getElementById('of-filtro-lista');
   if (lista) {
     lista.innerHTML = valores.map(v=>{
-      const checked = marcados.size===0 ? true : marcados.has(v);
+      const checked = ofFiltroSelTemp.has(v);
       const lbl = isMov ? ofMovLabel(v) : (v===''?'(vazio)':v);
-      return '<label class="of-filtro-item" data-val="'+v.replace(/"/g,'&quot;').toLowerCase()+'" style="display:flex;gap:6px;align-items:center;padding:3px 2px;cursor:pointer">'
-        +'<input type="checkbox" '+(checked?'checked':'')+' data-rawval="'+v.replace(/"/g,'&quot;')+'">'
+      const vEsc = v.replace(/"/g,'&quot;');
+      return '<label class="of-filtro-item" data-val="'+vEsc.toLowerCase()+'" style="display:flex;gap:6px;align-items:center;padding:3px 2px;cursor:pointer">'
+        +'<input type="checkbox" '+(checked?'checked':'')+' data-rawval="'+vEsc+'" onchange="ofFiltroMarcar(this)">'
         +'<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+lbl+'</span></label>';
     }).join('');
   }
-  // atualiza rótulo do botão
   const btn = document.querySelector('#of-filtro-pop button[onclick^="ofFiltroInverter"]');
   if (btn) btn.textContent = ofFiltroAsc?'↑ A-Z':'↓ Z-A';
+}
+// Marca/desmarca um valor no estado em memória
+function ofFiltroMarcar(cb){
+  const v = cb.getAttribute('data-rawval');
+  if (cb.checked) ofFiltroSelTemp.add(v); else ofFiltroSelTemp.delete(v);
 }
 function ofFiltroBuscaValor(q){
   const ql=(q||'').toLowerCase();
@@ -2273,18 +2286,22 @@ function ofFiltroBuscaValor(q){
     el.style.display = el.getAttribute('data-val').includes(ql) ? 'flex' : 'none';
   });
 }
+// "Todos"/"Nenhum": agem sobre os itens VISÍVEIS, atualizando estado + checkbox
 function ofFiltroTodos(marcar){
   document.querySelectorAll('#of-filtro-lista .of-filtro-item').forEach(el=>{
     if (el.style.display==='none') return;
-    const cb=el.querySelector('input'); if(cb) cb.checked=marcar;
+    const cb=el.querySelector('input'); if(!cb) return;
+    cb.checked=marcar;
+    const v=cb.getAttribute('data-rawval');
+    if (marcar) ofFiltroSelTemp.add(v); else ofFiltroSelTemp.delete(v);
   });
 }
 function aplicarOFFiltro(col){
-  const checks = document.querySelectorAll('#of-filtro-lista input[type=checkbox]');
-  const marcados = new Set(); const total = checks.length; let nMarcados = 0;
-  checks.forEach(cb=>{ if(cb.checked){ marcados.add(cb.getAttribute('data-rawval')); nMarcados++; } });
-  if (nMarcados===total || nMarcados===0) delete ofDetFiltros[col];
-  else ofDetFiltros[col] = marcados;
+  // Lê do estado em memória (não do DOM) — imune a itens escondidos pela busca
+  const total = ofFiltroValores.length;
+  const n = ofFiltroSelTemp.size;
+  if (n===0 || n===total) delete ofDetFiltros[col];  // nada ou tudo marcado = sem filtro
+  else ofDetFiltros[col] = new Set(ofFiltroSelTemp);
   const pop=document.getElementById('of-filtro-pop'); if(pop) pop.remove();
   ofDetDropdownAberto=null;
   atualizarBotaoLimparOF();
