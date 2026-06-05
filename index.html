@@ -6,6 +6,7 @@
 <title>Dashboard Industrial — Produção & Estoque</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   /* LOGIN SCREEN */
   #login-screen {
@@ -783,6 +784,10 @@
   #tt-row, #pm-row { grid-template-columns: 1fr !important; }
 }
 
+.of-seg{background:var(--panel2);border:none;color:var(--text-muted);padding:6px 14px;font-size:12px;cursor:pointer;font-weight:600;border-right:1px solid var(--border);transition:background .15s,color .15s}
+.of-seg:last-child{border-right:none}
+.of-seg.active{background:var(--serie-azul);color:#fff;font-weight:700}
+
 </style>
 </head>
 <body>
@@ -889,9 +894,31 @@ document.addEventListener('DOMContentLoaded', () => {
   <div id="of-table-wrap"></div>
 
   <!-- ======= DETALHAMENTO DAS OFs (tabela crua do email) ======= -->
-  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:32px 0 14px">
-    <span class="section-title" style="margin:0">Detalhamento das OFs Abertas</span>
-    <button id="of-detail-clear" onclick="limparFiltroOFDetalhe()" style="background:rgba(255,59,59,.08);border:1px solid var(--border);color:var(--text-muted);padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✕ Limpar filtros</button>
+  <div style="margin:32px 0 14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+      <span class="section-title" style="margin:0">Detalhamento das OFs Abertas</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="of-detail-clear" onclick="limparFiltroOFDetalhe()" style="background:rgba(255,59,59,.08);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✕ Limpar filtros</button>
+        <button onclick="exportarOFExcel()" style="background:rgba(0,201,122,.15);border:1px solid var(--green);color:var(--green);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700">⤓ Gerar Excel</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:10px;color:var(--text-muted);font-weight:700;letter-spacing:.5px">ESCOPO</span>
+        <div id="of-grp-escopo" style="display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden">
+          <button data-v="todas"    onclick="setOFEscopo('todas')"    class="of-seg">Todas</button>
+          <button data-v="montagem" onclick="setOFEscopo('montagem')" class="of-seg">Montagem</button>
+          <button data-v="producao" onclick="setOFEscopo('producao')" class="of-seg">Produção</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:10px;color:var(--text-muted);font-weight:700;letter-spacing:.5px">SITUAÇÃO</span>
+        <div id="of-grp-situacao" style="display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden">
+          <button data-v="tudo"   onclick="setOFSituacao('tudo')"   class="of-seg">Tudo</button>
+          <button data-v="atraso" onclick="setOFSituacao('atraso')" class="of-seg">Em atraso</button>
+        </div>
+      </div>
+    </div>
   </div>
   <div id="of-detail-cards" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px"></div>
   <div id="of-detail-wrap"></div>
@@ -2012,6 +2039,8 @@ let ofDetFiltros = {};
 let ofDetBusca = '';          // busca global (texto)
 let ofDetDropdownAberto = null;
 let ofFiltroAsc = true;   // direção de ordenação dos valores no dropdown de filtro
+let ofEscopo = 'todas';   // 'todas' | 'montagem' | 'producao'
+let ofSituacao = 'tudo';  // 'tudo' | 'atraso'
 
 // Detecta se a coluna é de data (dd/mm/aaaa) e ordena os valores adequadamente
 function ofOrdenarValores(valores, col, asc) {
@@ -2036,6 +2065,12 @@ function ofFmtMoney(n){ return 'R$ '+(Number(n)||0).toLocaleString('pt-BR',{mini
 // Aplica filtros + busca aos itens; retorna array filtrado
 function ofDetItensFiltrados() {
   let itens = (DATA.ofItens||[]).slice();
+  // Escopo: todas / montagem (8 famílias) / produção (sem família)
+  if (ofEscopo === 'montagem') itens = itens.filter(it => it.FAMILIA);
+  else if (ofEscopo === 'producao') itens = itens.filter(it => !it.FAMILIA);
+  // Situação: tudo / em atraso
+  if (ofSituacao === 'atraso') itens = itens.filter(it => it.DT_FINAL && isOverdue(it.DT_FINAL));
+  // Filtros por coluna (dropdown tipo Excel)
   Object.keys(ofDetFiltros).forEach(col => {
     const set = ofDetFiltros[col];
     if (set && set.size) itens = itens.filter(it => set.has(String(it[col]==null?'':it[col])));
@@ -2045,6 +2080,14 @@ function ofDetItensFiltrados() {
     itens = itens.filter(it => OF_DET_COLS.some(([k]) => String(it[k]==null?'':it[k]).toLowerCase().includes(q)));
   }
   return itens;
+}
+
+// Setters dos toggles
+function setOFEscopo(v){ ofEscopo=v; ofSyncSeg(); atualizarBotaoLimparOF(); renderOFDetalheTabela(); }
+function setOFSituacao(v){ ofSituacao=v; ofSyncSeg(); atualizarBotaoLimparOF(); renderOFDetalheTabela(); }
+function ofSyncSeg(){
+  document.querySelectorAll('#of-grp-escopo .of-seg').forEach(b=>b.classList.toggle('active', b.getAttribute('data-v')===ofEscopo));
+  document.querySelectorAll('#of-grp-situacao .of-seg').forEach(b=>b.classList.toggle('active', b.getAttribute('data-v')===ofSituacao));
 }
 
 // ── CARDS DE INDICADORES + TABELA DETALHADA ──
@@ -2080,15 +2123,16 @@ function renderOFDetalhe() {
     cardsEl.innerHTML =
        card('OFs EM ABERTO', qtOFs.toLocaleString('pt-BR'), qtLinhas.toLocaleString('pt-BR')+' itens')
       +card('QTDE PENDENTE', Math.round(totPend).toLocaleString('pt-BR'), 'soma QTDE_PENDENTE')
-      +card('VALOR TOTAL', ofFmtMoney(valTotal), 'soma VLR_TOTAL_ORDEM')
-      +card('CUSTO TOTAL', ofFmtMoney(custoTot), 'soma CUSTO_MÉDIO_TOTAL', 'var(--green)')
       +card('OFs EM ATRASO', qtAtraso.toLocaleString('pt-BR'), ofFmtMoney(valAtraso), '#ff6b6b')
       +card('NÃO SEPARADAS', naoSep.toLocaleString('pt-BR'), 'movimento NADA', 'var(--amber)')
+      +card('VALOR TOTAL', ofFmtMoney(valTotal), 'soma VLR_TOTAL_ORDEM')
+      +card('CUSTO TOTAL', ofFmtMoney(custoTot), 'soma CUSTO_MÉDIO_TOTAL', 'var(--green)')
       +card('SEM CLASSIF.', semFam.toLocaleString('pt-BR'), 'fora das 8 famílias', 'var(--text-muted)');
   }
 
   renderOFDetalheTabela();
   atualizarBotaoLimparOF();
+  ofSyncSeg();
 }
 
 // ── Só a tabela (re-render rápido quando muda filtro/busca) ──
@@ -2249,7 +2293,7 @@ function aplicarOFFiltro(col){
 function atualizarBotaoLimparOF(){
   const btn=document.getElementById('of-detail-clear');
   if(!btn) return;
-  const ativo = Object.keys(ofDetFiltros).length>0 || ofDetBusca.trim();
+  const ativo = Object.keys(ofDetFiltros).length>0 || ofDetBusca.trim() || ofEscopo!=='todas' || ofSituacao!=='tudo';
   if (ativo) {
     btn.style.background='rgba(255,59,59,.12)'; btn.style.borderColor='#ff3b3b'; btn.style.color='#ff6b6b';
   } else {
@@ -2258,8 +2302,65 @@ function atualizarBotaoLimparOF(){
 }
 function limparFiltroOFDetalhe(){
   ofDetFiltros = {}; ofDetBusca = '';
+  ofEscopo = 'todas'; ofSituacao = 'tudo';
+  ofSyncSeg();
   atualizarBotaoLimparOF();
   renderOFDetalheTabela();
+}
+
+// ── EXPORTAR tabela detalhada para Excel (.xlsx) respeitando filtros ──
+function exportarOFExcel(){
+  const itens = ofDetItensFiltrados();
+  if (!itens.length) { alert('Não há itens para exportar com os filtros atuais.'); return; }
+
+  // Cabeçalho: 18 colunas da tabela + FAMÍLIA
+  const cabec = OF_DET_COLS.map(c=>c[1]).concat(['FAMÍLIA']);
+  // Colunas numéricas mantêm número (pra trabalhar no Excel); resto vira texto
+  const numCols = new Set(['QTDE','QTDE_PEND','VLR_UNIT','VLR_TOTAL','CUSTO_MED','CUSTO_MED_TOT']);
+  const linhas = itens.map(it=>{
+    const row = OF_DET_COLS.map(([k])=>{
+      if (k==='MOVIMENTO') return ofMovLabel(it[k]);
+      if (numCols.has(k)) return Number(it[k])||0;
+      return it[k]==null?'':String(it[k]);
+    });
+    row.push(it.FAMILIA ? OF_FAM_LABEL[it.FAMILIA] : '');
+    return row;
+  });
+  const dataStr = new Date().toISOString().slice(0,10);
+  const nomeArq = 'OFs_Abertas_'+dataStr;
+
+  // Caminho preferencial: SheetJS (.xlsx formatado)
+  if (window.XLSX && XLSX.utils) {
+    try {
+      const aoa = [cabec].concat(linhas);
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      // larguras de coluna
+      ws['!cols'] = cabec.map((h,i)=>{
+        if (i===4) return {wch:42};   // descrição
+        if (i===14) return {wch:30};  // dem parciais
+        if (i===12) return {wch:32};  // clas estoque
+        return {wch:Math.max(10, h.length+2)};
+      });
+      ws['!autofilter'] = { ref: XLSX.utils.encode_range({s:{r:0,c:0}, e:{r:linhas.length, c:cabec.length-1}}) };
+      ws['!freeze'] = { xSplit:0, ySplit:1 };
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'OFs Abertas');
+      XLSX.writeFile(wb, nomeArq+'.xlsx');
+      return;
+    } catch(e){ console.warn('Falha no XLSX, usando CSV:', e); }
+  }
+
+  // Fallback: CSV com BOM (abre no Excel BR). Decimais com vírgula.
+  const esc = v => { let s=String(v==null?'':v); if(/[;"\n]/.test(s)) s='"'+s.replace(/"/g,'""')+'"'; return s; };
+  const linhasCsv = [cabec.map(esc).join(';')].concat(
+    linhas.map(r=>r.map((v,i)=> (typeof v==='number') ? String(v).replace('.',',') : esc(v)).join(';'))
+  ).join('\r\n');
+  const blob = new Blob(['\ufeff'+linhasCsv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = nomeArq+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
 }
 
 // ── Clique numa célula da tabela de cima: filtra detalhe + abre pop-up resumido ──
@@ -2289,16 +2390,19 @@ function mostrarPopupResumoOF(itens, subtitulo){
   if(!modal||!body) return;
   const totPend = itens.reduce((s,it)=>s+it.QTDE_PEND,0);
   sub.textContent = subtitulo+'  •  '+itens.length+' OFs  •  '+Math.round(totPend).toLocaleString('pt-BR')+' pç pendentes';
-  const th='padding:8px 12px;text-align:center;font-size:11px;font-weight:800;color:#fff;white-space:nowrap;width:1%';
-  const td='padding:7px 12px;text-align:center;font-size:12px;white-space:nowrap;width:1%';
-  const tdDesc='padding:7px 12px;text-align:left;font-size:12px;white-space:normal;min-width:220px;line-height:1.3';
+  const th='padding:8px 10px;text-align:center;font-size:11px;font-weight:800;color:#fff;white-space:nowrap';
+  const td='padding:7px 10px;text-align:center;font-size:12px;white-space:nowrap';
+  const tdDesc='padding:7px 10px;text-align:left;font-size:12px;white-space:normal;line-height:1.3';
   const movCor={EPP:'var(--serie-azul)',REP:'var(--green)',NADA:'var(--amber)'};
   body.innerHTML =
      '<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border)">'
     +'<div style="max-height:420px;overflow:auto;-webkit-overflow-scrolling:touch">'
-    +'<table style="border-collapse:collapse;width:100%;min-width:560px">'
+    +'<table style="border-collapse:collapse;width:100%;min-width:640px;table-layout:fixed">'
+    +'<colgroup>'
+    +'<col style="width:90px"><col style="width:78px"><col style="width:80px"><col><col style="width:96px"><col style="width:120px">'
+    +'</colgroup>'
     +'<thead style="position:sticky;top:0"><tr style="background:var(--header-table-bg)">'
-    +'<th style="'+th+'">Nº OF</th><th style="'+th+'">PENDENTE</th><th style="'+th+'">CÓDIGO</th><th style="'+th+';text-align:left;width:auto">DESCRIÇÃO</th><th style="'+th+'">ENTREGA</th><th style="'+th+'">MOVIMENTO</th>'
+    +'<th style="'+th+'">Nº OF</th><th style="'+th+'">PEND.</th><th style="'+th+'">CÓDIGO</th><th style="'+th+';text-align:left">DESCRIÇÃO</th><th style="'+th+'">ENTREGA</th><th style="'+th+'">MOVIMENTO</th>'
     +'</tr></thead><tbody>'
     + itens.slice().sort((a,b)=>parseDate(a.DT_FINAL||'01/01/2000')-parseDate(b.DT_FINAL||'01/01/2000')).map((it,i)=>{
         const od = it.DT_FINAL && isOverdue(it.DT_FINAL);
