@@ -899,7 +899,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- Modal Resumo OF (pop-up ao clicar numa célula) -->
 <div id="modal-of-resumo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;align-items:center;justify-content:center">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;width:720px;max-width:95vw;max-height:90vh;overflow-y:auto">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;width:880px;max-width:95vw;max-height:90vh;overflow-y:auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <div id="modal-of-resumo-titulo" style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--serie-azul);letter-spacing:1px">RESUMO DAS OFs</div>
       <button onclick="document.getElementById('modal-of-resumo').style.display='none'" style="background:none;border:none;color:#666;font-size:18px;cursor:pointer">✕</button>
@@ -2247,20 +2247,23 @@ function mostrarPopupResumoOF(itens, subtitulo){
   sub.textContent = subtitulo+'  •  '+itens.length+' OFs  •  '+Math.round(totPend).toLocaleString('pt-BR')+' pç pendentes';
   const th='padding:8px 12px;text-align:center;font-size:11px;font-weight:800;color:#fff;white-space:nowrap';
   const td='padding:7px 12px;text-align:center;font-size:12px;white-space:nowrap';
+  const tdDesc='padding:7px 12px;text-align:left;font-size:12px;white-space:normal;min-width:200px;max-width:340px;line-height:1.3';
   const movCor={EPP:'var(--serie-azul)',REP:'var(--green)',NADA:'var(--amber)'};
   body.innerHTML =
      '<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border)">'
     +'<div style="max-height:420px;overflow:auto">'
     +'<table style="border-collapse:collapse;width:100%">'
     +'<thead style="position:sticky;top:0"><tr style="background:var(--header-table-bg)">'
-    +'<th style="'+th+'">Nº OF</th><th style="'+th+'">ENTREGA</th><th style="'+th+'">PENDENTE</th><th style="'+th+'">MOVIMENTO</th>'
+    +'<th style="'+th+'">Nº OF</th><th style="'+th+'">PENDENTE</th><th style="'+th+'">CÓDIGO</th><th style="'+th+';text-align:left">DESCRIÇÃO</th><th style="'+th+'">ENTREGA</th><th style="'+th+'">MOVIMENTO</th>'
     +'</tr></thead><tbody>'
     + itens.slice().sort((a,b)=>parseDate(a.DT_FINAL||'01/01/2000')-parseDate(b.DT_FINAL||'01/01/2000')).map((it,i)=>{
         const od = it.DT_FINAL && isOverdue(it.DT_FINAL);
         return '<tr style="background:'+(i%2===0?'transparent':'var(--row-alt)')+'">'
           +'<td style="'+td+';font-weight:600">'+it.NUM_ORDEM+'</td>'
-          +'<td style="'+td+';'+(od?'color:var(--red);font-weight:700':'')+'">'+(it.DT_FINAL||'—')+(od?' ⚑':'')+'</td>'
           +'<td style="'+td+';font-weight:700">'+Math.round(it.QTDE_PEND).toLocaleString('pt-BR')+'</td>'
+          +'<td style="'+td+'">'+(it.COD_ITEM||'—')+'</td>'
+          +'<td style="'+tdDesc+'">'+(it.DESC||'—')+'</td>'
+          +'<td style="'+td+';'+(od?'color:var(--red);font-weight:700':'')+'">'+(it.DT_FINAL||'—')+(od?' ⚑':'')+'</td>'
           +'<td style="'+td+';color:'+(movCor[it.MOVIMENTO]||'var(--text)')+';font-weight:600">'+ofMovLabel(it.MOVIMENTO)+'</td>'
           +'</tr>';
       }).join('')
