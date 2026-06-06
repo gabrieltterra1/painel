@@ -770,6 +770,14 @@
 
   /* Servicos — ocultar colunas menos importantes em mobile */
   .scrollable table { min-width: 600px; }
+
+  /* Modal de detalhe (trânsito / falta abastecer) — menos padding e largura cheia */
+  #modal-estoque-det > div { padding: 14px !important; width: 96vw !important; max-height: 92vh !important; }
+  #modal-estoque-det-titulo { font-size: 12px !important; }
+  /* Pop-ups de filtro tipo Excel (ESD e trânsito) — largura adaptada */
+  #esd-filtro-pop, #trd-filtro-pop, #of-filtro-pop { width: 92vw !important; max-width: 320px; }
+  /* Linha de botões da tabela detalhada ESD — empilha empresa e ações */
+  #esd-grp-emp { flex-wrap: wrap; }
 }
 
 @media (max-width: 480px) {
@@ -1053,6 +1061,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </div>
     <input class="search-input" type="text" id="est-search" placeholder="Buscar descrição ou depósito..." oninput="renderEstoque()" style="width:240px">
+    <button class="upload-btn" style="background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);font-size:12px;padding:6px 12px" onclick="estoqueLimparFiltros()">✕ Limpar filtros</button>
   </div>
   <div id="estoque-charts" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"></div>
 
@@ -1112,22 +1121,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   <!-- ======= ESTOQUE DE SEGURANÇA — DETALHADO POR ITEM ======= -->
   <div style="margin:32px 0 14px">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
-      <span class="section-title" style="margin:0">Estoque de Segurança — Detalhado por Item<span class="email-badge" data-sheet="ESTOQUE_SEG_DETALHE"></span></span>
+    <div class="section-title" style="margin:0 0 12px">Estoque de Segurança — Detalhado por Item<span class="email-badge" data-sheet="ESTOQUE_SEG_DETALHE"></span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:10px;color:var(--text-muted);font-weight:700;letter-spacing:.5px">EMPRESA</span>
+        <div id="esd-grp-emp" style="display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden">
+          <button data-v="todas"  onclick="setESDEmpresa('todas')"  class="of-seg">Todas</button>
+          <button data-v="Matriz" onclick="setESDEmpresa('Matriz')" class="of-seg">Matriz</button>
+          <button data-v="SP"     onclick="setESDEmpresa('SP')"     class="of-seg">SP</button>
+          <button data-v="MG"     onclick="setESDEmpresa('MG')"     class="of-seg">MG</button>
+          <button data-v="GO"     onclick="setESDEmpresa('GO')"     class="of-seg">GO</button>
+          <button data-v="PE"     onclick="setESDEmpresa('PE')"     class="of-seg">PE</button>
+        </div>
+      </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button id="esd-detail-clear" onclick="limparFiltroESD()" style="background:rgba(255,59,59,.08);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✕ Limpar filtros</button>
         <button onclick="exportarESDExcel()" style="background:rgba(0,201,122,.15);border:1px solid var(--green);color:var(--green);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700">⤓ Gerar Excel</button>
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <span style="font-size:10px;color:var(--text-muted);font-weight:700;letter-spacing:.5px">EMPRESA</span>
-      <div id="esd-grp-emp" style="display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden">
-        <button data-v="todas"  onclick="setESDEmpresa('todas')"  class="of-seg">Todas</button>
-        <button data-v="Matriz" onclick="setESDEmpresa('Matriz')" class="of-seg">Matriz</button>
-        <button data-v="SP"     onclick="setESDEmpresa('SP')"     class="of-seg">SP</button>
-        <button data-v="MG"     onclick="setESDEmpresa('MG')"     class="of-seg">MG</button>
-        <button data-v="GO"     onclick="setESDEmpresa('GO')"     class="of-seg">GO</button>
-        <button data-v="PE"     onclick="setESDEmpresa('PE')"     class="of-seg">PE</button>
       </div>
     </div>
   </div>
@@ -1904,6 +1913,23 @@ function transitoLimparFiltros() {
   msDesmarcarTodos('ms-produto');
   const emp = document.getElementById('tr-empresa');
   if (emp) { emp.value = ''; renderTransito(); }
+}
+
+function msMarcarTodos(id) {
+  const allCb = document.getElementById(id+'-all');
+  if (allCb) allCb.checked = true;
+  document.querySelectorAll(`#${id} .ms-item input[type=checkbox]`).forEach(cb => { cb.checked = true; });
+}
+function estoqueLimparFiltros() {
+  // Marca tudo nos dois multiselects e limpa a busca da tabela Análise Gráfica
+  msMarcarTodos('ms-est-uf');
+  msMarcarTodos('ms-est-class');
+  const s = document.getElementById('est-search'); if (s) s.value = '';
+  // atualiza labels e renderiza uma única vez
+  ['ms-est-uf','ms-est-class'].forEach(id=>{
+    const label = document.getElementById(id+'-label'); if (label) label.textContent = 'Todos';
+  });
+  renderEstoque();
 }
 
 function msDesmarcarTodos(id) {
@@ -7374,6 +7400,8 @@ let trdFiltroSelTemp = null;
 let trdFiltroValores = [];
 let trdFiltroAsc = true;
 let trdFiltroDropAberto = null;
+let trdSortCol = 'quantidade';
+let trdSortAsc = false;
 
 function abrirTransitoDetalhe(emp, grupo, label){
   let itens;
@@ -7387,6 +7415,7 @@ function abrirTransitoDetalhe(emp, grupo, label){
   trdItens = itens.slice();
   trdTitulo = 'EM TRÂNSITO — '+emp+' • '+label;
   trdFiltros = {}; trdBusca = '';
+  trdSortCol = 'quantidade'; trdSortAsc = false;
   renderTransitoDetalhe();
   document.getElementById('modal-estoque-det').style.display='flex';
 }
@@ -7402,7 +7431,23 @@ function trdItensFiltrados(excetoCol){
     const q = trdBusca.trim().toLowerCase();
     itens = itens.filter(it=>TRD_COLS.some(([k])=>String(it[k]==null?'':it[k]).toLowerCase().includes(q)));
   }
+  // ordenação por coluna (clique no cabeçalho)
+  if (!excetoCol && trdSortCol){
+    const c = trdSortCol;
+    itens.sort((a,b)=>{
+      let va=a[c], vb=b[c];
+      if (c==='quantidade'){ va=Number(va)||0; vb=Number(vb)||0; return trdSortAsc?va-vb:vb-va; }
+      va=String(va==null?'':va); vb=String(vb==null?'':vb);
+      const r=va.localeCompare(vb,'pt-BR',{numeric:true});
+      return trdSortAsc?r:-r;
+    });
+  }
   return itens;
+}
+function trdOrdenarPor(col){
+  if (trdSortCol===col) trdSortAsc=!trdSortAsc;
+  else { trdSortCol=col; trdSortAsc = (col!=='quantidade'); } // texto começa A-Z, qtde começa maior
+  renderTransitoDetalhe();
 }
 
 function renderTransitoDetalhe(){
@@ -7420,8 +7465,10 @@ function renderTransitoDetalhe(){
   const head = TRD_COLS.map(([k,lbl])=>{
     const at = trdFiltros[k] && trdFiltros[k].size;
     const left = (k==='descricao'||k==='classificacao');
-    return '<th style="'+th+(left?';text-align:left':'')+'"><span>'+lbl+'</span>'
-      +' <span onclick="toggleTRDFiltro(event,&#39;'+k+'&#39;)" title="Filtrar/ordenar" style="cursor:pointer;font-size:11px;opacity:'+(at?'1':'.6')+';color:'+(at?'#ffd24d':'#cfe0ff')+'">▾</span></th>';
+    const seta = trdSortCol===k ? (trdSortAsc?' ↑':' ↓') : '';
+    return '<th style="'+th+(left?';text-align:left':'')+'">'
+      +'<span onclick="trdOrdenarPor(&#39;'+k+'&#39;)" title="Ordenar" style="cursor:pointer;user-select:none">'+lbl+seta+'</span>'
+      +' <span onclick="toggleTRDFiltro(event,&#39;'+k+'&#39;)" title="Filtrar" style="cursor:pointer;font-size:11px;opacity:'+(at?'1':'.6')+';color:'+(at?'#ffd24d':'#cfe0ff')+'">▾</span></th>';
   }).join('');
   body.innerHTML =
      '<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">'
@@ -7540,9 +7587,9 @@ function abrirFaltaDetalhe(classificacao, uf, descClasse){
   body.innerHTML =
      '<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border)"><div style="max-height:480px;overflow:auto">'
     +'<table style="border-collapse:collapse;width:100%;min-width:720px;table-layout:fixed">'
-    +'<colgroup><col style="width:80px"><col><col style="width:70px"><col style="width:90px"><col></colgroup>'
+    +'<colgroup><col style="width:78px"><col><col style="width:64px"><col style="width:84px"><col><col style="width:74px"></colgroup>'
     +'<thead style="position:sticky;top:0"><tr style="background:var(--header-table-bg)">'
-    +'<th style="'+th+'">CÓDIGO</th><th style="'+th+';text-align:left">DESCRIÇÃO</th><th style="'+th+'">FALTA</th><th style="'+th+'">EM TRÂNSITO</th><th style="'+th+';text-align:left">PEDIDOS PROGRAMADOS</th></tr></thead><tbody>'
+    +'<th style="'+th+'">CÓDIGO</th><th style="'+th+';text-align:left">DESCRIÇÃO</th><th style="'+th+'">FALTA</th><th style="'+th+'">EM TRÂNSITO</th><th style="'+th+';text-align:left">PEDIDOS PROGRAMADOS</th><th style="'+th+'" title="Trânsito + Pedidos − Falta">SALDO</th></tr></thead><tbody>'
     + (itensFalta.map((it,i)=>{
         const falta = Math.abs(it.DIF_SALDO);
         // Trânsito: do próprio detalhado + conferência com a aba Trânsito (transito_detail por código+UF)
@@ -7551,17 +7598,22 @@ function abrirFaltaDetalhe(classificacao, uf, descClasse){
         const transTip = (transAba && it.EST_TRANSITO && transAba!==it.EST_TRANSITO) ? ' title="email:'+it.EST_TRANSITO+' / trânsito:'+transAba+'"' : '';
         // Pedidos de venda: mesmo código E cliente = código da filial
         const peds = (DATA.pedidos||[]).filter(p=>p.codigo===it.COD_ITEM && clienteCod && p.clienteCod===clienteCod);
+        const pedQtd = peds.reduce((s,p)=>s+(Number(p.qtde)||0),0);
         const pedTxt = peds.length
           ? peds.map(p=>Math.round(p.qtde).toLocaleString('pt-BR')+' un'+(p.dataEntStr?' ('+p.dataEntStr.split('-').reverse().join('/')+')':'')).join(' • ')
           : '<span style="color:var(--muted-dim)">—</span>';
+        // SALDO = trânsito + pedidos programados − falta
+        const saldo = Math.round(transito + pedQtd - falta);
+        const saldoCor = saldo > 0 ? 'var(--green)' : (saldo < 0 ? 'var(--red)' : 'var(--text-muted)');
         return '<tr style="background:'+(i%2===0?'transparent':'var(--row-alt)')+'">'
           +'<td style="'+td+';font-weight:600">'+it.COD_ITEM+'</td>'
           +'<td style="'+td+';text-align:left;white-space:normal">'+it.DESC+'</td>'
           +'<td style="'+td+';color:var(--red);font-weight:700">'+Math.round(falta).toLocaleString('pt-BR')+'</td>'
           +'<td style="'+td+';color:'+(transito>0?'var(--serie-azul)':'var(--muted-dim)')+'"'+transTip+'>'+(transito>0?Math.round(transito).toLocaleString('pt-BR'):'—')+'</td>'
-          +'<td style="'+td+';text-align:left;white-space:normal;font-size:11px">'+pedTxt+'</td></tr>';
+          +'<td style="'+td+';text-align:left;white-space:normal;font-size:11px">'+pedTxt+'</td>'
+          +'<td style="'+td+';font-weight:700;color:'+saldoCor+'">'+saldo.toLocaleString('pt-BR')+'</td></tr>';
       }).join('')
-      || '<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--text-muted)">Sem itens em falta para esta classificação/empresa no detalhamento.</td></tr>')
+      || '<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--text-muted)">Sem itens em falta para esta classificação/empresa no detalhamento.</td></tr>')
     +'</tbody></table></div></div>';
   modal.style.display='flex';
 }
