@@ -1024,7 +1024,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 
-  <div class="section-title">Análise Gráfica — Estoque Atual vs. Segurança</div>
+  <div class="section-title">Análise Gráfica — Estoque Atual vs. Segurança<span class="email-badge" data-sheet="ESTOQUE_SEGURANCA"></span></div>
   <div class="filter-row" style="margin-bottom:16px;flex-wrap:wrap;gap:8px">
     <div class="ms-wrap" id="ms-est-uf">
       <div class="ms-btn" onclick="toggleMsDropdown('ms-est-uf')">
@@ -1064,6 +1064,29 @@ document.addEventListener('DOMContentLoaded', () => {
     <button class="upload-btn" style="background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);font-size:12px;padding:6px 12px" onclick="estoqueLimparFiltros()">✕ Limpar filtros</button>
   </div>
   <div id="estoque-charts" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"></div>
+
+  <!-- ======= ESTOQUE DE SEGURANÇA — DETALHADO POR ITEM ======= -->
+  <div style="margin:32px 0 14px">
+    <div class="section-title" style="margin:0 0 12px">Estoque de Segurança — Detalhado por Item<span class="email-badge" data-sheet="ESTOQUE_SEG_DETALHE"></span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:10px;color:var(--text-muted);font-weight:700;letter-spacing:.5px">EMPRESA</span>
+        <div id="esd-grp-emp" style="display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden">
+          <button data-v="todas"  onclick="setESDEmpresa('todas')"  class="of-seg">Todas</button>
+          <button data-v="Matriz" onclick="setESDEmpresa('Matriz')" class="of-seg">Matriz</button>
+          <button data-v="SP"     onclick="setESDEmpresa('SP')"     class="of-seg">SP</button>
+          <button data-v="MG"     onclick="setESDEmpresa('MG')"     class="of-seg">MG</button>
+          <button data-v="GO"     onclick="setESDEmpresa('GO')"     class="of-seg">GO</button>
+          <button data-v="PE"     onclick="setESDEmpresa('PE')"     class="of-seg">PE</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="esd-detail-clear" onclick="limparFiltroESD()" style="background:rgba(255,59,59,.08);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✕ Limpar filtros</button>
+        <button onclick="exportarESDExcel()" style="background:rgba(0,201,122,.15);border:1px solid var(--green);color:var(--green);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700">⤓ Gerar Excel</button>
+      </div>
+    </div>
+  </div>
+  <div id="esd-detail-wrap"></div>
 
   <div class="section-title">Estoque em Trânsito — Detalhe por Item</div>
   <div class="transito-filters">
@@ -1119,28 +1142,6 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 
-  <!-- ======= ESTOQUE DE SEGURANÇA — DETALHADO POR ITEM ======= -->
-  <div style="margin:32px 0 14px">
-    <div class="section-title" style="margin:0 0 12px">Estoque de Segurança — Detalhado por Item<span class="email-badge" data-sheet="ESTOQUE_SEG_DETALHE"></span></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <span style="font-size:10px;color:var(--text-muted);font-weight:700;letter-spacing:.5px">EMPRESA</span>
-        <div id="esd-grp-emp" style="display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden">
-          <button data-v="todas"  onclick="setESDEmpresa('todas')"  class="of-seg">Todas</button>
-          <button data-v="Matriz" onclick="setESDEmpresa('Matriz')" class="of-seg">Matriz</button>
-          <button data-v="SP"     onclick="setESDEmpresa('SP')"     class="of-seg">SP</button>
-          <button data-v="MG"     onclick="setESDEmpresa('MG')"     class="of-seg">MG</button>
-          <button data-v="GO"     onclick="setESDEmpresa('GO')"     class="of-seg">GO</button>
-          <button data-v="PE"     onclick="setESDEmpresa('PE')"     class="of-seg">PE</button>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button id="esd-detail-clear" onclick="limparFiltroESD()" style="background:rgba(255,59,59,.08);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✕ Limpar filtros</button>
-        <button onclick="exportarESDExcel()" style="background:rgba(0,201,122,.15);border:1px solid var(--green);color:var(--green);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700">⤓ Gerar Excel</button>
-      </div>
-    </div>
-  </div>
-  <div id="esd-detail-wrap"></div>
 </div>
 
 <!-- Modal genérico de detalhe (trânsito por card + TOT FALTA) -->
@@ -7586,34 +7587,42 @@ function abrirFaltaDetalhe(classificacao, uf, descClasse){
 
   body.innerHTML =
      '<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border)"><div style="max-height:480px;overflow:auto">'
-    +'<table style="border-collapse:collapse;width:100%;min-width:720px;table-layout:fixed">'
-    +'<colgroup><col style="width:78px"><col><col style="width:64px"><col style="width:84px"><col><col style="width:74px"></colgroup>'
+    +'<table style="border-collapse:collapse;width:100%;min-width:780px">'
+    +'<colgroup><col style="width:72px"><col style="min-width:160px"><col style="width:56px"><col style="width:72px"><col style="width:64px"><col style="min-width:150px"><col style="width:66px"></colgroup>'
     +'<thead style="position:sticky;top:0"><tr style="background:var(--header-table-bg)">'
-    +'<th style="'+th+'">CÓDIGO</th><th style="'+th+';text-align:left">DESCRIÇÃO</th><th style="'+th+'">FALTA</th><th style="'+th+'">EM TRÂNSITO</th><th style="'+th+';text-align:left">PEDIDOS PROGRAMADOS</th><th style="'+th+'" title="Trânsito + Pedidos − Falta">SALDO</th></tr></thead><tbody>'
+    +'<th style="'+th+'">CÓDIGO</th>'
+    +'<th style="'+th+';text-align:left">DESCRIÇÃO</th>'
+    +'<th style="'+th+'">FALTA</th>'
+    +'<th style="'+th+'">PEDIDOS<br>NA FILIAL</th>'
+    +'<th style="'+th+'">EM<br>TRÂNSITO</th>'
+    +'<th style="'+th+';text-align:left">PEDIDOS DE<br>TRANSFERÊNCIA</th>'
+    +'<th style="'+th+'" title="Trânsito + Transferência − Pedidos na filial − Falta">SALDO</th></tr></thead><tbody>'
     + (itensFalta.map((it,i)=>{
         const falta = Math.abs(it.DIF_SALDO);
+        const pedFilial = Number(it.PEDIDOS)||0;
         // Trânsito: do próprio detalhado + conferência com a aba Trânsito (transito_detail por código+UF)
         const transAba = (DATA.transito_detail||[]).filter(r=>r.codigo===it.COD_ITEM && r.empresa===uf).reduce((s,r)=>s+r.quantidade,0);
         const transito = it.EST_TRANSITO || transAba;
         const transTip = (transAba && it.EST_TRANSITO && transAba!==it.EST_TRANSITO) ? ' title="email:'+it.EST_TRANSITO+' / trânsito:'+transAba+'"' : '';
-        // Pedidos de venda: mesmo código E cliente = código da filial
+        // Pedidos de transferência: pedidos de venda mesmo código E cliente = código da filial
         const peds = (DATA.pedidos||[]).filter(p=>p.codigo===it.COD_ITEM && clienteCod && p.clienteCod===clienteCod);
-        const pedQtd = peds.reduce((s,p)=>s+(Number(p.qtde)||0),0);
+        const pedTransfQtd = peds.reduce((s,p)=>s+(Number(p.qtde)||0),0);
         const pedTxt = peds.length
           ? peds.map(p=>Math.round(p.qtde).toLocaleString('pt-BR')+' un'+(p.dataEntStr?' ('+p.dataEntStr.split('-').reverse().join('/')+')':'')).join(' • ')
           : '<span style="color:var(--muted-dim)">—</span>';
-        // SALDO = trânsito + pedidos programados − falta
-        const saldo = Math.round(transito + pedQtd - falta);
+        // SALDO = trânsito + pedidos transferência − pedidos na filial − falta
+        const saldo = Math.round(transito + pedTransfQtd - pedFilial - falta);
         const saldoCor = saldo > 0 ? 'var(--green)' : (saldo < 0 ? 'var(--red)' : 'var(--text-muted)');
         return '<tr style="background:'+(i%2===0?'transparent':'var(--row-alt)')+'">'
           +'<td style="'+td+';font-weight:600">'+it.COD_ITEM+'</td>'
           +'<td style="'+td+';text-align:left;white-space:normal">'+it.DESC+'</td>'
           +'<td style="'+td+';color:var(--red);font-weight:700">'+Math.round(falta).toLocaleString('pt-BR')+'</td>'
+          +'<td style="'+td+';color:'+(pedFilial>0?'var(--amber)':'var(--muted-dim)')+'">'+(pedFilial>0?Math.round(pedFilial).toLocaleString('pt-BR'):'—')+'</td>'
           +'<td style="'+td+';color:'+(transito>0?'var(--serie-azul)':'var(--muted-dim)')+'"'+transTip+'>'+(transito>0?Math.round(transito).toLocaleString('pt-BR'):'—')+'</td>'
           +'<td style="'+td+';text-align:left;white-space:normal;font-size:11px">'+pedTxt+'</td>'
           +'<td style="'+td+';font-weight:700;color:'+saldoCor+'">'+saldo.toLocaleString('pt-BR')+'</td></tr>';
       }).join('')
-      || '<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--text-muted)">Sem itens em falta para esta classificação/empresa no detalhamento.</td></tr>')
+      || '<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--text-muted)">Sem itens em falta para esta classificação/empresa no detalhamento.</td></tr>')
     +'</tbody></table></div></div>';
   modal.style.display='flex';
 }
