@@ -1109,6 +1109,41 @@ document.addEventListener('DOMContentLoaded', () => {
       </table>
     </div>
   </div>
+
+  <!-- ======= ESTOQUE DE SEGURANÇA — DETALHADO POR ITEM ======= -->
+  <div style="margin:32px 0 14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+      <span class="section-title" style="margin:0">Estoque de Segurança — Detalhado por Item<span class="email-badge" data-sheet="ESTOQUE_SEG_DETALHE"></span></span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="esd-detail-clear" onclick="limparFiltroESD()" style="background:rgba(255,59,59,.08);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✕ Limpar filtros</button>
+        <button onclick="exportarESDExcel()" style="background:rgba(0,201,122,.15);border:1px solid var(--green);color:var(--green);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700">⤓ Gerar Excel</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span style="font-size:10px;color:var(--text-muted);font-weight:700;letter-spacing:.5px">EMPRESA</span>
+      <div id="esd-grp-emp" style="display:inline-flex;border:1px solid var(--border);border-radius:7px;overflow:hidden">
+        <button data-v="todas"  onclick="setESDEmpresa('todas')"  class="of-seg">Todas</button>
+        <button data-v="Matriz" onclick="setESDEmpresa('Matriz')" class="of-seg">Matriz</button>
+        <button data-v="SP"     onclick="setESDEmpresa('SP')"     class="of-seg">SP</button>
+        <button data-v="MG"     onclick="setESDEmpresa('MG')"     class="of-seg">MG</button>
+        <button data-v="GO"     onclick="setESDEmpresa('GO')"     class="of-seg">GO</button>
+        <button data-v="PE"     onclick="setESDEmpresa('PE')"     class="of-seg">PE</button>
+      </div>
+    </div>
+  </div>
+  <div id="esd-detail-wrap"></div>
+</div>
+
+<!-- Modal genérico de detalhe (trânsito por card + TOT FALTA) -->
+<div id="modal-estoque-det" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;width:920px;max-width:95vw;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div id="modal-estoque-det-titulo" style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--serie-azul);letter-spacing:1px">DETALHE</div>
+      <button onclick="document.getElementById('modal-estoque-det').style.display='none'" style="background:none;border:none;color:#666;font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <div id="modal-estoque-det-sub" style="font-size:11px;color:var(--text-muted);margin-bottom:16px"></div>
+    <div id="modal-estoque-det-body"></div>
+  </div>
 </div>
 
 <!-- ======= SERVIÇOS ======= -->
@@ -1778,6 +1813,7 @@ const todayStr = today.toLocaleDateString('pt-BR');
 const DATA = {
   of: [{"DT_FIM_OF":"02/05/2026","TOMADA_MULT":50,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":0,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"23/04/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":2,"COMANDO":0,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"29/04/2026","TOMADA_MULT":13,"BOMBA":10,"CILINDRO":0,"CONJ_EIXO":20,"GUINCHO_ENROL":0,"COMANDO":58,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"30/04/2026","TOMADA_MULT":54,"BOMBA":24,"CILINDRO":0,"CONJ_EIXO":29,"GUINCHO_ENROL":2,"COMANDO":1,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"04/05/2026","TOMADA_MULT":191,"BOMBA":96,"CILINDRO":20,"CONJ_EIXO":38,"GUINCHO_ENROL":9,"COMANDO":43,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"05/05/2026","TOMADA_MULT":178,"BOMBA":92,"CILINDRO":20,"CONJ_EIXO":40,"GUINCHO_ENROL":14,"COMANDO":31,"VALVULA":0,"KIT_HIDR":1},{"DT_FIM_OF":"06/05/2026","TOMADA_MULT":112,"BOMBA":5,"CILINDRO":22,"CONJ_EIXO":0,"GUINCHO_ENROL":13,"COMANDO":39,"VALVULA":0,"KIT_HIDR":4},{"DT_FIM_OF":"07/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":20,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":29,"VALVULA":30,"KIT_HIDR":0},{"DT_FIM_OF":"08/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":20,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":49,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"11/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":20,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":2,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"12/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":25,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"13/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":26,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"14/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":37,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"15/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":18,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"18/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":10,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"19/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":14,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"20/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":2,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"21/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":0,"VALVULA":60,"KIT_HIDR":0},{"DT_FIM_OF":"22/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":38,"VALVULA":0,"KIT_HIDR":0},{"DT_FIM_OF":"26/05/2026","TOMADA_MULT":0,"BOMBA":0,"CILINDRO":0,"CONJ_EIXO":0,"GUINCHO_ENROL":0,"COMANDO":13,"VALVULA":0,"KIT_HIDR":0}],
   ofItens: [],
+  estoqueDet: [],
   montados: [],
   transito: [{"EMPRESA":"SP","TOM":290,"BOM":93,"CIL":0,"GUI":7},{"EMPRESA":"MG","TOM":33,"BOM":7,"CIL":0,"GUI":2},{"EMPRESA":"GO","TOM":105,"BOM":128,"CIL":12,"GUI":7},{"EMPRESA":"PE","TOM":90,"BOM":41,"CIL":6,"GUI":3}],
   estoque: [{"cod_emp":1,"uf":"RS","classificacao":"300.200.001","descricao":"TOMADA DE FORCA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":43,"qtde_param_es":439,"custo_tdt":"258835,53","tot_falta":-61,"custo_abast":"-38148,61","cod_zerados":1,"estoque_total":1182,"custo_saldo":"757119,65","estoque_excesso":804,"custo_exces":"536432,73","qtde_abast":378,"perc_abast_mtz":86.104783599088,"pct_es":87.040695377321},{"cod_emp":1,"uf":"RS","classificacao":"300.500.001","descricao":"BOMBA HIDRAULICA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":12,"qtde_param_es":283,"custo_tdt":"150282,99","tot_falta":-5,"custo_abast":"-3841,11","cod_zerados":0,"estoque_total":507,"custo_saldo":"270950,03","estoque_excesso":229,"custo_exces":"124508,15","qtde_abast":278,"perc_abast_mtz":98.233215547703,"pct_es":83.963963963963},{"cod_emp":1,"uf":"RS","classificacao":"800.010.020","descricao":"GUINCHO LINHA OS-M","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":6,"qtde_param_es":11,"custo_tdt":"78269,93","tot_falta":-9,"custo_abast":"-61282,01","cod_zerados":4,"estoque_total":4,"custo_saldo":"28433,35","estoque_excesso":2,"custo_exces":"11445,43","qtde_abast":2,"perc_abast_mtz":18.181818181818,"pct_es":18.181818181818},{"cod_emp":1,"uf":"RS","classificacao":"800.010.040","descricao":"GUINCHO LINHA OP","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":10,"qtde_param_es":16,"custo_tdt":"53324,16","tot_falta":-11,"custo_abast":"-37919,59","cod_zerados":6,"estoque_total":16,"custo_saldo":"45413,26","estoque_excesso":11,"custo_exces":"30008,68","qtde_abast":5,"perc_abast_mtz":31.25,"pct_es":31.25},{"cod_emp":1,"uf":"RS","classificacao":"800.050.010","descricao":"ENROLADOR DE MANGUEIRA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":1,"qtde_param_es":1,"custo_tdt":"7628,84","tot_falta":-1,"custo_abast":"-7628,84","cod_zerados":1,"estoque_total":0,"custo_saldo":"0","estoque_excesso":0,"custo_exces":"0","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":2,"uf":"SP","classificacao":"300.200.001","descricao":"TOMADA DE FORCA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":86,"qtde_param_es":663,"custo_tdt":"449435,2","tot_falta":-68,"custo_abast":"-46764,1","cod_zerados":1,"estoque_total":827,"custo_saldo":"557410,47","estoque_excesso":232,"custo_exces":"154739,38","qtde_abast":595,"perc_abast_mtz":89.743589743589,"pct_es":87.040695377321},{"cod_emp":2,"uf":"SP","classificacao":"300.500.001","descricao":"BOMBA HIDRAULICA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":23,"qtde_param_es":230,"custo_tdt":"132200,98","tot_falta":-14,"custo_abast":"-8479","cod_zerados":1,"estoque_total":272,"custo_saldo":"163273,45","estoque_excesso":56,"custo_exces":"39551,47","qtde_abast":216,"perc_abast_mtz":93.91304347826,"pct_es":83.963963963963},{"cod_emp":2,"uf":"SP","classificacao":"800.010.020","descricao":"GUINCHO LINHA OS-M","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":4,"qtde_param_es":4,"custo_tdt":"28250,78","tot_falta":-4,"custo_abast":"-28250,78","cod_zerados":4,"estoque_total":0,"custo_saldo":"0","estoque_excesso":0,"custo_exces":"0","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":2,"uf":"SP","classificacao":"800.010.040","descricao":"GUINCHO LINHA OP","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":4,"qtde_param_es":18,"custo_tdt":"50083,04","tot_falta":-12,"custo_abast":"-29085,08","cod_zerados":2,"estoque_total":8,"custo_saldo":"29048,63","estoque_excesso":2,"custo_exces":"8050,68","qtde_abast":6,"perc_abast_mtz":33.333333333333,"pct_es":33.333333333333},{"cod_emp":2,"uf":"SP","classificacao":"800.050.010","descricao":"ENROLADOR DE MANGUEIRA","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":0,"qtde_param_es":0,"custo_tdt":"0","tot_falta":0,"custo_abast":"0","cod_zerados":0,"estoque_total":0,"custo_saldo":"0","estoque_excesso":0,"custo_exces":"0","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":3,"uf":"MG","classificacao":"300.200.001","descricao":"TOMADA DE FORCA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":119,"qtde_param_es":324,"custo_tdt":"206950,43","tot_falta":-7,"custo_abast":"-4069,54","cod_zerados":1,"estoque_total":405,"custo_saldo":"254852,77","estoque_excesso":88,"custo_exces":"51971,89","qtde_abast":317,"perc_abast_mtz":97.839506172839,"pct_es":87.040695377321},{"cod_emp":3,"uf":"MG","classificacao":"300.500.001","descricao":"BOMBA HIDRAULICA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":27,"qtde_param_es":99,"custo_tdt":"58848,02","tot_falta":-10,"custo_abast":"-6495,75","cod_zerados":3,"estoque_total":114,"custo_saldo":"68537,17","estoque_excesso":25,"custo_exces":"16184,9","qtde_abast":89,"perc_abast_mtz":89.898989898989,"pct_es":83.963963963963},{"cod_emp":3,"uf":"MG","classificacao":"800.010.020","descricao":"GUINCHO LINHA OS-M","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":0,"qtde_param_es":0,"custo_tdt":"0","tot_falta":0,"custo_abast":"0","cod_zerados":0,"estoque_total":0,"custo_saldo":"0","estoque_excesso":0,"custo_exces":"0","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":3,"uf":"MG","classificacao":"800.010.040","descricao":"GUINCHO LINHA OP","cod_almox":10,"deposito":"EXPEDICAO(PRODUTO PRONTO)","qtde_cod_es":6,"qtde_param_es":20,"custo_tdt":"48646,49","tot_falta":-18,"custo_abast":"-41757,93","cod_zerados":4,"estoque_total":3,"custo_saldo":"9365,41","estoque_excesso":1,"custo_exces":"2476,86","qtde_abast":2,"perc_abast_mtz":10,"pct_es":10},{"cod_emp":8,"uf":"GO","classificacao":"300.200.001","descricao":"TOMADA DE FORCA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":125,"qtde_param_es":466,"custo_tdt":"292513,99","tot_falta":-130,"custo_abast":"-79855,49","cod_zerados":10,"estoque_total":521,"custo_saldo":"327008,03","estoque_excesso":185,"custo_exces":"114349,53","qtde_abast":336,"perc_abast_mtz":72.103004291845,"pct_es":87.040695377321},{"cod_emp":8,"uf":"GO","classificacao":"300.500.001","descricao":"BOMBA HIDRAULICA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":37,"qtde_param_es":290,"custo_tdt":"182731,78","tot_falta":-119,"custo_abast":"-75355,01","cod_zerados":2,"estoque_total":237,"custo_saldo":"161442,13","estoque_excesso":66,"custo_exces":"54065,37","qtde_abast":171,"perc_abast_mtz":58.965517241379,"pct_es":83.963963963963},{"cod_emp":8,"uf":"GO","classificacao":"800.010.020","descricao":"GUINCHO LINHA OS-M","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":0,"qtde_param_es":0,"custo_tdt":"0","tot_falta":0,"custo_abast":"0","cod_zerados":0,"estoque_total":2,"custo_saldo":"13420,99","estoque_excesso":2,"custo_exces":"13420,99","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":8,"uf":"GO","classificacao":"800.010.040","descricao":"GUINCHO LINHA OP","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":6,"qtde_param_es":14,"custo_tdt":"20204,94","tot_falta":-13,"custo_abast":"-14063,86","cod_zerados":5,"estoque_total":1,"custo_saldo":"6141,08","estoque_excesso":0,"custo_exces":"0","qtde_abast":1,"perc_abast_mtz":7.1428571428571,"pct_es":7.1428571428571},{"cod_emp":9,"uf":"PE","classificacao":"300.200.001","descricao":"TOMADA DE FORCA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":98,"qtde_param_es":639,"custo_tdt":"396650,27","tot_falta":-62,"custo_abast":"-26743,74","cod_zerados":3,"estoque_total":698,"custo_saldo":"444991","estoque_excesso":121,"custo_exces":"75084,46","qtde_abast":577,"perc_abast_mtz":90.297339593114,"pct_es":87.040695377321},{"cod_emp":9,"uf":"PE","classificacao":"300.500.001","descricao":"BOMBA HIDRAULICA TAKARADA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":22,"qtde_param_es":208,"custo_tdt":"130145,67","tot_falta":-30,"custo_abast":"-21394,77","cod_zerados":0,"estoque_total":188,"custo_saldo":"114483,22","estoque_excesso":10,"custo_exces":"5732,32","qtde_abast":178,"perc_abast_mtz":85.576923076923,"pct_es":83.963963963963},{"cod_emp":9,"uf":"PE","classificacao":"800.010.020","descricao":"GUINCHO LINHA OS-M","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":0,"qtde_param_es":0,"custo_tdt":"0","tot_falta":0,"custo_abast":"0","cod_zerados":0,"estoque_total":1,"custo_saldo":"5822,17","estoque_excesso":1,"custo_exces":"5822,17","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":9,"uf":"PE","classificacao":"800.010.040","descricao":"GUINCHO LINHA OP","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":3,"qtde_param_es":15,"custo_tdt":"50755","tot_falta":-15,"custo_abast":"-50755","cod_zerados":3,"estoque_total":6,"custo_saldo":"29871,11","estoque_excesso":6,"custo_exces":"29871,11","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0},{"cod_emp":9,"uf":"PE","classificacao":"800.050.010","descricao":"ENROLADOR DE MANGUEIRA","cod_almox":10,"deposito":"EXPEDICAO (PRODUTO PRONTO)","qtde_cod_es":0,"qtde_param_es":0,"custo_tdt":"0","tot_falta":0,"custo_abast":"0","cod_zerados":0,"estoque_total":0,"custo_saldo":"0","estoque_excesso":0,"custo_exces":"0","qtde_abast":0,"perc_abast_mtz":0,"pct_es":0}],
@@ -2912,8 +2948,8 @@ function renderEstoque() {
     const outros = Math.max(0, totalEmp - (d.TOM||0) - (d.BOM||0) - (d.CIL||0) - (d.GUI||0) - (d.CON||0) - (d.ADP||0) - (d.VAL||0) - (d.KIT||0));
     return `<div class="transit-card">
       <div class="transit-card-header">${emp}</div>
-      ${[['TOM.+MULT',d.TOM],['BOMBA',d.BOM],['CILINDRO',d.CIL],['GUINCHO',d.GUI],['CONJ.+ADP',d.CON||0],['KIT HIDR.',d.KIT||0],['OUTROS',outros]].map(([k,v])=>`
-      <div class="transit-row">
+      ${[['TOM.+MULT',d.TOM,'TOM'],['BOMBA',d.BOM,'BOM'],['CILINDRO',d.CIL,'CIL'],['GUINCHO',d.GUI,'GUI'],['CONJ.+ADP',d.CON||0,'CON'],['KIT HIDR.',d.KIT||0,'KIT'],['OUTROS',outros,'OUTROS']].map(([k,v,g])=>`
+      <div class="transit-row"${v>0?` onclick="abrirTransitoDetalhe('${emp}','${g}','${k}')" style="cursor:pointer" title="Ver itens em trânsito"`:''}>
         <span class="transit-label" style="${k==='OUTROS'?'color:var(--text-muted);font-size:11px':''}">${k}</span>
         <span class="transit-val ${v===0?'zero':''}">${v===0?'—':v}</span>
       </div>`).join('')}
@@ -2984,7 +3020,7 @@ const pctOk = pctCalc !== null && pctCalc >= 90;
               <td>${fmtNum(r.qtde_cod_es)}</td>
               <td>${fmtNum(r.qtde_param_es)}</td>
               <td style="color:var(--text-muted)">${fmtR(r.custo_tdt)}</td>
-              <td style="color:${faltaOk?'var(--green)':'var(--red)'};font-weight:${faltaOk?'normal':'600'}">${fmtNum(r.tot_falta)}</td>
+              <td onclick="abrirFaltaDetalhe('${r.classificacao}','${r.uf}','${(r.descricao||'').replace(/'/g,"\\'").substring(0,30)}')" style="color:${faltaOk?'var(--green)':'var(--red)'};font-weight:${faltaOk?'normal':'600'};cursor:pointer;text-decoration:underline;text-decoration-style:dotted" title="Ver itens em falta, trânsito e pedidos">${fmtNum(r.tot_falta)}</td>
               <td style="color:var(--text-muted)">${fmtR(r.custo_abast)}</td>
               <td style="color:${r.cod_zerados>0?'var(--amber)':'var(--text)'}">${fmtNum(r.cod_zerados)}</td>
               <td>${fmtNum(r.estoque_total)}</td>
@@ -3003,6 +3039,9 @@ const pctOk = pctCalc !== null && pctCalc >= 90;
         </tbody>
       </table>
   </div>`;
+
+  // Tabela detalhada do estoque de segurança (nova seção)
+  renderESDDetalhe();
 }
 
 // ===== SERVICOS =====
@@ -4784,6 +4823,7 @@ function parsePedidos(text) {
   const iOfComp = 18;  // DE COMPLETA
   const iOfParc = 19;  // DE REQ PARCIAL
   // col20=CÓDIGO DO CLIENTE
+  const iCliCod = 20;  // CÓDIGO DO CLIENTE (usado p/ casar pedidos com filial: 842=SP,60019=GO,1189=MG,60819=PE)
   const iCliente= 21;  // DESCRIÇÃO DO CLIENTE
   // col22=CÓDIGO REPRESENTANTE, col23=DESCRIÇÃO REPRESENTANTE
   const iClass  = 24;  // CLASSIFICAÇÃO
@@ -4866,6 +4906,7 @@ function parsePedidos(text) {
       of_parc:  String(r[iOfParc]||'').trim(),
       total_of: parseNum(r[iTotOf]),
       cliente:  String(r[iCliente]||'').trim(),
+      clienteCod: String(r[iCliCod]||'').trim(),
       classificacao: String(r[iClass]||'').trim(),
       familia:  familia(r[iClass]),
       valor:    parseNum(r[iValor]),
@@ -5262,6 +5303,10 @@ document.addEventListener('click', function(e) {
   const pop = document.getElementById('of-filtro-pop');
   if (pop && !pop.contains(e.target) && !e.target.closest('[onclick*="toggleOFFiltro"]')) {
     pop.remove(); ofDetDropdownAberto = null;
+  }
+  const popE = document.getElementById('esd-filtro-pop');
+  if (popE && !popE.contains(e.target) && !e.target.closest('[onclick*="toggleESDFiltro"]')) {
+    popE.remove(); esdFiltroDropAberto = null;
   }
 });
 
@@ -6856,6 +6901,7 @@ function handleFiles(files) {
       if (name.includes('OF_ABERTAS')) parseOF(text);
       else if (name.includes('ITENS_MONTADOS')) parseMontados(text);
       else if (name.includes('TRANSITO')) parseTransito(text);
+      else if (name.includes('ESTOQUE_SEG_DETALHE')) parseEstoqueDetalhe(text);
       else if (name.includes('ESTOQUE_SEGURANCA')) parseEstoque(text);
       else if (name.includes('SERVICO_TERCEIROS')) { parseServico(text); parseTermico(text); }
       document.getElementById('update-time').textContent = 'Atualizado: ' + new Date().toLocaleTimeString('pt-BR');
@@ -7041,6 +7087,370 @@ function parseTransito(text) {
   DATA.transito = ['SP','MG','GO','PE'].map(k=>({EMPRESA:k,...pivot[k]}));
   DATA.transito_detail = detail;
 }
+// ===== ESTOQUE DE SEGURANÇA DETALHADO (email "Estoque de Segurança detalhado") =====
+// Tabela crua item-a-item. Empresa: 1=Matriz(RS), 2=SP, 3=MG, 8=GO, 9=PE.
+const ESD_EMP_MAP = {'1':'Matriz','2':'SP','3':'MG','8':'GO','9':'PE'};
+// Colunas exibidas (chave interna → rótulo). Ordem do email.
+const ESD_COLS = [
+  ['COD_ITEM','CÓDIGO'], ['DESC','DESCRIÇÃO'], ['EMPRESA','EMPRESA'], ['ALMOX','ALMOX'],
+  ['CLAS','CLASSIFICAÇÃO'], ['EST_ATUAL','ESTOQUE ATUAL'], ['PARAM_ES','PARÂM. ES'],
+  ['DIF_SALDO','DIF. SALDO'], ['DIF_TOTAL','DIF. TOTAL'], ['OF_LIB','OF LIBERADA'],
+  ['DIF_TOTAL_OF','DIF. TOTAL OF'], ['EST_TRANSITO','ESTQ TRÂNSITO'], ['CONSUMO_MED','CONSUMO MÉDIO'],
+  ['PEDIDOS','PEDIDOS'], ['DIF_REAL','DIF. REAL'], ['DIF_TRANSITO','DIF. TRÂNSITO'],
+  ['MED_CONSUMO_3M','MÉD. CONSUMO 3M'], ['FILHOS_NEG','FILHOS NEG FAB'], ['FILHOS_FAB','FILHOS FABRICADOS'],
+  ['CUSTO','CUSTO'], ['CUSTO_ATUAL','CUSTO ATUAL'], ['CUSTO_ES','CUSTO ESTQ SEG']
+];
+// Estado dos filtros da tabela detalhada de estoque de segurança
+let esdFiltros = {};
+let esdBusca = '';
+let esdEmpresa = 'todas';        // 'todas' | 'Matriz' | 'SP' | 'MG' | 'GO' | 'PE'
+let esdFiltroSelTemp = null;
+let esdFiltroValores = [];
+let esdFiltroAsc = true;
+let esdFiltroDropAberto = null;
+
+function parseEstoqueDetalhe(text) {
+  if (!text || !text.trim()) { DATA.estoqueDet = []; return; }
+  const rows = parseCSV(text, ';');
+  if (!rows.length) { DATA.estoqueDet = []; return; }
+  const isHeader = r => {
+    const j = r.map(c=>String(c||'').toUpperCase()).join('|');
+    return j.includes('CODIGO_ITEM') || j.includes('PARAMETRO_ESTOQUE') || j.includes('DIFEREN');
+  };
+  const C = { ID:0, COD:1, DESC:2, EMP:3, ALMOX:4, CLAS:5, EST_ATUAL:6, PARAM:7,
+              DIF_SALDO:8, DIF_TOTAL:9, OF_LIB:10, DIF_TOTAL_OF:11, EST_TRANSITO:12,
+              CONSUMO_MED:13, PEDIDOS:14, DIF_REAL:15, DIF_TRANSITO:16, MED_3M:17,
+              FILHOS_NEG:18, FILHOS_FAB:19, CUSTO:20, CUSTO_ATUAL:21, CUSTO_ES:22 };
+  DATA.estoqueDet = rows
+    .filter(r => r && r.length > 2 && !isHeader(r))
+    .filter(r => String(r[C.COD]||'').trim() !== '')
+    .map(r => {
+      const empNum = String(r[C.EMP]||'').trim();
+      const clasFull = String(r[C.CLAS]||'').trim();
+      return {
+        COD_ITEM:       String(r[C.COD]||'').trim(),
+        DESC:           String(r[C.DESC]||'').trim(),
+        EMPRESA:        ESD_EMP_MAP[empNum] || empNum,
+        EMP_NUM:        empNum,
+        ALMOX:          String(r[C.ALMOX]||'').trim(),
+        CLAS:           clasFull,
+        COD_CLASSE:     ofCodigoClasse(clasFull),
+        EST_ATUAL:      ofNum(r[C.EST_ATUAL]),
+        PARAM_ES:       ofNum(r[C.PARAM]),
+        DIF_SALDO:      ofNum(r[C.DIF_SALDO]),
+        DIF_TOTAL:      ofNum(r[C.DIF_TOTAL]),
+        OF_LIB:         ofNum(r[C.OF_LIB]),
+        DIF_TOTAL_OF:   ofNum(r[C.DIF_TOTAL_OF]),
+        EST_TRANSITO:   ofNum(r[C.EST_TRANSITO]),
+        CONSUMO_MED:    ofNum(r[C.CONSUMO_MED]),
+        PEDIDOS:        ofNum(r[C.PEDIDOS]),
+        DIF_REAL:       ofNum(r[C.DIF_REAL]),
+        DIF_TRANSITO:   ofNum(r[C.DIF_TRANSITO]),
+        MED_CONSUMO_3M: ofNum(r[C.MED_3M]),
+        FILHOS_NEG:     String(r[C.FILHOS_NEG]||'').trim(),
+        FILHOS_FAB:     String(r[C.FILHOS_FAB]||'').trim(),
+        CUSTO:          ofNum(r[C.CUSTO]),
+        CUSTO_ATUAL:    ofNum(r[C.CUSTO_ATUAL]),
+        CUSTO_ES:       ofNum(r[C.CUSTO_ES])
+      };
+    });
+}
+
+// ===== ESTOQUE DE SEGURANÇA DETALHADO — RENDER, FILTROS, EXPORT =====
+function esdItensFiltrados(excetoCol) {
+  let itens = (DATA.estoqueDet||[]).slice();
+  if (esdEmpresa !== 'todas') itens = itens.filter(it => it.EMPRESA === esdEmpresa);
+  Object.keys(esdFiltros).forEach(col => {
+    if (excetoCol && col===excetoCol) return;
+    const set = esdFiltros[col];
+    if (set && set.size) itens = itens.filter(it => set.has(String(it[col]==null?'':it[col])));
+  });
+  if (!excetoCol && esdBusca.trim()) {
+    const q = esdBusca.trim().toLowerCase();
+    itens = itens.filter(it => ESD_COLS.some(([k]) => String(it[k]==null?'':it[k]).toLowerCase().includes(q)));
+  }
+  return itens;
+}
+function setESDEmpresa(v){ esdEmpresa=v; esdSyncSeg(); atualizarBotaoLimparESD(); renderESDTabela(); }
+function esdSyncSeg(){
+  document.querySelectorAll('#esd-grp-emp .of-seg').forEach(b=>b.classList.toggle('active', b.getAttribute('data-v')===esdEmpresa));
+}
+function esdFmtNum(v){ const n=Number(v)||0; return n===0?'<span style="color:var(--muted-dim)">—</span>':n.toLocaleString('pt-BR',{maximumFractionDigits:2}); }
+function esdFmtMoney(v){ const n=Number(v)||0; return n===0?'<span style="color:var(--muted-dim)">—</span>':'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+function renderESDDetalhe() {
+  const wrap = document.getElementById('esd-detail-wrap');
+  if (!wrap) return;
+  if (!(DATA.estoqueDet||[]).length) {
+    wrap.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Sem dados. Aguardando o e-mail "Estoque de Segurança detalhado".</div>';
+    return;
+  }
+  renderESDTabela();
+  atualizarBotaoLimparESD();
+  esdSyncSeg();
+}
+
+function renderESDTabela() {
+  const wrap = document.getElementById('esd-detail-wrap');
+  if (!wrap) return;
+  const itens = esdItensFiltrados();
+  const todos = DATA.estoqueDet || [];
+  const numCols = new Set(['EST_ATUAL','PARAM_ES','DIF_SALDO','DIF_TOTAL','OF_LIB','DIF_TOTAL_OF','EST_TRANSITO','CONSUMO_MED','PEDIDOS','DIF_REAL','DIF_TRANSITO','MED_CONSUMO_3M']);
+  const moneyCols = new Set(['CUSTO','CUSTO_ATUAL','CUSTO_ES']);
+  const longCols = new Set(['FILHOS_NEG','FILHOS_FAB','DESC']);
+
+  const thBase = 'padding:9px 12px;text-align:center;font-size:11px;font-weight:800;white-space:nowrap;color:#fff;position:relative';
+  const tdBase = 'padding:7px 12px;text-align:center;font-size:12px;white-space:nowrap';
+
+  const head = ESD_COLS.map(([k,lbl])=>{
+    const ativo = esdFiltros[k] && esdFiltros[k].size;
+    const alignLeft = (k==='DESC'||k==='CLAS'||k==='FILHOS_FAB'||k==='FILHOS_NEG');
+    return '<th style="'+thBase+(alignLeft?';text-align:left':'')+'"><span>'+lbl+'</span>'
+      +' <span onclick="toggleESDFiltro(event,&#39;'+k+'&#39;)" title="Filtrar" style="cursor:pointer;font-size:11px;opacity:'+(ativo?'1':'.6')+';color:'+(ativo?'#ffd24d':'#cfe0ff')+'">▾</span></th>';
+  }).join('');
+
+  const body = itens.map((it,i)=>{
+    const bg = i%2===0?'transparent':'var(--row-alt)';
+    const tds = ESD_COLS.map(([k])=>{
+      let v = it[k], disp, extra='';
+      if (longCols.has(k)) {
+        const s = String(v||'');
+        if (!s) disp = '<span style="color:var(--muted-dim)">—</span>';
+        else if (s.length>30 && (k==='FILHOS_FAB'||k==='FILHOS_NEG')) disp = '<span onclick="this.textContent=this.getAttribute(&#39;data-full&#39;);this.onclick=null;this.style.whiteSpace=&#39;normal&#39;" data-full="'+s.replace(/"/g,'&quot;')+'" style="cursor:pointer;color:var(--serie-azul)">'+s.slice(0,30)+'… ⊕</span>';
+        else disp = s;
+        extra = ';text-align:left;white-space:normal;max-width:260px';
+      } else if (moneyCols.has(k)) {
+        disp = esdFmtMoney(v);
+      } else if (numCols.has(k)) {
+        disp = esdFmtNum(v);
+        if (k==='DIF_SALDO' && Number(v)<0) extra = ';color:var(--red);font-weight:700';
+      } else {
+        disp = (v==null||v==='')?'<span style="color:var(--muted-dim)">—</span>':String(v);
+      }
+      return '<td style="'+tdBase+extra+'">'+disp+'</td>';
+    }).join('');
+    return '<tr style="background:'+bg+'">'+tds+'</tr>';
+  }).join('');
+
+  wrap.innerHTML =
+     '<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap">'
+    +'<input id="esd-busca" type="text" placeholder="🔍 Buscar em todas as colunas..." value="'+esdBusca.replace(/"/g,'&quot;')+'" oninput="esdBusca=this.value;renderESDTabela();setTimeout(function(){var el=document.getElementById(&#39;esd-busca&#39;);if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length);}},0)" style="flex:1;min-width:220px;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:8px;font-size:13px">'
+    +'<span style="font-size:12px;color:var(--text-muted)">'+itens.length.toLocaleString('pt-BR')+' de '+todos.length.toLocaleString('pt-BR')+' itens</span>'
+    +'</div>'
+    +'<div style="border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--card-shadow,0 4px 24px rgba(0,0,0,0.4))">'
+    +'<div style="max-height:560px;overflow:auto;-webkit-overflow-scrolling:touch">'
+    +'<table style="border-collapse:collapse;white-space:nowrap;width:max-content;min-width:100%">'
+    +'<thead style="position:sticky;top:0;z-index:5"><tr style="background:var(--header-table-bg)">'+head+'</tr></thead>'
+    +'<tbody>'+(body||'<tr><td colspan="'+ESD_COLS.length+'" style="padding:20px;text-align:center;color:var(--text-muted)">Nenhum item para os filtros aplicados.</td></tr>')+'</tbody>'
+    +'</table></div></div>';
+}
+
+function toggleESDFiltro(ev, col){
+  ev.stopPropagation();
+  const exist = document.getElementById('esd-filtro-pop');
+  if (exist) { exist.remove(); if (esdFiltroDropAberto===col){ esdFiltroDropAberto=null; return; } }
+  esdFiltroDropAberto = col;
+  const baseItens = esdItensFiltrados(col);
+  const valoresUnicos = Array.from(new Set(baseItens.map(it=>String(it[col]==null?'':it[col]))));
+  const valores = ofOrdenarValores(valoresUnicos, col, esdFiltroAsc);
+  const sel = esdFiltros[col] || new Set();
+  esdFiltroValores = valoresUnicos.slice();
+  esdFiltroSelTemp = new Set(sel.size===0 ? valoresUnicos : valoresUnicos.filter(v=>sel.has(v)));
+  const lbl = (ESD_COLS.find(c=>c[0]===col)||[,col])[1];
+
+  const pop = document.createElement('div');
+  pop.id = 'esd-filtro-pop';
+  pop.style.cssText = 'position:fixed;z-index:1100;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.5);padding:10px;width:280px;max-width:92vw;max-height:70vh;display:flex;flex-direction:column';
+  pop.innerHTML =
+     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:6px">'
+    +'<span style="font-size:11px;font-weight:700;color:var(--serie-azul);letter-spacing:1px">FILTRAR: '+lbl+'</span>'
+    +'<button onclick="esdFiltroInverter(&#39;'+col+'&#39;)" title="Inverter ordem" style="background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;white-space:nowrap">'+(esdFiltroAsc?'↑ A-Z':'↓ Z-A')+'</button>'
+    +'</div>'
+    +'<input id="esd-filtro-search" type="text" placeholder="Buscar valor..." oninput="esdFiltroBuscaValor(this.value)" style="background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;margin-bottom:8px">'
+    +'<div style="display:flex;gap:6px;margin-bottom:8px">'
+    +'<button onclick="esdFiltroTodos(true)" style="flex:1;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:4px;border-radius:6px;font-size:11px;cursor:pointer">Todos</button>'
+    +'<button onclick="esdFiltroTodos(false)" style="flex:1;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:4px;border-radius:6px;font-size:11px;cursor:pointer">Nenhum</button>'
+    +'</div>'
+    +'<div id="esd-filtro-lista" style="overflow-y:auto;flex:1;font-size:12px;min-height:80px">'
+    + valores.map(v=>{
+        const checked = esdFiltroSelTemp.has(v);
+        const vEsc = v.replace(/"/g,'&quot;');
+        return '<label class="esd-filtro-item" data-val="'+vEsc.toLowerCase()+'" style="display:flex;gap:6px;align-items:center;padding:3px 2px;cursor:pointer">'
+          +'<input type="checkbox" '+(checked?'checked':'')+' data-rawval="'+vEsc+'" onchange="esdFiltroMarcar(this)">'
+          +'<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(v===''?'(vazio)':v)+'</span></label>';
+      }).join('')
+    +'</div>'
+    +'<div style="display:flex;gap:6px;margin-top:8px">'
+    +'<button onclick="aplicarESDFiltro(&#39;'+col+'&#39;)" style="flex:1;background:var(--serie-azul);border:none;color:#fff;padding:6px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">Aplicar</button>'
+    +'<button onclick="document.getElementById(&#39;esd-filtro-pop&#39;).remove();esdFiltroDropAberto=null" style="background:var(--panel2);border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer">✕</button>'
+    +'</div>';
+  document.body.appendChild(pop);
+  const w = pop.offsetWidth || 280, h = pop.offsetHeight || 360;
+  pop.style.left = Math.max(8, Math.min(ev.clientX, window.innerWidth - w - 8))+'px';
+  pop.style.top  = Math.max(8, Math.min(ev.clientY+12, window.innerHeight - h - 8))+'px';
+}
+function esdFiltroMarcar(cb){ const v=cb.getAttribute('data-rawval'); if(cb.checked) esdFiltroSelTemp.add(v); else esdFiltroSelTemp.delete(v); }
+function esdFiltroBuscaValor(q){ const ql=(q||'').toLowerCase(); document.querySelectorAll('#esd-filtro-lista .esd-filtro-item').forEach(el=>{ el.style.display = el.getAttribute('data-val').includes(ql)?'flex':'none'; }); }
+function esdFiltroTodos(marcar){ document.querySelectorAll('#esd-filtro-lista .esd-filtro-item').forEach(el=>{ if(el.style.display==='none') return; const cb=el.querySelector('input'); if(!cb) return; cb.checked=marcar; const v=cb.getAttribute('data-rawval'); if(marcar) esdFiltroSelTemp.add(v); else esdFiltroSelTemp.delete(v); }); }
+function aplicarESDFiltro(col){
+  const total = esdFiltroValores.length, n = esdFiltroSelTemp.size;
+  if (n===0 || n===total) delete esdFiltros[col];
+  else esdFiltros[col] = new Set(esdFiltroSelTemp);
+  const pop=document.getElementById('esd-filtro-pop'); if(pop) pop.remove();
+  esdFiltroDropAberto=null;
+  atualizarBotaoLimparESD();
+  renderESDTabela();
+}
+function esdFiltroInverter(col){
+  esdFiltroAsc = !esdFiltroAsc;
+  const valores = ofOrdenarValores(esdFiltroValores.slice(), col, esdFiltroAsc);
+  const lista = document.getElementById('esd-filtro-lista');
+  if (lista) {
+    lista.innerHTML = valores.map(v=>{
+      const checked = esdFiltroSelTemp.has(v);
+      const vEsc = v.replace(/"/g,'&quot;');
+      return '<label class="esd-filtro-item" data-val="'+vEsc.toLowerCase()+'" style="display:flex;gap:6px;align-items:center;padding:3px 2px;cursor:pointer">'
+        +'<input type="checkbox" '+(checked?'checked':'')+' data-rawval="'+vEsc+'" onchange="esdFiltroMarcar(this)">'
+        +'<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(v===''?'(vazio)':v)+'</span></label>';
+    }).join('');
+  }
+  const btn = document.querySelector('#esd-filtro-pop button[onclick^="esdFiltroInverter"]');
+  if (btn) btn.textContent = esdFiltroAsc?'↑ A-Z':'↓ Z-A';
+}
+function atualizarBotaoLimparESD(){
+  const btn=document.getElementById('esd-detail-clear');
+  if(!btn) return;
+  const ativo = Object.keys(esdFiltros).length>0 || esdBusca.trim() || esdEmpresa!=='todas';
+  if (ativo) { btn.style.background='rgba(255,59,59,.12)'; btn.style.borderColor='#ff3b3b'; btn.style.color='#ff6b6b'; }
+  else { btn.style.background='rgba(255,59,59,.08)'; btn.style.borderColor='var(--border)'; btn.style.color='var(--text-muted)'; }
+}
+function limparFiltroESD(){
+  esdFiltros = {}; esdBusca = ''; esdEmpresa = 'todas';
+  esdSyncSeg(); atualizarBotaoLimparESD(); renderESDTabela();
+}
+function exportarESDExcel(){
+  const itens = esdItensFiltrados();
+  if (!itens.length) { alert('Não há itens para exportar com os filtros atuais.'); return; }
+  const cabec = ESD_COLS.map(c=>c[1]);
+  const numCols = new Set(['EST_ATUAL','PARAM_ES','DIF_SALDO','DIF_TOTAL','OF_LIB','DIF_TOTAL_OF','EST_TRANSITO','CONSUMO_MED','PEDIDOS','DIF_REAL','DIF_TRANSITO','MED_CONSUMO_3M','CUSTO','CUSTO_ATUAL','CUSTO_ES']);
+  const linhas = itens.map(it => ESD_COLS.map(([k]) => numCols.has(k) ? (Number(it[k])||0) : (it[k]==null?'':String(it[k]))));
+  const nomeArq = 'Estoque_Seguranca_Detalhado_'+new Date().toISOString().slice(0,10);
+  if (window.XLSX && XLSX.utils) {
+    try {
+      const ws = XLSX.utils.aoa_to_sheet([cabec].concat(linhas));
+      ws['!cols'] = cabec.map((h,i)=>i===1?{wch:40}:i===18?{wch:30}:{wch:Math.max(10,h.length+2)});
+      ws['!autofilter'] = { ref: XLSX.utils.encode_range({s:{r:0,c:0}, e:{r:linhas.length, c:cabec.length-1}}) };
+      ws['!freeze'] = { xSplit:0, ySplit:1 };
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Estoque Seg Detalhado');
+      XLSX.writeFile(wb, nomeArq+'.xlsx');
+      return;
+    } catch(e){ console.warn('Falha XLSX, CSV:', e); }
+  }
+  const esc = v => { let s=String(v==null?'':v); if(/[;"\n]/.test(s)) s='"'+s.replace(/"/g,'""')+'"'; return s; };
+  const csv = [cabec.map(esc).join(';')].concat(linhas.map(r=>r.map((v,i)=> typeof v==='number' ? String(v).replace('.',',') : esc(v)).join(';'))).join('\r\n');
+  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nomeArq+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
+}
+
+// ===== POP-UPS DA ABA ESTOQUE & TRÂNSITO =====
+// Grupo do card → labels de produto em transito_detail
+const TRANSITO_GRUPO_LABEL = {
+  TOM:['TOMADA DE FORCA'], BOM:['BOMBA HIDRAULICA'], CIL:['CILINDRO HIDRAULICO'],
+  GUI:['GUINCHO'], CON:['CONJUNTO EIXO'], KIT:['KIT HIDRAULICO']
+};
+function abrirTransitoDetalhe(emp, grupo, label){
+  const modal=document.getElementById('modal-estoque-det');
+  const body =document.getElementById('modal-estoque-det-body');
+  const tit  =document.getElementById('modal-estoque-det-titulo');
+  const sub  =document.getElementById('modal-estoque-det-sub');
+  if(!modal||!body) return;
+  let itens;
+  if (grupo==='OUTROS') {
+    const conhecidos = new Set(['TOMADA DE FORCA','BOMBA HIDRAULICA','CILINDRO HIDRAULICO','GUINCHO','CONJUNTO EIXO','KIT HIDRAULICO']);
+    itens = (DATA.transito_detail||[]).filter(r=>r.empresa===emp && !conhecidos.has(r.produto));
+  } else {
+    const labels = new Set(TRANSITO_GRUPO_LABEL[grupo]||[]);
+    itens = (DATA.transito_detail||[]).filter(r=>r.empresa===emp && labels.has(r.produto));
+  }
+  itens = itens.slice().sort((a,b)=>b.quantidade-a.quantidade);
+  const totQtd = itens.reduce((s,r)=>s+r.quantidade,0);
+  tit.textContent = 'EM TRÂNSITO — '+emp+' • '+label;
+  sub.textContent = itens.length+' itens • '+totQtd.toLocaleString('pt-BR')+' peças em trânsito';
+  const th='padding:8px 12px;text-align:center;font-size:11px;font-weight:800;color:#fff;white-space:nowrap';
+  const td='padding:7px 12px;text-align:center;font-size:12px;white-space:nowrap';
+  body.innerHTML =
+     '<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border)"><div style="max-height:440px;overflow:auto">'
+    +'<table style="border-collapse:collapse;width:100%;min-width:560px;table-layout:fixed">'
+    +'<colgroup><col style="width:90px"><col><col style="width:140px"><col style="width:80px"></colgroup>'
+    +'<thead style="position:sticky;top:0"><tr style="background:var(--header-table-bg)">'
+    +'<th style="'+th+'">CÓDIGO</th><th style="'+th+';text-align:left">DESCRIÇÃO</th><th style="'+th+'">CLASSIFICAÇÃO</th><th style="'+th+'">QTDE</th></tr></thead><tbody>'
+    + (itens.map((r,i)=>'<tr style="background:'+(i%2===0?'transparent':'var(--row-alt)')+'">'
+        +'<td style="'+td+';font-weight:600">'+r.codigo+'</td>'
+        +'<td style="'+td+';text-align:left;white-space:normal">'+r.descricao+'</td>'
+        +'<td style="'+td+';color:var(--text-muted)">'+r.classificacao+'</td>'
+        +'<td style="'+td+';font-weight:700">'+r.quantidade.toLocaleString('pt-BR')+'</td></tr>').join('')
+       || '<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--text-muted)">Sem itens em trânsito.</td></tr>')
+    +'</tbody></table></div></div>';
+  modal.style.display='flex';
+}
+
+// Código de cliente (filial) por UF — pedidos de venda destinados a reabastecer a filial
+const FILIAL_CLIENTE_COD = { 'SP':'842', 'GO':'60019', 'MG':'1189', 'PE':'60819' };
+const UF_EMP_NOME = { 'RS':'Matriz', 'SP':'SP', 'MG':'MG', 'GO':'GO', 'PE':'PE' };
+
+// Clique em TOT FALTA ABASTECER da linha agregada (classificacao + uf)
+function abrirFaltaDetalhe(classificacao, uf, descClasse){
+  const modal=document.getElementById('modal-estoque-det');
+  const body =document.getElementById('modal-estoque-det-body');
+  const tit  =document.getElementById('modal-estoque-det-titulo');
+  const sub  =document.getElementById('modal-estoque-det-sub');
+  if(!modal||!body) return;
+  const empNome = UF_EMP_NOME[uf] || uf;
+  // Itens detalhados da mesma classificação + empresa, com falta (Diferença_Saldo < 0)
+  const itensFalta = (DATA.estoqueDet||[])
+    .filter(it => it.COD_CLASSE===classificacao && it.EMPRESA===empNome && it.DIF_SALDO < 0)
+    .sort((a,b)=>a.DIF_SALDO-b.DIF_SALDO);
+  const clienteCod = FILIAL_CLIENTE_COD[uf] || null;
+
+  tit.textContent = 'FALTA ABASTECER — '+empNome+' • '+(descClasse||classificacao);
+  const totFalta = itensFalta.reduce((s,it)=>s+Math.abs(it.DIF_SALDO),0);
+  sub.textContent = itensFalta.length+' itens em falta • '+Math.round(totFalta).toLocaleString('pt-BR')+' peças faltando'+(clienteCod?' • pedidos do cliente '+clienteCod:'');
+
+  const th='padding:8px 10px;text-align:center;font-size:11px;font-weight:800;color:#fff;white-space:nowrap';
+  const td='padding:7px 10px;text-align:center;font-size:12px;white-space:nowrap';
+
+  body.innerHTML =
+     '<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border)"><div style="max-height:480px;overflow:auto">'
+    +'<table style="border-collapse:collapse;width:100%;min-width:720px;table-layout:fixed">'
+    +'<colgroup><col style="width:80px"><col><col style="width:70px"><col style="width:80px"><col style="width:80px"><col></colgroup>'
+    +'<thead style="position:sticky;top:0"><tr style="background:var(--header-table-bg)">'
+    +'<th style="'+th+'">CÓDIGO</th><th style="'+th+';text-align:left">DESCRIÇÃO</th><th style="'+th+'">FALTA</th><th style="'+th+'">EM TRÂNSITO</th><th style="'+th+'">PEDIDOS</th><th style="'+th+';text-align:left">PEDIDOS PROGRAMADOS</th></tr></thead><tbody>'
+    + (itensFalta.map((it,i)=>{
+        const falta = Math.abs(it.DIF_SALDO);
+        // Trânsito: do próprio detalhado + conferência com a aba Trânsito (transito_detail por código+UF)
+        const transAba = (DATA.transito_detail||[]).filter(r=>r.codigo===it.COD_ITEM && r.empresa===uf).reduce((s,r)=>s+r.quantidade,0);
+        const transito = it.EST_TRANSITO || transAba;
+        const transTip = (transAba && it.EST_TRANSITO && transAba!==it.EST_TRANSITO) ? ' title="email:'+it.EST_TRANSITO+' / trânsito:'+transAba+'"' : '';
+        // Pedidos de venda: mesmo código E cliente = código da filial
+        const peds = (DATA.pedidos||[]).filter(p=>p.codigo===it.COD_ITEM && clienteCod && p.clienteCod===clienteCod);
+        const pedTxt = peds.length
+          ? peds.map(p=>Math.round(p.qtde).toLocaleString('pt-BR')+' un'+(p.dataEntStr?' ('+p.dataEntStr.split('-').reverse().join('/')+')':'')).join(' • ')
+          : '<span style="color:var(--muted-dim)">—</span>';
+        return '<tr style="background:'+(i%2===0?'transparent':'var(--row-alt)')+'">'
+          +'<td style="'+td+';font-weight:600">'+it.COD_ITEM+'</td>'
+          +'<td style="'+td+';text-align:left;white-space:normal">'+it.DESC+'</td>'
+          +'<td style="'+td+';color:var(--red);font-weight:700">'+Math.round(falta).toLocaleString('pt-BR')+'</td>'
+          +'<td style="'+td+';color:'+(transito>0?'var(--serie-azul)':'var(--muted-dim)')+'"'+transTip+'>'+(transito>0?Math.round(transito).toLocaleString('pt-BR'):'—')+'</td>'
+          +'<td style="'+td+';color:'+(it.PEDIDOS>0?'var(--green)':'var(--muted-dim)')+'">'+(it.PEDIDOS>0?Math.round(it.PEDIDOS).toLocaleString('pt-BR'):'—')+'</td>'
+          +'<td style="'+td+';text-align:left;white-space:normal;font-size:11px">'+pedTxt+'</td></tr>';
+      }).join('')
+      || '<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--text-muted)">Sem itens em falta para esta classificação/empresa no detalhamento.</td></tr>')
+    +'</tbody></table></div></div>';
+  modal.style.display='flex';
+}
+
 function parseEstoque(text) {
   const rows = parseCSV(text, ';');
   const clsToGroup = {
@@ -7596,6 +8006,7 @@ async function readSheets() {
     'OF_ABERTAS':        parseOF,
     'ITENS_MONTADOS':    parseMontados,
     'ESTOQUE_SEGURANCA': parseEstoque,
+    'ESTOQUE_SEG_DETALHE': parseEstoqueDetalhe,
     'TRANSITO':          parseTransito,
     'SERVICO_TERCEIROS': parseServico,
     'TERMICO_POLIMENTO': parseTermico,
