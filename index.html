@@ -2638,9 +2638,14 @@ function renderMontados() {
     duRestantes++;
   }
 
-  // du efetivos = nº de dias do mês com registro (exclui o dia de hoje, ainda em curso)
+  // du efetivos = nº de dias do mês com registro (exclui hoje, feriados e fins de semana)
   const duEmail = dataRows.filter(r=>{
-    const d=parseDate(r.DATA||''); return d && d.getTime()!==hoje.getTime();
+    const d=parseDate(r.DATA||''); if(!d) return false;
+    if(d.getTime()===hoje.getTime()) return false;          // exclui hoje (em curso)
+    if(d.getDay()===0||d.getDay()===6) return false;         // exclui fim de semana
+    const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if(feriados.includes(iso)) return false;                 // exclui feriado
+    return true;
   }).length || duAteMes;
 
   // MÉDIA/dia = TOTAL (sem hoje) ÷ duEmail
