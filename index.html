@@ -1066,7 +1066,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div id="estoque-charts" style="overflow-x:auto;-webkit-overflow-scrolling:touch;"></div>
 
   <!-- ======= ESTOQUE DE SEGURANÇA — DETALHADO POR ITEM ======= -->
-  <div style="margin:32px 0 14px">
+  <div style="margin:4px 0 14px">
     <div class="section-title" style="margin:0 0 12px">Estoque de Segurança — Detalhado por Item<span class="email-badge" data-sheet="ESTOQUE_SEG_DETALHE"></span></div>
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -1086,7 +1086,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </div>
   </div>
-  <div id="esd-detail-wrap"></div>
+  <div id="esd-detail-wrap" style="margin-bottom:32px"></div>
 
   <div class="section-title">Estoque em Trânsito — Detalhe por Item</div>
   <div class="transito-filters">
@@ -7588,14 +7588,14 @@ function abrirFaltaDetalhe(classificacao, uf, descClasse){
   body.innerHTML =
      '<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border)"><div style="max-height:480px;overflow:auto">'
     +'<table style="border-collapse:collapse;width:100%;min-width:780px">'
-    +'<colgroup><col style="width:72px"><col style="min-width:160px"><col style="width:56px"><col style="width:72px"><col style="width:64px"><col style="min-width:150px"><col style="width:66px"></colgroup>'
+    +'<colgroup><col style="width:72px"><col style="min-width:160px"><col style="width:56px"><col style="width:72px"><col style="width:80px"><col style="min-width:160px"><col style="width:66px"></colgroup>'
     +'<thead style="position:sticky;top:0"><tr style="background:var(--header-table-bg)">'
     +'<th style="'+th+'">CÓDIGO</th>'
     +'<th style="'+th+';text-align:left">DESCRIÇÃO</th>'
     +'<th style="'+th+'">FALTA</th>'
     +'<th style="'+th+'">PEDIDOS<br>NA FILIAL</th>'
     +'<th style="'+th+'">EM<br>TRÂNSITO</th>'
-    +'<th style="'+th+';text-align:left">PEDIDOS DE<br>TRANSFERÊNCIA</th>'
+    +'<th style="'+th+';text-align:left;padding-left:20px">PEDIDOS DE<br>TRANSFERÊNCIA</th>'
     +'<th style="'+th+'" title="Trânsito + Transferência − Pedidos na filial − Falta">SALDO</th></tr></thead><tbody>'
     + (itensFalta.map((it,i)=>{
         const falta = Math.abs(it.DIF_SALDO);
@@ -7619,7 +7619,7 @@ function abrirFaltaDetalhe(classificacao, uf, descClasse){
           +'<td style="'+td+';color:var(--red);font-weight:700">'+Math.round(falta).toLocaleString('pt-BR')+'</td>'
           +'<td style="'+td+';color:'+(pedFilial>0?'var(--amber)':'var(--muted-dim)')+'">'+(pedFilial>0?Math.round(pedFilial).toLocaleString('pt-BR'):'—')+'</td>'
           +'<td style="'+td+';color:'+(transito>0?'var(--serie-azul)':'var(--muted-dim)')+'"'+transTip+'>'+(transito>0?Math.round(transito).toLocaleString('pt-BR'):'—')+'</td>'
-          +'<td style="'+td+';text-align:left;white-space:normal;font-size:11px">'+pedTxt+'</td>'
+          +'<td style="'+td+';text-align:left;white-space:normal;font-size:11px;padding-left:20px">'+pedTxt+'</td>'
           +'<td style="'+td+';font-weight:700;color:'+saldoCor+'">'+saldo.toLocaleString('pt-BR')+'</td></tr>';
       }).join('')
       || '<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--text-muted)">Sem itens em falta para esta classificação/empresa no detalhamento.</td></tr>')
