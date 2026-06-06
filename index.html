@@ -2111,6 +2111,17 @@ function renderOFDetalhe() {
     wrap.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Sem dados de OFs Abertas. Aguardando o e-mail "OF ABERTAS SEM ROTEIRO".</div>';
     return;
   }
+  renderOFCards();
+  renderOFDetalheTabela();
+  atualizarBotaoLimparOF();
+  ofSyncSeg();
+}
+
+// Cards recalculados sobre os itens já filtrados (toggles + colunas + busca)
+function renderOFCards() {
+  const cardsEl = document.getElementById('of-detail-cards');
+  if (!cardsEl) return;
+  const itens = ofDetItensFiltrados();
 
   const qtOFs    = new Set(itens.map(it=>it.NUM_ORDEM)).size;
   const qtLinhas = itens.length;
@@ -2128,20 +2139,14 @@ function renderOFDetalhe() {
     +'<div style="font-size:22px;font-weight:900;color:'+(cor||'var(--serie-azul)')+'">'+valor+'</div>'
     +(sub?'<div style="font-size:9px;color:var(--text-muted);margin-top:2px">'+sub+'</div>':'')+'</div>';
 
-  if (cardsEl) {
-    cardsEl.innerHTML =
-       card('OFs EM ABERTO', qtOFs.toLocaleString('pt-BR'), qtLinhas.toLocaleString('pt-BR')+' itens')
-      +card('QTDE PENDENTE', Math.round(totPend).toLocaleString('pt-BR'), 'soma QTDE_PENDENTE')
-      +card('OFs EM ATRASO', qtAtraso.toLocaleString('pt-BR'), ofFmtMoney(valAtraso), '#ff6b6b')
-      +card('NÃO SEPARADAS', naoSep.toLocaleString('pt-BR'), 'movimento NADA', 'var(--amber)')
-      +card('VALOR TOTAL', ofFmtMoney(valTotal), 'soma VLR_TOTAL_ORDEM')
-      +card('CUSTO TOTAL', ofFmtMoney(custoTot), 'soma CUSTO_MÉDIO_TOTAL', 'var(--green)')
-      +card('SEM CLASSIF.', semFam.toLocaleString('pt-BR'), 'fora das 8 famílias', 'var(--text-muted)');
-  }
-
-  renderOFDetalheTabela();
-  atualizarBotaoLimparOF();
-  ofSyncSeg();
+  cardsEl.innerHTML =
+     card('OFs EM ABERTO', qtOFs.toLocaleString('pt-BR'), qtLinhas.toLocaleString('pt-BR')+' itens')
+    +card('QTDE PENDENTE', Math.round(totPend).toLocaleString('pt-BR'), 'soma QTDE_PENDENTE')
+    +card('OFs EM ATRASO', qtAtraso.toLocaleString('pt-BR'), ofFmtMoney(valAtraso), '#ff6b6b')
+    +card('NÃO SEPARADAS', naoSep.toLocaleString('pt-BR'), 'movimento NADA', 'var(--amber)')
+    +card('VALOR TOTAL', ofFmtMoney(valTotal), 'soma VLR_TOTAL_ORDEM')
+    +card('CUSTO TOTAL', ofFmtMoney(custoTot), 'soma CUSTO_MÉDIO_TOTAL', 'var(--green)')
+    +card('SEM CLASSIF.', semFam.toLocaleString('pt-BR'), 'fora das 8 famílias', 'var(--text-muted)');
 }
 
 // ── Só a tabela (re-render rápido quando muda filtro/busca) ──
@@ -2203,6 +2208,8 @@ function renderOFDetalheTabela() {
     +'<thead style="position:sticky;top:0;z-index:5"><tr style="background:var(--header-table-bg)">'+head+'</tr></thead>'
     +'<tbody>'+(body||'<tr><td colspan="'+OF_DET_COLS.length+'" style="padding:20px;text-align:center;color:var(--text-muted)">Nenhum item para os filtros aplicados.</td></tr>')+'</tbody>'
     +'</table></div></div>';
+
+  renderOFCards();   // cards refletem os mesmos filtros da tabela
 }
 
 // ── Dropdown de filtro por coluna (tipo Excel) ──
@@ -2406,7 +2413,12 @@ function mostrarPopupResumoOF(itens, subtitulo){
   const sub  =document.getElementById('modal-of-resumo-sub');
   if(!modal||!body) return;
   const totPend = itens.reduce((s,it)=>s+it.QTDE_PEND,0);
-  sub.textContent = subtitulo+'  •  '+itens.length+' OFs  •  '+Math.round(totPend).toLocaleString('pt-BR')+' pç pendentes';
+  const nSep   = itens.filter(it=>it.MOVIMENTO==='REP').length;
+  const nNao   = itens.filter(it=>it.MOVIMENTO==='NADA').length;
+  const nParc  = itens.filter(it=>it.MOVIMENTO==='EPP').length;
+  sub.textContent = subtitulo+'  •  '+itens.length+' OFs  •  '
+    +nSep+' separadas  •  '+nNao+' não separadas  •  '+nParc+' entregue parcial  •  '
+    +Math.round(totPend).toLocaleString('pt-BR')+' pç pendentes';
   const th='padding:8px 10px;text-align:center;font-size:11px;font-weight:800;color:#fff;white-space:nowrap';
   const td='padding:7px 10px;text-align:center;font-size:12px;white-space:nowrap';
   const tdDesc='padding:7px 10px;text-align:left;font-size:12px;white-space:normal;line-height:1.3';
