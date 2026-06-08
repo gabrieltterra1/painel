@@ -5881,9 +5881,9 @@ function pvFiltroRapido(tipo) {
   });
   msChange('ms-pv-dias');
 
-  // Botão atraso: todos os projetados. Botão hoje: somente negativos
+  // Ambos os botões filtram projetado < 0 (conforme o rótulo "(proj < 0)")
   const projFilt = document.getElementById('pv-proj-filt');
-  if (projFilt) projFilt.value = tipo === 'hoje' ? 'neg' : '';
+  if (projFilt) projFilt.value = 'neg';
 
   renderPvPrioridades();
 }
