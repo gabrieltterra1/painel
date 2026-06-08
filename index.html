@@ -1629,6 +1629,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <label class="ms-item"><input type="checkbox" value="SEP. PARCIAL" checked onchange="msChange('ms-pv-prior-status')"> ◑ Sep. Parcial</label>
         <label class="ms-item"><input type="checkbox" value="ABRIR OF" checked onchange="msChange('ms-pv-prior-status')"> ✗ Abrir OF</label>
         <label class="ms-item"><input type="checkbox" value="MISTO" checked onchange="msChange('ms-pv-prior-status')"> ◑ Misto</label>
+        <label class="ms-item"><input type="checkbox" value="FATURAR" checked onchange="msChange('ms-pv-prior-status')"> ✓ Faturar (estoque ok)</label>
       </div>
     </div>
     <input class="search-input" type="text" id="pv-search2" placeholder="Buscar código ou descrição..." oninput="renderPvPrioridades()" style="width:200px">
@@ -5509,6 +5510,7 @@ function renderPvPrioridades() {
       if (!statusFilt || statusFilt.length === 0) return true;
       const sof = (g.statusOf||'').toUpperCase();
       return statusFilt.some(s => {
+        if (s==='FATURAR')       return g.faturar;
         if (s==='SEPARADO')      return sof.includes('SEPARADO') && !sof.includes('FALTA') && !sof.includes('PARCIAL') && !sof.includes('MISTO');
         if (s==='FALTA SEPARAR') return sof.includes('FALTA SEPARAR');
         if (s==='SEP. PARCIAL')  return sof.includes('SEP. PARCIAL') || sof.includes('PARCIAL');
