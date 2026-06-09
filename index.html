@@ -1704,9 +1704,17 @@ document.addEventListener('DOMContentLoaded', () => {
   <!-- KPIs (ligados aos filtros desta tabela) -->
   <div class="kpi-bar" id="pv-kpis" style="margin:8px 0 16px"></div>
   <div class="filter-row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
-    <select class="filter-select" id="pv-data" onchange="renderPedidos()">
-      <option value="">Todas as datas</option>
-    </select>
+    <div class="ms-wrap" id="ms-pv-data" style="min-width:180px">
+      <div class="ms-btn" onclick="toggleMsDropdown('ms-pv-data')">
+        <span id="ms-pv-data-label">Todas as datas</span><span>▾</span>
+      </div>
+      <div class="ms-dropdown" id="ms-pv-data-list">
+        <div class="ms-all" onclick="msToggleAll('ms-pv-data')">
+          <input type="checkbox" id="ms-pv-data-all" checked> Selecionar / Desmarcar Todos
+        </div>
+        <!-- meses e datas populados dinamicamente em renderPedidos() -->
+      </div>
+    </div>
     <div class="ms-wrap" id="ms-pv-status">
       <div class="ms-btn" onclick="toggleMsDropdown('ms-pv-status')">
         <span id="ms-pv-status-label">Todos os status</span><span>▾</span>
@@ -4974,6 +4982,51 @@ function parsePedidos(text) {
 
 // ===== RENDER PEDIDOS =====
 let pvCharts = [];
+let _pvDatasAssinatura = '';
+
+// Popula o multi-select de datas com botões de mês + checkbox por data.
+// Só repopula se o conjunto de datas mudou (preserva a seleção do usuário entre renders).
+function _pvPopularMultiDatas(datas, hoje) {
+  const lista = document.getElementById('ms-pv-data-list');
+  if (!lista) return;
+  const assinatura = datas.join('|');
+  if (assinatura === _pvDatasAssinatura && lista.querySelector('.ms-item')) return; // já populado e igual
+  _pvDatasAssinatura = assinatura;
+
+  // Agrupar datas por mês (AAAA-MM)
+  const meses = {};
+  datas.forEach(d => { const mk = d.slice(0,7); (meses[mk] = meses[mk] || []).push(d); });
+  const MESNOME = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+
+  let html = '<div class="ms-all" onclick="msToggleAll(\'ms-pv-data\')">'
+    + '<input type="checkbox" id="ms-pv-data-all" checked> Selecionar / Desmarcar Todos</div>';
+
+  Object.keys(meses).sort().forEach(mk => {
+    const [a,m] = mk.split('-');
+    const rotulo = MESNOME[parseInt(m)-1] + '/' + a.slice(2);
+    // botão de mês: marca/desmarca todas as datas do mês
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 8px;background:var(--panel2);border-radius:6px;margin:4px 0">'
+      + '<span style="font-size:11px;font-weight:700;color:var(--serie-azul);letter-spacing:.5px">📅 '+rotulo+'</span>'
+      + '<span><button onclick="pvToggleMes(\''+mk+'\',true)" style="background:none;border:1px solid var(--border);color:var(--text);border-radius:4px;font-size:10px;padding:2px 6px;cursor:pointer;margin-right:4px">Marcar</button>'
+      + '<button onclick="pvToggleMes(\''+mk+'\',false)" style="background:none;border:1px solid var(--border);color:var(--text-muted);border-radius:4px;font-size:10px;padding:2px 6px;cursor:pointer">Limpar</button></span>'
+      + '</div>';
+    meses[mk].sort().forEach(d => {
+      const [ya,ym,yd] = d.split('-');
+      const dt = new Date(d+'T00:00:00');
+      const isHoje = dt.getTime() === hoje.getTime();
+      const isAt   = dt < hoje;
+      const lbl = yd+'/'+ym+'/'+ya + (isHoje?' (HOJE)':'') + (isAt?' ⚠':'');
+      html += '<label class="ms-item" data-mes="'+mk+'"><input type="checkbox" value="'+d+'" checked onchange="msChange(\'ms-pv-data\')"> '+lbl+'</label>';
+    });
+  });
+  lista.innerHTML = html;
+}
+
+// Marca/desmarca todas as datas de um mês
+function pvToggleMes(mk, marcar) {
+  document.querySelectorAll('#ms-pv-data-list .ms-item[data-mes="'+mk+'"] input[type=checkbox]').forEach(cb => { cb.checked = marcar; });
+  msChange('ms-pv-data');
+}
 
 function renderPedidos() {
   if (!DATA.pedidos || DATA.pedidos.length === 0) {
@@ -5093,28 +5146,20 @@ function renderPedidos() {
   }
 
   // ── FILTROS ──────────────────────────────────────────────────────────────
-  const dataFilt    = document.getElementById('pv-data').value;
   const statusFilt  = getMsValues('ms-pv-status');
   const familiaFilt = getMsValues('ms-pv-familia');
   const search      = (document.getElementById('pv-search').value||'').trim().toLowerCase();
 
-  // Popular select de datas
+  // Popular multi-select de datas (uma vez; preserva seleção entre renders)
   const datas = [...new Set(todos.map(r=>r.dataEntStr).filter(Boolean))].sort();
-  const selData = document.getElementById('pv-data');
-  const curData = selData.value;
-  selData.innerHTML = '<option value="">Todas as datas</option>' +
-    datas.map(d => {
-      const [a,m,dia] = d.split('-');
-      const dt = new Date(d+'T00:00:00');
-      const isHoje = dt.getTime() === hoje.getTime();
-      const isAt   = dt < hoje;
-      const label = `${dia}/${m}/${a}${isHoje?' (HOJE)':''}${isAt?' ⚠':''}`;
-      return `<option value="${d}" ${d===curData?'selected':''}>${label}</option>`;
-    }).join('');
+  _pvPopularMultiDatas(datas, hoje);
+  const dataSel = getMsValues('ms-pv-data'); // array de datas marcadas (YYYY-MM-DD)
+  const dataFiltSet = new Set(dataSel);
+  const dataAtiva = dataSel.length > 0 && dataSel.length < datas.length; // há filtro real de datas
 
   // Aplicar filtros
   let filtrados = todos.filter(r => {
-    if (dataFilt && r.dataEntStr !== dataFilt) return false;
+    if (dataAtiva && !dataFiltSet.has(r.dataEntStr||'')) return false;
     if (familiaFilt.length && !familiaFilt.includes(pvFamilia(r.classificacao))) return false;
     if (statusFilt.length) {
       // status por linha (FATURAR/POSSUI OF/SEM OF/ATRASADO) + status de OF derivado por linha
@@ -5139,7 +5184,7 @@ function renderPedidos() {
 
   // ── RESUMO DO DIA ────────────────────────────────────────────────────────
   const resumoDiv = document.getElementById('pv-resumo-dia');
-  if (dataFilt) {
+  if (dataAtiva) {
     const dia = filtrados;
     const sFaturar  = dia.filter(r=>r.status==='FATURAR').length;
     const sOf       = dia.filter(r=>r.status==='POSSUI OF').length;
@@ -5151,19 +5196,25 @@ function renderPedidos() {
     dia.forEach(r => {
       if (r.status === 'FATURAR') return; // já tem estoque
       const ofSemQtde = _pvParseOfQtde(r.of_sem);
-      const ofCompQtde= _pvParseOfQtde(r.of_comp);
       const ofParcQtde= _pvParseOfQtde(r.of_parc);
-      // Se tem OF sem req, monta a OF inteira (não parcial)
       if (ofSemQtde > 0) totalMontar += ofSemQtde;
       else if (ofParcQtde > 0) totalMontar += ofParcQtde;
     });
 
-    const [a,m,dia_] = dataFilt.split('-');
-    const dtObj = new Date(dataFilt+'T00:00:00');
-    const isHoje = dtObj.getTime() === hoje.getTime();
+    // Rótulo do período selecionado
+    const datasOrdenadas = dataSel.slice().sort();
+    let titulo;
+    if (datasOrdenadas.length === 1) {
+      const [a,m,d] = datasOrdenadas[0].split('-');
+      const isHoje = new Date(datasOrdenadas[0]+'T00:00:00').getTime() === hoje.getTime();
+      titulo = isHoje ? 'PRIORIDADES DE HOJE' : 'ENTREGA '+d+'/'+m+'/'+a;
+    } else {
+      const fmt = s => { const [a,m,d]=s.split('-'); return d+'/'+m; };
+      titulo = datasOrdenadas.length+' DATAS • '+fmt(datasOrdenadas[0])+' a '+fmt(datasOrdenadas[datasOrdenadas.length-1]);
+    }
     resumoDiv.innerHTML = `
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 20px;display:flex;gap:24px;flex-wrap:wrap;align-items:center">
-        <div style="font-size:11px;letter-spacing:1px;color:var(--text-muted)">${isHoje?'PRIORIDADES DE HOJE':'ENTREGA '+dia_+'/'+m+'/'+a}</div>
+        <div style="font-size:11px;letter-spacing:1px;color:var(--text-muted)">${titulo}</div>
         <div style="display:flex;gap:20px;flex-wrap:wrap">
           <span style="color:var(--green);font-weight:700">✓ ${sFaturar} p/ faturar</span>
           <span style="color:var(--serie-azul);font-weight:700">⚙ ${sOf} tem OF</span>
