@@ -1768,7 +1768,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <button onclick="exportarPedidosExcel()" style="background:rgba(0,201,122,.15);border:1px solid var(--green);color:var(--green);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700">⤓ Gerar Excel</button>
   </div>
   <div class="table-wrap"><div class="scrollable">
-    <table style="min-width:2400px;border-collapse:collapse">
+    <table style="min-width:2960px;border-collapse:collapse;table-layout:fixed">
       <thead class="blue" style="position:sticky;top:0;z-index:2">
         <tr id="pv-thead-row"></tr>
       </thead>
@@ -5001,34 +5001,33 @@ let _pvDatasAssinatura = '';
 // As 27 colunas do relatório de Pedidos de Venda, na ordem original.
 // [chave, rótulo, getter(r), tipo] — tipo 'num'|'money'|'date'|'text'
 const PVD_COLS = [
-  ['statusCalc','STATUS', r=>_pvStatusOfLinha(r).statusOf, 'text'],
-  ['chave','ITEM CHAVE', r=>r.chave, 'text'],
-  ['qtde','QTDE PEND. PV', r=>r.qtde, 'num'],
-  ['codigo','CÓDIGO ITEM', r=>r.codigo, 'text'],
-  ['descricao','DESCRIÇÃO ITEM', r=>r.descricao, 'text'],
-  ['un','UN', r=>r.un, 'text'],
-  ['qtdeTotal','QTDE PV TOTAL', r=>r.qtdeTotal, 'num'],
-  ['saldo','SALDO', r=>r.saldo, 'num'],
-  ['dataEmisStr','EMISSÃO', r=>r.dataEmisStr ? r.dataEmisStr.split('-').reverse().join('/') : '', 'date'],
-  ['dataEntStr','ENTREGA', r=>r.dataEntStr ? r.dataEntStr.split('-').reverse().join('/') : '', 'date'],
-  ['prazo','NOVO PRAZO', r=>r.prazo, 'text'],
-  ['pedido','PEDIDO', r=>r.pedido, 'text'],
-  ['projetado','PROJETADO', r=>r.projetado, 'num'],
-  ['disp','DISPONIBILIDADE', r=>r.disp, 'text'],
-  ['filhosNeg','FILHOS NEG FAB', r=>r.filhosNeg, 'text'],
-  ['obs','OBSERVAÇÃO', r=>r.obs, 'text'],
-  ['total_of','TOTAL PENDENTE', r=>r.total_of, 'num'],
-  ['possuiOf','POSSUI OF', r=>r.possuiOf, 'text'],
-  ['of_sem','OF SEM REQ', r=>r.of_sem, 'text'],
-  ['of_comp','OF COMPLETA', r=>r.of_comp, 'text'],
-  ['of_parc','OF REQ PARCIAL', r=>r.of_parc, 'text'],
-  ['clienteCod','CÓD. CLIENTE', r=>r.clienteCod, 'text'],
-  ['cliente','CLIENTE', r=>r.cliente, 'text'],
-  ['repCod','CÓD. REPRES.', r=>r.repCod, 'text'],
-  ['repDesc','REPRESENTANTE', r=>r.repDesc, 'text'],
-  ['classificacao','CLASSIFICAÇÃO', r=>r.classificacao, 'text'],
-  ['vlrLiqUnit','VALOR LÍQUIDO', r=>r.vlrLiqUnit, 'money'],
-  ['valor','VALOR LÍQ. PEND.', r=>r.valor, 'money']
+  ['statusCalc','STATUS', r=>_pvStatusOfLinha(r).statusOf, 'text', 150],
+  ['qtde','QTDE PEND. PV', r=>r.qtde, 'num', 70],
+  ['codigo','CÓDIGO ITEM', r=>r.codigo, 'text', 90],
+  ['descricao','DESCRIÇÃO ITEM', r=>r.descricao, 'text', 230],
+  ['un','UN', r=>r.un, 'text', 45],
+  ['qtdeTotal','QTDE PV TOTAL', r=>r.qtdeTotal, 'num', 70],
+  ['saldo','SALDO', r=>r.saldo, 'num', 60],
+  ['dataEmisStr','EMISSÃO', r=>r.dataEmisStr ? r.dataEmisStr.split('-').reverse().join('/') : '', 'date', 85],
+  ['dataEntStr','ENTREGA', r=>r.dataEntStr ? r.dataEntStr.split('-').reverse().join('/') : '', 'date', 85],
+  ['prazo','NOVO PRAZO', r=>r.prazo, 'text', 85],
+  ['pedido','PEDIDO', r=>r.pedido, 'text', 75],
+  ['projetado','PROJETADO', r=>r.projetado, 'num', 75],
+  ['disp','DISPONIBILIDADE', r=>r.disp, 'text', 120],
+  ['filhosNeg','FILHOS NEG FAB', r=>r.filhosNeg, 'text', 150],
+  ['obs','OBSERVAÇÃO', r=>r.obs, 'text', 140],
+  ['total_of','TOTAL PENDENTE', r=>r.total_of, 'num', 80],
+  ['possuiOf','POSSUI OF', r=>r.possuiOf, 'text', 90],
+  ['of_sem','OF SEM REQ', r=>r.of_sem, 'text', 130],
+  ['of_comp','OF COMPLETA', r=>r.of_comp, 'text', 130],
+  ['of_parc','OF REQ PARCIAL', r=>r.of_parc, 'text', 130],
+  ['clienteCod','CÓD. CLIENTE', r=>r.clienteCod, 'text', 80],
+  ['cliente','CLIENTE', r=>r.cliente, 'text', 180],
+  ['repCod','CÓD. REPRES.', r=>r.repCod, 'text', 80],
+  ['repDesc','REPRESENTANTE', r=>r.repDesc, 'text', 160],
+  ['classificacao','CLASSIFICAÇÃO', r=>r.classificacao, 'text', 120],
+  ['vlrLiqUnit','VALOR LÍQUIDO', r=>r.vlrLiqUnit, 'money', 110],
+  ['valor','VALOR LÍQ. PEND.', r=>r.valor, 'money', 120]
 ];
 let pvColFiltros = {};
 let pvColFiltroSelTemp = null;
@@ -5424,11 +5423,12 @@ function renderPedidos() {
   };
 
   // Cabeçalho: rótulo (clicável p/ ordenar) + ▾ (filtro tipo Excel)
-  document.getElementById('pv-thead-row').innerHTML = PVD_COLS.map(([k,lbl,,tipo])=>{
+  document.getElementById('pv-thead-row').innerHTML = PVD_COLS.map(([k,lbl,,tipo,larg])=>{
     const at = pvColFiltros[k] && pvColFiltros[k].size;
     const alignR = (tipo==='num'||tipo==='money');
-    const stickyTh = (k==='statusCalc') ? 'position:sticky;left:0;z-index:3;background:var(--th-bg);' : '';
-    return `<th style="white-space:nowrap;padding:8px 10px;${stickyTh}${alignR?'text-align:right':'text-align:left'}">`
+    const w = larg ? `width:${larg}px;min-width:${larg}px;max-width:${larg}px;` : '';
+    const stickyTh = (k==='statusCalc') ? 'position:sticky;left:0;z-index:4;box-shadow:2px 0 4px rgba(0,0,0,.3);' : '';
+    return `<th style="white-space:nowrap;padding:8px 10px;${w}${stickyTh}background:var(--th-bg);${alignR?'text-align:right':'text-align:left'}">`
       + `<span onclick="pvOrdenarCol('${k}')" title="Ordenar" style="cursor:pointer;user-select:none">${lbl}${pvSortCol===k?(pvSortAsc?' ↑':' ↓'):''}</span>`
       + ` <span onclick="togglePVColFiltro(event,'${k}')" title="Filtrar" style="cursor:pointer;font-size:11px;opacity:${at?'1':'.6'};color:${at?'#ffd24d':'#cfe0ff'}">▾</span></th>`;
   }).join('');
@@ -5447,18 +5447,21 @@ function renderPedidos() {
 
   // Corpo
   document.getElementById('pv-tbody').innerHTML = filtrados.map(r => {
-    const rowBg = r.atrasado ? 'background:rgba(255,59,59,0.06)' : '';
-    const tds = PVD_COLS.map(([k,,getter,tipo])=>{
-      let v = getter(r), disp, extra = 'padding:6px 10px;font-size:11px;white-space:nowrap';
+    const rowBg = r.atrasado ? 'rgba(255,59,59,0.06)' : 'transparent';
+    const stickyBg = r.atrasado ? '#3a1f1f' : 'var(--surface)';
+    const tds = PVD_COLS.map(([k,,getter,tipo,larg])=>{
+      let v = getter(r), disp, extra = `padding:6px 10px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
+      if (larg) extra += `;width:${larg}px;min-width:${larg}px;max-width:${larg}px`;
       if (tipo==='money'){ const n=Number(v)||0; disp = n? 'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2}) : '<span class="zero">—</span>'; extra+=';text-align:right'; }
       else if (tipo==='num'){ const n=Number(v)||0; disp = n.toLocaleString('pt-BR'); extra+=';text-align:right'; if(k==='projetado'){extra+=';font-weight:600;color:'+(n>=0?'var(--green)':'var(--red)');} }
-      else if (k==='statusCalc'){ const st=STATUS_STYLE[r.status]||STATUS_STYLE['SEM OF']; disp=getter(r); extra+=`;text-align:center;font-weight:700;color:${st.color};min-width:130px`; }
-      else if (k==='descricao'){ disp = v||'—'; extra+=';max-width:220px;overflow:hidden;text-overflow:ellipsis'; }
+      else if (k==='statusCalc'){ const st=STATUS_STYLE[r.status]||STATUS_STYLE['SEM OF']; disp=getter(r); extra+=`;font-weight:700;color:${st.color}`; }
+      else if (k==='descricao'){ disp = v||'—'; }
       else { disp = (v==null||v==='')?'<span class="zero">—</span>':String(v); }
-      const sticky = (k==='statusCalc') ? `position:sticky;left:0;z-index:1;background:${r.atrasado?'#3a1a1a':'var(--surface)'};` : '';
-      return `<td style="${sticky}${extra}" ${k==='descricao'?`title="${(v||'').replace(/"/g,'&quot;')}"`:''}>${disp}</td>`;
+      const sticky = (k==='statusCalc') ? `position:sticky;left:0;z-index:1;background:${stickyBg};box-shadow:2px 0 4px rgba(0,0,0,.3);` : '';
+      const titulo = (k==='descricao'||k==='cliente'||k==='repDesc'||k==='filhosNeg'||k==='obs'||k==='disp') ? ` title="${String(v||'').replace(/"/g,'&quot;')}"` : '';
+      return `<td style="${sticky}${extra}"${titulo}>${disp}</td>`;
     }).join('');
-    return `<tr style="${rowBg}${r.atrasado?';border-left:3px solid var(--red)':''}">${tds}</tr>`;
+    return `<tr style="background:${rowBg}${r.atrasado?';border-left:3px solid var(--red)':''}">${tds}</tr>`;
   }).join('') || `<tr><td colspan="${PVD_COLS.length}" style="padding:20px;text-align:center;color:var(--text-muted)">Nenhuma linha para os filtros aplicados.</td></tr>`;
 
   // Totais (qtde pendente e valor líquido pendente)
@@ -5467,10 +5470,11 @@ function renderPedidos() {
   const idxQt = PVD_COLS.findIndex(c=>c[0]==='qtde');
   const idxVal = PVD_COLS.length-1;
   const cells = PVD_COLS.map((c,i)=>{
-    if (i===0) return `<td style="position:sticky;left:0;background:var(--border);text-align:left;color:var(--text-muted);padding:6px 10px;white-space:nowrap">TOTAL (${filtrados.length} linhas)</td>`;
-    if (i===idxQt) return `<td style="text-align:right;font-weight:700;padding:6px 10px">${totQtde.toLocaleString('pt-BR')}</td>`;
-    if (i===idxVal) return `<td style="text-align:right;font-weight:700;padding:6px 10px">R$ ${totValor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>`;
-    return '<td></td>';
+    const w = c[4] ? `width:${c[4]}px;min-width:${c[4]}px;max-width:${c[4]}px;` : '';
+    if (i===0) return `<td style="position:sticky;left:0;z-index:1;background:var(--border);text-align:left;color:var(--text-muted);padding:6px 10px;white-space:nowrap;${w}box-shadow:2px 0 4px rgba(0,0,0,.3)">TOTAL (${filtrados.length} linhas)</td>`;
+    if (i===idxQt) return `<td style="text-align:right;font-weight:700;padding:6px 10px;${w}">${totQtde.toLocaleString('pt-BR')}</td>`;
+    if (i===idxVal) return `<td style="text-align:right;font-weight:700;padding:6px 10px;${w}">R$ ${totValor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>`;
+    return `<td style="${w}"></td>`;
   }).join('');
   document.getElementById('pv-foot').innerHTML = `<tr class="tfoot-row" style="background:var(--border);border-top:2px solid var(--blue)">${cells}</tr>`;
 }
