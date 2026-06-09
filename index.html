@@ -1756,19 +1756,17 @@ document.addEventListener('DOMContentLoaded', () => {
         <label class="ms-item"><input type="checkbox" value="OUTROS" checked onchange="msChange('ms-pv-familia')"> Outros</label>
       </div>
     </div>
-    <input class="search-input" type="text" id="pv-search" placeholder="Buscar código, descrição ou pedido..." oninput="renderPedidos()" style="width:280px">
+    <input class="search-input" type="text" id="pv-search" placeholder="Buscar código, descrição ou pedido..." oninput="renderPedidos()" style="width:240px">
+    <button id="pv-col-clear" onclick="pvLimparTudo()" style="margin-left:auto;background:rgba(255,59,59,.08);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✕ Limpar filtros</button>
+    <button onclick="exportarPedidosExcel()" style="background:rgba(0,201,122,.15);border:1px solid var(--green);color:var(--green);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700">⤓ Gerar Excel</button>
   </div>
 
   <!-- Resumo do dia selecionado -->
   <div id="pv-resumo-dia" style="margin-bottom:16px"></div>
 
   <!-- Tabela principal -->
-  <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-    <button id="pv-col-clear" onclick="pvLimparTudo()" style="background:rgba(255,59,59,.08);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✕ Limpar filtros</button>
-    <button onclick="exportarPedidosExcel()" style="background:rgba(0,201,122,.15);border:1px solid var(--green);color:var(--green);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700">⤓ Gerar Excel</button>
-  </div>
   <div class="table-wrap"><div class="scrollable">
-    <table style="min-width:2960px;border-collapse:collapse;table-layout:fixed">
+    <table style="min-width:3380px;border-collapse:collapse;table-layout:fixed">
       <thead class="blue" style="position:sticky;top:0;z-index:2">
         <tr id="pv-thead-row"></tr>
       </thead>
@@ -5001,33 +4999,33 @@ let _pvDatasAssinatura = '';
 // As 27 colunas do relatório de Pedidos de Venda, na ordem original.
 // [chave, rótulo, getter(r), tipo] — tipo 'num'|'money'|'date'|'text'
 const PVD_COLS = [
-  ['statusCalc','STATUS', r=>_pvStatusOfLinha(r).statusOf, 'text', 150],
-  ['qtde','QTDE PEND. PV', r=>r.qtde, 'num', 70],
-  ['codigo','CÓDIGO ITEM', r=>r.codigo, 'text', 90],
-  ['descricao','DESCRIÇÃO ITEM', r=>r.descricao, 'text', 230],
-  ['un','UN', r=>r.un, 'text', 45],
-  ['qtdeTotal','QTDE PV TOTAL', r=>r.qtdeTotal, 'num', 70],
-  ['saldo','SALDO', r=>r.saldo, 'num', 60],
-  ['dataEmisStr','EMISSÃO', r=>r.dataEmisStr ? r.dataEmisStr.split('-').reverse().join('/') : '', 'date', 85],
-  ['dataEntStr','ENTREGA', r=>r.dataEntStr ? r.dataEntStr.split('-').reverse().join('/') : '', 'date', 85],
-  ['prazo','NOVO PRAZO', r=>r.prazo, 'text', 85],
-  ['pedido','PEDIDO', r=>r.pedido, 'text', 75],
-  ['projetado','PROJETADO', r=>r.projetado, 'num', 75],
-  ['disp','DISPONIBILIDADE', r=>r.disp, 'text', 120],
-  ['filhosNeg','FILHOS NEG FAB', r=>r.filhosNeg, 'text', 150],
-  ['obs','OBSERVAÇÃO', r=>r.obs, 'text', 140],
-  ['total_of','TOTAL PENDENTE', r=>r.total_of, 'num', 80],
-  ['possuiOf','POSSUI OF', r=>r.possuiOf, 'text', 90],
-  ['of_sem','OF SEM REQ', r=>r.of_sem, 'text', 130],
-  ['of_comp','OF COMPLETA', r=>r.of_comp, 'text', 130],
-  ['of_parc','OF REQ PARCIAL', r=>r.of_parc, 'text', 130],
-  ['clienteCod','CÓD. CLIENTE', r=>r.clienteCod, 'text', 80],
-  ['cliente','CLIENTE', r=>r.cliente, 'text', 180],
-  ['repCod','CÓD. REPRES.', r=>r.repCod, 'text', 80],
-  ['repDesc','REPRESENTANTE', r=>r.repDesc, 'text', 160],
-  ['classificacao','CLASSIFICAÇÃO', r=>r.classificacao, 'text', 120],
-  ['vlrLiqUnit','VALOR LÍQUIDO', r=>r.vlrLiqUnit, 'money', 110],
-  ['valor','VALOR LÍQ. PEND.', r=>r.valor, 'money', 120]
+  ['statusCalc','STATUS', r=>_pvStatusOfLinha(r).statusOf, 'text', 160],
+  ['qtde','QTDE PEND. PV', r=>r.qtde, 'num', 110],
+  ['codigo','CÓDIGO ITEM', r=>r.codigo, 'text', 100],
+  ['descricao','DESCRIÇÃO ITEM', r=>r.descricao, 'text', 240],
+  ['un','UN', r=>r.un, 'text', 55],
+  ['qtdeTotal','QTDE PV TOTAL', r=>r.qtdeTotal, 'num', 110],
+  ['saldo','SALDO', r=>r.saldo, 'num', 80],
+  ['dataEmisStr','EMISSÃO', r=>r.dataEmisStr ? r.dataEmisStr.split('-').reverse().join('/') : '', 'date', 95],
+  ['dataEntStr','ENTREGA', r=>r.dataEntStr ? r.dataEntStr.split('-').reverse().join('/') : '', 'date', 95],
+  ['prazo','NOVO PRAZO', r=>r.prazo, 'text', 100],
+  ['pedido','PEDIDO', r=>r.pedido, 'text', 85],
+  ['projetado','PROJETADO', r=>r.projetado, 'num', 100],
+  ['disp','DISPONIBILIDADE', r=>r.disp, 'text', 140],
+  ['filhosNeg','FILHOS NEG FAB', r=>r.filhosNeg, 'text', 160],
+  ['obs','OBSERVAÇÃO', r=>r.obs, 'text', 150],
+  ['total_of','TOTAL PENDENTE', r=>r.total_of, 'num', 120],
+  ['possuiOf','POSSUI OF', r=>r.possuiOf, 'text', 100],
+  ['of_sem','OF SEM REQ', r=>r.of_sem, 'text', 140],
+  ['of_comp','OF COMPLETA', r=>r.of_comp, 'text', 140],
+  ['of_parc','OF REQ PARCIAL', r=>r.of_parc, 'text', 140],
+  ['clienteCod','CÓD. CLIENTE', r=>r.clienteCod, 'text', 100],
+  ['cliente','CLIENTE', r=>r.cliente, 'text', 190],
+  ['repCod','CÓD. REPRES.', r=>r.repCod, 'text', 100],
+  ['repDesc','REPRESENTANTE', r=>r.repDesc, 'text', 170],
+  ['classificacao','CLASSIFICAÇÃO', r=>r.classificacao, 'text', 130],
+  ['vlrLiqUnit','VALOR LÍQUIDO', r=>r.vlrLiqUnit, 'money', 120],
+  ['valor','VALOR LÍQ. PEND.', r=>r.valor, 'money', 130]
 ];
 let pvColFiltros = {};
 let pvColFiltroSelTemp = null;
@@ -5422,15 +5420,17 @@ function renderPedidos() {
     'SEM OF':    { color:'var(--orange)', bg:'rgba(255,140,59,0.1)' },
   };
 
-  // Cabeçalho: rótulo (clicável p/ ordenar) + ▾ (filtro tipo Excel)
+  // Cabeçalho: rótulo (clicável p/ ordenar, trunca) + ▾ (filtro, sempre visível à direita)
   document.getElementById('pv-thead-row').innerHTML = PVD_COLS.map(([k,lbl,,tipo,larg])=>{
     const at = pvColFiltros[k] && pvColFiltros[k].size;
     const alignR = (tipo==='num'||tipo==='money');
     const w = larg ? `width:${larg}px;min-width:${larg}px;max-width:${larg}px;` : '';
     const stickyTh = (k==='statusCalc') ? 'position:sticky;left:0;z-index:4;box-shadow:2px 0 4px rgba(0,0,0,.3);' : '';
-    return `<th style="white-space:nowrap;padding:8px 10px;${w}${stickyTh}background:var(--th-bg);${alignR?'text-align:right':'text-align:left'}">`
-      + `<span onclick="pvOrdenarCol('${k}')" title="Ordenar" style="cursor:pointer;user-select:none">${lbl}${pvSortCol===k?(pvSortAsc?' ↑':' ↓'):''}</span>`
-      + ` <span onclick="togglePVColFiltro(event,'${k}')" title="Filtrar" style="cursor:pointer;font-size:11px;opacity:${at?'1':'.6'};color:${at?'#ffd24d':'#cfe0ff'}">▾</span></th>`;
+    return `<th style="padding:8px 8px;${w}${stickyTh}background:var(--th-bg)">`
+      + `<div style="display:flex;align-items:center;gap:4px;${alignR?'justify-content:flex-end':''}">`
+      + `<span onclick="pvOrdenarCol('${k}')" title="${lbl} — ordenar" style="cursor:pointer;user-select:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;${alignR?'text-align:right':''}">${lbl}${pvSortCol===k?(pvSortAsc?' ↑':' ↓'):''}</span>`
+      + `<span onclick="togglePVColFiltro(event,'${k}')" title="Filtrar" style="cursor:pointer;font-size:12px;flex-shrink:0;opacity:${at?'1':'.7'};color:${at?'#ffd24d':'#cfe0ff'}">▾</span>`
+      + `</div></th>`;
   }).join('');
 
   // Ordenação
@@ -5454,7 +5454,7 @@ function renderPedidos() {
       if (larg) extra += `;width:${larg}px;min-width:${larg}px;max-width:${larg}px`;
       if (tipo==='money'){ const n=Number(v)||0; disp = n? 'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2}) : '<span class="zero">—</span>'; extra+=';text-align:right'; }
       else if (tipo==='num'){ const n=Number(v)||0; disp = n.toLocaleString('pt-BR'); extra+=';text-align:right'; if(k==='projetado'){extra+=';font-weight:600;color:'+(n>=0?'var(--green)':'var(--red)');} }
-      else if (k==='statusCalc'){ const st=STATUS_STYLE[r.status]||STATUS_STYLE['SEM OF']; disp=getter(r); extra+=`;font-weight:700;color:${st.color}`; }
+      else if (k==='statusCalc'){ const sof=_pvStatusOfLinha(r); disp=_pvStatusBadge(sof.statusOf, r.status==='FATURAR'); extra+=`;text-align:center`; }
       else if (k==='descricao'){ disp = v||'—'; }
       else { disp = (v==null||v==='')?'<span class="zero">—</span>':String(v); }
       const sticky = (k==='statusCalc') ? `position:sticky;left:0;z-index:1;background:${stickyBg};box-shadow:2px 0 4px rgba(0,0,0,.3);` : '';
@@ -6012,26 +6012,7 @@ function renderPvPrioridades() {
   tbody.innerHTML = lista.map(g => {
     const color = FAM_COLORS_PV[g.familia]||'#475569';
     const saldoColor = g.saldo >= 0 ? 'var(--green)' : 'var(--red)';
-    let statusBadge;
-    const sof = g.statusOf || '';
-    const _badge = (bg, color, txt) =>
-      `<span style="background:${bg};color:${color};font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;white-space:nowrap">${txt}</span>`;
-    if (g.faturar)
-      statusBadge = _badge('rgba(0,201,122,0.12)','var(--green)','✓ FATURAR');
-    else if (sof.includes('✗ ABRIR OF') && (sof.includes('▣') || sof.includes('◑') || sof.includes('⚙')))
-      statusBadge = _badge('rgba(168,85,247,0.12)','#a855f7','◑ MISTO + ABRIR OF');
-    else if (sof.includes('✗ ABRIR OF'))
-      statusBadge = _badge('rgba(255,59,59,0.12)','var(--red)','✗ ABRIR OF');
-    else if (sof.includes('⚙') && sof.includes('▣'))
-      statusBadge = _badge('rgba(168,85,247,0.12)','#a855f7','◑ MISTO');
-    else if (sof.includes('⚙ FALTA SEPARAR'))
-      statusBadge = _badge('rgba(245,158,11,0.12)','#f59e0b','⚙ FALTA SEPARAR');
-    else if (sof.includes('◑ SEP. PARCIAL'))
-      statusBadge = _badge('rgba(6,182,212,0.12)','#06b6d4','◑ SEP. PARCIAL');
-    else if (sof.includes('▣ SEPARADO'))
-      statusBadge = _badge('rgba(61,139,255,0.12)','var(--blue)','▣ SEPARADO');
-    else
-      statusBadge = _badge('rgba(255,59,59,0.12)','var(--red)','✗ ABRIR OF');
+    let statusBadge = _pvStatusBadge(g.statusOf, g.faturar);
     const aMontar = g.a_montar > 0 ? `<span style="color:#f59e0b;font-weight:800">${g.a_montar}</span>` : '<span class="zero">—</span>';
     return `<tr>
       <td style="text-align:center;padding:4px">
@@ -6131,6 +6112,28 @@ function _pvParseOfQtde(s) {
 //    Cada OF é usada inteira (não monta parcial de OF)
 // 3. Sem nenhuma OF → abs(proj) + statusOf "ABRIR OF"
 // Versão completa: suporta status múltiplo e ABRIR OF quando OFs são insuficientes
+// Badge de status no padrão visual único (usado na A Montar e na tabela por data)
+function _pvStatusBadge(statusOf, faturar) {
+  const sof = statusOf || '';
+  const badge = (bg, color, txt) =>
+    `<span style="background:${bg};color:${color};font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;white-space:nowrap">${txt}</span>`;
+  if (faturar)
+    return badge('rgba(0,201,122,0.12)','var(--green)','✓ FATURAR');
+  if (sof.includes('✗ ABRIR OF') && (sof.includes('▣') || sof.includes('◑') || sof.includes('⚙')))
+    return badge('rgba(168,85,247,0.12)','#a855f7','◑ MISTO + ABRIR OF');
+  if (sof.includes('✗ ABRIR OF'))
+    return badge('rgba(255,59,59,0.12)','var(--red)','✗ ABRIR OF');
+  if (sof.includes('⚙') && sof.includes('▣'))
+    return badge('rgba(168,85,247,0.12)','#a855f7','◑ MISTO');
+  if (sof.includes('⚙ FALTA SEPARAR'))
+    return badge('rgba(245,158,11,0.12)','#f59e0b','⚙ FALTA SEPARAR');
+  if (sof.includes('◑ SEP. PARCIAL'))
+    return badge('rgba(6,182,212,0.12)','#06b6d4','◑ SEP. PARCIAL');
+  if (sof.includes('▣ SEPARADO'))
+    return badge('rgba(61,139,255,0.12)','var(--blue)','▣ SEPARADO');
+  return badge('rgba(255,59,59,0.12)','var(--red)','✗ ABRIR OF');
+}
+
 // Status de OF derivado por LINHA (mesma lógica do agrupado, aplicada à linha individual).
 // Retorna { statusOf, tipos:Set } onde tipos contém SEPARADO/FALTA SEPARAR/SEP. PARCIAL/ABRIR OF/MISTO/FATURAR
 function _pvStatusOfLinha(r) {
