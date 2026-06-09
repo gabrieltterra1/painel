@@ -5395,20 +5395,55 @@ function pvToggleOculto(codigo) {
   renderPvPrioridades();
 }
 
-// Atualiza os KPIs do topo com base nos códigos/produtos filtrados do painel
-function pvAtualizarKPIs(lista) {
+// Atualiza os KPIs do topo calculando LINHA A LINHA sobre DATA.pedidos,
+// lendo os mesmos filtros do painel (família, período, status, busca, projetado, ocultos).
+// Desacoplado da agregação por código — NÃO afeta os cards/A Montar do painel.
+function pvAtualizarKPIs() {
   const el = document.getElementById('pv-kpis');
-  if (!el) return;
-  const totalItens = lista.length;                          // códigos/produtos
-  const pedidos    = new Set();
-  lista.forEach(g => (g._pedidos||new Set()).forEach(p=>pedidos.add(p)));
-  const atraso  = lista.filter(g => g.atrasado).length;
-  const faturar = lista.filter(g => g.faturar).length;
-  const semOf   = lista.filter(g => g.status === 'SEM OF' && !g.atrasado).length;
-  const valor   = lista.reduce((s,g)=>s+(Number(g.valor)||0),0);
+  if (!el || !DATA.pedidos) return;
+
+  // ── ler filtros ──
+  const diasSel  = getMsValues('ms-pv-dias');
+  const famSelRaw = getMsValues('ms-pv-fam2');
+  const famSel = famSelRaw.flatMap(f => {
+    if (f === 'GUINCHO') return ['GUINCHO+ENROLADOR','GUINCHO - OUTROS'];
+    if (f === 'WALVOIL') return ['WALVOIL - COMANDO','WALVOIL - VALVULA','WALVOIL - OUTROS'];
+    return [f];
+  });
+  const search = (document.getElementById('pv-search2')?.value||'').trim().toLowerCase();
+  const projFilt = document.getElementById('pv-proj-filt')?.value || '';
+  const statusFiltEl = document.getElementById('ms-pv-prior-status-list');
+  const statusFilt = statusFiltEl
+    ? [...statusFiltEl.querySelectorAll('input[type=checkbox]:not(#ms-pv-prior-status-all):checked')].map(i=>i.value)
+    : null;
+  // tradução do filtro de status (por código) para condição de LINHA:
+  // FATURAR marcado → inclui linhas FATURAR; qualquer outro marcado → inclui linhas NÃO-faturar
+  const incFaturar  = !statusFilt || statusFilt.length===0 || statusFilt.includes('FATURAR');
+  const incNaoFat   = !statusFilt || statusFilt.length===0 || statusFilt.some(s=>s!=='FATURAR');
+
+  // ── filtrar linhas ──
+  const linhas = DATA.pedidos.filter(r => {
+    if (diasSel.length && !diasSel.includes(r.dataEntStr||'')) return false;
+    if (pvOcultos.has(r.codigo)) return false;
+    if (famSel.length && !famSel.includes(pvFamilia(r.classificacao))) return false;
+    if (projFilt === 'neg' ? !(r.projetado < 0) : projFilt === 'pos' ? !(r.projetado >= 0) : false) return false;
+    const ehFat = r.status === 'FATURAR';
+    if (ehFat ? !incFaturar : !incNaoFat) return false;
+    if (search && !(r.codigo.toLowerCase().includes(search) || (r.descricao||'').toLowerCase().includes(search))) return false;
+    return true;
+  });
+
+  // ── métricas (por linha) ──
+  const totalLinhas = linhas.length;
+  const pedidos = new Set(linhas.map(r=>r.pedido).filter(Boolean));
+  const atraso  = linhas.filter(r => r.atrasado).length;
+  const faturar = linhas.filter(r => r.status === 'FATURAR').length;
+  const semOf   = linhas.filter(r => r.status === 'SEM OF' && !r.atrasado).length;
+  const valor   = linhas.reduce((s,r)=>s+(Number(r.valor)||0),0);
+
   el.innerHTML = `
-    <div class="kpi-card"><div class="kpi-label">TOTAL DE ITENS</div>
-      <div class="kpi-value blue">${totalItens.toLocaleString('pt-BR')}</div></div>
+    <div class="kpi-card"><div class="kpi-label">ITENS (LINHAS PV)</div>
+      <div class="kpi-value blue">${totalLinhas.toLocaleString('pt-BR')}</div></div>
     <div class="kpi-card"><div class="kpi-label">PEDIDOS</div>
       <div class="kpi-value blue">${pedidos.size.toLocaleString('pt-BR')}</div></div>
     <div class="kpi-card"><div class="kpi-label">ITENS EM ATRASO</div>
@@ -5555,7 +5590,7 @@ function renderPvPrioridades() {
       return pvSortAsc ? va - vb : vb - va;
     });
   pvListaAtual = lista; // salvar para uso no PDF
-  pvAtualizarKPIs(lista); // KPIs do topo reagem aos filtros (granularidade de código)
+  pvAtualizarKPIs(); // KPIs do topo recalculam por LINHA, lendo os mesmos filtros (sem afetar o painel agregado)
   // Botão mostrar ocultos
   const btnOc = document.getElementById('pv-btn-ocultos');
   if (btnOc) { btnOc.style.display = pvOcultos.size > 0 ? '' : 'none'; btnOc.textContent = `👁 Mostrar ${pvOcultos.size} oculto(s)`; }
