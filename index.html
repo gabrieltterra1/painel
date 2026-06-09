@@ -5447,8 +5447,9 @@ function renderPedidos() {
 
   // Corpo
   document.getElementById('pv-tbody').innerHTML = filtrados.map(r => {
-    const rowBg = r.atrasado ? 'rgba(255,59,59,0.06)' : 'transparent';
-    const stickyBg = r.atrasado ? '#3a1f1f' : 'var(--surface)';
+    const rowBg = 'transparent';
+    const stickyBg = 'var(--surface)';
+    const atrasoBorda = r.atrasado ? ';border-left:3px solid rgba(255,59,59,.55)' : '';
     const tds = PVD_COLS.map(([k,,getter,tipo,larg])=>{
       let v = getter(r), disp, extra = `padding:6px 10px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
       if (larg) extra += `;width:${larg}px;min-width:${larg}px;max-width:${larg}px`;
@@ -5461,7 +5462,7 @@ function renderPedidos() {
       const titulo = (k==='descricao'||k==='cliente'||k==='repDesc'||k==='filhosNeg'||k==='obs'||k==='disp') ? ` title="${String(v||'').replace(/"/g,'&quot;')}"` : '';
       return `<td style="${sticky}${extra}"${titulo}>${disp}</td>`;
     }).join('');
-    return `<tr style="background:${rowBg}${r.atrasado?';border-left:3px solid var(--red)':''}">${tds}</tr>`;
+    return `<tr style="background:${rowBg}${atrasoBorda}">${tds}</tr>`;
   }).join('') || `<tr><td colspan="${PVD_COLS.length}" style="padding:20px;text-align:center;color:var(--text-muted)">Nenhuma linha para os filtros aplicados.</td></tr>`;
 
   // Totais (qtde pendente e valor líquido pendente)
@@ -6116,22 +6117,22 @@ function _pvParseOfQtde(s) {
 function _pvStatusBadge(statusOf, faturar) {
   const sof = statusOf || '';
   const badge = (bg, color, txt) =>
-    `<span style="background:${bg};color:${color};font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;white-space:nowrap">${txt}</span>`;
+    `<span style="background:${bg};color:${color};font-size:10px;font-weight:800;padding:3px 8px;border-radius:4px;white-space:nowrap;border:1px solid ${color}">${txt}</span>`;
   if (faturar)
-    return badge('rgba(0,201,122,0.12)','var(--green)','✓ FATURAR');
+    return badge('rgba(0,201,122,0.18)','var(--green)','✓ FATURAR');
   if (sof.includes('✗ ABRIR OF') && (sof.includes('▣') || sof.includes('◑') || sof.includes('⚙')))
-    return badge('rgba(168,85,247,0.12)','#a855f7','◑ MISTO + ABRIR OF');
+    return badge('rgba(168,85,247,0.18)','#a855f7','◑ MISTO + ABRIR OF');
   if (sof.includes('✗ ABRIR OF'))
-    return badge('rgba(255,59,59,0.12)','var(--red)','✗ ABRIR OF');
+    return badge('rgba(255,59,59,0.18)','var(--red)','✗ ABRIR OF');
   if (sof.includes('⚙') && sof.includes('▣'))
-    return badge('rgba(168,85,247,0.12)','#a855f7','◑ MISTO');
+    return badge('rgba(168,85,247,0.18)','#a855f7','◑ MISTO');
   if (sof.includes('⚙ FALTA SEPARAR'))
-    return badge('rgba(245,158,11,0.12)','#f59e0b','⚙ FALTA SEPARAR');
+    return badge('rgba(245,158,11,0.18)','#f59e0b','⚙ FALTA SEPARAR');
   if (sof.includes('◑ SEP. PARCIAL'))
-    return badge('rgba(6,182,212,0.12)','#06b6d4','◑ SEP. PARCIAL');
+    return badge('rgba(6,182,212,0.18)','#06b6d4','◑ SEP. PARCIAL');
   if (sof.includes('▣ SEPARADO'))
-    return badge('rgba(61,139,255,0.12)','var(--blue)','▣ SEPARADO');
-  return badge('rgba(255,59,59,0.12)','var(--red)','✗ ABRIR OF');
+    return badge('rgba(61,139,255,0.18)','var(--blue)','▣ SEPARADO');
+  return badge('rgba(255,59,59,0.18)','var(--red)','✗ ABRIR OF');
 }
 
 // Status de OF derivado por LINHA (mesma lógica do agrupado, aplicada à linha individual).
