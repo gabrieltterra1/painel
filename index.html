@@ -337,6 +337,9 @@
   tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
   tbody tr:last-child { border-bottom: none; }
   tbody tr:hover { background: var(--surface2); }
+  /* hover da tabela Prioridades por Data: destaca a linha e a célula STATUS fixa */
+  #pv-tbody tr.pv-row:hover { background: var(--surface2); }
+  #pv-tbody tr.pv-row:hover td:first-child { background: var(--surface2) !important; }
   tbody td {
     padding: 9px 14px;
     text-align: right;
@@ -5449,7 +5452,7 @@ function renderPedidos() {
   document.getElementById('pv-tbody').innerHTML = filtrados.map(r => {
     const rowBg = 'transparent';
     const stickyBg = 'var(--surface)';
-    const atrasoBorda = r.atrasado ? ';border-left:3px solid rgba(255,59,59,.55)' : '';
+    const atrasoBorda = r.atrasado ? ';border-left:4px solid var(--red)' : ';border-left:4px solid transparent';
     const tds = PVD_COLS.map(([k,,getter,tipo,larg])=>{
       let v = getter(r), disp, extra = `padding:6px 10px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
       if (larg) extra += `;width:${larg}px;min-width:${larg}px;max-width:${larg}px`;
@@ -5457,12 +5460,13 @@ function renderPedidos() {
       else if (tipo==='num'){ const n=Number(v)||0; disp = n.toLocaleString('pt-BR'); extra+=';text-align:right'; if(k==='projetado'){extra+=';font-weight:600;color:'+(n>=0?'var(--green)':'var(--red)');} }
       else if (k==='statusCalc'){ const sof=_pvStatusOfLinha(r); disp=_pvStatusBadge(sof.statusOf, r.status==='FATURAR'); extra+=`;text-align:center`; }
       else if (k==='descricao'){ disp = v||'—'; }
+      else if (k==='dataEntStr'){ disp = (v==null||v==='')?'<span class="zero">—</span>':String(v); if(r.atrasado){ disp = '⚠ '+disp; extra+=';color:var(--red);font-weight:700'; } }
       else { disp = (v==null||v==='')?'<span class="zero">—</span>':String(v); }
       const sticky = (k==='statusCalc') ? `position:sticky;left:0;z-index:1;background:${stickyBg};box-shadow:2px 0 4px rgba(0,0,0,.3);` : '';
       const titulo = (k==='descricao'||k==='cliente'||k==='repDesc'||k==='filhosNeg'||k==='obs'||k==='disp') ? ` title="${String(v||'').replace(/"/g,'&quot;')}"` : '';
       return `<td style="${sticky}${extra}"${titulo}>${disp}</td>`;
     }).join('');
-    return `<tr style="background:${rowBg}${atrasoBorda}">${tds}</tr>`;
+    return `<tr class="pv-row"${atrasoBorda?` style="${atrasoBorda.replace(/^;/,'')}"`:''}>${tds}</tr>`;
   }).join('') || `<tr><td colspan="${PVD_COLS.length}" style="padding:20px;text-align:center;color:var(--text-muted)">Nenhuma linha para os filtros aplicados.</td></tr>`;
 
   // Totais (qtde pendente e valor líquido pendente)
