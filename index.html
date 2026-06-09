@@ -1576,9 +1576,6 @@ document.addEventListener('DOMContentLoaded', () => {
 <div id="tab-pedidos" class="tab-content">
   <div class="section-title">Pedidos de Venda — Carteira e Prioridades<span class="email-badge" data-sheet="PEDIDOS_DE_VENDA"></span></div>
 
-  <!-- KPIs atraso -->
-  <div class="kpi-bar" id="pv-kpis" style="margin-bottom:20px"></div>
-
   <!-- Gráfico atrasos por família -->
   <div class="charts-grid" style="margin-bottom:24px">
     <div class="chart-card">
@@ -1704,6 +1701,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   <!-- Carteira completa -->
   <div class="section-title" style="margin-top:8px">Prioridades por Data de Entrega</div>
+  <!-- KPIs (ligados aos filtros desta tabela) -->
+  <div class="kpi-bar" id="pv-kpis" style="margin:8px 0 16px"></div>
   <div class="filter-row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
     <select class="filter-select" id="pv-data" onchange="renderPedidos()">
       <option value="">Todas as datas</option>
@@ -1720,6 +1719,12 @@ document.addEventListener('DOMContentLoaded', () => {
         <label class="ms-item"><input type="checkbox" value="POSSUI OF" checked onchange="msChange('ms-pv-status')"> ⚙ Possui OF</label>
         <label class="ms-item"><input type="checkbox" value="SEM OF" checked onchange="msChange('ms-pv-status')"> ✗ Sem OF</label>
         <label class="ms-item"><input type="checkbox" value="ATRASADO" checked onchange="msChange('ms-pv-status')"> ⚠ Atrasados</label>
+        <div style="border-top:1px solid var(--border);margin:4px 0"></div>
+        <label class="ms-item"><input type="checkbox" value="SEPARADO" checked onchange="msChange('ms-pv-status')"> ▣ Separado</label>
+        <label class="ms-item"><input type="checkbox" value="FALTA SEPARAR" checked onchange="msChange('ms-pv-status')"> ⚙ Falta Separar</label>
+        <label class="ms-item"><input type="checkbox" value="SEP. PARCIAL" checked onchange="msChange('ms-pv-status')"> ◑ Sep. Parcial</label>
+        <label class="ms-item"><input type="checkbox" value="ABRIR OF" checked onchange="msChange('ms-pv-status')"> ✗ Abrir OF</label>
+        <label class="ms-item"><input type="checkbox" value="MISTO" checked onchange="msChange('ms-pv-status')"> ◑ Misto</label>
       </div>
     </div>
     <div class="ms-wrap" id="ms-pv-familia">
@@ -1730,9 +1735,17 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="ms-all" onclick="msToggleAll('ms-pv-familia')">
           <input type="checkbox" id="ms-pv-familia-all" checked> Selecionar / Desmarcar Todos
         </div>
-        <label class="ms-item"><input type="checkbox" value="FORCA" checked onchange="msChange('ms-pv-familia')"> Força</label>
-        <label class="ms-item"><input type="checkbox" value="GUINCHO" checked onchange="msChange('ms-pv-familia')"> Guincho</label>
-        <label class="ms-item"><input type="checkbox" value="WALVOIL" checked onchange="msChange('ms-pv-familia')"> Walvoil</label>
+        <label class="ms-item"><input type="checkbox" value="TOMADA+MULT" checked onchange="msChange('ms-pv-familia')"> Tomadas + Mult</label>
+        <label class="ms-item"><input type="checkbox" value="CONJ EIXO" checked onchange="msChange('ms-pv-familia')"> Conj. Eixo</label>
+        <label class="ms-item"><input type="checkbox" value="BOMBA" checked onchange="msChange('ms-pv-familia')"> Bombas</label>
+        <label class="ms-item"><input type="checkbox" value="CILINDRO" checked onchange="msChange('ms-pv-familia')"> Cilindros</label>
+        <label class="ms-item"><input type="checkbox" value="GUINCHO+ENROLADOR" checked onchange="msChange('ms-pv-familia')"> Guincho + Enrol.</label>
+        <label class="ms-item"><input type="checkbox" value="GUINCHO - OUTROS" checked onchange="msChange('ms-pv-familia')"> Guincho Outros</label>
+        <label class="ms-item"><input type="checkbox" value="WALVOIL - COMANDO" checked onchange="msChange('ms-pv-familia')"> Walvoil Comando</label>
+        <label class="ms-item"><input type="checkbox" value="WALVOIL - VALVULA" checked onchange="msChange('ms-pv-familia')"> Walvoil Válvula</label>
+        <label class="ms-item"><input type="checkbox" value="WALVOIL - OUTROS" checked onchange="msChange('ms-pv-familia')"> Walvoil Outros</label>
+        <label class="ms-item"><input type="checkbox" value="KIT HIDRAULICO" checked onchange="msChange('ms-pv-familia')"> Kits Hidr.</label>
+        <label class="ms-item"><input type="checkbox" value="OUTROS" checked onchange="msChange('ms-pv-familia')"> Outros</label>
       </div>
     </div>
     <input class="search-input" type="text" id="pv-search" placeholder="Buscar código, descrição ou pedido..." oninput="renderPedidos()" style="width:280px">
@@ -5102,13 +5115,16 @@ function renderPedidos() {
   // Aplicar filtros
   let filtrados = todos.filter(r => {
     if (dataFilt && r.dataEntStr !== dataFilt) return false;
-    if (familiaFilt.length && !familiaFilt.includes(r.familia)) return false;
+    if (familiaFilt.length && !familiaFilt.includes(pvFamilia(r.classificacao))) return false;
     if (statusFilt.length) {
+      // status por linha (FATURAR/POSSUI OF/SEM OF/ATRASADO) + status de OF derivado por linha
+      const sofTipos = _pvStatusOfLinha(r).tipos;
       const match =
         (statusFilt.includes('FATURAR')   && r.status==='FATURAR') ||
         (statusFilt.includes('POSSUI OF') && r.status==='POSSUI OF') ||
         (statusFilt.includes('SEM OF')    && r.status==='SEM OF') ||
-        (statusFilt.includes('ATRASADO')  && r.atrasado);
+        (statusFilt.includes('ATRASADO')  && r.atrasado) ||
+        statusFilt.some(s => sofTipos.has(s));
       if (!match) return false;
     }
     if (search && !r.codigo.toLowerCase().includes(search) &&
@@ -5117,6 +5133,9 @@ function renderPedidos() {
         !r.cliente.toLowerCase().includes(search)) return false;
     return true;
   });
+
+  // KPIs do topo recalculam sobre as MESMAS linhas filtradas desta tabela
+  pvAtualizarKPIs(filtrados);
 
   // ── RESUMO DO DIA ────────────────────────────────────────────────────────
   const resumoDiv = document.getElementById('pv-resumo-dia');
@@ -5395,52 +5414,18 @@ function pvToggleOculto(codigo) {
   renderPvPrioridades();
 }
 
-// Atualiza os KPIs do topo calculando LINHA A LINHA sobre DATA.pedidos,
-// lendo os mesmos filtros do painel (família, período, status, busca, projetado, ocultos).
-// Desacoplado da agregação por código — NÃO afeta os cards/A Montar do painel.
-function pvAtualizarKPIs() {
+// Atualiza os KPIs do topo a partir das linhas já filtradas da tabela
+// "Prioridades por Data de Entrega" (granularidade de linha, status reais).
+function pvAtualizarKPIs(linhas) {
   const el = document.getElementById('pv-kpis');
-  if (!el || !DATA.pedidos) return;
-
-  // ── ler filtros ──
-  const diasSel  = getMsValues('ms-pv-dias');
-  const famSelRaw = getMsValues('ms-pv-fam2');
-  const famSel = famSelRaw.flatMap(f => {
-    if (f === 'GUINCHO') return ['GUINCHO+ENROLADOR','GUINCHO - OUTROS'];
-    if (f === 'WALVOIL') return ['WALVOIL - COMANDO','WALVOIL - VALVULA','WALVOIL - OUTROS'];
-    return [f];
-  });
-  const search = (document.getElementById('pv-search2')?.value||'').trim().toLowerCase();
-  const projFilt = document.getElementById('pv-proj-filt')?.value || '';
-  const statusFiltEl = document.getElementById('ms-pv-prior-status-list');
-  const statusFilt = statusFiltEl
-    ? [...statusFiltEl.querySelectorAll('input[type=checkbox]:not(#ms-pv-prior-status-all):checked')].map(i=>i.value)
-    : null;
-  // tradução do filtro de status (por código) para condição de LINHA:
-  // FATURAR marcado → inclui linhas FATURAR; qualquer outro marcado → inclui linhas NÃO-faturar
-  const incFaturar  = !statusFilt || statusFilt.length===0 || statusFilt.includes('FATURAR');
-  const incNaoFat   = !statusFilt || statusFilt.length===0 || statusFilt.some(s=>s!=='FATURAR');
-
-  // ── filtrar linhas ──
-  const linhas = DATA.pedidos.filter(r => {
-    if (diasSel.length && !diasSel.includes(r.dataEntStr||'')) return false;
-    if (pvOcultos.has(r.codigo)) return false;
-    if (famSel.length && !famSel.includes(pvFamilia(r.classificacao))) return false;
-    if (projFilt === 'neg' ? !(r.projetado < 0) : projFilt === 'pos' ? !(r.projetado >= 0) : false) return false;
-    const ehFat = r.status === 'FATURAR';
-    if (ehFat ? !incFaturar : !incNaoFat) return false;
-    if (search && !(r.codigo.toLowerCase().includes(search) || (r.descricao||'').toLowerCase().includes(search))) return false;
-    return true;
-  });
-
-  // ── métricas (por linha) ──
+  if (!el) return;
+  linhas = linhas || [];
   const totalLinhas = linhas.length;
   const pedidos = new Set(linhas.map(r=>r.pedido).filter(Boolean));
   const atraso  = linhas.filter(r => r.atrasado).length;
   const faturar = linhas.filter(r => r.status === 'FATURAR').length;
   const semOf   = linhas.filter(r => r.status === 'SEM OF' && !r.atrasado).length;
   const valor   = linhas.reduce((s,r)=>s+(Number(r.valor)||0),0);
-
   el.innerHTML = `
     <div class="kpi-card"><div class="kpi-label">ITENS (LINHAS PV)</div>
       <div class="kpi-value blue">${totalLinhas.toLocaleString('pt-BR')}</div></div>
@@ -5590,7 +5575,6 @@ function renderPvPrioridades() {
       return pvSortAsc ? va - vb : vb - va;
     });
   pvListaAtual = lista; // salvar para uso no PDF
-  pvAtualizarKPIs(); // KPIs do topo recalculam por LINHA, lendo os mesmos filtros (sem afetar o painel agregado)
   // Botão mostrar ocultos
   const btnOc = document.getElementById('pv-btn-ocultos');
   if (btnOc) { btnOc.style.display = pvOcultos.size > 0 ? '' : 'none'; btnOc.textContent = `👁 Mostrar ${pvOcultos.size} oculto(s)`; }
@@ -5883,6 +5867,24 @@ function _pvParseOfQtde(s) {
 //    Cada OF é usada inteira (não monta parcial de OF)
 // 3. Sem nenhuma OF → abs(proj) + statusOf "ABRIR OF"
 // Versão completa: suporta status múltiplo e ABRIR OF quando OFs são insuficientes
+// Status de OF derivado por LINHA (mesma lógica do agrupado, aplicada à linha individual).
+// Retorna { statusOf, tipos:Set } onde tipos contém SEPARADO/FALTA SEPARAR/SEP. PARCIAL/ABRIR OF/MISTO/FATURAR
+function _pvStatusOfLinha(r) {
+  if (r.status === 'FATURAR' || (r.projetado!=null && r.projetado >= 0)) {
+    return { statusOf:'FATURAR', tipos:new Set(['FATURAR']) };
+  }
+  const rv = _pvCalcMontarCompleto(r.projetado, r.of_sem, r.of_comp, r.of_parc);
+  const sof = (rv.statusOf||'').toUpperCase();
+  const tipos = new Set();
+  if (sof.includes('SEPARADO') && !sof.includes('FALTA') && !sof.includes('PARCIAL')) tipos.add('SEPARADO');
+  if (sof.includes('FALTA SEPARAR')) tipos.add('FALTA SEPARAR');
+  if (sof.includes('SEP. PARCIAL') || sof.includes('PARCIAL')) tipos.add('SEP. PARCIAL');
+  if (sof.includes('ABRIR OF')) tipos.add('ABRIR OF');
+  // MISTO = combina mais de um tipo de status de OF
+  if (tipos.size > 1) tipos.add('MISTO');
+  return { statusOf: rv.statusOf, tipos };
+}
+
 function _pvCalcMontarCompleto(proj, ofSemStr, ofCompStr, ofParcStr) {
   if (proj >= 0) return { montar: 'FATURAR', statusOf: 'FATURAR' };
 
