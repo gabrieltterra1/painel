@@ -1763,29 +1763,20 @@ document.addEventListener('DOMContentLoaded', () => {
   <div id="pv-resumo-dia" style="margin-bottom:16px"></div>
 
   <!-- Tabela principal -->
+  <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+    <button id="pv-col-clear" onclick="pvLimparTudo()" style="background:rgba(255,59,59,.08);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✕ Limpar filtros</button>
+    <button onclick="exportarPedidosExcel()" style="background:rgba(0,201,122,.15);border:1px solid var(--green);color:var(--green);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700">⤓ Gerar Excel</button>
+  </div>
   <div class="table-wrap"><div class="scrollable">
-    <table style="min-width:1200px">
+    <table style="min-width:2400px;border-collapse:collapse">
       <thead class="blue" style="position:sticky;top:0;z-index:2">
-        <tr>
-          <th style="width:60px;position:sticky;left:0;background:var(--th-bg);z-index:3">PEDIDO</th>
-          <th style="width:75px">CÓDIGO</th>
-          <th style="min-width:140px;max-width:200px">DESCRIÇÃO</th>
-          <th style="width:40px;text-align:right">QT</th>
-          <th style="width:75px">ENTREGA</th>
-          <th style="width:90px">STATUS</th>
-          <th style="width:55px;text-align:right">PROJ.</th>
-          <th style="width:110px">OF S/REQ</th>
-          <th style="width:110px">OF COMP.</th>
-          <th style="width:110px">OF PARC.</th>
-          <th style="width:70px">FAMÍLIA</th>
-          <th style="width:130px">CLIENTE</th>
-          <th style="width:80px;text-align:right">VALOR</th>
-        </tr>
+        <tr id="pv-thead-row"></tr>
       </thead>
       <tbody id="pv-tbody"></tbody>
       <tfoot id="pv-foot"></tfoot>
     </table>
   </div></div>
+
 </div>
 
 <script>
@@ -4895,6 +4886,16 @@ function parsePedidos(text) {
   const iClass  = 24;  // CLASSIFICAÇÃO
   // col25=VALOR LÍQUIDO
   const iValor  = 26;  // VALOR LIQUIDO PENDEN
+  // colunas adicionais p/ exibir as 27 do relatório
+  const iUn      = 4;   // UN
+  const iQtdeTot = 5;   // QTDE PV TOTAL
+  const iSaldo   = 6;   // SALDO
+  const iPrazo   = 9;   // NOVO PRAZO
+  const iFilhos  = 13;  // FILHOS NEG FABRICADO
+  const iObs     = 14;  // OBSERVAÇÃO
+  const iRepCod  = 22;  // CÓDIGO REPRESENTANTE
+  const iRepDesc = 23;  // DESCRIÇÃO REPRESENTANTE
+  const iVlrLiq  = 25;  // VALOR LÍQUIDO (unitário)
 
   const parseNum = v => parseFloat(String(v||'').replace(',','.'))||0;
   // Converte qualquer formato de data para objeto Date local (sem shift de timezone)
@@ -4976,6 +4977,19 @@ function parsePedidos(text) {
       classificacao: String(r[iClass]||'').trim(),
       familia:  familia(r[iClass]),
       valor:    parseNum(r[iValor]),
+      // campos adicionais (relatório completo 27 colunas)
+      un:        String(r[iUn]||'').trim(),
+      qtdeTotal: parseNum(r[iQtdeTot]),
+      saldo:     parseNum(r[iSaldo]),
+      dataEmisStr,
+      prazo:     String(r[iPrazo]||'').trim(),
+      disp,
+      filhosNeg: String(r[iFilhos]||'').trim(),
+      obs:       String(r[iObs]||'').trim(),
+      possuiOf:  possOf,
+      repCod:    String(r[iRepCod]||'').trim(),
+      repDesc:   String(r[iRepDesc]||'').trim(),
+      vlrLiqUnit: parseNum(r[iVlrLiq]),
     });
   }
 }
@@ -4983,6 +4997,175 @@ function parsePedidos(text) {
 // ===== RENDER PEDIDOS =====
 let pvCharts = [];
 let _pvDatasAssinatura = '';
+
+// As 27 colunas do relatório de Pedidos de Venda, na ordem original.
+// [chave, rótulo, getter(r), tipo] — tipo 'num'|'money'|'date'|'text'
+const PVD_COLS = [
+  ['statusCalc','STATUS', r=>_pvStatusOfLinha(r).statusOf, 'text'],
+  ['chave','ITEM CHAVE', r=>r.chave, 'text'],
+  ['qtde','QTDE PEND. PV', r=>r.qtde, 'num'],
+  ['codigo','CÓDIGO ITEM', r=>r.codigo, 'text'],
+  ['descricao','DESCRIÇÃO ITEM', r=>r.descricao, 'text'],
+  ['un','UN', r=>r.un, 'text'],
+  ['qtdeTotal','QTDE PV TOTAL', r=>r.qtdeTotal, 'num'],
+  ['saldo','SALDO', r=>r.saldo, 'num'],
+  ['dataEmisStr','EMISSÃO', r=>r.dataEmisStr ? r.dataEmisStr.split('-').reverse().join('/') : '', 'date'],
+  ['dataEntStr','ENTREGA', r=>r.dataEntStr ? r.dataEntStr.split('-').reverse().join('/') : '', 'date'],
+  ['prazo','NOVO PRAZO', r=>r.prazo, 'text'],
+  ['pedido','PEDIDO', r=>r.pedido, 'text'],
+  ['projetado','PROJETADO', r=>r.projetado, 'num'],
+  ['disp','DISPONIBILIDADE', r=>r.disp, 'text'],
+  ['filhosNeg','FILHOS NEG FAB', r=>r.filhosNeg, 'text'],
+  ['obs','OBSERVAÇÃO', r=>r.obs, 'text'],
+  ['total_of','TOTAL PENDENTE', r=>r.total_of, 'num'],
+  ['possuiOf','POSSUI OF', r=>r.possuiOf, 'text'],
+  ['of_sem','OF SEM REQ', r=>r.of_sem, 'text'],
+  ['of_comp','OF COMPLETA', r=>r.of_comp, 'text'],
+  ['of_parc','OF REQ PARCIAL', r=>r.of_parc, 'text'],
+  ['clienteCod','CÓD. CLIENTE', r=>r.clienteCod, 'text'],
+  ['cliente','CLIENTE', r=>r.cliente, 'text'],
+  ['repCod','CÓD. REPRES.', r=>r.repCod, 'text'],
+  ['repDesc','REPRESENTANTE', r=>r.repDesc, 'text'],
+  ['classificacao','CLASSIFICAÇÃO', r=>r.classificacao, 'text'],
+  ['vlrLiqUnit','VALOR LÍQUIDO', r=>r.vlrLiqUnit, 'money'],
+  ['valor','VALOR LÍQ. PEND.', r=>r.valor, 'money']
+];
+let pvColFiltros = {};
+let pvColFiltroSelTemp = null;
+let pvColFiltroValores = [];
+let pvColFiltroAsc = true;
+let pvColFiltroDropAberto = null;
+let pvLinhasVisiveis = [];
+
+function _pvColVal(r, col){
+  const def = PVD_COLS.find(c=>c[0]===col);
+  const v = def ? def[2](r) : '';
+  return v==null ? '' : String(v);
+}
+function pvAplicarFiltrosColuna(linhas, excetoCol){
+  let out = linhas;
+  Object.keys(pvColFiltros).forEach(col=>{
+    if (excetoCol && col===excetoCol) return;
+    const set = pvColFiltros[col];
+    if (set && set.size) out = out.filter(r => set.has(_pvColVal(r, col)));
+  });
+  return out;
+}
+let pvSortCol = null;          // ordenação da tabela por data (independente do painel agregado)
+let pvLinhasTopo = [];         // linhas após filtros do topo (base para dropdowns de coluna)
+
+function pvOrdenarCol(col){
+  if (pvSortCol===col) pvSortAsc = !pvSortAsc;
+  else { pvSortCol = col; pvSortAsc = true; }
+  renderPedidos();
+}
+function togglePVColFiltro(ev, col){
+  ev.stopPropagation();
+  const exist = document.getElementById('pvcol-filtro-pop');
+  if (exist){ exist.remove(); if (pvColFiltroDropAberto===col){ pvColFiltroDropAberto=null; return; } }
+  pvColFiltroDropAberto = col;
+  const base = pvAplicarFiltrosColuna(pvLinhasTopo, col);
+  const valoresUnicos = Array.from(new Set(base.map(r=>_pvColVal(r,col))));
+  const def = PVD_COLS.find(c=>c[0]===col); const tipo = def?def[3]:'text';
+  const valores = ofOrdenarValores(valoresUnicos, (tipo==='num'||tipo==='money')?'__num':col, pvColFiltroAsc);
+  const sel = pvColFiltros[col] || new Set();
+  pvColFiltroValores = valoresUnicos.slice();
+  pvColFiltroSelTemp = new Set(sel.size===0 ? valoresUnicos : valoresUnicos.filter(v=>sel.has(v)));
+  const lbl = def?def[1]:col;
+  const pop = document.createElement('div');
+  pop.id = 'pvcol-filtro-pop';
+  pop.style.cssText = 'position:fixed;z-index:1200;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.5);padding:10px;width:280px;max-width:92vw;max-height:70vh;display:flex;flex-direction:column';
+  pop.innerHTML =
+     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:6px">'
+    +'<span style="font-size:11px;font-weight:700;color:var(--serie-azul);letter-spacing:1px">FILTRAR: '+lbl+'</span>'
+    +'<button onclick="pvColFiltroInverter(\''+col+'\')" title="Inverter ordem" style="background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:6px;font-size:11px;cursor:pointer;white-space:nowrap">'+(pvColFiltroAsc?'↑ A-Z':'↓ Z-A')+'</button>'
+    +'</div>'
+    +'<input id="pvcol-filtro-search" type="text" placeholder="Buscar valor..." oninput="pvColFiltroBuscaValor(this.value)" style="background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;margin-bottom:8px">'
+    +'<div style="display:flex;gap:6px;margin-bottom:8px">'
+    +'<button onclick="pvColFiltroTodos(true)" style="flex:1;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:4px;border-radius:6px;font-size:11px;cursor:pointer">Todos</button>'
+    +'<button onclick="pvColFiltroTodos(false)" style="flex:1;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:4px;border-radius:6px;font-size:11px;cursor:pointer">Nenhum</button>'
+    +'</div>'
+    +'<div id="pvcol-filtro-lista" style="overflow-y:auto;flex:1;font-size:12px;min-height:80px">'
+    + valores.map(v=>{
+        const checked = pvColFiltroSelTemp.has(v);
+        const vEsc = v.replace(/"/g,'&quot;');
+        return '<label class="pvcol-filtro-item" data-val="'+vEsc.toLowerCase()+'" style="display:flex;gap:6px;align-items:center;padding:3px 2px;cursor:pointer">'
+          +'<input type="checkbox" '+(checked?'checked':'')+' data-rawval="'+vEsc+'" onchange="pvColFiltroMarcar(this)">'
+          +'<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(v===''?'(vazio)':v)+'</span></label>';
+      }).join('')
+    +'</div>'
+    +'<div style="display:flex;gap:6px;margin-top:8px">'
+    +'<button onclick="aplicarPVColFiltro(\''+col+'\')" style="flex:1;background:var(--serie-azul);border:none;color:#fff;padding:6px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">Aplicar</button>'
+    +'<button onclick="document.getElementById(\'pvcol-filtro-pop\').remove();pvColFiltroDropAberto=null" style="background:var(--panel2);border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer">✕</button>'
+    +'</div>';
+  document.body.appendChild(pop);
+  const w = pop.offsetWidth||280, hh = pop.offsetHeight||360;
+  pop.style.left = Math.max(8, Math.min(ev.clientX, window.innerWidth - w - 8))+'px';
+  pop.style.top  = Math.max(8, Math.min(ev.clientY+12, window.innerHeight - hh - 8))+'px';
+}
+function pvColFiltroMarcar(cb){ const v=cb.getAttribute('data-rawval'); if(cb.checked) pvColFiltroSelTemp.add(v); else pvColFiltroSelTemp.delete(v); }
+function pvColFiltroBuscaValor(q){ const ql=(q||'').toLowerCase(); document.querySelectorAll('#pvcol-filtro-lista .pvcol-filtro-item').forEach(el=>{ el.style.display = el.getAttribute('data-val').includes(ql)?'flex':'none'; }); }
+function pvColFiltroTodos(marcar){ document.querySelectorAll('#pvcol-filtro-lista .pvcol-filtro-item').forEach(el=>{ if(el.style.display==='none')return; const cb=el.querySelector('input'); if(!cb)return; cb.checked=marcar; const v=cb.getAttribute('data-rawval'); if(marcar)pvColFiltroSelTemp.add(v); else pvColFiltroSelTemp.delete(v); }); }
+function aplicarPVColFiltro(col){
+  const total=pvColFiltroValores.length, n=pvColFiltroSelTemp.size;
+  if (n===0||n===total) delete pvColFiltros[col];
+  else pvColFiltros[col]=new Set(pvColFiltroSelTemp);
+  const pop=document.getElementById('pvcol-filtro-pop'); if(pop)pop.remove();
+  pvColFiltroDropAberto=null;
+  atualizarBotaoLimparPV();
+  renderPedidos();
+}
+function pvColFiltroInverter(col){
+  pvColFiltroAsc=!pvColFiltroAsc;
+  const def=PVD_COLS.find(c=>c[0]===col); const tipo=def?def[3]:'text';
+  const valores=ofOrdenarValores(pvColFiltroValores.slice(),(tipo==='num'||tipo==='money')?'__num':col,pvColFiltroAsc);
+  const lista=document.getElementById('pvcol-filtro-lista');
+  if(lista){ lista.innerHTML=valores.map(v=>{const checked=pvColFiltroSelTemp.has(v);const vEsc=v.replace(/"/g,'&quot;');return '<label class="pvcol-filtro-item" data-val="'+vEsc.toLowerCase()+'" style="display:flex;gap:6px;align-items:center;padding:3px 2px;cursor:pointer"><input type="checkbox" '+(checked?'checked':'')+' data-rawval="'+vEsc+'" onchange="pvColFiltroMarcar(this)"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(v===''?'(vazio)':v)+'</span></label>';}).join(''); }
+  const btn=document.querySelector('#pvcol-filtro-pop button[onclick^="pvColFiltroInverter"]'); if(btn)btn.textContent=pvColFiltroAsc?'↑ A-Z':'↓ Z-A';
+}
+function atualizarBotaoLimparPV(){
+  const btn=document.getElementById('pv-col-clear'); if(!btn)return;
+  const totalDatas = document.querySelectorAll('#ms-pv-data-list .ms-item').length||999;
+  const topoAtivo = (getMsValues('ms-pv-data').length>0 && getMsValues('ms-pv-data').length<totalDatas)
+    || (document.getElementById('pv-search')?.value||'').trim()
+    || Object.keys(pvColFiltros).length>0
+    || pvSortCol;
+  if (topoAtivo){ btn.style.background='rgba(255,59,59,.12)'; btn.style.borderColor='#ff3b3b'; btn.style.color='#ff6b6b'; }
+  else { btn.style.background='rgba(255,59,59,.08)'; btn.style.borderColor='var(--border)'; btn.style.color='var(--text-muted)'; }
+}
+function pvLimparTudo(){
+  pvColFiltros = {}; pvSortCol = null;
+  msMarcarTodos('ms-pv-status'); msMarcarTodos('ms-pv-familia'); msMarcarTodos('ms-pv-data');
+  ['ms-pv-status','ms-pv-familia','ms-pv-data'].forEach(id=>{const l=document.getElementById(id+'-label');if(l)l.textContent='Todos';});
+  const s=document.getElementById('pv-search'); if(s)s.value='';
+  atualizarBotaoLimparPV();
+  renderPedidos();
+}
+function exportarPedidosExcel(){
+  const linhas = pvLinhasVisiveis || [];
+  if (!linhas.length){ alert('Não há linhas para exportar com os filtros atuais.'); return; }
+  const cabec = PVD_COLS.map(c=>c[1]);
+  const dados = linhas.map(r => PVD_COLS.map(([k,,getter,tipo]) => {
+    if (tipo==='num'||tipo==='money') return Number(r[k])||0;
+    return getter(r)==null?'':String(getter(r));
+  }));
+  const nomeArq = 'Pedidos_de_Venda_'+new Date().toISOString().slice(0,10);
+  if (window.XLSX && XLSX.utils){
+    try{
+      const ws = XLSX.utils.aoa_to_sheet([cabec].concat(dados));
+      ws['!cols'] = cabec.map(h=>({wch:Math.max(10,h.length+2)}));
+      ws['!autofilter'] = { ref: XLSX.utils.encode_range({s:{r:0,c:0},e:{r:dados.length,c:cabec.length-1}}) };
+      ws['!freeze'] = { xSplit:0, ySplit:1 };
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Pedidos de Venda');
+      XLSX.writeFile(wb, nomeArq+'.xlsx'); return;
+    }catch(e){ console.warn('Falha XLSX, CSV:', e); }
+  }
+  const esc=v=>{let s=String(v==null?'':v);if(/[;"\n]/.test(s))s='"'+s.replace(/"/g,'""')+'"';return s;};
+  const csv=[cabec.map(esc).join(';')].concat(dados.map(r=>r.map((v,i)=>typeof v==='number'?String(v).replace('.',','):esc(v)).join(';'))).join('\r\n');
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=nomeArq+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
+}
 
 // Popula o multi-select de datas com botões de mês + checkbox por data.
 // Só repopula se o conjunto de datas mudou (preserva a seleção do usuário entre renders).
@@ -5179,6 +5362,12 @@ function renderPedidos() {
     return true;
   });
 
+  // Aplica os filtros tipo Excel por coluna SOBRE o resultado dos filtros do topo
+  pvLinhasTopo = filtrados;                       // base p/ dropdowns de coluna
+  filtrados = pvAplicarFiltrosColuna(filtrados);
+  pvLinhasVisiveis = filtrados; // para export e KPIs
+  atualizarBotaoLimparPV();
+
   // KPIs do topo recalculam sobre as MESMAS linhas filtradas desta tabela
   pvAtualizarKPIs(filtrados);
 
@@ -5227,47 +5416,63 @@ function renderPedidos() {
     resumoDiv.innerHTML = '';
   }
 
-  // ── TABELA ────────────────────────────────────────────────────────────────
+  // ── TABELA (27 colunas, ordem do relatório) ──────────────────────────────
   const STATUS_STYLE = {
-    'FATURAR':   { color:'var(--green)',  icon:'✓', bg:'rgba(0,201,122,0.1)' },
-    'POSSUI OF': { color:'#3d8bff',       icon:'⚙', bg:'rgba(61,139,255,0.1)' },
-    'SEM OF':    { color:'var(--orange)', icon:'✗', bg:'rgba(255,140,59,0.1)' },
+    'FATURAR':   { color:'var(--green)',  bg:'rgba(0,201,122,0.1)' },
+    'POSSUI OF': { color:'#3d8bff',       bg:'rgba(61,139,255,0.1)' },
+    'SEM OF':    { color:'var(--orange)', bg:'rgba(255,140,59,0.1)' },
   };
-  const FAM_LABEL = { FORCA:'Força', GUINCHO:'Guincho', WALVOIL:'Walvoil' };
 
-  document.getElementById('pv-tbody').innerHTML = filtrados.map(r => {
-    const st = STATUS_STYLE[r.status] || STATUS_STYLE['SEM OF'];
-    const rowBg = r.atrasado ? 'background:rgba(255,59,59,0.06)' : '';
-    const projColor = r.projetado >= 0 ? 'var(--green)' : 'var(--red)';
-    const entrega = r.dataEnt ? r.dataEnt.toLocaleDateString('pt-BR') : '—';
-    const fmtOf = s => s ? `<span style="font-size:10px;color:var(--text-muted)">${s}</span>` : '<span class="zero">—</span>';
-    return `<tr style="${rowBg}${r.atrasado?';border-left:3px solid var(--red)':''}">
-      <td style="position:sticky;left:0;background:${r.atrasado?'rgba(255,59,59,0.12)':'var(--surface)'};color:${r.atrasado?'var(--red)':'var(--text)'};font-weight:700">${r.pedido}</td>
-      <td style="font-family:monospace;font-size:12px">${r.codigo}</td>
-      <td style="font-size:11px;text-align:left;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.descricao}">${r.descricao}</td>
-      <td style="text-align:right;font-weight:600">${r.qtde}</td>
-      <td style="color:${r.atrasado?'var(--red)':'var(--text)'};font-weight:${r.atrasado?'700':'400'}">${entrega}${r.atrasado?' ⚠':''}</td>
-      <td style="background:${st.bg};color:${st.color};font-weight:700;font-size:11px;text-align:center">${st.icon} ${r.status}</td>
-      <td style="text-align:right;color:${projColor};font-weight:600">${r.projetado}</td>
-      <td>${fmtOf(r.of_sem)}</td>
-      <td>${fmtOf(r.of_comp)}</td>
-      <td>${fmtOf(r.of_parc)}</td>
-      <td style="font-size:11px;color:${FAM_COLORS[r.familia]||'var(--text)'};font-weight:600">${FAM_LABEL[r.familia]||r.familia}</td>
-      <td style="font-size:11px">${r.cliente.split(' ').slice(0,4).join(' ')}</td>
-      <td style="text-align:right;font-size:11px">R$ ${r.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-    </tr>`;
+  // Cabeçalho: rótulo (clicável p/ ordenar) + ▾ (filtro tipo Excel)
+  document.getElementById('pv-thead-row').innerHTML = PVD_COLS.map(([k,lbl,,tipo])=>{
+    const at = pvColFiltros[k] && pvColFiltros[k].size;
+    const alignR = (tipo==='num'||tipo==='money');
+    const stickyTh = (k==='statusCalc') ? 'position:sticky;left:0;z-index:3;background:var(--th-bg);' : '';
+    return `<th style="white-space:nowrap;padding:8px 10px;${stickyTh}${alignR?'text-align:right':'text-align:left'}">`
+      + `<span onclick="pvOrdenarCol('${k}')" title="Ordenar" style="cursor:pointer;user-select:none">${lbl}${pvSortCol===k?(pvSortAsc?' ↑':' ↓'):''}</span>`
+      + ` <span onclick="togglePVColFiltro(event,'${k}')" title="Filtrar" style="cursor:pointer;font-size:11px;opacity:${at?'1':'.6'};color:${at?'#ffd24d':'#cfe0ff'}">▾</span></th>`;
   }).join('');
 
-  // Totais
-  const totQtde = filtrados.reduce((s,r)=>s+r.qtde,0);
-  const totValor = filtrados.reduce((s,r)=>s+r.valor,0);
-  document.getElementById('pv-foot').innerHTML = `
-    <tr class="tfoot-row" style="background:var(--border);border-top:2px solid var(--blue)">
-      <td style="position:sticky;left:0;background:var(--border);text-align:left;color:var(--text-muted)" colspan="3">TOTAL (${filtrados.length} itens)</td>
-      <td style="text-align:right;font-weight:700">${totQtde.toLocaleString('pt-BR')}</td>
-      <td colspan="8"></td>
-      <td style="text-align:right;font-weight:700">R$ ${totValor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-    </tr>`;
+  // Ordenação
+  if (pvSortCol) {
+    const def = PVD_COLS.find(c=>c[0]===pvSortCol);
+    const tipo = def ? def[3] : 'text';
+    filtrados = filtrados.slice().sort((a,b)=>{
+      let va=_pvColVal(a,pvSortCol), vb=_pvColVal(b,pvSortCol);
+      if (tipo==='num'||tipo==='money'){ va=Number(a[pvSortCol])||0; vb=Number(b[pvSortCol])||0; return pvSortAsc?va-vb:vb-va; }
+      if (tipo==='date'){ const da=(a.dataEntStr||a.dataEmisStr||''),db=(b.dataEntStr||b.dataEmisStr||''); return pvSortAsc?da.localeCompare(db):db.localeCompare(da); }
+      const r=va.localeCompare(vb,'pt-BR',{numeric:true}); return pvSortAsc?r:-r;
+    });
+  }
+
+  // Corpo
+  document.getElementById('pv-tbody').innerHTML = filtrados.map(r => {
+    const rowBg = r.atrasado ? 'background:rgba(255,59,59,0.06)' : '';
+    const tds = PVD_COLS.map(([k,,getter,tipo])=>{
+      let v = getter(r), disp, extra = 'padding:6px 10px;font-size:11px;white-space:nowrap';
+      if (tipo==='money'){ const n=Number(v)||0; disp = n? 'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2}) : '<span class="zero">—</span>'; extra+=';text-align:right'; }
+      else if (tipo==='num'){ const n=Number(v)||0; disp = n.toLocaleString('pt-BR'); extra+=';text-align:right'; if(k==='projetado'){extra+=';font-weight:600;color:'+(n>=0?'var(--green)':'var(--red)');} }
+      else if (k==='statusCalc'){ const st=STATUS_STYLE[r.status]||STATUS_STYLE['SEM OF']; disp=getter(r); extra+=`;text-align:center;font-weight:700;color:${st.color};min-width:130px`; }
+      else if (k==='descricao'){ disp = v||'—'; extra+=';max-width:220px;overflow:hidden;text-overflow:ellipsis'; }
+      else { disp = (v==null||v==='')?'<span class="zero">—</span>':String(v); }
+      const sticky = (k==='statusCalc') ? `position:sticky;left:0;z-index:1;background:${r.atrasado?'#3a1a1a':'var(--surface)'};` : '';
+      return `<td style="${sticky}${extra}" ${k==='descricao'?`title="${(v||'').replace(/"/g,'&quot;')}"`:''}>${disp}</td>`;
+    }).join('');
+    return `<tr style="${rowBg}${r.atrasado?';border-left:3px solid var(--red)':''}">${tds}</tr>`;
+  }).join('') || `<tr><td colspan="${PVD_COLS.length}" style="padding:20px;text-align:center;color:var(--text-muted)">Nenhuma linha para os filtros aplicados.</td></tr>`;
+
+  // Totais (qtde pendente e valor líquido pendente)
+  const totQtde = filtrados.reduce((s,r)=>s+(Number(r.qtde)||0),0);
+  const totValor = filtrados.reduce((s,r)=>s+(Number(r.valor)||0),0);
+  const idxQt = PVD_COLS.findIndex(c=>c[0]==='qtde');
+  const idxVal = PVD_COLS.length-1;
+  const cells = PVD_COLS.map((c,i)=>{
+    if (i===0) return `<td style="position:sticky;left:0;background:var(--border);text-align:left;color:var(--text-muted);padding:6px 10px;white-space:nowrap">TOTAL (${filtrados.length} linhas)</td>`;
+    if (i===idxQt) return `<td style="text-align:right;font-weight:700;padding:6px 10px">${totQtde.toLocaleString('pt-BR')}</td>`;
+    if (i===idxVal) return `<td style="text-align:right;font-weight:700;padding:6px 10px">R$ ${totValor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>`;
+    return '<td></td>';
+  }).join('');
+  document.getElementById('pv-foot').innerHTML = `<tr class="tfoot-row" style="background:var(--border);border-top:2px solid var(--blue)">${cells}</tr>`;
 }
 
 // ── Popular dropdown de dias com datas únicas ────────────────────────────
@@ -5411,6 +5616,10 @@ document.addEventListener('click', function(e) {
   const popT = document.getElementById('trd-filtro-pop');
   if (popT && !popT.contains(e.target) && !e.target.closest('[onclick*="toggleTRDFiltro"]')) {
     popT.remove(); trdFiltroDropAberto = null;
+  }
+  const popPV = document.getElementById('pvcol-filtro-pop');
+  if (popPV && !popPV.contains(e.target) && !e.target.closest('[onclick*="togglePVColFiltro"]')) {
+    popPV.remove(); pvColFiltroDropAberto = null;
   }
 });
 
