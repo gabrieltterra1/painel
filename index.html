@@ -564,6 +564,18 @@
     min-width: 160px;
   }
   .kpi-label { font-size: 11px; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 20px;
+    flex: 1;
+    min-width: 160px;
+    box-shadow: var(--card-shadow, 0 4px 24px rgba(0,0,0,0.25));
+  }
+  .kpi-value { font-family: var(--font-display); font-size: 28px; font-weight: 900; color: var(--text); }
+  .kpi-value.green { color: var(--green); }
+  .kpi-value.blue { color: var(--blue-light); }
   .kpi-val { font-family: var(--font-display); font-size: 28px; font-weight: 900; color: var(--text); }
   .kpi-val.green { color: var(--green); }
   .kpi-val.blue { color: var(--blue-light); }
@@ -4960,27 +4972,12 @@ function renderPedidos() {
   const todos = DATA.pedidos;
   const hoje = new Date(); hoje.setHours(0,0,0,0);
 
-  // ── KPIs ────────────────────────────────────────────────────────────────
-  const atrasados  = todos.filter(r => r.atrasado);
-  const faturar    = todos.filter(r => r.status === 'FATURAR');
-  const semOf      = todos.filter(r => r.status === 'SEM OF' && !r.atrasado);
-  const totalPedidos= new Set(todos.map(r=>r.pedido)).size;
-  const valorTotal = todos.reduce((s,r)=>s+r.valor,0);
+  // KPIs do topo agora são calculados por pvAtualizarKPIs() dentro de
+  // renderPvPrioridades(), reagindo aos filtros do painel. Aqui só
+  // preparamos os dados e disparamos o primeiro render.
 
-  document.getElementById('pv-kpis').innerHTML = `
-    <div class="kpi-card"><div class="kpi-label">TOTAL DE ITENS</div>
-      <div class="kpi-value blue">${todos.length.toLocaleString('pt-BR')}</div></div>
-    <div class="kpi-card"><div class="kpi-label">PEDIDOS</div>
-      <div class="kpi-value blue">${totalPedidos.toLocaleString('pt-BR')}</div></div>
-    <div class="kpi-card"><div class="kpi-label">ITENS EM ATRASO</div>
-      <div class="kpi-value" style="color:var(--red)">${atrasados.length}</div></div>
-    <div class="kpi-card"><div class="kpi-label">PRONTO P/ FATURAR</div>
-      <div class="kpi-value" style="color:var(--green)">${faturar.length}</div></div>
-    <div class="kpi-card"><div class="kpi-label">SEM OF</div>
-      <div class="kpi-value" style="color:var(--orange)">${semOf.length}</div></div>
-    <div class="kpi-card"><div class="kpi-label">VALOR EM CARTEIRA</div>
-      <div class="kpi-value" style="color:var(--blue-light);font-size:18px">R$ ${valorTotal.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
-  `;
+  // Gráficos de atraso usam a carteira inteira (panorama geral, não filtrado)
+  const atrasados = todos.filter(r => r.atrasado);
 
   // Popular dropdown de dias no ms-pv-dias
   _pvPopularDias();
@@ -5398,6 +5395,33 @@ function pvToggleOculto(codigo) {
   renderPvPrioridades();
 }
 
+// Atualiza os KPIs do topo com base nos códigos/produtos filtrados do painel
+function pvAtualizarKPIs(lista) {
+  const el = document.getElementById('pv-kpis');
+  if (!el) return;
+  const totalItens = lista.length;                          // códigos/produtos
+  const pedidos    = new Set();
+  lista.forEach(g => (g._pedidos||new Set()).forEach(p=>pedidos.add(p)));
+  const atraso  = lista.filter(g => g.atrasado).length;
+  const faturar = lista.filter(g => g.faturar).length;
+  const semOf   = lista.filter(g => g.status === 'SEM OF' && !g.atrasado).length;
+  const valor   = lista.reduce((s,g)=>s+(Number(g.valor)||0),0);
+  el.innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">TOTAL DE ITENS</div>
+      <div class="kpi-value blue">${totalItens.toLocaleString('pt-BR')}</div></div>
+    <div class="kpi-card"><div class="kpi-label">PEDIDOS</div>
+      <div class="kpi-value blue">${pedidos.size.toLocaleString('pt-BR')}</div></div>
+    <div class="kpi-card"><div class="kpi-label">ITENS EM ATRASO</div>
+      <div class="kpi-value" style="color:var(--red)">${atraso.toLocaleString('pt-BR')}</div></div>
+    <div class="kpi-card"><div class="kpi-label">PRONTO P/ FATURAR</div>
+      <div class="kpi-value" style="color:var(--green)">${faturar.toLocaleString('pt-BR')}</div></div>
+    <div class="kpi-card"><div class="kpi-label">SEM OF</div>
+      <div class="kpi-value" style="color:var(--orange)">${semOf.toLocaleString('pt-BR')}</div></div>
+    <div class="kpi-card"><div class="kpi-label">VALOR EM CARTEIRA</div>
+      <div class="kpi-value" style="color:var(--blue-light);font-size:18px">R$ ${valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
+  `;
+}
+
 // ── Renderizar painel de prioridades agrupado ─────────────────────────────
 function renderPvPrioridades() {
   if (!DATA.pedidos || DATA.pedidos.length === 0) return;
@@ -5428,10 +5452,15 @@ function renderPvPrioridades() {
       of_sem_str:'', of_comp_str:'', of_parc_str:'',
       of_sem_raw:'', of_comp_raw:'', of_parc_raw:'', // texto bruto para popup
       _ofsSemVistas: new Set(), _ofsCompVistas: new Set(), _ofsParcVistas: new Set(),
-      a_montar:0, statusOf:'', faturar:false
+      a_montar:0, statusOf:'', faturar:false,
+      valor:0, atrasado:false, status:'', _pedidos:new Set()
     };
     const g = grupos[cod];
     g.qtde_pv     += r.qtde;
+    g.valor       += (Number(r.valor)||0);
+    if (r.atrasado) g.atrasado = true;
+    if (r.status === 'SEM OF') g.status = 'SEM OF';
+    if (r.pedido) g._pedidos.add(r.pedido);
     // Usar o menor projetado entre as linhas (mais restritivo)
     if (g.qtde_pv === r.qtde) { g.proj = r.projetado; } // primeira linha
     else { g.proj = Math.min(g.proj, r.projetado); }
@@ -5526,6 +5555,7 @@ function renderPvPrioridades() {
       return pvSortAsc ? va - vb : vb - va;
     });
   pvListaAtual = lista; // salvar para uso no PDF
+  pvAtualizarKPIs(lista); // KPIs do topo reagem aos filtros (granularidade de código)
   // Botão mostrar ocultos
   const btnOc = document.getElementById('pv-btn-ocultos');
   if (btnOc) { btnOc.style.display = pvOcultos.size > 0 ? '' : 'none'; btnOc.textContent = `👁 Mostrar ${pvOcultos.size} oculto(s)`; }
