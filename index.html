@@ -890,7 +890,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <div style="display:flex;gap:5px;align-items:center">
       <button id="theme-toggle" onclick="toggleTema()" title="Alternar tema claro/escuro" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:14px;cursor:pointer">🌙</button>
-      <button onclick="abrirModalFeriados()" style="background:rgba(245,158,11,.15);border:1px solid #f59e0b;color:#f59e0b;padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">📅 Feriados</button>
+      <button onclick="pedirSenha(abrirModalFeriados)" style="background:rgba(245,158,11,.15);border:1px solid #f59e0b;color:#f59e0b;padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">📅 Feriados</button>
       <button class="upload-btn" id="refresh-btn" onclick="forcarAtualizacao(false)" title="Atualizar dados do painel">↻ Atualizar</button>
       <button class="upload-btn" id="process-btn" onclick="forcarAtualizacao(true)" title="Ler novos emails e atualizar (~1 min)" style="padding:7px 10px;font-size:14px">⚡</button>
     </div>
@@ -986,7 +986,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <div id="tab-montados" class="tab-content active">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
     <span class="section-title" style="margin:0">Itens Montados — EPP<span class="email-badge" data-sheet="ITENS_MONTADOS"></span></span>
-    <button onclick="abrirModalMetasMontados()" style="background:rgba(0,201,122,.15);border:1px solid #00c97a;color:#00c97a;padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✏ Definir Metas</button>
+    <button onclick="pedirSenha(abrirModalMetasMontados)" style="background:rgba(0,201,122,.15);border:1px solid #00c97a;color:#00c97a;padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✏ Definir Metas</button>
   </div>
   <div id="montados-cards" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px"></div>
   <div id="montados-content"></div>
@@ -994,7 +994,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <!-- HISTÓRICO ANUAL + COMPARAÇÃO MONTADO × VENDIDO -->
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:32px 0 16px">
     <span class="section-title" style="margin:0">Histórico do Ano — Montagem &amp; Vendas</span>
-    <button onclick="abrirModalVendasMontados()" style="background:rgba(61,139,255,.15);border:1px solid #3d8bff;color:var(--serie-azul);padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✏ Informar Vendas</button>
+    <button onclick="pedirSenha(abrirModalVendasMontados)" style="background:rgba(61,139,255,.15);border:1px solid #3d8bff;color:var(--serie-azul);padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✏ Informar Vendas</button>
   </div>
   <div id="montados-historico"></div>
   <div id="montados-comparacao" style="margin-top:24px"></div>
@@ -1258,7 +1258,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="chart-card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
         <div class="chart-title" style="margin:0">Meta x Realizado — Mensal (R$)</div>
-        <button onclick="abrirModalMetaComp()" style="background:rgba(0,201,122,.15);border:1px solid #00c97a;color:#00c97a;padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer">✏ Meta Competitividade</button>
+        <button onclick="pedirSenha(abrirModalMetaComp)" style="background:rgba(0,201,122,.15);border:1px solid #00c97a;color:#00c97a;padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer">✏ Meta Competitividade</button>
       </div>
       <div style="overflow-x:auto"><div style="position:relative;height:280px;min-width:400px"><canvas id="servico-meta-mes-chart"></canvas></div></div>
       <div id="servico-meta-mes-tabela" style="margin-top:12px;overflow-x:auto"></div>
@@ -1340,8 +1340,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   <!-- ═══ METAS ═══ -->
   <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
-    <button onclick="abrirModalMetas()" style="background:rgba(61,139,255,.15);border:1px solid var(--blue);color:var(--blue);padding:4px 12px;border-radius:5px;font-size:11px;cursor:pointer">✏ Editar Metas</button>
-    <button onclick="abrirModalFeriados()" style="background:rgba(245,158,11,.15);border:1px solid #f59e0b;color:#f59e0b;padding:4px 12px;border-radius:5px;font-size:11px;cursor:pointer">📅 Feriados</button>
+    <button onclick="pedirSenha(abrirModalMetas)" style="background:rgba(61,139,255,.15);border:1px solid var(--blue);color:var(--blue);padding:4px 12px;border-radius:5px;font-size:11px;cursor:pointer">✏ Editar Metas</button>
+    <button onclick="pedirSenha(abrirModalFeriados)" style="background:rgba(245,158,11,.15);border:1px solid #f59e0b;color:#f59e0b;padding:4px 12px;border-radius:5px;font-size:11px;cursor:pointer">📅 Feriados</button>
   </div>
   <!-- Container TT -->
   <div id="tt-container" style="background:var(--surface);border:1px solid #f59e0b44;border-radius:12px;padding:14px 18px;margin-bottom:10px">
@@ -3311,6 +3311,24 @@ function parseTermico(text) {
 }
 
 // ═══════════ METAS & FERIADOS ═══════════
+// Proteção por senha das ações de entrada manual (destrava por 30 min).
+// AVISO: senha no front-end não é segurança real (visível no código). Serve para
+// evitar alterações acidentais/casuais por quem não deve mexer.
+const _PV_SENHA = 'IPH@interpump#2026PCP';
+const _PV_SENHA_VALIDADE_MS = 30 * 60 * 1000; // 30 minutos
+let _pvSenhaOkAte = 0;
+function pedirSenha(callback){
+  const agora = Date.now();
+  if (agora < _pvSenhaOkAte) { callback(); return; }   // ainda destravado
+  const s = prompt('Digite a senha para fazer alterações:');
+  if (s === null) return;                                // cancelou
+  if (s === _PV_SENHA) {
+    _pvSenhaOkAte = Date.now() + _PV_SENHA_VALIDADE_MS;
+    callback();
+  } else {
+    alert('Senha incorreta.');
+  }
+}
 
 // Metas padrão (editáveis via localStorage)
 const METAS_DEFAULT = {
