@@ -7474,7 +7474,7 @@ const ESD_COLS = [
   ['DIF_SALDO','DIF. SALDO'], ['DIF_TOTAL','DIF. TOTAL'], ['OF_LIB','OF LIBERADA'],
   ['DIF_TOTAL_OF','DIF. TOTAL OF'], ['EST_TRANSITO','ESTQ TRÂNSITO'], ['CONSUMO_MED','CONSUMO MÉDIO'],
   ['PEDIDOS','PEDIDOS'], ['DIF_REAL','DIF. REAL'], ['DIF_TRANSITO','DIF. TRÂNSITO'],
-  ['MED_CONSUMO_3M','MÉD. CONSUMO 3M'], ['FILHOS_NEG','FILHOS NEG FAB'], ['FILHOS_FAB','FILHOS FABRICADOS'],
+  ['MED_CONSUMO_3M','MÉD. CONSUMO 3M'],
   ['CUSTO','CUSTO'], ['CUSTO_ATUAL','CUSTO ATUAL'], ['CUSTO_ES','CUSTO ESTQ SEG']
 ];
 // Estado dos filtros da tabela detalhada de estoque de segurança
@@ -7497,7 +7497,7 @@ function parseEstoqueDetalhe(text) {
   const C = { ID:0, COD:1, DESC:2, EMP:3, ALMOX:4, CLAS:5, EST_ATUAL:6, PARAM:7,
               DIF_SALDO:8, DIF_TOTAL:9, OF_LIB:10, DIF_TOTAL_OF:11, EST_TRANSITO:12,
               CONSUMO_MED:13, PEDIDOS:14, DIF_REAL:15, DIF_TRANSITO:16, MED_3M:17,
-              FILHOS_NEG:18, FILHOS_FAB:19, CUSTO:20, CUSTO_ATUAL:21, CUSTO_ES:22 };
+              CUSTO:18, CUSTO_ATUAL:19, CUSTO_ES:20 };
   DATA.estoqueDet = rows
     .filter(r => r && r.length > 2 && !isHeader(r))
     .filter(r => String(r[C.COD]||'').trim() !== '')
@@ -7524,8 +7524,6 @@ function parseEstoqueDetalhe(text) {
         DIF_REAL:       ofNum(r[C.DIF_REAL]),
         DIF_TRANSITO:   ofNum(r[C.DIF_TRANSITO]),
         MED_CONSUMO_3M: ofNum(r[C.MED_3M]),
-        FILHOS_NEG:     String(r[C.FILHOS_NEG]||'').trim(),
-        FILHOS_FAB:     String(r[C.FILHOS_FAB]||'').trim(),
         CUSTO:          ofNum(r[C.CUSTO]),
         CUSTO_ATUAL:    ofNum(r[C.CUSTO_ATUAL]),
         CUSTO_ES:       ofNum(r[C.CUSTO_ES])
@@ -7574,14 +7572,14 @@ function renderESDTabela() {
   const todos = DATA.estoqueDet || [];
   const numCols = new Set(['EST_ATUAL','PARAM_ES','DIF_SALDO','DIF_TOTAL','OF_LIB','DIF_TOTAL_OF','EST_TRANSITO','CONSUMO_MED','PEDIDOS','DIF_REAL','DIF_TRANSITO','MED_CONSUMO_3M']);
   const moneyCols = new Set(['CUSTO','CUSTO_ATUAL','CUSTO_ES']);
-  const longCols = new Set(['FILHOS_NEG','FILHOS_FAB','DESC']);
+  const longCols = new Set(['DESC']);
 
   const thBase = 'padding:9px 12px;text-align:center;font-size:11px;font-weight:800;white-space:nowrap;color:#fff;position:relative';
   const tdBase = 'padding:7px 12px;text-align:center;font-size:12px;white-space:nowrap';
 
   const head = ESD_COLS.map(([k,lbl])=>{
     const ativo = esdFiltros[k] && esdFiltros[k].size;
-    const alignLeft = (k==='DESC'||k==='CLAS'||k==='FILHOS_FAB'||k==='FILHOS_NEG');
+    const alignLeft = (k==='DESC'||k==='CLAS');
     return '<th style="'+thBase+(alignLeft?';text-align:left':'')+'"><span>'+lbl+'</span>'
       +' <span onclick="toggleESDFiltro(event,&#39;'+k+'&#39;)" title="Filtrar" style="cursor:pointer;font-size:11px;opacity:'+(ativo?'1':'.6')+';color:'+(ativo?'#ffd24d':'#cfe0ff')+'">▾</span></th>';
   }).join('');
@@ -7592,9 +7590,7 @@ function renderESDTabela() {
       let v = it[k], disp, extra='';
       if (longCols.has(k)) {
         const s = String(v||'');
-        if (!s) disp = '<span style="color:var(--muted-dim)">—</span>';
-        else if (s.length>30 && (k==='FILHOS_FAB'||k==='FILHOS_NEG')) disp = '<span onclick="this.textContent=this.getAttribute(&#39;data-full&#39;);this.onclick=null;this.style.whiteSpace=&#39;normal&#39;" data-full="'+s.replace(/"/g,'&quot;')+'" style="cursor:pointer;color:var(--serie-azul)">'+s.slice(0,30)+'… ⊕</span>';
-        else disp = s;
+        disp = s || '<span style="color:var(--muted-dim)">—</span>';
         extra = ';text-align:left;white-space:normal;max-width:260px';
       } else if (moneyCols.has(k)) {
         disp = esdFmtMoney(v);
@@ -7715,7 +7711,7 @@ function exportarESDExcel(){
   if (window.XLSX && XLSX.utils) {
     try {
       const ws = XLSX.utils.aoa_to_sheet([cabec].concat(linhas));
-      ws['!cols'] = cabec.map((h,i)=>i===1?{wch:40}:i===18?{wch:30}:{wch:Math.max(10,h.length+2)});
+      ws['!cols'] = cabec.map((h,i)=>i===1?{wch:40}:{wch:Math.max(10,h.length+2)});
       ws['!autofilter'] = { ref: XLSX.utils.encode_range({s:{r:0,c:0}, e:{r:linhas.length, c:cabec.length-1}}) };
       ws['!freeze'] = { xSplit:0, ySplit:1 };
       const wb = XLSX.utils.book_new();
