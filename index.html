@@ -712,6 +712,7 @@
 
 /* ═══════════ MOBILE RESPONSIVE ═══════════ */
 @media (max-width: 768px) {
+  .diario-grid { grid-template-columns: 1fr !important; }
   /* Header — altura automática, conteúdo empilhado, NÃO sticky (senão cobre os botões) */
   header { padding: 10px 12px; gap: 8px; height: auto; position: static; flex-wrap: wrap; flex-direction: column; align-items: stretch; }
   header h1 { font-size: 18px; }
@@ -1354,11 +1355,19 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="pm-cards" style="display:flex;gap:6px;align-items:stretch;overflow-x:auto;padding-bottom:4px"></div>
   </div>
 
-  <!-- Gráfico diário -->
-  <div class="chart-card" style="margin-bottom:20px">
-    <div class="chart-title">TT & PM — PEÇAS ENVIADAS POR DIA (mês atual)</div>
-    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
-      <div style="position:relative;height:300px;min-width:500px"><canvas id="diario-chart"></canvas></div>
+  <!-- Gráficos diários TT e PM (lado a lado) -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px" class="diario-grid">
+    <div class="chart-card">
+      <div class="chart-title">TT — PEÇAS ENVIADAS POR DIA (mês atual)</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <div style="position:relative;height:300px;min-width:300px"><canvas id="diario-chart-tt"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">PM — PARES ENVIADOS POR DIA (mês atual)</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <div style="position:relative;height:300px;min-width:300px"><canvas id="diario-chart-pm"></canvas></div>
+      </div>
     </div>
   </div>
 
@@ -4116,8 +4125,23 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
   const isUlt  = diasComNF.map(d => d === ultimoDia);
 
   const _destroy = id => { const c = Chart.getChart(id); if(c) c.destroy(); };
-  _destroy('diario-chart');
-  new Chart(document.getElementById('diario-chart'), {
+
+  const _optsDiario = () => ({
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{display:true,labels:{color:cssVar('--text-muted'),boxWidth:12,font:{size:11}}},
+      datalabels:{display:true}
+    },
+    scales:{
+      x:{ticks:{color:cssVar('--text-muted'),font:{size:10}},grid:{display:false}},
+      y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}}
+    },
+    layout:{padding:{top:24}}
+  });
+
+  // ── Gráfico TT (laranja) ──
+  _destroy('diario-chart-tt');
+  new Chart(document.getElementById('diario-chart-tt'), {
     type:'bar',
     data:{ labels, datasets:[
       { label:'TT (pçs)',
@@ -4126,33 +4150,31 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
         borderColor:cssVar('--serie-laranja'), borderWidth:1, borderRadius:4,
         datalabels:{color:cssVar('--text'),anchor:'end',align:'top',font:{size:9,weight:'700'},formatter:v=>v>0?v.toLocaleString('pt-BR'):''}
       },
+      { label:'Meta TT/dia', data:Array(labels.length).fill(metaTTDia),
+        type:'line', borderColor:cssVar('--serie-laranja'), borderDash:[4,3], borderWidth:2,
+        pointRadius: labels.length<=2?4:0, pointBackgroundColor:cssVar('--serie-laranja'),
+        fill:false, datalabels:{display:false} }
+    ]},
+    options:_optsDiario(), plugins:[ChartDataLabels]
+  });
+
+  // ── Gráfico PM (roxo) ──
+  _destroy('diario-chart-pm');
+  new Chart(document.getElementById('diario-chart-pm'), {
+    type:'bar',
+    data:{ labels, datasets:[
       { label:'PM (pares)',
         data:pmVals,
         backgroundColor: pmVals.map((_,i)=>isUlt[i]?'#a855f7ff':'#a855f766'),
         borderColor:cssVar('--serie-roxo'), borderWidth:1, borderRadius:4,
         datalabels:{color:cssVar('--text'),anchor:'end',align:'top',font:{size:9,weight:'700'},formatter:v=>v>0?v.toLocaleString('pt-BR'):''}
       },
-      { label:'Meta TT/dia', data:Array(labels.length).fill(metaTTDia),
-        type:'line', borderColor:cssVar('--serie-laranja'), borderDash:[4,3], borderWidth:2,
-        pointRadius: labels.length<=2?4:0, pointBackgroundColor:cssVar('--serie-laranja'),
-        fill:false, datalabels:{display:false} },
       { label:'Meta PM/dia', data:Array(labels.length).fill(metaPMDia),
         type:'line', borderColor:cssVar('--serie-roxo'), borderDash:[4,3], borderWidth:2,
         pointRadius: labels.length<=2?4:0, pointBackgroundColor:cssVar('--serie-roxo'),
         fill:false, datalabels:{display:false} }
     ]},
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{
-        legend:{display:true,labels:{color:cssVar('--text-muted'),boxWidth:12,font:{size:11}}},
-        datalabels:{display:true}
-      },
-      scales:{
-        x:{ticks:{color:cssVar('--text-muted'),font:{size:10}},grid:{display:false}},
-        y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}}
-      },
-      layout:{padding:{top:24}}
-    }, plugins:[ChartDataLabels]
+    options:_optsDiario(), plugins:[ChartDataLabels]
   });
 }
 
