@@ -938,6 +938,27 @@ document.addEventListener('DOMContentLoaded', () => {
             <button data-v="atraso" onclick="setOFSituacao('atraso')" class="of-seg">Em atraso</button>
           </div>
         </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:10px;color:var(--text-muted);font-weight:700;letter-spacing:.5px">FAMÍLIA</span>
+          <div class="ms-wrap" id="ms-of-familia" style="min-width:170px">
+            <div class="ms-btn" onclick="toggleMsDropdown('ms-of-familia')">
+              <span id="ms-of-familia-label">Todas as famílias</span><span>▾</span>
+            </div>
+            <div class="ms-dropdown">
+              <div class="ms-all" onclick="msToggleAll('ms-of-familia')">
+                <input type="checkbox" id="ms-of-familia-all" checked> Selecionar / Desmarcar Todos
+              </div>
+              <label class="ms-item"><input type="checkbox" value="TOMADA_MULT" checked onchange="ofFamChange()"> Tomada e Mult</label>
+              <label class="ms-item"><input type="checkbox" value="BOMBA" checked onchange="ofFamChange()"> Bomba</label>
+              <label class="ms-item"><input type="checkbox" value="CILINDRO" checked onchange="ofFamChange()"> Cilindro</label>
+              <label class="ms-item"><input type="checkbox" value="CONJ_EIXO" checked onchange="ofFamChange()"> Conj. Eixo</label>
+              <label class="ms-item"><input type="checkbox" value="GUINCHO_ENROL" checked onchange="ofFamChange()"> Guincho e Enrol.</label>
+              <label class="ms-item"><input type="checkbox" value="COMANDO" checked onchange="ofFamChange()"> Comando</label>
+              <label class="ms-item"><input type="checkbox" value="VALVULA" checked onchange="ofFamChange()"> Válvula</label>
+              <label class="ms-item"><input type="checkbox" value="KIT_HIDR" checked onchange="ofFamChange()"> Kit Hidr.</label>
+            </div>
+          </div>
+        </div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button id="of-detail-clear" onclick="limparFiltroOFDetalhe()" style="background:rgba(255,59,59,.08);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✕ Limpar filtros</button>
@@ -2119,6 +2140,7 @@ const OF_FAM_LABEL = {TOMADA_MULT:'TOMADA E MULT',BOMBA:'BOMBA',CILINDRO:'CILIND
 const OF_MOV_LABEL = {EPP:'OF Entregue Parcial',REP:'Separada',NADA:'Não Separada'};
 // Colunas exibidas na tabela detalhada (chave interna → rótulo)
 const OF_DET_COLS = [
+  ['STATUS_MOV','STATUS'],
   ['NUM_ORDEM','Nº ORDEM'], ['DT_EMISSAO','EMISSÃO'], ['DT_FINAL','ENTREGA'],
   ['COD_ITEM','COD ITEM'], ['DESC','DESCRIÇÃO'], ['QTDE','QTDE'], ['QTDE_PEND','PENDENTE'],
   ['VLR_UNIT','VLR UNIT'], ['VLR_TOTAL','VLR TOTAL'], ['CUSTO_MED','CUSTO MÉD'],
@@ -2132,6 +2154,20 @@ let ofDetDropdownAberto = null;
 let ofFiltroAsc = true;   // direção de ordenação dos valores no dropdown de filtro
 let ofEscopo = 'todas';   // 'todas' | 'montagem' | 'producao'
 let ofSituacao = 'tudo';  // 'tudo' | 'atraso'
+let ofFamSel = [];        // multi-select de família (vazio = todas)
+// valor "exibível/filtrável" de uma coluna (STATUS_MOV deriva do MOVIMENTO)
+function ofColVal(it, k){
+  if (k==='STATUS_MOV') return ofMovLabelStatus(it.MOVIMENTO);
+  return it[k]==null ? '' : String(it[k]);
+}
+// rótulo curto do status para filtro/busca
+function ofMovLabelStatus(m){
+  const x = String(m||'').toUpperCase();
+  if (x==='REP') return 'Separada';
+  if (x==='EPP') return 'Entregue Parcial';
+  if (x==='NADA') return 'Não Separada';
+  return '';
+}
 let ofFiltroSelTemp = null;   // Set com valores marcados no dropdown aberto (estado em memória)
 let ofFiltroValores = [];     // valores únicos da coluna do dropdown aberto
 
@@ -2153,6 +2189,15 @@ function ofOrdenarValores(valores, col, asc) {
 }
 
 function ofMovLabel(m){ return OF_MOV_LABEL[String(m||'').toUpperCase()] || (m||'—'); }
+// Badge de status da OF (estilo Pedidos de Venda): REP=Separada, EPP=Entregue Parcial, NADA=Não Separada
+function ofStatusBadge(mov){
+  const m = String(mov||'').toUpperCase();
+  const badge = (bg,color,txt) => `<span style="background:${bg};color:${color};font-size:10px;font-weight:800;padding:3px 8px;border-radius:4px;white-space:nowrap;border:1px solid ${color}">${txt}</span>`;
+  if (m==='REP')  return badge('rgba(61,139,255,0.18)','var(--blue)','▣ SEPARADA');
+  if (m==='EPP')  return badge('rgba(245,158,11,0.18)','#f59e0b','◑ ENTREGUE PARCIAL');
+  if (m==='NADA') return badge('rgba(255,59,59,0.18)','var(--red)','✗ NÃO SEPARADA');
+  return '<span style="color:var(--muted-dim)">—</span>';
+}
 function ofFmtMoney(n){ return 'R$ '+(Number(n)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
 // Aplica filtros + busca aos itens; retorna array filtrado.
@@ -2164,23 +2209,36 @@ function ofDetItensFiltrados(excetoCol) {
   // Escopo: todas / montagem (8 famílias) / produção (sem família)
   if (ofEscopo === 'montagem') itens = itens.filter(it => it.FAMILIA);
   else if (ofEscopo === 'producao') itens = itens.filter(it => !it.FAMILIA);
+  // Multi-select de família (vazio ou todas marcadas = sem filtro)
+  if (ofFamSel.length) itens = itens.filter(it => it.FAMILIA && ofFamSel.includes(it.FAMILIA));
   // Situação: tudo / em atraso
   if (ofSituacao === 'atraso') itens = itens.filter(it => it.DT_FINAL && isOverdue(it.DT_FINAL));
   // Filtros por coluna (dropdown tipo Excel), pulando a própria coluna se pedido
   Object.keys(ofDetFiltros).forEach(col => {
     if (excetoCol && col===excetoCol) return;
     const set = ofDetFiltros[col];
-    if (set && set.size) itens = itens.filter(it => set.has(String(it[col]==null?'':it[col])));
+    if (set && set.size) itens = itens.filter(it => set.has(ofColVal(it, col)));
   });
   // Busca global só conta quando montando a TABELA (sem excetoCol)
   if (!excetoCol && ofDetBusca.trim()) {
     const q = ofDetBusca.trim().toLowerCase();
-    itens = itens.filter(it => OF_DET_COLS.some(([k]) => String(it[k]==null?'':it[k]).toLowerCase().includes(q)));
+    itens = itens.filter(it => OF_DET_COLS.some(([k]) => ofColVal(it, k).toLowerCase().includes(q)));
   }
   return itens;
 }
 
 // Setters dos toggles
+// Multi-select de família: atualiza ofFamSel (todas marcadas = sem filtro)
+function ofFamChange(){
+  const todas = ['TOMADA_MULT','BOMBA','CILINDRO','CONJ_EIXO','GUINCHO_ENROL','COMANDO','VALVULA','KIT_HIDR'];
+  const sel = (typeof getMsValues==='function') ? getMsValues('ms-of-familia') : todas;
+  ofFamSel = (sel.length===0 || sel.length===todas.length) ? [] : sel;
+  // atualiza rótulo
+  const lbl = document.getElementById('ms-of-familia-label');
+  if (lbl) lbl.textContent = ofFamSel.length ? (ofFamSel.length+' selecionada'+(ofFamSel.length>1?'s':'')) : 'Todas as famílias';
+  atualizarBotaoLimparOF();
+  renderOFDetalheTabela();
+}
 function setOFEscopo(v){ ofEscopo=v; ofSyncSeg(); atualizarBotaoLimparOF(); renderOFDetalheTabela(); }
 function setOFSituacao(v){ ofSituacao=v; ofSyncSeg(); atualizarBotaoLimparOF(); renderOFDetalheTabela(); }
 function ofSyncSeg(){
@@ -2265,7 +2323,9 @@ function renderOFDetalheTabela() {
     const tds = OF_DET_COLS.map(([k])=>{
       let v = it[k];
       let disp;
-      if (k==='DEM_PARCIAIS') {
+      if (k==='STATUS_MOV') {
+        disp = ofStatusBadge(it.MOVIMENTO);
+      } else if (k==='DEM_PARCIAIS') {
         const s = String(v||'');
         if (!s) disp = '<span style="color:var(--muted-dim)">—</span>';
         else if (s.length>28) disp = '<span class="of-dem" title="clique p/ expandir" onclick="this.textContent=this.getAttribute(&#39;data-full&#39;);this.onclick=null;this.style.whiteSpace=&#39;normal&#39;" data-full="'+s.replace(/"/g,'&quot;')+'" style="cursor:pointer;color:var(--serie-azul)">'+s.slice(0,28)+'… ⊕</span>';
@@ -2309,7 +2369,7 @@ function toggleOFFiltro(ev, col) {
   ofDetDropdownAberto = col;
 
   const baseItens = ofDetItensFiltrados(col);
-  const valoresUnicos = Array.from(new Set(baseItens.map(it=>String(it[col]==null?'':it[col]))));
+  const valoresUnicos = Array.from(new Set(baseItens.map(it=>ofColVal(it, col))));
   const valores = ofOrdenarValores(valoresUnicos, col, ofFiltroAsc);
   const sel = ofDetFiltros[col] || new Set();
   const isMov = col==='MOVIMENTO';
@@ -2406,7 +2466,7 @@ function aplicarOFFiltro(col){
 function atualizarBotaoLimparOF(){
   const btn=document.getElementById('of-detail-clear');
   if(!btn) return;
-  const ativo = Object.keys(ofDetFiltros).length>0 || ofDetBusca.trim() || ofEscopo!=='todas' || ofSituacao!=='tudo';
+  const ativo = Object.keys(ofDetFiltros).length>0 || ofDetBusca.trim() || ofEscopo!=='todas' || ofSituacao!=='tudo' || ofFamSel.length>0;
   if (ativo) {
     btn.style.background='rgba(255,59,59,.12)'; btn.style.borderColor='#ff3b3b'; btn.style.color='#ff6b6b';
   } else {
@@ -2415,7 +2475,9 @@ function atualizarBotaoLimparOF(){
 }
 function limparFiltroOFDetalhe(){
   ofDetFiltros = {}; ofDetBusca = '';
-  ofEscopo = 'todas'; ofSituacao = 'tudo';
+  ofEscopo = 'todas'; ofSituacao = 'tudo'; ofFamSel = [];
+  if (typeof msMarcarTodos==='function') msMarcarTodos('ms-of-familia');
+  const fl=document.getElementById('ms-of-familia-label'); if(fl) fl.textContent='Todas as famílias';
   ofSyncSeg();
   atualizarBotaoLimparOF();
   renderOFDetalheTabela();
@@ -2432,6 +2494,7 @@ function exportarOFExcel(){
   const numCols = new Set(['QTDE','QTDE_PEND','VLR_UNIT','VLR_TOTAL','CUSTO_MED','CUSTO_MED_TOT']);
   const linhas = itens.map(it=>{
     const row = OF_DET_COLS.map(([k])=>{
+      if (k==='STATUS_MOV') return ofMovLabelStatus(it.MOVIMENTO);
       if (k==='MOVIMENTO') return ofMovLabel(it[k]);
       if (numCols.has(k)) return Number(it[k])||0;
       return it[k]==null?'':String(it[k]);
