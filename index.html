@@ -6967,17 +6967,23 @@ function renderServico() {
   }
 
   // Helper: valor de um ano para gráficos considerando modo acumulado/completo/2025
+  // Filtro de mês para os gráficos de Processo e Top 10 (sem mês selecionado = ano todo)
+  const noMesGraf = r => !mesFilt || r.mes === mesFilt;
   const valorAnoGraf = (ano, filterFn) => {
+    const ff = r => filterFn(r) && noMesGraf(r);
+    if (mesFilt) {
+      // mês específico selecionado: soma direta daquele mês (ignora modos de ano/acumulado)
+      return dataGraf.filter(r=>r.mes===mesFilt&&ff(r)).reduce((s,r)=>s+r.valor,0);
+    }
     if (servicoGrafMode === 'acumulado') {
-      // proporcional até mesmo dia/mês
-      const anterior = dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&r.mes<ano+'-'+String(mesAtualNum).padStart(2,'0')&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
+      const anterior = dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&r.mes<ano+'-'+String(mesAtualNum).padStart(2,'0')&&ff(r)).reduce((s,r)=>s+r.valor,0);
       const mesKey2 = ano+'-'+String(mesAtualNum).padStart(2,'0');
-      const mesTotal = dataGraf.filter(r=>r.mes===mesKey2&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
+      const mesTotal = dataGraf.filter(r=>r.mes===mesKey2&&ff(r)).reduce((s,r)=>s+r.valor,0);
       return anterior + mesTotal * (hoje.getDate() / diasNoMes(ano, mesAtualNum));
     }
-    if (servicoGrafMode === '2025') return dataGraf.filter(r=>r.mes.startsWith('2025-')&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
-    if (servicoGrafMode === '2026') return dataGraf.filter(r=>r.mes.startsWith(anoAtual+'-')&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
-    return dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&filterFn(r)).reduce((s,r)=>s+r.valor,0);
+    if (servicoGrafMode === '2025') return dataGraf.filter(r=>r.mes.startsWith('2025-')&&ff(r)).reduce((s,r)=>s+r.valor,0);
+    if (servicoGrafMode === '2026') return dataGraf.filter(r=>r.mes.startsWith(anoAtual+'-')&&ff(r)).reduce((s,r)=>s+r.valor,0);
+    return dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&ff(r)).reduce((s,r)=>s+r.valor,0);
   };
 
 
@@ -7087,9 +7093,10 @@ function renderServico() {
     let procDatasets;
     if (servicoPorLinha) {
       const limMes = anoLinha === anoAtual ? mesAtualKey : anoLinha+'-12';
-      const forcaP = procOrder.map(p=>dataGraf.filter(r=>(r.processo||'SEM PROCESSO')===p&&r.mes.startsWith(anoLinha+'-')&&r.mes<=limMes&&r.empresa_num==='1'&&r.linha!=='GUINCHO').reduce((s,r)=>s+r.valor,0));
-      const guinchoP = procOrder.map(p=>dataGraf.filter(r=>(r.processo||'SEM PROCESSO')===p&&r.mes.startsWith(anoLinha+'-')&&r.mes<=limMes&&r.empresa_num==='1'&&r.linha==='GUINCHO').reduce((s,r)=>s+r.valor,0));
-      const filialP = procOrder.map(p=>dataGraf.filter(r=>(r.processo||'SEM PROCESSO')===p&&r.mes.startsWith(anoLinha+'-')&&r.mes<=limMes&&r.empresa_num==='2').reduce((s,r)=>s+r.valor,0));
+      const _noMes = r => !mesFilt || r.mes === mesFilt;
+      const forcaP = procOrder.map(p=>dataGraf.filter(r=>(r.processo||'SEM PROCESSO')===p&&r.mes.startsWith(anoLinha+'-')&&r.mes<=limMes&&_noMes(r)&&r.empresa_num==='1'&&r.linha!=='GUINCHO').reduce((s,r)=>s+r.valor,0));
+      const guinchoP = procOrder.map(p=>dataGraf.filter(r=>(r.processo||'SEM PROCESSO')===p&&r.mes.startsWith(anoLinha+'-')&&r.mes<=limMes&&_noMes(r)&&r.empresa_num==='1'&&r.linha==='GUINCHO').reduce((s,r)=>s+r.valor,0));
+      const filialP = procOrder.map(p=>dataGraf.filter(r=>(r.processo||'SEM PROCESSO')===p&&r.mes.startsWith(anoLinha+'-')&&r.mes<=limMes&&_noMes(r)&&r.empresa_num==='2').reduce((s,r)=>s+r.valor,0));
       procDatasets = [
         {label:'Filial SP',data:filialP,backgroundColor:serieFill('--serie-laranja'),borderColor:cssVar('--serie-laranja'),borderWidth:1,stack:'p',datalabels:{display:false}},
         {label:'Força',data:forcaP,backgroundColor:serieFill('--serie-azul'),borderColor:cssVar('--serie-azul'),borderWidth:1,stack:'p',datalabels:{display:false}},
