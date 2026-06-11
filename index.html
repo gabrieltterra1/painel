@@ -2809,10 +2809,10 @@ function renderMontados() {
         : 0;
       const isAbove=hasMeta&&metaDia>0&&mediaDia>=metaDia;
 
-      return '<div style="background:var(--surface);border:'+(hasMeta?'2':'1')+'px solid '+(hasMeta?'var(--green)':'var(--border)')+';border-radius:10px;padding:12px 14px;flex:1;min-width:'+(hasMeta?'175':'140')+'px;box-shadow:var(--card-shadow,none)">'
+      return '<div style="background:var(--surface);border:'+(hasMeta?'2':'1')+'px solid '+(hasMeta?'var(--green)':'var(--border)')+';border-radius:10px;padding:12px 14px;flex:1;min-width:'+(hasMeta?'195':'140')+'px;box-shadow:var(--card-shadow,none)">'
         +'<div style="font-size:9px;font-weight:700;color:'+cor+';letter-spacing:1px;margin-bottom:6px;white-space:nowrap">'+label+'</div>'
-        +'<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">'
-        +'<div style="font-size:'+(hasMeta?'26':'20')+'px;font-weight:900;color:'+cor+'">'+Math.round(totalMes).toLocaleString('pt-BR')+'</div>'
+        +'<div style="display:flex;align-items:baseline;gap:10px;white-space:nowrap">'
+        +'<div style="font-size:'+(hasMeta?'23':'20')+'px;font-weight:900;color:'+cor+'">'+Math.round(totalMes).toLocaleString('pt-BR')+'</div>'
         +(hojeQtd!==null?'<div style="font-size:13px;font-weight:700;color:var(--text-muted);border-left:2px solid var(--border);padding-left:8px">hoje: <span style="color:'+cor+';font-size:15px;font-weight:900">'+Math.round(hojeQtd).toLocaleString('pt-BR')+'</span></div>':'')
         +'</div>'
         +'<div style="font-size:9px;color:var(--text-muted);margin-top:2px">total · '+duEmail+' du</div>'
