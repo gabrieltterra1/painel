@@ -6443,7 +6443,7 @@ function _pvGerarRelatorio() {
     tbodyHtml += '<td style="font-size:9px;padding:3px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1a1a2e" title="' + desc.replace(/"/g,"'") + '">' + desc + '</td>';
     tbodyHtml += '<td style="font-size:9px;font-weight:700;white-space:nowrap;padding:3px 4px;color:#333">' + familia + '</td>';
     tbodyHtml += '<td style="text-align:right;font-size:10px;font-weight:700;padding:3px 4px;color:' + projColor + '">' + proj + '</td>';
-    tbodyHtml += '<td style="font-size:9px;color:#222;padding:3px 4px;white-space:normal;word-break:break-word">' + detalhe + '</td>';
+    tbodyHtml += '<td style="font-size:9px;color:#222;padding:3px 4px;white-space:normal;word-break:break-word;text-align:left">' + detalhe + '</td>';
     tbodyHtml += '</tr>';
   });
 
@@ -6474,7 +6474,7 @@ function _pvGerarRelatorio() {
     +'.cards { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; max-width:100%; }'
     +'.card-item { flex:1; min-width:100px; max-width:180px; box-sizing:border-box; }'
     +'.cards-title { font-size:9px; font-weight:700; color:#666; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:6px; }'
-    +'table { width:860px; border-collapse:collapse; font-size:10px; table-layout:fixed; }'
+    +'table { width:767px; border-collapse:collapse; font-size:10px; table-layout:fixed; }'
     +'thead tr { background:#0d1b3e; }'
     +'th { color:#fff; padding:6px 5px; text-align:left; font-size:9px; font-weight:700; white-space:nowrap; }'
     +'td { padding:4px 5px; border-bottom:1px solid #edf1f9; vertical-align:top; overflow:hidden; }'
@@ -6524,14 +6524,14 @@ function _pvRelatorioParaImagem(estilo, corpo, tipo) {
   document.body.appendChild(overlay);
 
   const wrap = document.createElement('div');
-  // largura igual à proporção do PDF (A4) — não esticar, evita células vazias à direita
-  wrap.style.cssText = 'position:fixed;left:0;top:0;width:900px;background:#fff;padding:18px;z-index:1;overflow:visible';
+  // largura = tabela (767) + padding; evita sobra/bordas à direita
+  wrap.style.cssText = 'position:fixed;left:0;top:0;width:807px;background:#fff;padding:18px;z-index:1;overflow:visible';
   wrap.innerHTML = '<style>'+estilo+'</style>'+corpo;
   overlay.appendChild(wrap);
 
   const dataStr = new Date().toISOString().slice(0,10);
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    const w = 900;
+    const w = 807;
     const h = wrap.scrollHeight;
     html2canvas(wrap, {
       scale: 2.5, backgroundColor: '#ffffff', useCORS: true, logging: false,
