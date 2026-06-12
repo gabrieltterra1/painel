@@ -7,6 +7,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   /* LOGIN SCREEN */
   #login-screen {
@@ -1702,9 +1704,17 @@ document.addEventListener('DOMContentLoaded', () => {
         style="background:rgba(245,158,11,0.15);border:1px solid #f59e0b;color:#f59e0b;padding:7px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">
         📅 Atrasos + Hoje (proj &lt; 0)
       </button>
+      <button onclick="pvGerarPNG()"
+        style="background:rgba(0,201,122,0.15);border:1px solid var(--green);color:var(--green);padding:7px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">
+        🖼 Gerar Imagem (PNG)
+      </button>
+      <button onclick="pvGerarPDFArquivo()"
+        style="background:rgba(231,76,60,0.15);border:1px solid #e74c3c;color:#e74c3c;padding:7px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">
+        📄 Gerar PDF
+      </button>
       <button onclick="pvGerarPDF()"
         style="background:rgba(61,139,255,0.15);border:1px solid var(--blue);color:var(--blue);padding:7px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">
-        🖨 Gerar PDF
+        🖨 Imprimir
       </button>
     </div>
   </div>
@@ -5983,9 +5993,9 @@ function renderPvPrioridades() {
   const btnOc = document.getElementById('pv-btn-ocultos');
   if (btnOc) { btnOc.style.display = pvOcultos.size > 0 ? '' : 'none'; btnOc.textContent = `👁 Mostrar ${pvOcultos.size} oculto(s)`; }
 
-  // ── Resumo por família ────────────────────────────────────────────────────
+  // ── Resumo por família (usa a lista JÁ filtrada: ocultos + filtros ativos) ──
   const famTotals = {};
-  Object.values(grupos).forEach(g => {
+  lista.forEach(g => {
     if (!famTotals[g.familia]) famTotals[g.familia] = {pv:0, montar:0};
     famTotals[g.familia].pv     += g.qtde_pv;
     famTotals[g.familia].montar += g.a_montar;
@@ -6363,7 +6373,7 @@ function pvFiltroRapido(tipo) {
 }
 
 // ── Gerar PDF ────────────────────────────────────────────────────────────────
-function pvGerarPDF() {
+function _pvGerarRelatorio() {
   const hoje = new Date().toLocaleDateString('pt-BR');
   const diasSel = getMsValues('ms-pv-dias');
   const periodoLabel = diasSel.length === 0 ? 'Todos os períodos'
@@ -6458,56 +6468,111 @@ function pvGerarPDF() {
     cardsHtml += '</div></div>';
   });
 
-  // ── Abrir janela e escrever ────────────────────────────────────────────
-  const win = window.open('', '_blank');
-  const doc = win.document;
-  doc.open();
-  doc.write('<!DOCTYPE html><html><head><meta charset="UTF-8">');
-  doc.write('<title>Prioridades PV</title>');
-  doc.write('<style>');
-  doc.write('* { box-sizing:border-box; margin:0; padding:0; }');
-  doc.write('body { font-family:"Segoe UI",Arial,sans-serif; font-size:11px; color:#1a1a2e; margin:14px; }');
-  doc.write('.header { display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid #1a6fcc; padding-bottom:8px; margin-bottom:10px; }');
-  doc.write('.header h2 { font-size:18px; font-weight:900; color:#0d1b3e; }');
-  doc.write('.header h2 span { color:#1a6fcc; }');
-  doc.write('.header .sub { font-size:9px; color:#666; text-align:right; line-height:1.5; }');
-  doc.write('.cards { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; max-width:100%; page-break-inside:avoid; }');
-  doc.write('.card-item { flex:1; min-width:100px; max-width:180px; box-sizing:border-box; }');
-  doc.write('.cards-title { font-size:9px; font-weight:700; color:#666; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:6px; }');
-  doc.write('table { width:100%; border-collapse:collapse; font-size:10px; }');
-  doc.write('thead tr { background:#0d1b3e; }');
-  doc.write('th { color:#fff; padding:6px 5px; text-align:left; font-size:9px; font-weight:700; white-space:nowrap; }');
-  doc.write('td { padding:4px 5px; border-bottom:1px solid #edf1f9; vertical-align:middle; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }');
-  doc.write('tr:nth-child(even) td { background:#f5f8ff; }');
-  doc.write('.total-row td { background:#e8effe !important; font-weight:700; border-top:2px solid #1a6fcc; }');
-  doc.write('@media print { body { margin:6px; } }');
-  doc.write('</style></head><body>');
+  // ── Montar HTML do relatório (string) ──────────────────────────────────
+  const estilo =
+    '* { box-sizing:border-box; margin:0; padding:0; }'
+    +'body { font-family:"Segoe UI",Arial,sans-serif; font-size:11px; color:#1a1a2e; margin:14px; background:#fff; }'
+    +'.header { display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid #1a6fcc; padding-bottom:8px; margin-bottom:10px; }'
+    +'.header h2 { font-size:18px; font-weight:900; color:#0d1b3e; }'
+    +'.header h2 span { color:#1a6fcc; }'
+    +'.header .sub { font-size:9px; color:#666; text-align:right; line-height:1.5; }'
+    +'.cards { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; max-width:100%; }'
+    +'.card-item { flex:1; min-width:100px; max-width:180px; box-sizing:border-box; }'
+    +'.cards-title { font-size:9px; font-weight:700; color:#666; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:6px; }'
+    +'table { width:100%; border-collapse:collapse; font-size:10px; }'
+    +'thead tr { background:#0d1b3e; }'
+    +'th { color:#fff; padding:6px 5px; text-align:left; font-size:9px; font-weight:700; white-space:nowrap; }'
+    +'td { padding:4px 5px; border-bottom:1px solid #edf1f9; vertical-align:middle; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }'
+    +'tr:nth-child(even) td { background:#f5f8ff; }'
+    +'.total-row td { background:#e8effe !important; font-weight:700; border-top:2px solid #1a6fcc; }'
+    +'@media print { body { margin:6px; } }';
 
-  doc.write('<div class="header">');
-  doc.write('<h2>&#x1F4CB; PAINEL <span>INDUSTRIAL</span> &mdash; Prioridades de Venda</h2>');
-  doc.write('<div class="sub">Impresso em ' + hojeHora + '<br>Per&iacute;odo: ' + periodoLabel + '<br>Filtro: projetado negativo</div>');
-  doc.write('</div>');
+  const corpo =
+     '<div class="header">'
+    +'<h2>&#x1F4CB; PAINEL <span>INDUSTRIAL</span> &mdash; Prioridades de Venda</h2>'
+    +'<div class="sub">Impresso em ' + hojeHora + '<br>Per&iacute;odo: ' + periodoLabel + '<br>Filtro: projetado negativo</div>'
+    +'</div>'
+    +'<div class="cards-title">RESUMO POR FAM&Iacute;LIA</div>'
+    +'<div class="cards">' + cardsHtml + '</div>'
+    +'<table><thead><tr>'
+    +'<th style="width:80px">S_ M_ P_ E_</th>'
+    +'<th style="width:36px;text-align:center">QTD</th>'
+    +'<th style="width:75px">CODIGO</th>'
+    +'<th style="width:35%">DESCRICAO</th>'
+    +'<th style="width:80px">FAMILIA</th>'
+    +'<th style="width:40px;text-align:right">PROJ.</th>'
+    +'<th>DETALHE OF</th>'
+    +'</tr></thead>'
+    +'<tbody>' + tbodyHtml + '</tbody>'
+    +'<tfoot class="total-row">' + tfootHtml + '</tfoot>'
+    +'</table>';
 
-  doc.write('<div class="cards-title">RESUMO POR FAM&Iacute;LIA</div>');
-  doc.write('<div class="cards">' + cardsHtml + '</div>');
-
-  doc.write('<table>');
-  doc.write('<thead><tr>');
-  doc.write('<th style="width:80px">S_ M_ P_ E_</th>');
-  doc.write('<th style="width:36px;text-align:center">QTD</th>');
-  doc.write('<th style="width:75px">CODIGO</th>');
-  doc.write('<th style="width:35%">DESCRICAO</th>');
-  doc.write('<th style="width:80px">FAMILIA</th>');
-  doc.write('<th style="width:40px;text-align:right">PROJ.</th>');
-  doc.write('<th>DETALHE OF</th>');
-  doc.write('</tr></thead>');
-  doc.write('<tbody>' + tbodyHtml + '</tbody>');
-  doc.write('<tfoot class="total-row">' + tfootHtml + '</tfoot>');
-  doc.write('</table>');
-  doc.write('<script>window.onload=function(){window.print();}<\/script>');
-  doc.write('</body></html>');
-  doc.close();
+  const saida = _pvSaidaRelatorio || 'print';
+  if (saida === 'print') {
+    const win = window.open('', '_blank');
+    const doc = win.document; doc.open();
+    doc.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Prioridades PV</title><style>'+estilo+'</style></head><body>'+corpo+'<scr'+'ipt>window.onload=function(){window.print();}</scr'+'ipt></body></html>');
+    doc.close();
+  } else {
+    _pvRelatorioParaImagem(estilo, corpo, saida);
+  }
 }
+
+// Renderiza o HTML do relatório num container oculto e gera PNG ou PDF nítido
+let _pvSaidaRelatorio = 'print';
+function _pvRelatorioParaImagem(estilo, corpo, tipo) {
+  if (typeof html2canvas === 'undefined') { alert('Biblioteca de imagem ainda carregando, tente de novo em instantes.'); return; }
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:fixed;left:-99999px;top:0;width:1100px;background:#fff;padding:16px;z-index:-1';
+  wrap.innerHTML = '<style>'+estilo+'</style>'+corpo;
+  document.body.appendChild(wrap);
+  const dataStr = new Date().toISOString().slice(0,10);
+  html2canvas(wrap, { scale: 2, backgroundColor: '#ffffff', useCORS: true, windowWidth: 1140 })
+    .then(canvas => {
+      if (tipo === 'png') {
+        canvas.toBlob(blob => {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'Prioridades_Venda_'+dataStr+'.png';
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          URL.revokeObjectURL(a.href);
+        }, 'image/png');
+      } else {
+        const { jsPDF } = window.jspdf;
+        const img = canvas.toDataURL('image/png');
+        const pxW = canvas.width, pxH = canvas.height;
+        const pdf = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
+        const pageW = pdf.internal.pageSize.getWidth();
+        const pageH = pdf.internal.pageSize.getHeight();
+        const imgW = pageW - 28;
+        const imgH = imgW * pxH / pxW;
+        if (imgH <= pageH - 28) {
+          pdf.addImage(img, 'PNG', 14, 14, imgW, imgH);
+        } else {
+          const pageImgPx = (pageH - 28) * pxW / imgW;
+          let sliceTopPx = 0, primeira = true;
+          while (sliceTopPx < pxH) {
+            const h = Math.min(pageImgPx, pxH - sliceTopPx);
+            const c2 = document.createElement('canvas');
+            c2.width = pxW; c2.height = h;
+            c2.getContext('2d').drawImage(canvas, 0, sliceTopPx, pxW, h, 0, 0, pxW, h);
+            const slice = c2.toDataURL('image/png');
+            const sliceH = h * imgW / pxW;
+            if (!primeira) pdf.addPage();
+            pdf.addImage(slice, 'PNG', 14, 14, imgW, sliceH);
+            primeira = false;
+            sliceTopPx += h;
+          }
+        }
+        pdf.save('Prioridades_Venda_'+dataStr+'.pdf');
+      }
+      document.body.removeChild(wrap);
+    })
+    .catch(err => { console.error(err); alert('Erro ao gerar imagem: '+err.message); if(wrap.parentNode) document.body.removeChild(wrap); });
+}
+function pvGerarPDF(){ _pvSaidaRelatorio = 'print'; _pvGerarRelatorio(); }
+function pvGerarPNG(){ _pvSaidaRelatorio = 'png';   _pvGerarRelatorio(); }
+function pvGerarPDFArquivo(){ _pvSaidaRelatorio = 'pdf'; _pvGerarRelatorio(); }
 
 // ── Estado dos toggles ───────────────────────────────────────────────────
 let servicoTLMode   = '2026';   // 'comparativo' | '2026' | '2025' | 'todos'
