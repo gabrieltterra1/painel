@@ -6440,7 +6440,7 @@ function _pvGerarRelatorio() {
     tbodyHtml += '<td style="font-size:9px;font-family:monospace;padding:3px 5px;white-space:nowrap;color:#222">S__ M__ P__ E__</td>';
     tbodyHtml += '<td style="font-size:13px;font-weight:900;text-align:center;padding:3px 4px">' + aMontar + '</td>';
     tbodyHtml += '<td style="font-family:monospace;font-size:10px;font-weight:700;color:#1a6fcc;white-space:nowrap;padding:3px 4px">' + codigo + '</td>';
-    tbodyHtml += '<td style="font-size:9px;padding:3px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + desc.replace(/"/g,"'") + '">' + desc + '</td>';
+    tbodyHtml += '<td style="font-size:9px;padding:3px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1a1a2e" title="' + desc.replace(/"/g,"'") + '">' + desc + '</td>';
     tbodyHtml += '<td style="font-size:9px;font-weight:700;white-space:nowrap;padding:3px 4px;color:#444">' + familia + '</td>';
     tbodyHtml += '<td style="text-align:right;font-size:10px;font-weight:700;padding:3px 4px;color:' + projColor + '">' + proj + '</td>';
     tbodyHtml += '<td style="font-size:9px;color:#444;padding:3px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + detalhe + '</td>';
@@ -6517,23 +6517,26 @@ function _pvGerarRelatorio() {
 let _pvSaidaRelatorio = 'print';
 function _pvRelatorioParaImagem(estilo, corpo, tipo) {
   if (typeof html2canvas === 'undefined') { alert('Biblioteca de imagem ainda carregando, tente de novo em instantes.'); return; }
-  // Container renderizado VISÍVEL (na tela) para o html2canvas pintar corretamente.
-  // Fica por cima com overlay durante a captura e é removido logo após.
+  // Container renderizado VISÍVEL para o html2canvas pintar corretamente.
   const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100000;display:flex;align-items:center;justify-content:center';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100000;display:flex;align-items:center;justify-content:center';
   overlay.innerHTML = '<div style="color:#fff;font-size:14px;font-weight:700">Gerando imagem...</div>';
   document.body.appendChild(overlay);
 
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'position:fixed;left:0;top:0;width:1100px;background:#fff;padding:16px;z-index:1';
+  // largura ampla e fixa para a tabela caber inteira (sem cortar DETALHE OF)
+  wrap.style.cssText = 'position:fixed;left:0;top:0;width:1320px;background:#fff;padding:20px;z-index:1;overflow:visible';
   wrap.innerHTML = '<style>'+estilo+'</style>'+corpo;
-  // posiciona dentro do overlay (visível) mas fora do fluxo visual real
   overlay.appendChild(wrap);
 
   const dataStr = new Date().toISOString().slice(0,10);
-  // aguarda 1 frame para garantir layout pintado
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    html2canvas(wrap, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false, width: 1100, windowWidth: 1100 })
+    const w = Math.max(wrap.scrollWidth, 1320);
+    const h = wrap.scrollHeight;
+    html2canvas(wrap, {
+      scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false,
+      width: w, height: h, windowWidth: w, windowHeight: h, scrollX: 0, scrollY: 0
+    })
       .then(canvas => {
         canvas.toBlob(blob => {
           const a = document.createElement('a');
