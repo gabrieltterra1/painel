@@ -6438,12 +6438,12 @@ function _pvGerarRelatorio() {
 
     tbodyHtml += '<tr>';
     tbodyHtml += '<td style="font-size:9px;font-family:monospace;padding:3px 5px;white-space:nowrap;color:#222">S__ M__ P__ E__</td>';
-    tbodyHtml += '<td style="font-size:13px;font-weight:900;text-align:center;padding:3px 4px">' + aMontar + '</td>';
+    tbodyHtml += '<td style="font-size:13px;font-weight:900;text-align:center;padding:3px 4px;color:#1a1a2e">' + aMontar + '</td>';
     tbodyHtml += '<td style="font-family:monospace;font-size:10px;font-weight:700;color:#1a6fcc;white-space:nowrap;padding:3px 4px">' + codigo + '</td>';
     tbodyHtml += '<td style="font-size:9px;padding:3px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1a1a2e" title="' + desc.replace(/"/g,"'") + '">' + desc + '</td>';
-    tbodyHtml += '<td style="font-size:9px;font-weight:700;white-space:nowrap;padding:3px 4px;color:#444">' + familia + '</td>';
+    tbodyHtml += '<td style="font-size:9px;font-weight:700;white-space:nowrap;padding:3px 4px;color:#333">' + familia + '</td>';
     tbodyHtml += '<td style="text-align:right;font-size:10px;font-weight:700;padding:3px 4px;color:' + projColor + '">' + proj + '</td>';
-    tbodyHtml += '<td style="font-size:9px;color:#444;padding:3px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + detalhe + '</td>';
+    tbodyHtml += '<td style="font-size:9px;color:#222;padding:3px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + detalhe + '</td>';
     tbodyHtml += '</tr>';
   });
 
@@ -6524,17 +6524,17 @@ function _pvRelatorioParaImagem(estilo, corpo, tipo) {
   document.body.appendChild(overlay);
 
   const wrap = document.createElement('div');
-  // largura ampla e fixa para a tabela caber inteira (sem cortar DETALHE OF)
-  wrap.style.cssText = 'position:fixed;left:0;top:0;width:1320px;background:#fff;padding:20px;z-index:1;overflow:visible';
+  // largura igual à proporção do PDF (A4) — não esticar, evita células vazias à direita
+  wrap.style.cssText = 'position:fixed;left:0;top:0;width:900px;background:#fff;padding:18px;z-index:1;overflow:visible';
   wrap.innerHTML = '<style>'+estilo+'</style>'+corpo;
   overlay.appendChild(wrap);
 
   const dataStr = new Date().toISOString().slice(0,10);
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    const w = Math.max(wrap.scrollWidth, 1320);
+    const w = 900;
     const h = wrap.scrollHeight;
     html2canvas(wrap, {
-      scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false,
+      scale: 2.5, backgroundColor: '#ffffff', useCORS: true, logging: false,
       width: w, height: h, windowWidth: w, windowHeight: h, scrollX: 0, scrollY: 0
     })
       .then(canvas => {
