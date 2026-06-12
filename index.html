@@ -6443,7 +6443,7 @@ function _pvGerarRelatorio() {
     tbodyHtml += '<td style="font-size:9px;padding:3px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1a1a2e" title="' + desc.replace(/"/g,"'") + '">' + desc + '</td>';
     tbodyHtml += '<td style="font-size:9px;font-weight:700;white-space:nowrap;padding:3px 4px;color:#333">' + familia + '</td>';
     tbodyHtml += '<td style="text-align:right;font-size:10px;font-weight:700;padding:3px 4px;color:' + projColor + '">' + proj + '</td>';
-    tbodyHtml += '<td style="font-size:9px;color:#222;padding:3px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + detalhe + '</td>';
+    tbodyHtml += '<td style="font-size:9px;color:#222;padding:3px 4px;white-space:normal;word-break:break-word">' + detalhe + '</td>';
     tbodyHtml += '</tr>';
   });
 
@@ -6474,10 +6474,10 @@ function _pvGerarRelatorio() {
     +'.cards { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; max-width:100%; }'
     +'.card-item { flex:1; min-width:100px; max-width:180px; box-sizing:border-box; }'
     +'.cards-title { font-size:9px; font-weight:700; color:#666; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:6px; }'
-    +'table { width:100%; border-collapse:collapse; font-size:10px; }'
+    +'table { width:860px; border-collapse:collapse; font-size:10px; table-layout:fixed; }'
     +'thead tr { background:#0d1b3e; }'
     +'th { color:#fff; padding:6px 5px; text-align:left; font-size:9px; font-weight:700; white-space:nowrap; }'
-    +'td { padding:4px 5px; border-bottom:1px solid #edf1f9; vertical-align:middle; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }'
+    +'td { padding:4px 5px; border-bottom:1px solid #edf1f9; vertical-align:top; overflow:hidden; }'
     +'tr:nth-child(even) td { background:#f5f8ff; }'
     +'.total-row td { background:#e8effe !important; font-weight:700; border-top:2px solid #1a6fcc; }'
     +'@media print { body { margin:6px; } }';
@@ -6490,13 +6490,13 @@ function _pvGerarRelatorio() {
     +'<div class="cards-title">RESUMO POR FAM&Iacute;LIA</div>'
     +'<div class="cards">' + cardsHtml + '</div>'
     +'<table><thead><tr>'
-    +'<th style="width:80px">S_ M_ P_ E_</th>'
-    +'<th style="width:36px;text-align:center">QTD</th>'
-    +'<th style="width:75px">CODIGO</th>'
-    +'<th style="width:35%">DESCRICAO</th>'
-    +'<th style="width:80px">FAMILIA</th>'
-    +'<th style="width:40px;text-align:right">PROJ.</th>'
-    +'<th>DETALHE OF</th>'
+    +'<th style="width:70px">S_ M_ P_ E_</th>'
+    +'<th style="width:34px;text-align:center">QTD</th>'
+    +'<th style="width:65px">CODIGO</th>'
+    +'<th style="width:290px">DESCRICAO</th>'
+    +'<th style="width:90px">FAMILIA</th>'
+    +'<th style="width:38px;text-align:right">PROJ.</th>'
+    +'<th style="width:180px">DETALHE OF</th>'
     +'</tr></thead>'
     +'<tbody>' + tbodyHtml + '</tbody>'
     +'<tfoot class="total-row">' + tfootHtml + '</tfoot>'
