@@ -8,7 +8,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   /* LOGIN SCREEN */
   #login-screen {
@@ -1708,13 +1707,9 @@ document.addEventListener('DOMContentLoaded', () => {
         style="background:rgba(0,201,122,0.15);border:1px solid var(--green);color:var(--green);padding:7px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">
         🖼 Gerar Imagem (PNG)
       </button>
-      <button onclick="pvGerarPDFArquivo()"
-        style="background:rgba(231,76,60,0.15);border:1px solid #e74c3c;color:#e74c3c;padding:7px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">
-        📄 Gerar PDF
-      </button>
       <button onclick="pvGerarPDF()"
         style="background:rgba(61,139,255,0.15);border:1px solid var(--blue);color:var(--blue);padding:7px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">
-        🖨 Imprimir
+        🖨 Imprimir / PDF
       </button>
     </div>
   </div>
@@ -6518,61 +6513,42 @@ function _pvGerarRelatorio() {
   }
 }
 
-// Renderiza o HTML do relatório num container oculto e gera PNG ou PDF nítido
+// Renderiza o HTML do relatório e gera PNG nítido (mesmas cores/layout do PDF)
 let _pvSaidaRelatorio = 'print';
 function _pvRelatorioParaImagem(estilo, corpo, tipo) {
   if (typeof html2canvas === 'undefined') { alert('Biblioteca de imagem ainda carregando, tente de novo em instantes.'); return; }
+  // Container renderizado VISÍVEL (na tela) para o html2canvas pintar corretamente.
+  // Fica por cima com overlay durante a captura e é removido logo após.
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100000;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = '<div style="color:#fff;font-size:14px;font-weight:700">Gerando imagem...</div>';
+  document.body.appendChild(overlay);
+
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'position:fixed;left:-99999px;top:0;width:1100px;background:#fff;padding:16px;z-index:-1';
+  wrap.style.cssText = 'position:fixed;left:0;top:0;width:1100px;background:#fff;padding:16px;z-index:1';
   wrap.innerHTML = '<style>'+estilo+'</style>'+corpo;
-  document.body.appendChild(wrap);
+  // posiciona dentro do overlay (visível) mas fora do fluxo visual real
+  overlay.appendChild(wrap);
+
   const dataStr = new Date().toISOString().slice(0,10);
-  html2canvas(wrap, { scale: 2, backgroundColor: '#ffffff', useCORS: true, windowWidth: 1140 })
-    .then(canvas => {
-      if (tipo === 'png') {
+  // aguarda 1 frame para garantir layout pintado
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    html2canvas(wrap, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false, width: 1100, windowWidth: 1100 })
+      .then(canvas => {
         canvas.toBlob(blob => {
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
           a.download = 'Prioridades_Venda_'+dataStr+'.png';
           document.body.appendChild(a); a.click(); document.body.removeChild(a);
           URL.revokeObjectURL(a.href);
+          document.body.removeChild(overlay);
         }, 'image/png');
-      } else {
-        const { jsPDF } = window.jspdf;
-        const img = canvas.toDataURL('image/png');
-        const pxW = canvas.width, pxH = canvas.height;
-        const pdf = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
-        const pageW = pdf.internal.pageSize.getWidth();
-        const pageH = pdf.internal.pageSize.getHeight();
-        const imgW = pageW - 28;
-        const imgH = imgW * pxH / pxW;
-        if (imgH <= pageH - 28) {
-          pdf.addImage(img, 'PNG', 14, 14, imgW, imgH);
-        } else {
-          const pageImgPx = (pageH - 28) * pxW / imgW;
-          let sliceTopPx = 0, primeira = true;
-          while (sliceTopPx < pxH) {
-            const h = Math.min(pageImgPx, pxH - sliceTopPx);
-            const c2 = document.createElement('canvas');
-            c2.width = pxW; c2.height = h;
-            c2.getContext('2d').drawImage(canvas, 0, sliceTopPx, pxW, h, 0, 0, pxW, h);
-            const slice = c2.toDataURL('image/png');
-            const sliceH = h * imgW / pxW;
-            if (!primeira) pdf.addPage();
-            pdf.addImage(slice, 'PNG', 14, 14, imgW, sliceH);
-            primeira = false;
-            sliceTopPx += h;
-          }
-        }
-        pdf.save('Prioridades_Venda_'+dataStr+'.pdf');
-      }
-      document.body.removeChild(wrap);
-    })
-    .catch(err => { console.error(err); alert('Erro ao gerar imagem: '+err.message); if(wrap.parentNode) document.body.removeChild(wrap); });
+      })
+      .catch(err => { console.error(err); alert('Erro ao gerar imagem: '+err.message); if(overlay.parentNode) document.body.removeChild(overlay); });
+  }));
 }
 function pvGerarPDF(){ _pvSaidaRelatorio = 'print'; _pvGerarRelatorio(); }
 function pvGerarPNG(){ _pvSaidaRelatorio = 'png';   _pvGerarRelatorio(); }
-function pvGerarPDFArquivo(){ _pvSaidaRelatorio = 'pdf'; _pvGerarRelatorio(); }
 
 // ── Estado dos toggles ───────────────────────────────────────────────────
 let servicoTLMode   = '2026';   // 'comparativo' | '2026' | '2025' | 'todos'
