@@ -2929,10 +2929,14 @@ function _montAgrupaAno(){
     const d=parseDate(r.DATA||''); if(!d||d.getFullYear()!==ano) return;
     const m=d.getMonth();
     const ehHoje = (d.getTime()===hoje.getTime());
-    // MONTADO segue a regra dos cards EPP: o dia de hoje (em curso) NÃO entra na quantidade
+    // MONTADO segue a regra dos cards EPP (duEmail): o dia de hoje (em curso) NÃO entra
     if(!ehHoje){
       MONT_FAMILIAS.forEach(f=>{porMes[m].qtd[f.col]=(porMes[m].qtd[f.col]||0)+_montNum(r[f.col]);});
-      porMes[m].duReg++;  // dia útil efetivamente registrado (sem hoje)
+      // divisor = dias úteis registrados: exclui fim de semana e feriado (igual duEmail dos cards)
+      const ehFimDeSemana = (d.getDay()===0 || d.getDay()===6);
+      const iso = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      const ehFeriado = feriados.includes(iso);
+      if(!ehFimDeSemana && !ehFeriado) porMes[m].duReg++;
     }
   });
   return {ano,porMes,hoje};
