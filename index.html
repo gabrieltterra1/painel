@@ -2928,9 +2928,12 @@ function _montAgrupaAno(){
   linhas.forEach(r=>{
     const d=parseDate(r.DATA||''); if(!d||d.getFullYear()!==ano) return;
     const m=d.getMonth();
-    MONT_FAMILIAS.forEach(f=>{porMes[m].qtd[f.col]=(porMes[m].qtd[f.col]||0)+_montNum(r[f.col]);});
-    // dia registrado (não conta hoje, ainda em curso)
-    if(d.getTime()!==hoje.getTime()) porMes[m].duReg++;
+    const ehHoje = (d.getTime()===hoje.getTime());
+    // MONTADO segue a regra dos cards EPP: o dia de hoje (em curso) NÃO entra na quantidade
+    if(!ehHoje){
+      MONT_FAMILIAS.forEach(f=>{porMes[m].qtd[f.col]=(porMes[m].qtd[f.col]||0)+_montNum(r[f.col]);});
+      porMes[m].duReg++;  // dia útil efetivamente registrado (sem hoje)
+    }
   });
   return {ano,porMes,hoje};
 }
@@ -2999,15 +3002,16 @@ function renderMontadosHistorico(){
     let totM=0,totV=0,duM=0,duV=0,totMcomV=0;
     let rows='';
     mesesComDados.forEach(m=>{
-      const du=porMes[m].duUteis||0;
+      const du=porMes[m].duUteis||0;       // dias úteis do calendário (usado no VENDIDO)
+      const duR=porMes[m].duReg||0;          // dias registrados sem hoje (usado no MONTADO, igual cards EPP)
       const mont=porMes[m].qtd[f.col]||0;
       const vend=getMontadosVenda(f.col,ano,m);
       const dif=mont-vend;
-      totM+=mont; duM+=du;
+      totM+=mont; duM+=duR;
       if(vend){ totV+=vend; duV+=du; totMcomV+=mont; } // só meses fechados (com venda) entram na DIF.
       const difCor=dif>=0?'var(--green)':'var(--red)';
-      const medM=du>0?mont/du:0;
-      const medV=du>0?vend/du:0;
+      const medM=duR>0?mont/duR:0;           // MONTADO: ÷ dias registrados (sem hoje)
+      const medV=du>0?vend/du:0;             // VENDIDO: ÷ dias úteis do mês
       rows+='<tr><td style="padding:5px 8px;color:var(--text-muted);font-size:11px">'+MONT_MESES[m]+'</td>'
         +'<td style="padding:5px 8px;text-align:right;color:var(--txt-verde);font-weight:700">'+fmt(mont)+'<div style="font-size:9px;color:var(--txt-verde)">'+fmt1(medM)+'/d</div></td>'
         +'<td style="padding:5px 8px;text-align:right;color:var(--txt-azul);font-weight:700">'+(vend?fmt(vend)+'<div style="font-size:9px;color:var(--txt-azul)">'+fmt1(medV)+'/d</div>':'<span style="color:var(--muted-dim)">—</span>')+'</td>'
