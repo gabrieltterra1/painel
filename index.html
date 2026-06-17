@@ -6638,7 +6638,7 @@ function servicoSort(key) {
 
 function servicoLimparFiltros() {
   const busca = document.getElementById('servico-search'); if (busca) busca.value = '';
-  const ano = document.getElementById('servico-ano'); if (ano) ano.value = '';
+  const ano = document.getElementById('servico-ano'); if (ano) ano.value = String(new Date().getFullYear());
   // marca tudo nos multi-selects (= sem filtro)
   msMarcarTodos('ms-serv-emp');
   msMarcarTodos('ms-serv-proc');
@@ -6693,17 +6693,17 @@ function renderServico() {
   // Multi-seleção: array vazio = nenhum; comparamos por inclusão. "todos marcados" = mostra tudo.
   const empSel   = getMsValues('ms-serv-emp');    // ex: ['1','2']
   const procSel  = getMsValues('ms-serv-proc');   // ex: ['TORNO',...]
-  const mesSel   = getMsValues('ms-serv-mes');    // ex: ['2026-04','2026-05']
+  let mesSel   = getMsValues('ms-serv-mes');    // ex: ['2026-04','2026-05']
   const _empTotal  = 2;   // Matriz + Filial SP
   const _procTotal = 11;  // total de processos no multi-select
   // "filtro ativo" só quando NÃO está com todos marcados (senão mostra tudo)
   const empAtivo  = empSel.length  > 0 && empSel.length  < _empTotal;
   const procAtivo = procSel.length > 0 && procSel.length < _procTotal;
-  // mês: o total varia (dinâmico); ativo quando há seleção e não são todos
-  const _mesTotal = (DATA.servicos ? [...new Set(DATA.servicos.map(r=>r.mes))].length : 0);
-  const mesAtivo  = mesSel.length > 0 && mesSel.length < _mesTotal;
+  // mês: comparar com os meses REALMENTE exibidos no multi-select (do ano selecionado), não todos os anos
+  let _mesCbs = document.querySelectorAll('#ms-serv-mes .ms-item input[type=checkbox]').length;
+  let mesAtivo  = _mesCbs > 0 && mesSel.length > 0 && mesSel.length < _mesCbs;
   // helper de mês para os gráficos (vários meses ou nenhum=ano todo)
-  const mesSetGraf = mesAtivo ? new Set(mesSel) : null;
+  let mesSetGraf = mesAtivo ? new Set(mesSel) : null;
   const anoFilt    = document.getElementById('servico-ano')?.value || '';
   let anoFiltAtivo = anoFilt;
 
@@ -6744,6 +6744,11 @@ function renderServico() {
       if (allCb) allCb.checked = (getMsValues('ms-serv-mes').length === mesesDisp.length);
     }
   }
+  // Recalcula o filtro de mês AGORA que os checkboxes refletem o ano/estado corretos
+  mesSel = getMsValues('ms-serv-mes');
+  _mesCbs = document.querySelectorAll('#ms-serv-mes .ms-item input[type=checkbox]').length;
+  mesAtivo = _mesCbs > 0 && mesSel.length > 0 && mesSel.length < _mesCbs;
+  mesSetGraf = mesAtivo ? new Set(mesSel) : null;
 
   // ── Helpers de filtro ─────────────────────────────────────────────────
   const passaFiltroBase = r => {
