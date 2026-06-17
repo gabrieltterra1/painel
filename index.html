@@ -1299,28 +1299,39 @@ document.addEventListener('DOMContentLoaded', () => {
       <select class="filter-select" id="servico-ano" onchange="servicoAnoChange()">
         <option value="">Todos os anos</option>
       </select>
-      <select class="filter-select" id="servico-mes" onchange="renderServico()">
-        <option value="">Todos os meses</option>
-      </select>
-      <select class="filter-select" id="servico-empresa" onchange="renderServico()">
-        <option value="">Todas as empresas</option>
-        <option value="1">Matriz</option>
-        <option value="2">Filial SP</option>
-      </select>
-      <select class="filter-select" id="servico-processo" onchange="renderServico()">
-        <option value="">Todos os processos</option>
-        <option value="TORNO">Torno</option>
-        <option value="RETÍFICA">Retífica</option>
-        <option value="POLIMENTO">Polimento</option>
-        <option value="TRATAMENTO SUPERFICIAL">Tratamento Superficial</option>
-        <option value="TRATAMENTO TÉRMICO">Tratamento Térmico</option>
-        <option value="GERADORA">Geradora</option>
-        <option value="CENTRO DE USINAGEM">Centro de Usinagem</option>
-        <option value="MANUTENÇÃO">Manutenção</option>
-        <option value="FILIAL SP">Filial SP</option>
-        <option value="OUTROS">Outros</option>
-        <option value="SEM PROCESSO">⚠ Sem processo definido</option>
-      </select>
+      <div class="ms-wrap" id="ms-serv-mes" style="min-width:150px">
+        <div class="ms-btn" onclick="toggleMsDropdown('ms-serv-mes')"><span id="ms-serv-mes-label">Todos os meses</span><span>▾</span></div>
+        <div class="ms-dropdown">
+          <div class="ms-all" onclick="msToggleAll('ms-serv-mes')"><input type="checkbox" id="ms-serv-mes-all" checked> Todos os meses</div>
+          <div id="ms-serv-mes-itens"></div>
+        </div>
+      </div>
+      <div class="ms-wrap" id="ms-serv-emp" style="min-width:160px">
+        <div class="ms-btn" onclick="toggleMsDropdown('ms-serv-emp')"><span id="ms-serv-emp-label">Todas as empresas</span><span>▾</span></div>
+        <div class="ms-dropdown">
+          <div class="ms-all" onclick="msToggleAll('ms-serv-emp')"><input type="checkbox" id="ms-serv-emp-all" checked> Todas as empresas</div>
+          <label class="ms-item"><input type="checkbox" value="1" checked onchange="msChange('ms-serv-emp')"> Matriz</label>
+          <label class="ms-item"><input type="checkbox" value="2" checked onchange="msChange('ms-serv-emp')"> Filial SP</label>
+        </div>
+      </div>
+      <div class="ms-wrap" id="ms-serv-proc" style="min-width:170px">
+        <div class="ms-btn" onclick="toggleMsDropdown('ms-serv-proc')"><span id="ms-serv-proc-label">Todos os processos</span><span>▾</span></div>
+        <div class="ms-dropdown">
+          <div class="ms-all" onclick="msToggleAll('ms-serv-proc')"><input type="checkbox" id="ms-serv-proc-all" checked> Todos os processos</div>
+          <label class="ms-item"><input type="checkbox" value="TORNO" checked onchange="msChange('ms-serv-proc')"> Torno</label>
+          <label class="ms-item"><input type="checkbox" value="RETÍFICA" checked onchange="msChange('ms-serv-proc')"> Retífica</label>
+          <label class="ms-item"><input type="checkbox" value="POLIMENTO" checked onchange="msChange('ms-serv-proc')"> Polimento</label>
+          <label class="ms-item"><input type="checkbox" value="TRATAMENTO SUPERFICIAL" checked onchange="msChange('ms-serv-proc')"> Tratamento Superficial</label>
+          <label class="ms-item"><input type="checkbox" value="TRATAMENTO TÉRMICO" checked onchange="msChange('ms-serv-proc')"> Tratamento Térmico</label>
+          <label class="ms-item"><input type="checkbox" value="GERADORA" checked onchange="msChange('ms-serv-proc')"> Geradora</label>
+          <label class="ms-item"><input type="checkbox" value="CENTRO DE USINAGEM" checked onchange="msChange('ms-serv-proc')"> Centro de Usinagem</label>
+          <label class="ms-item"><input type="checkbox" value="MANUTENÇÃO" checked onchange="msChange('ms-serv-proc')"> Manutenção</label>
+          <label class="ms-item"><input type="checkbox" value="FILIAL SP" checked onchange="msChange('ms-serv-proc')"> Filial SP</label>
+          <label class="ms-item"><input type="checkbox" value="OUTROS" checked onchange="msChange('ms-serv-proc')"> Outros</label>
+          <label class="ms-item"><input type="checkbox" value="SEM PROCESSO" checked onchange="msChange('ms-serv-proc')"> ⚠ Sem processo definido</label>
+        </div>
+      </div>
+      <button class="upload-btn" style="background:rgba(0,201,122,.15);color:var(--green);border:1px solid var(--green);font-size:12px;padding:6px 12px" onclick="exportarServicoExcel()">📊 Gerar Excel</button>
       <button class="upload-btn" style="background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);font-size:12px;padding:6px 12px" onclick="servicoLimparFiltros()">✕ Limpar filtros</button>
     </div>
     <div style="font-family:var(--font-display);font-size:11px;color:var(--text-muted);letter-spacing:1px;">VALORES EM R$ · clique no cabeçalho para ordenar</div>
@@ -1983,6 +1994,7 @@ function msChange(id) {
   }
   // trigger render
   if (id === 'ms-produto') renderTransito();
+  else if (id.startsWith('ms-serv')) renderServico();
   else if (id.startsWith('ms-est')) renderEstoque();
   else if (id === 'ms-pv-dias' || id === 'ms-pv-fam2' || id === 'ms-pv-prior-status') renderPvPrioridades();
   else if (id.startsWith('ms-pv')) renderPedidos();
@@ -6625,16 +6637,16 @@ function servicoSort(key) {
 }
 
 function servicoLimparFiltros() {
-  const ids = ['servico-search','servico-mes'];
-  ids.forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-  const ano = document.getElementById('servico-ano');
-  if (ano) ano.value = '';
-  const emp = document.getElementById('servico-empresa');
-  if (emp) emp.value = '';
-  const proc = document.getElementById('servico-processo');
-  if (proc) proc.value = '';
-  const srt = document.getElementById('servico-sort');
-  if (srt) srt.value = 'total_desc';
+  const busca = document.getElementById('servico-search'); if (busca) busca.value = '';
+  const ano = document.getElementById('servico-ano'); if (ano) ano.value = '';
+  // marca tudo nos multi-selects (= sem filtro)
+  msMarcarTodos('ms-serv-emp');
+  msMarcarTodos('ms-serv-proc');
+  msMarcarTodos('ms-serv-mes');
+  const lblE=document.getElementById('ms-serv-emp-label'); if(lblE) lblE.textContent='Todas as empresas';
+  const lblP=document.getElementById('ms-serv-proc-label'); if(lblP) lblP.textContent='Todos os processos';
+  const lblM=document.getElementById('ms-serv-mes-label'); if(lblM) lblM.textContent='Todos os meses';
+  const srt = document.getElementById('servico-sort'); if (srt) srt.value = 'total_desc';
   renderServico();
 }
 
@@ -6678,9 +6690,20 @@ function renderServico() {
 
   // ── Lê filtros ────────────────────────────────────────────────────────
   const searchFilt = (document.getElementById('servico-search')?.value||'').toLowerCase();
-  const empFilt    = document.getElementById('servico-empresa')?.value||'';
-  const procFilt   = document.getElementById('servico-processo')?.value||'';
-  const mesFilt    = document.getElementById('servico-mes')?.value||'';
+  // Multi-seleção: array vazio = nenhum; comparamos por inclusão. "todos marcados" = mostra tudo.
+  const empSel   = getMsValues('ms-serv-emp');    // ex: ['1','2']
+  const procSel  = getMsValues('ms-serv-proc');   // ex: ['TORNO',...]
+  const mesSel   = getMsValues('ms-serv-mes');    // ex: ['2026-04','2026-05']
+  const _empTotal  = 2;   // Matriz + Filial SP
+  const _procTotal = 11;  // total de processos no multi-select
+  // "filtro ativo" só quando NÃO está com todos marcados (senão mostra tudo)
+  const empAtivo  = empSel.length  > 0 && empSel.length  < _empTotal;
+  const procAtivo = procSel.length > 0 && procSel.length < _procTotal;
+  // mês: o total varia (dinâmico); ativo quando há seleção e não são todos
+  const _mesTotal = (DATA.servicos ? [...new Set(DATA.servicos.map(r=>r.mes))].length : 0);
+  const mesAtivo  = mesSel.length > 0 && mesSel.length < _mesTotal;
+  // helper de mês para os gráficos (vários meses ou nenhum=ano todo)
+  const mesSetGraf = mesAtivo ? new Set(mesSel) : null;
   const anoFilt    = document.getElementById('servico-ano')?.value || '';
   let anoFiltAtivo = anoFilt;
 
@@ -6703,28 +6726,32 @@ function renderServico() {
   const anoLinha = (anoEl?.value) || anoAtual;
   anoFiltAtivo = anoEl?.value || '';
 
-  // ── Populate filtro de mês (só do ano selecionado) ────────────────────
-  const mesEl = document.getElementById('servico-mes');
-  if (mesEl) {
-    const prevM = mesEl.value;
-    while (mesEl.options.length > 1) mesEl.remove(1);
-    todosMeses
-      .filter(m => !anoFiltAtivo || m.startsWith(anoFiltAtivo + '-'))
-      .forEach(m => {
-        const opt = document.createElement('option');
-        opt.value = m; opt.textContent = mesLabel(m);
-        if (m === prevM) opt.selected = true;
-        mesEl.appendChild(opt);
-      });
+  // ── Popular filtro de mês (multi-select, só do ano selecionado) ───────
+  const mesItensEl = document.getElementById('ms-serv-mes-itens');
+  if (mesItensEl) {
+    const mesesDisp = todosMeses.filter(m => !anoFiltAtivo || m.startsWith(anoFiltAtivo + '-'));
+    // assinatura para não repopular à toa (preserva marcações do usuário)
+    const assinatura = mesesDisp.join(',');
+    if (mesItensEl.dataset.sig !== assinatura) {
+      const marcadosAntes = new Set(getMsValues('ms-serv-mes'));
+      const primeira = !mesItensEl.dataset.sig;
+      mesItensEl.innerHTML = mesesDisp.map(m => {
+        const chk = (primeira || marcadosAntes.has(m)) ? 'checked' : '';
+        return '<label class="ms-item"><input type="checkbox" value="'+m+'" '+chk+' onchange="msChange(\'ms-serv-mes\')"> '+mesLabel(m)+'</label>';
+      }).join('');
+      mesItensEl.dataset.sig = assinatura;
+      const allCb = document.getElementById('ms-serv-mes-all');
+      if (allCb) allCb.checked = (getMsValues('ms-serv-mes').length === mesesDisp.length);
+    }
   }
 
   // ── Helpers de filtro ─────────────────────────────────────────────────
   const passaFiltroBase = r => {
-    if (empFilt && r.empresa_num !== empFilt) return false;
+    if (empAtivo && !empSel.includes(r.empresa_num)) return false;
     if (searchFilt && !r.empresa.toLowerCase().includes(searchFilt)) return false;
-    if (procFilt) {
-      if (procFilt === 'SEM PROCESSO') { if (r.processo && r.processo.trim()) return false; }
-      else if (r.processo !== procFilt) return false;
+    if (procAtivo) {
+      const proc = (r.processo && r.processo.trim()) ? r.processo : 'SEM PROCESSO';
+      if (!procSel.includes(proc)) return false;
     }
     return true;
   };
@@ -6733,7 +6760,7 @@ function renderServico() {
   const dataFilt = data.filter(r => {
     const ano = r.mes.split('-')[0];
     if (anoFiltAtivo && ano !== anoFiltAtivo) return false;
-    if (mesFilt && r.mes !== mesFilt) return false;
+    if (mesAtivo && !mesSel.includes(r.mes)) return false;
     return passaFiltroBase(r);
   });
 
@@ -7019,13 +7046,13 @@ function renderServico() {
   }
 
   // Helper: valor de um ano para gráficos considerando modo acumulado/completo/2025
-  // Filtro de mês para os gráficos de Processo e Top 10 (sem mês selecionado = ano todo)
-  const noMesGraf = r => !mesFilt || r.mes === mesFilt;
+  // Filtro de mês (multi) para os gráficos de Processo e Top 10 (nenhum mês = ano todo)
+  const noMesGraf = r => !mesSetGraf || mesSetGraf.has(r.mes);
   const valorAnoGraf = (ano, filterFn) => {
     const ff = r => filterFn(r) && noMesGraf(r);
-    if (mesFilt) {
-      // mês específico selecionado: soma direta daquele mês (ignora modos de ano/acumulado)
-      return dataGraf.filter(r=>r.mes===mesFilt&&ff(r)).reduce((s,r)=>s+r.valor,0);
+    if (mesSetGraf) {
+      // meses específicos selecionados: soma direta deles (ignora modos de ano/acumulado)
+      return dataGraf.filter(r=>mesSetGraf.has(r.mes)&&ff(r)).reduce((s,r)=>s+r.valor,0);
     }
     if (servicoGrafMode === 'acumulado') {
       const anterior = dataGraf.filter(r=>r.mes.startsWith(ano+'-')&&r.mes<ano+'-'+String(mesAtualNum).padStart(2,'0')&&ff(r)).reduce((s,r)=>s+r.valor,0);
@@ -7145,7 +7172,7 @@ function renderServico() {
     let procDatasets;
     if (servicoPorLinha) {
       const limMes = anoLinha === anoAtual ? mesAtualKey : anoLinha+'-12';
-      const _noMes = r => !mesFilt || r.mes === mesFilt;
+      const _noMes = r => !mesSetGraf || mesSetGraf.has(r.mes);
       const forcaP = procOrder.map(p=>dataGraf.filter(r=>(r.processo||'SEM PROCESSO')===p&&r.mes.startsWith(anoLinha+'-')&&r.mes<=limMes&&_noMes(r)&&r.empresa_num==='1'&&r.linha!=='GUINCHO').reduce((s,r)=>s+r.valor,0));
       const guinchoP = procOrder.map(p=>dataGraf.filter(r=>(r.processo||'SEM PROCESSO')===p&&r.mes.startsWith(anoLinha+'-')&&r.mes<=limMes&&_noMes(r)&&r.empresa_num==='1'&&r.linha==='GUINCHO').reduce((s,r)=>s+r.valor,0));
       const filialP = procOrder.map(p=>dataGraf.filter(r=>(r.processo||'SEM PROCESSO')===p&&r.mes.startsWith(anoLinha+'-')&&r.mes<=limMes&&_noMes(r)&&r.empresa_num==='2').reduce((s,r)=>s+r.valor,0));
@@ -7438,6 +7465,60 @@ function renderServico() {
   if (foot) foot.innerHTML='<tr><td colspan="3"><strong>TOTAL ('+sorted.length+' fornecedores)</strong></td>'
     +filtMeses.map(m=>'<td class="money" style="color:var(--serie-laranja);font-weight:700">'+fmt(mesTotals[m])+'</td>').join('')
     +'<td class="money" style="color:var(--serie-laranja);font-weight:700">'+fmt(sorted.reduce((s,e)=>s+rowTotals[e],0))+'</td></tr>';
+
+  // Estado para exportação Excel (respeita filtros atuais)
+  _servExport = {
+    fornecedores: sorted,
+    meses: filtMeses.slice(),
+    mesesLabel: filtMeses.map(m=>mesLabel(m)),
+    dadosLinha: sorted.map(emp=>{
+      const d=dataFilt.find(r=>r.empresa===emp)||{};
+      return {
+        fornecedor: emp,
+        emp: d.empresa_num==='1'?'MTZ':d.empresa_num==='2'?'FIL':'—',
+        processo: d.processo||'—',
+        valoresMes: filtMeses.map(m=>dataFilt.filter(r=>r.empresa===emp&&r.mes===m).reduce((s,r)=>s+r.valor,0)),
+        total: rowTotals[emp]||0
+      };
+    }),
+    mesTotals: Object.assign({}, mesTotals)
+  };
+}
+
+// Exporta a tabela do Detalhamento por Fornecedor (respeita os filtros) — .xlsx com fallback CSV
+let _servExport = null;
+function exportarServicoExcel(){
+  if (!_servExport || !_servExport.fornecedores.length) { alert('Não há dados para exportar com os filtros atuais.'); return; }
+  const E = _servExport;
+  const cabec = ['FORNECEDOR','EMP','PROCESSO'].concat(E.mesesLabel).concat(['TOTAL']);
+  const linhas = E.dadosLinha.map(d => [d.fornecedor, d.emp, d.processo].concat(d.valoresMes).concat([d.total]));
+  const totalRow = ['TOTAL ('+E.fornecedores.length+' fornecedores)','',''].concat(E.meses.map(m=>E.mesTotals[m]||0)).concat([E.dadosLinha.reduce((s,d)=>s+d.total,0)]);
+  const dataStr = new Date().toISOString().slice(0,10);
+  const nomeArq = 'Servicos_Terceiros_'+dataStr;
+  const numColIni = 3; // colunas numéricas a partir daqui
+
+  if (window.XLSX && XLSX.utils) {
+    try {
+      const aoa = [cabec].concat(linhas).concat([totalRow]);
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws['!cols'] = cabec.map((c,i)=> i===0 ? {wch:38} : i<numColIni ? {wch:10} : {wch:13});
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Serviços');
+      XLSX.writeFile(wb, nomeArq+'.xlsx');
+      return;
+    } catch(e){ console.warn('XLSX falhou, usando CSV', e); }
+  }
+  // Fallback CSV (separador ; e BOM para Excel BR)
+  const csv = [cabec].concat(linhas).concat([totalRow])
+    .map(row=>row.map(c=>{
+      const s = String(c==null?'':c).replace(/"/g,'""');
+      return /[;"\n]/.test(s) ? '"'+s+'"' : s;
+    }).join(';')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = nomeArq+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
 }
 
 
