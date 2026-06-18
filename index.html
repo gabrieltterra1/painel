@@ -1559,7 +1559,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
       <input id="pf-novo-cod" type="text" placeholder="Código" style="width:90px;background:var(--border);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:6px;font-size:12px">
       <input id="pf-novo-nome" type="text" placeholder="Nome (opcional)" style="flex:1;min-width:140px;background:var(--border);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:6px;font-size:12px">
-      <select id="pf-novo-proc" style="background:var(--border);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:6px;font-size:12px">
+      <select id="pf-novo-proc" onchange="pfNovoProcSelect(this)" style="background:var(--border);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:6px;font-size:12px">
         <option value="TORNO">Torno</option>
         <option value="RETÍFICA">Retífica</option>
         <option value="POLIMENTO">Polimento</option>
@@ -1570,6 +1570,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <option value="MANUTENÇÃO">Manutenção</option>
         <option value="FILIAL SP">Filial SP</option>
         <option value="OUTROS">Outros</option>
+        <option value="__NOVO__">➕ Novo processo...</option>
       </select>
       <button onclick="pfAdicionar()" style="background:var(--green);border:none;color:#fff;padding:7px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px">+ Adicionar</button>
     </div>
@@ -8490,7 +8491,15 @@ function getProcFornecedorMesclado() {
 }
 // ═══ MODAL: Processos por Fornecedor (editável, salvo no Sheets) ═══
 let _pfDados = []; // [{cod, processo, nome}] em edição
-const _PF_PROCESSOS = ['TORNO','RETÍFICA','POLIMENTO','TRATAMENTO SUPERFICIAL','TRATAMENTO TÉRMICO','GERADORA','CENTRO DE USINAGEM','MANUTENÇÃO','FILIAL SP','OUTROS'];
+const _PF_PROCESSOS_FIXOS = ['TORNO','RETÍFICA','POLIMENTO','TRATAMENTO SUPERFICIAL','TRATAMENTO TÉRMICO','GERADORA','CENTRO DE USINAGEM','MANUTENÇÃO','FILIAL SP','OUTROS'];
+let _pfProcessosExtra = []; // processos criados pelo usuário nesta sessão
+// Lista completa de processos: fixos + os que já estão em uso (nos dados em edição) + os criados
+function pfProcessosDisponiveis() {
+  const set = new Set(_PF_PROCESSOS_FIXOS);
+  _pfProcessosExtra.forEach(p => set.add(p));
+  (_pfDados||[]).forEach(d => { if (d.processo) set.add(d.processo); });
+  return Array.from(set);
+}
 
 function abrirModalProcForn() {
  try {
@@ -8500,8 +8509,8 @@ function abrirModalProcForn() {
   // Base: mapa mesclado (código + Sheets)
   const merged = getProcFornecedorMesclado();
   // Acrescenta TODOS os fornecedores presentes nos dados de serviço (mesmo os não mapeados)
-  if (DATA.servicos) {
-    DATA.servicos.forEach(r => {
+  if (DATA.servico) {
+    DATA.servico.forEach(r => {
       const cod = String(r.empresa||'').trim().split(/[\s\-]/)[0].trim();
       if (!cod) return;
       if (!merged[cod]) {
@@ -8512,6 +8521,10 @@ function abrirModalProcForn() {
   }
   _pfDados = Object.keys(merged).map(cod => ({ cod: cod, processo: merged[cod].processo, nome: merged[cod].nome || _pfNomeConhecido(cod) }))
     .sort((a,b)=> a.processo.localeCompare(b.processo) || a.cod.localeCompare(b.cod));
+  // Detecta processos customizados já em uso (vindos do Sheets) para aparecerem nos dropdowns
+  _pfProcessosExtra = [];
+  _pfDados.forEach(d => { if (d.processo && !_PF_PROCESSOS_FIXOS.includes(d.processo) && !_pfProcessosExtra.includes(d.processo)) _pfProcessosExtra.push(d.processo); });
+  pfAtualizarDropdownNovo();
   const busca = document.getElementById('pf-busca'); if (busca) busca.value = '';
   const st = document.getElementById('pf-status'); if (st) st.textContent = _pfDados.length + ' fornecedores';
   pfRenderLista();
@@ -8529,8 +8542,8 @@ function fecharModalProcForn() { document.getElementById('modal-proc-forn').styl
 // Nome do fornecedor: mapa fixo (FORN_NOME) como base + dados de serviço quando disponível
 function _pfNomeConhecido(cod) {
   // tenta nos dados de serviço carregados (mais atual)
-  if (DATA.servicos) {
-    const r = DATA.servicos.find(x => String(x.empresa||'').trim().split(/[\s\-]/)[0].trim() === cod);
+  if (DATA.servico) {
+    const r = DATA.servico.find(x => String(x.empresa||'').trim().split(/[\s\-]/)[0].trim() === cod);
     if (r) {
       const partes = String(r.empresa).split(/\s*-\s*/);
       if (partes.length > 1) { const n = partes.slice(1).join(' - ').trim(); if (n) return n; }
@@ -8548,7 +8561,9 @@ function pfRenderLista() {
   if (!filtrados.length) { cont.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:12px">Nenhum fornecedor.</div>'; return; }
   cont.innerHTML = filtrados.map(d => {
     const idx = _pfDados.indexOf(d);
-    const opts = _PF_PROCESSOS.map(p => '<option value="'+p+'"'+(p===d.processo?' selected':'')+'>'+p+'</option>').join('');
+    const procs = pfProcessosDisponiveis();
+    const opts = procs.map(p => '<option value="'+p+'"'+(p===d.processo?' selected':'')+'>'+p+'</option>').join('')
+      + '<option value="__NOVO__">➕ Novo processo...</option>';
     return '<div style="display:flex;gap:6px;align-items:center;padding:5px 8px;border-bottom:1px solid var(--border)">'
       +'<span style="font-family:monospace;font-size:11px;color:var(--blue);width:64px;flex-shrink:0">'+d.cod+'</span>'
       +'<span style="flex:1;font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(d.nome||'')+'">'+(d.nome||'—')+'</span>'
@@ -8557,7 +8572,42 @@ function pfRenderLista() {
       +'</div>';
   }).join('');
 }
-function pfEditarProc(idx, val) { if (_pfDados[idx]) _pfDados[idx].processo = val; }
+// Quando escolhe "Novo processo..." no seletor de adicionar
+function pfNovoProcSelect(sel) {
+  if (sel.value !== '__NOVO__') return;
+  const novo = (prompt('Nome do novo processo:')||'').trim().toUpperCase();
+  if (novo) {
+    if (!_pfProcessosExtra.includes(novo) && !_PF_PROCESSOS_FIXOS.includes(novo)) _pfProcessosExtra.push(novo);
+    pfAtualizarDropdownNovo();
+    sel.value = novo;
+  } else {
+    sel.value = _PF_PROCESSOS_FIXOS[0];
+  }
+}
+function pfEditarProc(idx, val) {
+  if (!_pfDados[idx]) return;
+  if (val === '__NOVO__') {
+    const novo = (prompt('Nome do novo processo:')||'').trim().toUpperCase();
+    if (novo) {
+      if (!_pfProcessosExtra.includes(novo) && !_PF_PROCESSOS_FIXOS.includes(novo)) _pfProcessosExtra.push(novo);
+      _pfDados[idx].processo = novo;
+    }
+    pfRenderLista();          // re-renderiza para refletir o novo processo nos dropdowns
+    pfAtualizarDropdownNovo(); // atualiza o seletor de adicionar também
+    return;
+  }
+  _pfDados[idx].processo = val;
+}
+// Atualiza o dropdown "pf-novo-proc" (usado ao adicionar) com a lista completa
+function pfAtualizarDropdownNovo() {
+  const sel = document.getElementById('pf-novo-proc');
+  if (!sel) return;
+  const atual = sel.value;
+  const procs = pfProcessosDisponiveis();
+  sel.innerHTML = procs.map(p => '<option value="'+p+'">'+p+'</option>').join('')
+    + '<option value="__NOVO__">➕ Novo processo...</option>';
+  if (procs.includes(atual)) sel.value = atual;
+}
 function pfRemover(idx) { _pfDados.splice(idx, 1); pfRenderLista(); const st=document.getElementById('pf-status'); if(st) st.textContent=_pfDados.length+' fornecedores'; }
 function pfAdicionar() {
   const cod = (document.getElementById('pf-novo-cod').value||'').trim();
