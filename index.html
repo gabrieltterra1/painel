@@ -8420,6 +8420,56 @@ const FORN_PROCESSO = {
   '64348': 'OUTROS', // WIKA DO BRASIL IND COM LT
 }
 
+
+const FORN_NOME = {
+  '51658': 'BELUSSO INDUSTRIA METALURGICA LTDA',
+  '62788': 'BRASIN SOLUCOES HIDRAULICAS LTDA',
+  '60496': 'FORTUNA IND E COM. DE METAIS LTDA',
+  '62856': 'HOVER COMPONENTES LTDA',
+  '20069': 'IND MECANICA JAVER LTDA',
+  '63616': 'JRD USINAGEM EIRELI',
+  '59485': 'VERGANI USINAGEM LTDA',
+  '59506': 'VKASTA INDUSTRIA DE EQUIPAMENTOS HIDRAULICOS LTDA',
+  '64793': 'JCL MANUTENÇÕES DE MÁQUINAS LTDA',
+  '701173': 'JL ZAPPE INDUSTRIA DE MOLAQSW LTDA',
+  '65184': 'LUCAS DANIEL MOREIRA VELHO',
+  '12144': 'CLEMAR CROMO DURO LTDA',
+  '60793': 'CROMOFIX CROMO DURO LTDA',
+  '30972': 'METALDIFFER INDUSTRIA E COMERCIO LTDA',
+  '701291': 'TECH COAT REVESTIMENTO EM METAIS',
+  '64597': 'ZINCAGEM MAQUINE LTDA',
+  '9883': 'METALTECNICA METALURGICA LTDA',
+  '365': 'TECNOHARD INDUSTRIA METALURGICA LTDA',
+  '29212': 'THERMIX TRATAMENTO TERMICO LTDA',
+  '178': 'INDUSTRIA MECANICA GUSFAR LTDA ME',
+  '138': 'IMAP COMERCIO E SERVICOS INDUSTRIAIS LTDA',
+  '63175': 'METALURGICA MT LINE DRILL LTDA - ME',
+  '701337': 'METALURGICA NEGRI LTDA',
+  '64554': 'USINAGEM COSTA LTDA',
+  '65364': 'C.J.C USINAGEM DE PECAS LTDA',
+  '701347': 'ABHNER EANES DUARTE BATISTA',
+  '64074': 'AC FIORAVANTE ME',
+  '63427': 'ESCALA PRODUTOS E SERVIÇOS DE CALIBRAÇÃO',
+  '65736': 'HIDRAUTEC SAO PAULO EQUIP HIDRAULICOS LTDA',
+  '66585': 'JL PINTURAS A PO LTDA',
+  '65865': 'MARK AUTOMATION',
+  '701319': 'MARIA CARLINDA DA SILVA',
+  '64550': 'ODAIR LAERCIO MELONI',
+  '701185': 'PICELLI MOTORES E BOMBAS LTDA EPP',
+  '66846': 'DLP MANUTENCAO E INSTALACAO DE EQUIPAMENTOS INDUSTRIAIS LTDA',
+  '67329': 'TAVELLI INDUSTRIA METALURGICA LTDA',
+  '65031': 'ACVL SERVIÇOS LTDA',
+  '59143': 'CARL ZEISS DO BRASIL LTDA',
+  '52958': 'FORJAS CAXIENSE LTDA',
+  '62010': 'GLEASON INDUSTRIA DE FERRAMENTAS LTDA',
+  '126': 'HURTH INFER INDUSTRIA DE MAQUINAS E FERRAMENTAS LTDA',
+  '63254': 'KROMI LOGÍSTICA DO BRASIL LTDA',
+  '264': 'MITEC INSTRUMENTOS INDUSTRIAIS LTDA',
+  '64299': 'METAL RIBAS LTDA',
+  '2003': 'STAR SU INDUSTRIA DE FERRAMENTAS LTDA',
+  '67144': 'SERGIO LUIZ LENZI LTDA',
+  '64348': 'WIKA DO BRASIL IND COM LT',
+};
 // Retorna o processo de um fornecedor pelo código numérico.
 // Mescla: FORN_PROCESSO (código, base) + DATA.procFornecedor (Sheets, sobrescreve/adiciona).
 function getFornProcesso(fornStr) {
@@ -8465,14 +8515,18 @@ function abrirModalProcForn() {
 }
 function fecharModalProcForn() { document.getElementById('modal-proc-forn').style.display = 'none'; }
 
-// tenta achar o nome do fornecedor nos dados de serviço já carregados
+// Nome do fornecedor: mapa fixo (FORN_NOME) como base + dados de serviço quando disponível
 function _pfNomeConhecido(cod) {
-  if (!DATA.servicos) return '';
-  const r = DATA.servicos.find(x => String(x.empresa||'').trim().split(/[\s\-]/)[0].trim() === cod);
-  if (!r) return '';
-  // empresa vem como "COD - NOME"
-  const partes = String(r.empresa).split(/\s*-\s*/);
-  return partes.length > 1 ? partes.slice(1).join(' - ').trim() : '';
+  // tenta nos dados de serviço carregados (mais atual)
+  if (DATA.servicos) {
+    const r = DATA.servicos.find(x => String(x.empresa||'').trim().split(/[\s\-]/)[0].trim() === cod);
+    if (r) {
+      const partes = String(r.empresa).split(/\s*-\s*/);
+      if (partes.length > 1) { const n = partes.slice(1).join(' - ').trim(); if (n) return n; }
+    }
+  }
+  // fallback: mapa fixo do código
+  return (typeof FORN_NOME !== 'undefined' && FORN_NOME[cod]) ? FORN_NOME[cod] : '';
 }
 
 function pfRenderLista() {
