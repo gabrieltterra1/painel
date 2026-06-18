@@ -3423,7 +3423,7 @@ function confirmarSenha(){
     _pvSenhaOkAte = Date.now() + _PV_SENHA_VALIDADE_MS;
     document.getElementById('modal-senha').style.display = 'none';
     const cb = _pvSenhaCallback; _pvSenhaCallback = null;
-    if (typeof cb === 'function') cb();
+    if (typeof cb === 'function') { try { cb(); } catch(err){ alert('Erro ao executar ação: '+(err&&err.message?err.message:err)); console.error(err); } }
   } else {
     if (err) err.style.display = 'block';
     if (inp) { inp.value = ''; inp.focus(); }
@@ -8432,6 +8432,7 @@ let _pfDados = []; // [{cod, processo, nome}] em edição
 const _PF_PROCESSOS = ['TORNO','RETÍFICA','POLIMENTO','TRATAMENTO SUPERFICIAL','TRATAMENTO TÉRMICO','GERADORA','CENTRO DE USINAGEM','MANUTENÇÃO','FILIAL SP','OUTROS'];
 
 function abrirModalProcForn() {
+ try {
   // o gerenciador de senha do navegador pode ter autopreenchido a busca de fornecedor — limpa o resíduo
   const sb = document.getElementById('servico-search');
   if (sb && sb.value && sb.value.toUpperCase() === 'INDEX') { sb.value = ''; renderServico(); }
@@ -8443,8 +8444,13 @@ function abrirModalProcForn() {
   const st = document.getElementById('pf-status'); if (st) st.textContent = _pfDados.length + ' fornecedores';
   pfRenderLista();
   const modal = document.getElementById('modal-proc-forn');
+  if (!modal) { alert('Modal não encontrado no DOM.'); return; }
   modal.style.display = 'flex';
   modal.style.zIndex = '10002';
+ } catch(err) {
+  alert('Erro ao abrir Processos por Fornecedor: ' + (err && err.message ? err.message : err));
+  console.error('abrirModalProcForn', err);
+ }
 }
 function fecharModalProcForn() { document.getElementById('modal-proc-forn').style.display = 'none'; }
 
