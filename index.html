@@ -1295,7 +1295,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="section-title">Detalhamento por Fornecedor</div>
   <div class="servico-header">
     <div class="filter-row" style="flex-wrap:wrap;gap:8px">
-      <input class="search-input" type="text" id="servico-search" placeholder="Filtrar fornecedor…" oninput="renderServico()">
+      <input class="search-input" type="text" id="servico-search" placeholder="Filtrar fornecedor…" autocomplete="off" oninput="renderServico()">
       <select class="filter-select" id="servico-ano" onchange="servicoAnoChange()">
         <option value="">Todos os anos</option>
       </select>
@@ -1549,7 +1549,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 <!-- ═══ MODAL PROCESSOS POR FORNECEDOR ═══ -->
-<div id="modal-proc-forn" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;align-items:center;justify-content:center">
+<div id="modal-proc-forn" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10002;align-items:center;justify-content:center">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;width:680px;max-width:96vw;max-height:88vh;display:flex;flex-direction:column">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <div style="font-size:15px;font-weight:700;color:var(--text)">🔧 Processos por Fornecedor</div>
@@ -1590,7 +1590,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;width:340px;max-width:95vw">
     <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">🔒 Acesso restrito</div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Digite a senha para fazer alterações.</div>
-    <input id="senha-input" type="password" autocomplete="off" placeholder="Senha"
+    <input id="senha-input" type="password" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="pf-pwd-{random}" placeholder="Senha"
       onkeydown="if(event.key==='Enter')confirmarSenha();if(event.key==='Escape')fecharModalSenha()"
       style="width:100%;background:var(--border);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:6px;font-size:14px;box-sizing:border-box">
     <div id="senha-erro" style="display:none;color:var(--red);font-size:12px;margin-top:8px">Senha incorreta.</div>
@@ -8432,6 +8432,9 @@ let _pfDados = []; // [{cod, processo, nome}] em edição
 const _PF_PROCESSOS = ['TORNO','RETÍFICA','POLIMENTO','TRATAMENTO SUPERFICIAL','TRATAMENTO TÉRMICO','GERADORA','CENTRO DE USINAGEM','MANUTENÇÃO','FILIAL SP','OUTROS'];
 
 function abrirModalProcForn() {
+  // o gerenciador de senha do navegador pode ter autopreenchido a busca de fornecedor — limpa o resíduo
+  const sb = document.getElementById('servico-search');
+  if (sb && sb.value && sb.value.toUpperCase() === 'INDEX') { sb.value = ''; renderServico(); }
   // monta a lista a partir do mapa mesclado (código base + Sheets)
   const merged = getProcFornecedorMesclado();
   _pfDados = Object.keys(merged).map(cod => ({ cod: cod, processo: merged[cod].processo, nome: merged[cod].nome || _pfNomeConhecido(cod) }))
@@ -8439,7 +8442,9 @@ function abrirModalProcForn() {
   const busca = document.getElementById('pf-busca'); if (busca) busca.value = '';
   const st = document.getElementById('pf-status'); if (st) st.textContent = _pfDados.length + ' fornecedores';
   pfRenderLista();
-  document.getElementById('modal-proc-forn').style.display = 'flex';
+  const modal = document.getElementById('modal-proc-forn');
+  modal.style.display = 'flex';
+  modal.style.zIndex = '10002';
 }
 function fecharModalProcForn() { document.getElementById('modal-proc-forn').style.display = 'none'; }
 
