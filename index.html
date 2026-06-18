@@ -8427,6 +8427,17 @@ function getFornProcesso(fornStr) {
   if (DATA.procFornecedor && DATA.procFornecedor[cod]) return DATA.procFornecedor[cod].processo;
   return FORN_PROCESSO[cod] || '';
 }
+// Mapa mesclado completo (base do código + Sheets por cima) — usado no modal de edição
+function getProcFornecedorMesclado() {
+  const merged = {};
+  Object.keys(FORN_PROCESSO).forEach(cod => { merged[cod] = { processo: FORN_PROCESSO[cod], nome: '' }; });
+  if (DATA.procFornecedor) {
+    Object.keys(DATA.procFornecedor).forEach(cod => {
+      merged[cod] = { processo: DATA.procFornecedor[cod].processo, nome: (DATA.procFornecedor[cod].nome || (merged[cod] ? merged[cod].nome : '')) };
+    });
+  }
+  return merged;
+}
 // ═══ MODAL: Processos por Fornecedor (editável, salvo no Sheets) ═══
 let _pfDados = []; // [{cod, processo, nome}] em edição
 const _PF_PROCESSOS = ['TORNO','RETÍFICA','POLIMENTO','TRATAMENTO SUPERFICIAL','TRATAMENTO TÉRMICO','GERADORA','CENTRO DE USINAGEM','MANUTENÇÃO','FILIAL SP','OUTROS'];
