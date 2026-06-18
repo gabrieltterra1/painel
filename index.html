@@ -1200,6 +1200,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   <!-- CARDS RESUMO POR ANO -->
   <div id="servico-kpis" style="margin-bottom:20px"></div>
+  <div id="servico-previsao" style="margin-bottom:20px"></div>
 
   <!-- Toggle LINHA DO TEMPO -->
   <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
@@ -1545,6 +1546,17 @@ document.addEventListener('DOMContentLoaded', () => {
       <button onclick="fecharModalMetas()" style="background:var(--border);border:1px solid var(--border);color:var(--text);padding:8px 18px;border-radius:6px;cursor:pointer">Cancelar</button>
       <button onclick="salvarMetas()" style="background:var(--blue);border:none;color:#fff;padding:8px 18px;border-radius:6px;font-weight:700;cursor:pointer">💾 Salvar no Sheets</button>
     </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL DETALHE PREVISÃO ═══ -->
+<div id="modal-previsao" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;width:880px;max-width:96vw;max-height:88vh;display:flex;flex-direction:column">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:15px;font-weight:700;color:var(--text)">📈 Detalhamento da Previsão</div>
+      <button onclick="fecharModalPrevisao()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <div id="modal-previsao-body" style="overflow:auto;flex:1"></div>
   </div>
 </div>
 
@@ -6696,6 +6708,8 @@ function renderServico() {
   const data = DATA.servico || [];
   if (!data.length) return;
 
+  try { renderPrevisaoServicos(); } catch(e) { console.warn('previsao', e); }
+
   const hoje     = new Date();
   const anoAtual = hoje.getFullYear().toString();
   const mesAtualNum = hoje.getMonth() + 1; // 1-12
@@ -8500,6 +8514,163 @@ function pfProcessosDisponiveis() {
   (_pfDados||[]).forEach(d => { if (d.processo) set.add(d.processo); });
   return Array.from(set);
 }
+
+// ═══════════ PREVISÃO DE GASTOS COM TERCEIROS ═══════════
+// Dias úteis restantes do mês ATUAL incluindo hoje (hoje conta como disponível)
+function _duRestantesComHoje(ano, mes1idx) {
+  const feriados = getFeriados().map(f => f.data);
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  let du = 0;
+  const totalDias = new Date(ano, mes1idx+1, 0).getDate();
+  for (let d = 1; d <= totalDias; d++) {
+    const dt = new Date(ano, mes1idx, d); dt.setHours(0,0,0,0);
+    if (dt < hoje) continue;                 // já passou (inclui hoje em diante)
+    const dw = dt.getDay();
+    if (dw === 0 || dw === 6) continue;
+    const iso = ano+'-'+String(mes1idx+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    if (feriados.includes(iso)) continue;
+    du++;
+  }
+  return du;
+}
+// Dias úteis totais de um mês (mês inteiro, calendário) — usa o helper existente
+function _duMesInteiro(ano, mes1idx) { return diasUteisMes(ano, mes1idx, true); }
+
+// Calcula a previsão por fornecedor para os 3 meses (atual, +1, +2)
+function calcularPrevisaoServicos() {
+  const dados = DATA.servico || [];
+  if (!dados.length) return null;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const anoAtual = hoje.getFullYear();
+  const mesAtualIdx = hoje.getMonth();
+  const mesAtualKey = anoAtual+'-'+String(mesAtualIdx+1).padStart(2,'0');
+
+  // 3 últimos meses FECHADOS (antes do mês atual) como base, pesos 3-2-1 (mais recente pesa 3)
+  const baseMeses = []; // [{key, ano, mes1idx, peso}]
+  for (let i = 1; i <= 3; i++) {
+    const dt = new Date(anoAtual, mesAtualIdx - i, 1);
+    baseMeses.push({ key: dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0'), ano: dt.getFullYear(), mes1idx: dt.getMonth(), peso: 4 - i }); // i=1->peso3, i=2->peso2, i=3->peso1
+  }
+
+  // Agrupa gasto por fornecedor por mês
+  const forns = {}; // cod -> {nome, porMes:{key:valor}}
+  dados.forEach(r => {
+    const cod = String(r.empresa||'').trim().split(/[\s\-]/)[0].trim();
+    if (!cod) return;
+    if (!forns[cod]) forns[cod] = { nome: r.empresa, porMes: {} };
+    forns[cod].porMes[r.mes] = (forns[cod].porMes[r.mes]||0) + r.valor;
+  });
+
+  // dias úteis dos meses-base e dos meses-alvo
+  baseMeses.forEach(b => b.du = _duMesInteiro(b.ano, b.mes1idx));
+  const alvos = [];
+  for (let k = 0; k <= 2; k++) {
+    const dt = new Date(anoAtual, mesAtualIdx + k, 1);
+    const ehAtual = (k === 0);
+    alvos.push({
+      key: dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0'),
+      ano: dt.getFullYear(), mes1idx: dt.getMonth(), ehAtual,
+      duProj: ehAtual ? _duRestantesComHoje(dt.getFullYear(), dt.getMonth()) : _duMesInteiro(dt.getFullYear(), dt.getMonth())
+    });
+  }
+
+  const detalhe = []; // por fornecedor
+  const totalPorAlvo = { 0:0, 1:0, 2:0 };
+  let realizadoMesAtual = 0;
+
+  Object.keys(forns).forEach(cod => {
+    const f = forns[cod];
+    // ativo = teve gasto em pelo menos 1 dos 3 meses-base
+    const ativo = baseMeses.some(b => (f.porMes[b.key]||0) > 0);
+    if (!ativo) return;
+    // média ponderada do gasto/dia útil
+    let somaPesoVal = 0, somaPeso = 0;
+    const basesInfo = baseMeses.map(b => {
+      const gasto = f.porMes[b.key]||0;
+      const mediaDia = b.du > 0 ? gasto/b.du : 0;
+      somaPesoVal += mediaDia * b.peso;
+      somaPeso += b.peso;
+      return { key: b.key, peso: b.peso, gasto, du: b.du, mediaDia };
+    });
+    const mediaDiaPond = somaPeso > 0 ? somaPesoVal/somaPeso : 0;
+
+    // gasto real do mês atual até ontem
+    const realAtual = f.porMes[mesAtualKey]||0;
+    realizadoMesAtual += realAtual;
+
+    const projecoes = alvos.map((a, k) => {
+      let proj;
+      if (a.ehAtual) proj = realAtual + mediaDiaPond * a.duProj; // real até ontem + projeção dos dias restantes
+      else proj = mediaDiaPond * a.duProj;
+      totalPorAlvo[k] += proj;
+      return { key: a.key, ehAtual: a.ehAtual, duProj: a.duProj, realAtual: a.ehAtual?realAtual:0, proj };
+    });
+
+    detalhe.push({ cod, nome: f.nome, mediaDiaPond, bases: basesInfo, projecoes });
+  });
+
+  detalhe.sort((a,b) => b.projecoes[0].proj - a.projecoes[0].proj);
+  return { baseMeses, alvos, detalhe, totalPorAlvo, realizadoMesAtual, mesAtualKey };
+}
+
+let _previsaoServicosCache = null;
+function renderPrevisaoServicos() {
+  const el = document.getElementById('servico-previsao');
+  if (!el) return;
+  const p = calcularPrevisaoServicos();
+  _previsaoServicosCache = p;
+  if (!p || !p.detalhe.length) { el.innerHTML = ''; return; }
+  const fmtR = v => 'R$ '+Math.round(v).toLocaleString('pt-BR');
+  const nomeMes = key => { const [a,m] = key.split('-'); return ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'][+m-1]+'/'+a.slice(2); };
+  const cardAlvo = (a, idx) => {
+    const tot = p.totalPorAlvo[idx];
+    const sub = a.ehAtual
+      ? 'Realizado '+fmtR(p.realizadoMesAtual)+' + proj. '+a.duProj+' dias úteis restantes'
+      : 'Projeção · '+a.duProj+' dias úteis';
+    return '<div style="flex:1;min-width:170px;background:var(--surface);border:1px solid '+(a.ehAtual?'var(--serie-azul)':'var(--border)')+';border-radius:10px;padding:12px 14px">'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:1px">'+nomeMes(a.key)+(a.ehAtual?' (atual)':'')+'</div>'
+      +'<div style="font-size:22px;font-weight:900;color:'+(a.ehAtual?'var(--serie-azul)':'var(--serie-laranja)')+';margin:2px 0">'+fmtR(tot)+'</div>'
+      +'<div style="font-size:9px;color:var(--text-muted)">'+sub+'</div>'
+      +'</div>';
+  };
+  el.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+    +'<div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:1px">📈 PREVISÃO DE GASTOS (próximos 3 meses)</div>'
+    +'<button onclick="abrirModalPrevisao()" style="background:rgba(61,139,255,.15);border:1px solid var(--blue);color:var(--blue);padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🔍 Ver detalhamento</button>'
+    +'</div>'
+    +'<div style="display:flex;gap:10px;flex-wrap:wrap">'+p.alvos.map(cardAlvo).join('')+'</div>'
+    +'<div style="font-size:9px;color:var(--text-muted);margin-top:8px">Base: média ponderada do gasto/dia útil dos 3 meses fechados (pesos 3-2-1), por fornecedor ativo. Hoje conta como dia útil disponível.</div>';
+}
+
+function abrirModalPrevisao() {
+  const p = _previsaoServicosCache || calcularPrevisaoServicos();
+  if (!p || !p.detalhe.length) { alert('Sem dados suficientes para a previsão.'); return; }
+  const fmtR = v => 'R$ '+Math.round(v).toLocaleString('pt-BR');
+  const fmtD = v => v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+  const nomeMes = key => { const [a,m] = key.split('-'); return ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'][+m-1]+'/'+a.slice(2); };
+  const linhas = p.detalhe.map(d => {
+    const basesTxt = d.bases.map(b => nomeMes(b.key)+': '+fmtR(b.gasto)+' ÷ '+b.du+'du = '+fmtR(b.mediaDia)+'/du <span style="color:var(--text-muted)">(peso '+b.peso+')</span>').join('<br>');
+    const projTxt = d.projecoes.map(pr => nomeMes(pr.key)+': '+(pr.ehAtual?(fmtR(pr.realAtual)+' + '+fmtR(d.mediaDiaPond)+'×'+pr.duProj+'du = '):'')+fmtR(pr.proj)).join('<br>');
+    return '<tr>'
+      +'<td style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:11px"><b>'+(d.nome||d.cod)+'</b></td>'
+      +'<td style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:10px;color:var(--text-muted)">'+basesTxt+'</td>'
+      +'<td style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--serie-azul);white-space:nowrap">'+fmtR(d.mediaDiaPond)+'/du</td>'
+      +'<td style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:10px">'+projTxt+'</td>'
+      +'</tr>';
+  }).join('');
+  const cont = document.getElementById('modal-previsao-body');
+  cont.innerHTML =
+    '<div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">Média ponderada do gasto/dia útil dos 3 meses fechados (mais recente pesa 3, depois 2, depois 1). Mês atual = realizado até ontem + média/du × dias úteis restantes (hoje incluso). Fornecedores ativos (com gasto em ≥1 mês-base).</div>'
+    +'<table style="width:100%;border-collapse:collapse">'
+    +'<thead><tr style="background:var(--header-table-bg,#0d1b3e)">'
+    +'<th style="padding:6px 8px;text-align:left;font-size:10px;color:#fff">FORNECEDOR</th>'
+    +'<th style="padding:6px 8px;text-align:left;font-size:10px;color:#fff">MESES-BASE (gasto ÷ dias úteis · peso)</th>'
+    +'<th style="padding:6px 8px;text-align:left;font-size:10px;color:#fff">MÉDIA POND.</th>'
+    +'<th style="padding:6px 8px;text-align:left;font-size:10px;color:#fff">PROJEÇÃO (atual · +1 · +2)</th>'
+    +'</tr></thead><tbody>'+linhas+'</tbody></table>';
+  document.getElementById('modal-previsao').style.display = 'flex';
+}
+function fecharModalPrevisao() { document.getElementById('modal-previsao').style.display = 'none'; }
 
 function abrirModalProcForn() {
  try {
