@@ -8497,8 +8497,19 @@ function abrirModalProcForn() {
   // o gerenciador de senha do navegador pode ter autopreenchido a busca de fornecedor — limpa o resíduo
   const sb = document.getElementById('servico-search');
   if (sb && sb.value && sb.value.toUpperCase() === 'INDEX') { sb.value = ''; renderServico(); }
-  // monta a lista a partir do mapa mesclado (código base + Sheets)
+  // Base: mapa mesclado (código + Sheets)
   const merged = getProcFornecedorMesclado();
+  // Acrescenta TODOS os fornecedores presentes nos dados de serviço (mesmo os não mapeados)
+  if (DATA.servicos) {
+    DATA.servicos.forEach(r => {
+      const cod = String(r.empresa||'').trim().split(/[\s\-]/)[0].trim();
+      if (!cod) return;
+      if (!merged[cod]) {
+        // não mapeado: usa o processo atual calculado (pode ser vazio) para você classificar
+        merged[cod] = { processo: getFornProcesso(r.empresa) || 'OUTROS', nome: '' };
+      }
+    });
+  }
   _pfDados = Object.keys(merged).map(cod => ({ cod: cod, processo: merged[cod].processo, nome: merged[cod].nome || _pfNomeConhecido(cod) }))
     .sort((a,b)=> a.processo.localeCompare(b.processo) || a.cod.localeCompare(b.cod));
   const busca = document.getElementById('pf-busca'); if (busca) busca.value = '';
