@@ -1332,6 +1332,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
       <button class="upload-btn" style="background:rgba(0,201,122,.15);color:var(--green);border:1px solid var(--green);font-size:12px;padding:6px 12px" onclick="exportarServicoExcel()">📊 Gerar Excel</button>
+      <button class="upload-btn" style="background:rgba(168,85,247,.15);color:#a855f7;border:1px solid #a855f7;font-size:12px;padding:6px 12px" onclick="pedirSenha(abrirModalProcForn)">🔧 Processos por Fornecedor</button>
       <button class="upload-btn" style="background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);font-size:12px;padding:6px 12px" onclick="servicoLimparFiltros()">✕ Limpar filtros</button>
     </div>
     <div style="font-family:var(--font-display);font-size:11px;color:var(--text-muted);letter-spacing:1px;">VALORES EM R$ · clique no cabeçalho para ordenar</div>
@@ -1543,6 +1544,43 @@ document.addEventListener('DOMContentLoaded', () => {
     <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
       <button onclick="fecharModalMetas()" style="background:var(--border);border:1px solid var(--border);color:var(--text);padding:8px 18px;border-radius:6px;cursor:pointer">Cancelar</button>
       <button onclick="salvarMetas()" style="background:var(--blue);border:none;color:#fff;padding:8px 18px;border-radius:6px;font-weight:700;cursor:pointer">💾 Salvar no Sheets</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL PROCESSOS POR FORNECEDOR ═══ -->
+<div id="modal-proc-forn" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;width:680px;max-width:96vw;max-height:88vh;display:flex;flex-direction:column">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div style="font-size:15px;font-weight:700;color:var(--text)">🔧 Processos por Fornecedor</div>
+      <button onclick="fecharModalProcForn()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px">Defina o processo de cada fornecedor pelo código. Salvo na planilha; sobrescreve o padrão do sistema.</div>
+    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+      <input id="pf-novo-cod" type="text" placeholder="Código" style="width:90px;background:var(--border);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:6px;font-size:12px">
+      <input id="pf-novo-nome" type="text" placeholder="Nome (opcional)" style="flex:1;min-width:140px;background:var(--border);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:6px;font-size:12px">
+      <select id="pf-novo-proc" style="background:var(--border);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:6px;font-size:12px">
+        <option value="TORNO">Torno</option>
+        <option value="RETÍFICA">Retífica</option>
+        <option value="POLIMENTO">Polimento</option>
+        <option value="TRATAMENTO SUPERFICIAL">Tratamento Superficial</option>
+        <option value="TRATAMENTO TÉRMICO">Tratamento Térmico</option>
+        <option value="GERADORA">Geradora</option>
+        <option value="CENTRO DE USINAGEM">Centro de Usinagem</option>
+        <option value="MANUTENÇÃO">Manutenção</option>
+        <option value="FILIAL SP">Filial SP</option>
+        <option value="OUTROS">Outros</option>
+      </select>
+      <button onclick="pfAdicionar()" style="background:var(--green);border:none;color:#fff;padding:7px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px">+ Adicionar</button>
+    </div>
+    <input id="pf-busca" type="text" placeholder="🔍 Filtrar por código, nome ou processo..." oninput="pfRenderLista()" style="width:100%;background:var(--border);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:12px;margin-bottom:8px;box-sizing:border-box">
+    <div id="pf-lista" style="overflow-y:auto;flex:1;border:1px solid var(--border);border-radius:8px"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">
+      <span id="pf-status" style="font-size:11px;color:var(--text-muted)"></span>
+      <div style="display:flex;gap:8px">
+        <button onclick="fecharModalProcForn()" style="background:#334;color:var(--text-muted);border:1px solid #556;padding:8px 18px;border-radius:6px;font-weight:700;cursor:pointer">Cancelar</button>
+        <button onclick="pfSalvar()" style="background:var(--blue);border:none;color:#fff;padding:8px 18px;border-radius:6px;font-weight:700;cursor:pointer">💾 Salvar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -8321,6 +8359,7 @@ const FORN_PROCESSO = {
   '60496': 'TORNO',   // FORTUNA IND E COM. DE METAIS LTDA
   '62856': 'TORNO',   // HOVER COMPONENTES LTDA
   '20069': 'TORNO',   // IND MECANICA JAVER LTDA
+  '63616': 'TORNO',   // JRD USINAGEM EIRELI
   '59485': 'TORNO',   // VERGANI USINAGEM LTDA
   '59506': 'TORNO',   // VKASTA INDUSTRIA DE EQUIPAMENTOS HIDRAULICOS LTDA
 
@@ -8352,7 +8391,6 @@ const FORN_PROCESSO = {
   '701337':'CENTRO DE USINAGEM', // METALURGICA NEGRI LTDA
   '64554': 'CENTRO DE USINAGEM', // USINAGEM COSTA LTDA
   '65364': 'CENTRO DE USINAGEM', // C.J.C USINAGEM DE PECAS LTDA
-  '63616': 'CENTRO DE USINAGEM',   // JRD USINAGEM EIRELI
 
   // FILIAL SP
   '701347':'FILIAL SP', // ABHNER EANES DUARTE BATISTA
@@ -8382,10 +8420,94 @@ const FORN_PROCESSO = {
   '64348': 'OUTROS', // WIKA DO BRASIL IND COM LT
 }
 
-// Retorna o processo de um fornecedor pelo código numérico
+// Retorna o processo de um fornecedor pelo código numérico.
+// Mescla: FORN_PROCESSO (código, base) + DATA.procFornecedor (Sheets, sobrescreve/adiciona).
 function getFornProcesso(fornStr) {
   const cod = String(fornStr||'').trim().split(/[\s\-]/)[0].trim();
+  if (DATA.procFornecedor && DATA.procFornecedor[cod]) return DATA.procFornecedor[cod].processo;
   return FORN_PROCESSO[cod] || '';
+}
+// ═══ MODAL: Processos por Fornecedor (editável, salvo no Sheets) ═══
+let _pfDados = []; // [{cod, processo, nome}] em edição
+const _PF_PROCESSOS = ['TORNO','RETÍFICA','POLIMENTO','TRATAMENTO SUPERFICIAL','TRATAMENTO TÉRMICO','GERADORA','CENTRO DE USINAGEM','MANUTENÇÃO','FILIAL SP','OUTROS'];
+
+function abrirModalProcForn() {
+  // monta a lista a partir do mapa mesclado (código base + Sheets)
+  const merged = getProcFornecedorMesclado();
+  _pfDados = Object.keys(merged).map(cod => ({ cod: cod, processo: merged[cod].processo, nome: merged[cod].nome || _pfNomeConhecido(cod) }))
+    .sort((a,b)=> a.processo.localeCompare(b.processo) || a.cod.localeCompare(b.cod));
+  const busca = document.getElementById('pf-busca'); if (busca) busca.value = '';
+  const st = document.getElementById('pf-status'); if (st) st.textContent = _pfDados.length + ' fornecedores';
+  pfRenderLista();
+  document.getElementById('modal-proc-forn').style.display = 'flex';
+}
+function fecharModalProcForn() { document.getElementById('modal-proc-forn').style.display = 'none'; }
+
+// tenta achar o nome do fornecedor nos dados de serviço já carregados
+function _pfNomeConhecido(cod) {
+  if (!DATA.servicos) return '';
+  const r = DATA.servicos.find(x => String(x.empresa||'').trim().split(/[\s\-]/)[0].trim() === cod);
+  if (!r) return '';
+  // empresa vem como "COD - NOME"
+  const partes = String(r.empresa).split(/\s*-\s*/);
+  return partes.length > 1 ? partes.slice(1).join(' - ').trim() : '';
+}
+
+function pfRenderLista() {
+  const cont = document.getElementById('pf-lista');
+  if (!cont) return;
+  const q = (document.getElementById('pf-busca')?.value||'').toLowerCase();
+  const filtrados = _pfDados.filter(d => !q || d.cod.toLowerCase().includes(q) || (d.nome||'').toLowerCase().includes(q) || d.processo.toLowerCase().includes(q));
+  if (!filtrados.length) { cont.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:12px">Nenhum fornecedor.</div>'; return; }
+  cont.innerHTML = filtrados.map(d => {
+    const idx = _pfDados.indexOf(d);
+    const opts = _PF_PROCESSOS.map(p => '<option value="'+p+'"'+(p===d.processo?' selected':'')+'>'+p+'</option>').join('');
+    return '<div style="display:flex;gap:6px;align-items:center;padding:5px 8px;border-bottom:1px solid var(--border)">'
+      +'<span style="font-family:monospace;font-size:11px;color:var(--blue);width:64px;flex-shrink:0">'+d.cod+'</span>'
+      +'<span style="flex:1;font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(d.nome||'')+'">'+(d.nome||'—')+'</span>'
+      +'<select onchange="pfEditarProc('+idx+',this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:5px;font-size:11px">'+opts+'</select>'
+      +'<button onclick="pfRemover('+idx+')" style="background:rgba(255,59,59,.15);border:1px solid var(--red);color:var(--red);padding:4px 8px;border-radius:5px;cursor:pointer;font-size:11px">✕</button>'
+      +'</div>';
+  }).join('');
+}
+function pfEditarProc(idx, val) { if (_pfDados[idx]) _pfDados[idx].processo = val; }
+function pfRemover(idx) { _pfDados.splice(idx, 1); pfRenderLista(); const st=document.getElementById('pf-status'); if(st) st.textContent=_pfDados.length+' fornecedores'; }
+function pfAdicionar() {
+  const cod = (document.getElementById('pf-novo-cod').value||'').trim();
+  const nome = (document.getElementById('pf-novo-nome').value||'').trim();
+  const proc = document.getElementById('pf-novo-proc').value;
+  if (!cod) { alert('Informe o código do fornecedor.'); return; }
+  const existe = _pfDados.find(d => d.cod === cod);
+  if (existe) { existe.processo = proc; if (nome) existe.nome = nome; }
+  else _pfDados.unshift({ cod: cod, processo: proc, nome: nome });
+  document.getElementById('pf-novo-cod').value = '';
+  document.getElementById('pf-novo-nome').value = '';
+  const busca = document.getElementById('pf-busca'); if (busca) busca.value = '';
+  pfRenderLista();
+  const st=document.getElementById('pf-status'); if(st) st.textContent=_pfDados.length+' fornecedores';
+}
+async function pfSalvar() {
+  const st = document.getElementById('pf-status');
+  if (st) { st.textContent = 'Salvando...'; st.style.color = 'var(--blue)'; }
+  try {
+    const payload = JSON.stringify({ action: 'salvarProcFornecedor', data: _pfDados.map(d => ({ cod: d.cod, processo: d.processo, nome: d.nome||'' })) });
+    // POST fire-and-forget (no-cors): o Sheets recebe, mas não lemos a resposta — assumimos sucesso.
+    fetch(WEBAPP, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: payload });
+    // Atualiza o mapa em memória imediatamente para refletir sem recarregar tudo
+    DATA.procFornecedor = {};
+    _pfDados.forEach(d => { if (d.cod && d.processo) DATA.procFornecedor[d.cod] = { processo: d.processo, nome: d.nome||'' }; });
+    if (st) { st.textContent = '✅ Salvo! Reclassificando...'; st.style.color = 'var(--green)'; }
+    // re-parseia serviços com o novo mapa (reclassifica os processos)
+    try {
+      const sres = await fetch(WEBAPP+'?aba=SERVICO_TERCEIROS&t='+Date.now());
+      const stext = await sres.text();
+      if (stext && stext.trim()) parseServico(stext);
+    } catch(e) { console.warn('reparse servico', e); }
+    renderServico();
+    setTimeout(fecharModalProcForn, 900);
+  } catch(e) {
+    if (st) { st.textContent = 'Erro: ' + e.message; st.style.color = 'var(--red)'; }
+  }
 }
 
 function parseServico(text) {
@@ -8834,6 +8956,25 @@ async function readSheets() {
       }
     }
   } catch(e) { console.warn('CONFIG não disponível:', e); }
+
+  // Fetch PROC_FORNECEDOR (mapeamento fornecedor->processo editável) ANTES de parsear serviços,
+  // para que getFornProcesso já mescle código + Sheets na classificação.
+  try {
+    const pfRes = await fetch(WEBAPP+'?aba=PROC_FORNECEDOR&t='+Date.now());
+    const pfText = await pfRes.text();
+    DATA.procFornecedor = {}; // { cod: {processo, nome} }
+    if (pfText && pfText.trim()) {
+      const rows = parseCSV(pfText, ';');
+      // pula cabeçalho (COD | PROCESSO | NOME)
+      for (let i = 1; i < rows.length; i++) {
+        const cod = String(rows[i][0]||'').trim();
+        const proc = String(rows[i][1]||'').trim();
+        const nome = String(rows[i][2]||'').trim();
+        if (cod && proc) DATA.procFornecedor[cod] = { processo: proc, nome: nome };
+      }
+    }
+  } catch(e) { console.warn('PROC_FORNECEDOR não disponível:', e); DATA.procFornecedor = DATA.procFornecedor || {}; }
+
 
   // Fetch paralelo — todas as abas ao mesmo tempo
   const fetchAba = async (aba) => {
