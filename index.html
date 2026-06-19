@@ -1577,6 +1577,10 @@ document.addEventListener('DOMContentLoaded', () => {
       <button onclick="pfAdicionar()" style="background:var(--green);border:none;color:#fff;padding:7px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px">+ Adicionar</button>
     </div>
     <input id="pf-busca" type="text" placeholder="🔍 Filtrar por código, nome ou processo..." oninput="pfRenderLista()" style="width:100%;background:var(--border);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:12px;margin-bottom:8px;box-sizing:border-box">
+    <div style="margin-bottom:8px">
+      <button onclick="pfToggleGerenciarProc()" style="background:rgba(168,85,247,.15);border:1px solid #a855f7;color:#a855f7;padding:5px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer">🗂 Gerenciar processos</button>
+      <div id="pf-gerenciar-proc" style="display:none;margin-top:6px;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--bg)"></div>
+    </div>
     <div id="pf-lista" style="overflow-y:auto;flex:1;border:1px solid var(--border);border-radius:8px"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">
       <span id="pf-status" style="font-size:11px;color:var(--text-muted)"></span>
@@ -8538,6 +8542,11 @@ function pfProcessosDisponiveis() {
   const set = new Set(_PF_PROCESSOS_FIXOS);
   _pfProcessosExtra.forEach(p => set.add(p));
   (_pfDados||[]).forEach(d => { if (d.processo) set.add(d.processo); });
+  // remove os processos excluídos nesta sessão de edição (a menos que ainda tenham fornecedor)
+  (typeof _pfProcessosRemovidos !== 'undefined' ? _pfProcessosRemovidos : []).forEach(p => {
+    const aindaUsado = (_pfDados||[]).some(d => d.processo === p);
+    if (!aindaUsado) set.delete(p);
+  });
   return Array.from(set);
 }
 
@@ -8787,6 +8796,7 @@ function abrirModalProcForn() {
     .sort((a,b)=> a.processo.localeCompare(b.processo) || a.cod.localeCompare(b.cod));
   // Detecta processos customizados já em uso (vindos do Sheets) para aparecerem nos dropdowns
   _pfProcessosExtra = [];
+  _pfProcessosRemovidos = [];
   _pfDados.forEach(d => { if (d.processo && !_PF_PROCESSOS_FIXOS.includes(d.processo) && !_pfProcessosExtra.includes(d.processo)) _pfProcessosExtra.push(d.processo); });
   pfAtualizarDropdownNovo();
   const busca = document.getElementById('pf-busca'); if (busca) busca.value = '';
@@ -8817,13 +8827,75 @@ function _pfNomeConhecido(cod) {
   return (typeof FORN_NOME !== 'undefined' && FORN_NOME[cod]) ? FORN_NOME[cod] : '';
 }
 
+let _pfSort = { col: 'processo', asc: true };
+function pfOrdenar(col) {
+  if (_pfSort.col === col) _pfSort.asc = !_pfSort.asc;
+  else { _pfSort.col = col; _pfSort.asc = true; }
+  pfRenderLista();
+}
+// ── Gerenciar processos (listar + excluir) ──
+function pfToggleGerenciarProc() {
+  const box = document.getElementById('pf-gerenciar-proc');
+  if (!box) return;
+  if (box.style.display === 'none') { box.style.display = 'block'; pfRenderGerenciarProc(); }
+  else box.style.display = 'none';
+}
+function pfRenderGerenciarProc() {
+  const box = document.getElementById('pf-gerenciar-proc');
+  if (!box) return;
+  const procs = pfProcessosDisponiveis().filter(p => p !== 'SEM PROCESSO');
+  if (!procs.length) { box.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">Nenhum processo.</div>'; return; }
+  box.innerHTML = '<div style="font-size:10px;color:var(--text-muted);margin-bottom:6px">Excluir um processo move seus fornecedores para "Sem processo definido".</div>'
+    + '<div style="display:flex;flex-wrap:wrap;gap:6px">'
+    + procs.map(p => {
+        const qtd = _pfDados.filter(d => d.processo === p).length;
+        return '<span style="display:inline-flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:3px 6px 3px 10px;font-size:11px">'
+          + p + ' <span style="color:var(--text-muted);font-size:9px">('+qtd+')</span>'
+          + '<button onclick="pfExcluirProcesso(\''+p.replace(/'/g,"\\'")+'\')" style="background:rgba(255,59,59,.15);border:1px solid var(--red);color:var(--red);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;line-height:1;padding:0">✕</button>'
+          + '</span>';
+      }).join('')
+    + '</div>';
+}
+function pfExcluirProcesso(proc) {
+  const vinculados = _pfDados.filter(d => d.processo === proc);
+  if (vinculados.length > 0) {
+    const ok = confirm('O processo "'+proc+'" tem '+vinculados.length+' fornecedor(es) vinculado(s).\n\nAo excluir, eles serão transferidos para "Sem processo definido".\n\nDeseja continuar?');
+    if (!ok) return;
+    vinculados.forEach(d => { d.processo = 'SEM PROCESSO'; });
+  }
+  // remove dos extras (se for customizado)
+  _pfProcessosExtra = _pfProcessosExtra.filter(p => p !== proc);
+  // marca para remoção definitiva da lista de fixos também (só nesta sessão de edição)
+  if (!_pfProcessosRemovidos.includes(proc)) _pfProcessosRemovidos.push(proc);
+  pfRenderGerenciarProc();
+  pfRenderLista();
+  pfAtualizarDropdownNovo();
+}
+let _pfProcessosRemovidos = []; // processos excluídos nesta sessão (some dos dropdowns)
 function pfRenderLista() {
   const cont = document.getElementById('pf-lista');
   if (!cont) return;
   const q = (document.getElementById('pf-busca')?.value||'').toLowerCase();
-  const filtrados = _pfDados.filter(d => !q || d.cod.toLowerCase().includes(q) || (d.nome||'').toLowerCase().includes(q) || d.processo.toLowerCase().includes(q));
-  if (!filtrados.length) { cont.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:12px">Nenhum fornecedor.</div>'; return; }
-  cont.innerHTML = filtrados.map(d => {
+  let filtrados = _pfDados.filter(d => !q || d.cod.toLowerCase().includes(q) || (d.nome||'').toLowerCase().includes(q) || d.processo.toLowerCase().includes(q));
+  // ordenação
+  const sc = _pfSort.col, asc = _pfSort.asc ? 1 : -1;
+  filtrados = filtrados.slice().sort((a,b) => {
+    let va, vb;
+    if (sc === 'cod') { va = parseInt(a.cod)||a.cod; vb = parseInt(b.cod)||b.cod; if (typeof va==='number'&&typeof vb==='number') return (va-vb)*asc; }
+    va = String(sc==='cod'?a.cod:sc==='nome'?(a.nome||''):a.processo).toLowerCase();
+    vb = String(sc==='cod'?b.cod:sc==='nome'?(b.nome||''):b.processo).toLowerCase();
+    return va.localeCompare(vb) * asc;
+  });
+  const seta = c => _pfSort.col===c ? (_pfSort.asc?' ▲':' ▼') : ' ⇅';
+  const header =
+    '<div style="display:flex;gap:6px;align-items:center;padding:6px 8px;border-bottom:2px solid var(--border);background:var(--bg);position:sticky;top:0;font-size:10px;font-weight:700;color:var(--text-muted)">'
+    +'<span onclick="pfOrdenar(\'cod\')" style="width:64px;flex-shrink:0;cursor:pointer">CÓDIGO'+seta('cod')+'</span>'
+    +'<span onclick="pfOrdenar(\'nome\')" style="flex:1;cursor:pointer">NOME'+seta('nome')+'</span>'
+    +'<span onclick="pfOrdenar(\'processo\')" style="width:160px;cursor:pointer">PROCESSO'+seta('processo')+'</span>'
+    +'<span style="width:32px"></span>'
+    +'</div>';
+  if (!filtrados.length) { cont.innerHTML = header+'<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:12px">Nenhum fornecedor.</div>'; return; }
+  cont.innerHTML = header + filtrados.map(d => {
     const idx = _pfDados.indexOf(d);
     const procs = pfProcessosDisponiveis();
     const opts = procs.map(p => '<option value="'+p+'"'+(p===d.processo?' selected':'')+'>'+p+'</option>').join('')
@@ -8831,7 +8903,7 @@ function pfRenderLista() {
     return '<div style="display:flex;gap:6px;align-items:center;padding:5px 8px;border-bottom:1px solid var(--border)">'
       +'<span style="font-family:monospace;font-size:11px;color:var(--blue);width:64px;flex-shrink:0">'+d.cod+'</span>'
       +'<span style="flex:1;font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(d.nome||'')+'">'+(d.nome||'—')+'</span>'
-      +'<select onchange="pfEditarProc('+idx+',this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:5px;font-size:11px">'+opts+'</select>'
+      +'<select onchange="pfEditarProc('+idx+',this.value)" style="width:160px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:5px;font-size:11px">'+opts+'</select>'
       +'<button onclick="pfRemover('+idx+')" style="background:rgba(255,59,59,.15);border:1px solid var(--red);color:var(--red);padding:4px 8px;border-radius:5px;cursor:pointer;font-size:11px">✕</button>'
       +'</div>';
   }).join('');
