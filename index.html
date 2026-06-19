@@ -6788,8 +6788,12 @@ function renderServico() {
     if (mesItensEl.dataset.sig !== assinatura) {
       const marcadosAntes = new Set(getMsValues('ms-serv-mes'));
       const primeira = !mesItensEl.dataset.sig;
+      // meses que já existiam na população anterior (para detectar os novos)
+      const mesesAntes = new Set((mesItensEl.dataset.sig || '').split(',').filter(Boolean));
       mesItensEl.innerHTML = mesesDisp.map(m => {
-        const chk = (primeira || marcadosAntes.has(m)) ? 'checked' : '';
+        // marca se: primeira vez, OU já estava marcado, OU é um mês NOVO que surgiu agora
+        const ehNovo = !mesesAntes.has(m);
+        const chk = (primeira || marcadosAntes.has(m) || ehNovo) ? 'checked' : '';
         return '<label class="ms-item"><input type="checkbox" value="'+m+'" '+chk+' onchange="msChange(\'ms-serv-mes\')"> '+mesLabel(m)+'</label>';
       }).join('');
       mesItensEl.dataset.sig = assinatura;
@@ -8544,13 +8548,19 @@ function calcularPrevisaoServicos() {
   const anoAtual = hoje.getFullYear();
   const mesAtualIdx = hoje.getMonth();
   const mesAtualKey = anoAtual+'-'+String(mesAtualIdx+1).padStart(2,'0');
+  const ehMesAtipico = mes1idx => (mes1idx === 11 || mes1idx === 0); // dez(11) ou jan(0)
 
-  // 3 últimos meses FECHADOS (antes do mês atual) como base, pesos 3-2-1 (mais recente pesa 3)
-  const baseMeses = []; // [{key, ano, mes1idx, peso}]
-  for (let i = 1; i <= 3; i++) {
-    const dt = new Date(anoAtual, mesAtualIdx - i, 1);
-    baseMeses.push({ key: dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0'), ano: dt.getFullYear(), mes1idx: dt.getMonth(), peso: 4 - i }); // i=1->peso3, i=2->peso2, i=3->peso1
+  // Base: 3 meses FECHADOS válidos (PULA dez/jan), recuando até completar 3. Pesos 3-2-1.
+  const baseMeses = []; // [{key, ano, mes1idx, peso, du}]
+  let recuo = 1;
+  while (baseMeses.length < 3 && recuo <= 24) {
+    const dt = new Date(anoAtual, mesAtualIdx - recuo, 1);
+    recuo++;
+    if (ehMesAtipico(dt.getMonth())) continue; // pula dez/jan
+    baseMeses.push({ key: dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0'), ano: dt.getFullYear(), mes1idx: dt.getMonth(), du: _duMesInteiro(dt.getFullYear(), dt.getMonth()) });
   }
+  // pesos por recência: mais recente=3, depois 2, depois 1
+  baseMeses.forEach((b,i) => b.peso = baseMeses.length - i);
 
   // Agrupa gasto por fornecedor por mês
   const forns = {}; // cod -> {nome, porMes:{key:valor}}
@@ -8561,8 +8571,34 @@ function calcularPrevisaoServicos() {
     forns[cod].porMes[r.mes] = (forns[cod].porMes[r.mes]||0) + r.valor;
   });
 
-  // dias úteis dos meses-base e dos meses-alvo
-  baseMeses.forEach(b => b.du = _duMesInteiro(b.ano, b.mes1idx));
+  // ── Fator de sazonalidade dez/jan: média(gasto/du dos meses dez|jan) ÷ média(gasto/du meses normais) ──
+  // Por fornecedor, com fallback no fator geral (todos os fornecedores agregados).
+  const _duDeKey = key => { const [a,m] = key.split('-'); return _duMesInteiro(+a, +m-1); };
+  function fatorSazonal(porMes, alvoMes1idx) {
+    // alvoMes1idx: 11=dez, 0=jan
+    let somAtip=0, nAtip=0, somNorm=0, nNorm=0;
+    Object.keys(porMes).forEach(key => {
+      const m1 = +key.split('-')[1] - 1;
+      const du = _duDeKey(key); if (du<=0) return;
+      const mediaDia = porMes[key]/du;
+      const isAlvo = (m1 === alvoMes1idx);
+      if (isAlvo) { somAtip += mediaDia; nAtip++; }
+      else if (!ehMesAtipico(m1)) { somNorm += mediaDia; nNorm++; }
+    });
+    if (nAtip>0 && nNorm>0) {
+      const fa = (somAtip/nAtip) / (somNorm/nNorm);
+      return (isFinite(fa) && fa>0) ? fa : null;
+    }
+    return null; // sem histórico suficiente → usa fallback geral
+  }
+  // fator geral (agrega TODOS os fornecedores) para dez e jan
+  const _todosPorMes = {};
+  dados.forEach(r => { _todosPorMes[r.mes] = (_todosPorMes[r.mes]||0) + r.valor; });
+  const fatorGeralDez = fatorSazonal(_todosPorMes, 11);
+  const fatorGeralJan = fatorSazonal(_todosPorMes, 0);
+  const _fatorGeral = m1 => (m1===11 ? fatorGeralDez : m1===0 ? fatorGeralJan : 1) || 1;
+
+  // meses-alvo (atual, +1, +2)
   const alvos = [];
   for (let k = 0; k <= 2; k++) {
     const dt = new Date(anoAtual, mesAtualIdx + k, 1);
@@ -8570,47 +8606,45 @@ function calcularPrevisaoServicos() {
     alvos.push({
       key: dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0'),
       ano: dt.getFullYear(), mes1idx: dt.getMonth(), ehAtual,
+      atipico: ehMesAtipico(dt.getMonth()),
       duProj: ehAtual ? _duRestantesComHoje(dt.getFullYear(), dt.getMonth()) : _duMesInteiro(dt.getFullYear(), dt.getMonth())
     });
   }
 
-  const detalhe = []; // por fornecedor
+  const detalhe = [];
   const totalPorAlvo = { 0:0, 1:0, 2:0 };
   let realizadoMesAtual = 0;
 
   Object.keys(forns).forEach(cod => {
     const f = forns[cod];
-    // ativo = teve gasto em pelo menos 1 dos 3 meses-base
     const ativo = baseMeses.some(b => (f.porMes[b.key]||0) > 0);
     if (!ativo) return;
-    // média ponderada do gasto/dia útil
     let somaPesoVal = 0, somaPeso = 0;
     const basesInfo = baseMeses.map(b => {
       const gasto = f.porMes[b.key]||0;
       const mediaDia = b.du > 0 ? gasto/b.du : 0;
-      somaPesoVal += mediaDia * b.peso;
-      somaPeso += b.peso;
+      somaPesoVal += mediaDia * b.peso; somaPeso += b.peso;
       return { key: b.key, peso: b.peso, gasto, du: b.du, mediaDia };
     });
     const mediaDiaPond = somaPeso > 0 ? somaPesoVal/somaPeso : 0;
-
-    // gasto real do mês atual até ontem
     const realAtual = f.porMes[mesAtualKey]||0;
     realizadoMesAtual += realAtual;
 
     const projecoes = alvos.map((a, k) => {
-      let proj;
-      if (a.ehAtual) proj = realAtual + mediaDiaPond * a.duProj; // real até ontem + projeção dos dias restantes
-      else proj = mediaDiaPond * a.duProj;
+      // fator de sazonalidade só para dez/jan: por fornecedor, fallback no geral
+      let fator = 1;
+      if (a.atipico) { fator = fatorSazonal(f.porMes, a.mes1idx); if (fator == null) fator = _fatorGeral(a.mes1idx); }
+      const base = mediaDiaPond * a.duProj * fator;
+      const proj = a.ehAtual ? (realAtual + base) : base;
       totalPorAlvo[k] += proj;
-      return { key: a.key, ehAtual: a.ehAtual, duProj: a.duProj, realAtual: a.ehAtual?realAtual:0, proj };
+      return { key: a.key, ehAtual: a.ehAtual, atipico: a.atipico, fator, duProj: a.duProj, realAtual: a.ehAtual?realAtual:0, proj };
     });
 
     detalhe.push({ cod, nome: f.nome, mediaDiaPond, bases: basesInfo, projecoes });
   });
 
   detalhe.sort((a,b) => b.projecoes[0].proj - a.projecoes[0].proj);
-  return { baseMeses, alvos, detalhe, totalPorAlvo, realizadoMesAtual, mesAtualKey };
+  return { baseMeses, alvos, detalhe, totalPorAlvo, realizadoMesAtual, mesAtualKey, fatorGeralDez, fatorGeralJan };
 }
 
 let _previsaoServicosCache = null;
@@ -8658,7 +8692,7 @@ function abrirModalPrevisao() {
     // projeções
     const projTxt = d.projecoes.map(pr =>
       '<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:2px 0;border-top:1px solid var(--border)">'
-      +'<span style="color:var(--text-muted)">'+nomeMes(pr.key)+(pr.ehAtual?' (atual)':'')+'</span>'
+      +'<span style="color:var(--text-muted)">'+nomeMes(pr.key)+(pr.ehAtual?' (atual)':'')+(pr.atipico?' <span style="color:#f59e0b">⚠ sazonal ×'+(pr.fator||1).toFixed(2)+'</span>':'')+'</span>'
       +'<span style="font-weight:700;color:'+(pr.ehAtual?'var(--serie-azul)':'var(--serie-laranja)')+'">'
         +(pr.ehAtual ? '<span style="font-weight:400;color:var(--text-muted);font-size:9px">'+fmtR(pr.realAtual)+' + '+pr.duProj+'du · </span>' : '<span style="font-weight:400;color:var(--text-muted);font-size:9px">'+pr.duProj+'du · </span>')
         +fmtR(pr.proj)+'</span>'
@@ -8675,7 +8709,7 @@ function abrirModalPrevisao() {
 
   const cont = document.getElementById('modal-previsao-body');
   cont.innerHTML =
-    '<div style="font-size:11px;color:var(--text-muted);margin-bottom:12px">Média ponderada do gasto/dia útil dos 3 meses fechados (mais recente pesa 3, depois 2, depois 1). Mês atual = realizado até ontem + média/du × dias úteis restantes (hoje incluso). Fornecedores ativos (gasto em ≥1 mês-base).</div>'
+    '<div style="font-size:11px;color:var(--text-muted);margin-bottom:12px">Média ponderada do gasto/dia útil dos 3 meses fechados <b>válidos</b> (dez e jan são pulados na base por serem atípicos; pesos 3-2-1). Mês atual = realizado até ontem + média/du × dias úteis restantes (hoje incluso). Para projetar dez/jan aplica-se um fator de sazonalidade (média histórica dez/jan ÷ meses normais), por fornecedor, com fallback no fator geral. Fornecedores ativos (gasto em ≥1 mês-base).</div>'
     + cards;
   document.getElementById('modal-previsao').style.display = 'flex';
 }
