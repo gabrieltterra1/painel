@@ -6510,8 +6510,8 @@ function _pvGerarRelatorio() {
     tbodyHtml += '<tr>';
     tbodyHtml += '<td style="font-size:9px;font-family:monospace;padding:3px 5px;white-space:nowrap;color:#222">S__ M__ P__ E__</td>';
     tbodyHtml += '<td style="font-size:13px;font-weight:900;text-align:center;padding:3px 4px;color:#1a1a2e">' + aMontar + '</td>';
-    tbodyHtml += '<td style="font-family:monospace;font-size:10px;font-weight:700;color:#1a6fcc;white-space:nowrap;padding:3px 4px">' + codigo + '</td>';
-    tbodyHtml += '<td style="font-size:9px;padding:3px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1a1a2e" title="' + desc.replace(/"/g,"'") + '">' + desc + '</td>';
+    tbodyHtml += '<td style="font-family:monospace;font-size:10px;font-weight:700;color:#1a6fcc;white-space:nowrap;padding:3px 4px;text-align:left">' + codigo + '</td>';
+    tbodyHtml += '<td style="font-size:9px;padding:3px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1a1a2e;text-align:left" title="' + desc.replace(/"/g,"'") + '">' + desc + '</td>';
     tbodyHtml += '<td style="font-size:9px;font-weight:700;white-space:nowrap;padding:3px 4px;color:#333">' + familia + '</td>';
     tbodyHtml += '<td style="text-align:right;font-size:10px;font-weight:700;padding:3px 4px;color:' + projColor + '">' + proj + '</td>';
     tbodyHtml += '<td style="font-size:9px;color:#222;padding:3px 4px;white-space:normal;word-break:break-word;text-align:left;vertical-align:top">' + detalhe + '</td>';
@@ -6563,8 +6563,8 @@ function _pvGerarRelatorio() {
     +'<table><thead><tr>'
     +'<th style="width:95px">S_ M_ P_ E_</th>'
     +'<th style="width:34px;text-align:center">QTD</th>'
-    +'<th style="width:65px">CODIGO</th>'
-    +'<th style="width:290px">DESCRICAO</th>'
+    +'<th style="width:78px;text-align:left">CODIGO</th>'
+    +'<th style="width:277px;text-align:left">DESCRICAO</th>'
     +'<th style="width:90px">FAMILIA</th>'
     +'<th style="width:38px;text-align:right">PROJ.</th>'
     +'<th style="width:180px">DETALHE OF</th>'
