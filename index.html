@@ -1319,17 +1319,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="ms-btn" onclick="toggleMsDropdown('ms-serv-proc')"><span id="ms-serv-proc-label">Todos os processos</span><span>▾</span></div>
         <div class="ms-dropdown">
           <div class="ms-all" onclick="msToggleAll('ms-serv-proc')"><input type="checkbox" id="ms-serv-proc-all" checked> Todos os processos</div>
-          <label class="ms-item"><input type="checkbox" value="TORNO" checked onchange="msChange('ms-serv-proc')"> Torno</label>
-          <label class="ms-item"><input type="checkbox" value="RETÍFICA" checked onchange="msChange('ms-serv-proc')"> Retífica</label>
-          <label class="ms-item"><input type="checkbox" value="POLIMENTO" checked onchange="msChange('ms-serv-proc')"> Polimento</label>
-          <label class="ms-item"><input type="checkbox" value="TRATAMENTO SUPERFICIAL" checked onchange="msChange('ms-serv-proc')"> Tratamento Superficial</label>
-          <label class="ms-item"><input type="checkbox" value="TRATAMENTO TÉRMICO" checked onchange="msChange('ms-serv-proc')"> Tratamento Térmico</label>
-          <label class="ms-item"><input type="checkbox" value="GERADORA" checked onchange="msChange('ms-serv-proc')"> Geradora</label>
-          <label class="ms-item"><input type="checkbox" value="CENTRO DE USINAGEM" checked onchange="msChange('ms-serv-proc')"> Centro de Usinagem</label>
-          <label class="ms-item"><input type="checkbox" value="MANUTENÇÃO" checked onchange="msChange('ms-serv-proc')"> Manutenção</label>
-          <label class="ms-item"><input type="checkbox" value="FILIAL SP" checked onchange="msChange('ms-serv-proc')"> Filial SP</label>
-          <label class="ms-item"><input type="checkbox" value="OUTROS" checked onchange="msChange('ms-serv-proc')"> Outros</label>
-          <label class="ms-item"><input type="checkbox" value="SEM PROCESSO" checked onchange="msChange('ms-serv-proc')"> ⚠ Sem processo definido</label>
+          <div id="ms-serv-proc-itens"></div>
         </div>
       </div>
       <button class="upload-btn" style="background:rgba(0,201,122,.15);color:var(--green);border:1px solid var(--green);font-size:12px;padding:6px 12px" onclick="exportarServicoExcel()">📊 Gerar Excel</button>
@@ -6733,6 +6723,13 @@ function renderServico() {
     'GERADORA':'#f59e0b','CENTRO DE USINAGEM':'#e74c3c','MANUTENÇÃO':'#64748b',
     'FILIAL SP':'#ff6b35','OUTROS':'#475569','SEM PROCESSO':'#334155'
   };
+  // processos novos (do Sheets/dados) ganham cor automática
+  const _paletaExtra = ['#ec4899','#14b8a6','#eab308','#8b5cf6','#f97316','#22c55e','#0ea5e9','#d946ef','#84cc16','#f43f5e'];
+  let _ce = 0;
+  (DATA.servico||[]).forEach(r => {
+    const pr = (r.processo && r.processo.trim()) ? r.processo : 'SEM PROCESSO';
+    if (!PROC_COLORS[pr]) { PROC_COLORS[pr] = _paletaExtra[_ce % _paletaExtra.length]; _ce++; }
+  });
   const processos = Object.keys(PROC_COLORS);
 
   const todosAnos  = [...new Set(data.map(r => r.mes.split('-')[0]))].sort();
@@ -6745,10 +6742,35 @@ function renderServico() {
   const searchFilt = (document.getElementById('servico-search')?.value||'').toLowerCase();
   // Multi-seleção: array vazio = nenhum; comparamos por inclusão. "todos marcados" = mostra tudo.
   const empSel   = getMsValues('ms-serv-emp');    // ex: ['1','2']
+  // ── Processos disponíveis = fixos + os que aparecem nos dados (inclui novos do Sheets) ──
+  const PROC_FIXOS = ['TORNO','RETÍFICA','POLIMENTO','TRATAMENTO SUPERFICIAL','TRATAMENTO TÉRMICO','GERADORA','CENTRO DE USINAGEM','MANUTENÇÃO','FILIAL SP','OUTROS'];
+  const procsNosDados = new Set();
+  (DATA.servico||[]).forEach(r => { const pr = (r.processo && r.processo.trim()) ? r.processo : 'SEM PROCESSO'; procsNosDados.add(pr); });
+  // ordem: fixos primeiro (na ordem definida), depois novos em ordem alfabética, SEM PROCESSO por último
+  const novos = Array.from(procsNosDados).filter(p => !PROC_FIXOS.includes(p) && p !== 'SEM PROCESSO').sort();
+  const procListaCompleta = PROC_FIXOS.concat(novos).concat(['SEM PROCESSO']);
+  // popular o dropdown (preservando marcações; novos entram marcados)
+  const procItensEl = document.getElementById('ms-serv-proc-itens');
+  if (procItensEl) {
+    const sigProc = procListaCompleta.join('|');
+    if (procItensEl.dataset.sig !== sigProc) {
+      const marcadosAntes = new Set(getMsValues('ms-serv-proc'));
+      const procAntes = new Set((procItensEl.dataset.sig||'').split('|').filter(Boolean));
+      const primeira = !procItensEl.dataset.sig;
+      const labelProc = p => p==='SEM PROCESSO' ? '⚠ Sem processo definido' : p.charAt(0)+p.slice(1).toLowerCase();
+      procItensEl.innerHTML = procListaCompleta.map(p => {
+        const ehNovo = !procAntes.has(p);
+        const chk = (primeira || marcadosAntes.has(p) || ehNovo) ? 'checked' : '';
+        return '<label class="ms-item"><input type="checkbox" value="'+p+'" '+chk+' onchange="msChange(\'ms-serv-proc\')"> '+labelProc(p)+'</label>';
+      }).join('');
+      procItensEl.dataset.sig = sigProc;
+    }
+  }
+
   const procSel  = getMsValues('ms-serv-proc');   // ex: ['TORNO',...]
   let mesSel   = getMsValues('ms-serv-mes');    // ex: ['2026-04','2026-05']
   const _empTotal  = 2;   // Matriz + Filial SP
-  const _procTotal = 11;  // total de processos no multi-select
+  const _procTotal = procListaCompleta.length;  // total dinâmico de processos
   // "filtro ativo" só quando NÃO está com todos marcados (senão mostra tudo)
   const empAtivo  = empSel.length  > 0 && empSel.length  < _empTotal;
   const procAtivo = procSel.length > 0 && procSel.length < _procTotal;
@@ -8509,7 +8531,7 @@ function getProcFornecedorMesclado() {
 }
 // ═══ MODAL: Processos por Fornecedor (editável, salvo no Sheets) ═══
 let _pfDados = []; // [{cod, processo, nome}] em edição
-const _PF_PROCESSOS_FIXOS = ['TORNO','RETÍFICA','POLIMENTO','TRATAMENTO SUPERFICIAL','TRATAMENTO TÉRMICO','GERADORA','CENTRO DE USINAGEM','MANUTENÇÃO','FILIAL SP','OUTROS'];
+const _PF_PROCESSOS_FIXOS = ['SEM PROCESSO','TORNO','RETÍFICA','POLIMENTO','TRATAMENTO SUPERFICIAL','TRATAMENTO TÉRMICO','GERADORA','CENTRO DE USINAGEM','MANUTENÇÃO','FILIAL SP','OUTROS'];
 let _pfProcessosExtra = []; // processos criados pelo usuário nesta sessão
 // Lista completa de processos: fixos + os que já estão em uso (nos dados em edição) + os criados
 function pfProcessosDisponiveis() {
@@ -8756,8 +8778,8 @@ function abrirModalProcForn() {
       const cod = String(r.empresa||'').trim().split(/[\s\-]/)[0].trim();
       if (!cod) return;
       if (!merged[cod]) {
-        // não mapeado: usa o processo atual calculado (pode ser vazio) para você classificar
-        merged[cod] = { processo: getFornProcesso(r.empresa) || 'OUTROS', nome: '' };
+        // não mapeado: marca como SEM PROCESSO para você classificar
+        merged[cod] = { processo: getFornProcesso(r.empresa) || 'SEM PROCESSO', nome: '' };
       }
     });
   }
