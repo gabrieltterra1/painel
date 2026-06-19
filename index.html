@@ -6734,7 +6734,7 @@ function renderServico() {
     const pr = (r.processo && r.processo.trim()) ? r.processo : 'SEM PROCESSO';
     if (!PROC_COLORS[pr]) { PROC_COLORS[pr] = _paletaExtra[_ce % _paletaExtra.length]; _ce++; }
   });
-  const processos = Object.keys(PROC_COLORS);
+  let processos = Object.keys(PROC_COLORS);
 
   const todosAnos  = [...new Set(data.map(r => r.mes.split('-')[0]))].sort();
   const todosMeses = [...new Set(data.map(r => r.mes))].sort();
@@ -6754,6 +6754,8 @@ function renderServico() {
   const novos = Array.from(procsNosDados).filter(p => !PROC_FIXOS.includes(p) && p !== 'SEM PROCESSO').sort();
   // processos excluídos persistidos somem da lista, EXCETO se ainda houver fornecedor usando (nos dados)
   const excluidos = new Set((DATA.procExcluidos||[]).filter(p => !procsNosDados.has(p)));
+  // remove os excluídos também da lista do GRÁFICO (processos)
+  processos = processos.filter(p => !excluidos.has(p));
   const procListaCompleta = PROC_FIXOS.concat(novos).filter(p => !excluidos.has(p)).concat(['SEM PROCESSO']);
   // popular o dropdown (preservando marcações; novos entram marcados)
   const procItensEl = document.getElementById('ms-serv-proc-itens');
