@@ -6752,7 +6752,9 @@ function renderServico() {
   (DATA.servico||[]).forEach(r => { const pr = (r.processo && r.processo.trim()) ? r.processo : 'SEM PROCESSO'; procsNosDados.add(pr); });
   // ordem: fixos primeiro (na ordem definida), depois novos em ordem alfabética, SEM PROCESSO por último
   const novos = Array.from(procsNosDados).filter(p => !PROC_FIXOS.includes(p) && p !== 'SEM PROCESSO').sort();
-  const procListaCompleta = PROC_FIXOS.concat(novos).concat(['SEM PROCESSO']);
+  // processos excluídos persistidos somem da lista, EXCETO se ainda houver fornecedor usando (nos dados)
+  const excluidos = new Set((DATA.procExcluidos||[]).filter(p => !procsNosDados.has(p)));
+  const procListaCompleta = PROC_FIXOS.concat(novos).filter(p => !excluidos.has(p)).concat(['SEM PROCESSO']);
   // popular o dropdown (preservando marcações; novos entram marcados)
   const procItensEl = document.getElementById('ms-serv-proc-itens');
   if (procItensEl) {
@@ -8606,12 +8608,15 @@ function calcularPrevisaoServicos() {
   baseMeses.forEach((b,i) => b.peso = baseMeses.length - i);
 
   // Agrupa gasto por fornecedor por mês
-  const forns = {}; // cod -> {nome, porMes:{key:valor}}
+  const forns = {}; // cod -> {nome, porMes:{key:valor}, porMesAteOntem:{key:valor}}
   dados.forEach(r => {
     const cod = String(r.empresa||'').trim().split(/[\s\-]/)[0].trim();
     if (!cod) return;
-    if (!forns[cod]) forns[cod] = { nome: r.empresa, porMes: {} };
+    if (!forns[cod]) forns[cod] = { nome: r.empresa, porMes: {}, porMesAteOntem: {} };
     forns[cod].porMes[r.mes] = (forns[cod].porMes[r.mes]||0) + r.valor;
+    // valorAteOntem só difere de valor no mês atual (exclui lançamentos de hoje)
+    const vAteOntem = (r.valorAteOntem !== undefined) ? r.valorAteOntem : r.valor;
+    forns[cod].porMesAteOntem[r.mes] = (forns[cod].porMesAteOntem[r.mes]||0) + vAteOntem;
   });
 
   // ── Fator de sazonalidade dez/jan: média(gasto/du dos meses dez|jan) ÷ média(gasto/du meses normais) ──
@@ -8657,6 +8662,8 @@ function calcularPrevisaoServicos() {
   const detalhe = [];
   const totalPorAlvo = { 0:0, 1:0, 2:0 };
   let realizadoMesAtual = 0;
+  // Realizado REAL do mês atual = soma de TODOS os fornecedores (não só os ativos da projeção)
+  Object.keys(forns).forEach(cod => { realizadoMesAtual += (forns[cod].porMesAteOntem[mesAtualKey]||0); });
 
   Object.keys(forns).forEach(cod => {
     const f = forns[cod];
@@ -8670,8 +8677,7 @@ function calcularPrevisaoServicos() {
       return { key: b.key, peso: b.peso, gasto, du: b.du, mediaDia };
     });
     const mediaDiaPond = somaPeso > 0 ? somaPesoVal/somaPeso : 0;
-    const realAtual = f.porMes[mesAtualKey]||0;
-    realizadoMesAtual += realAtual;
+    const realAtual = f.porMesAteOntem[mesAtualKey]||0;
 
     const projecoes = alvos.map((a, k) => {
       // fator de sazonalidade só para dez/jan: por fornecedor, fallback no geral
@@ -8679,12 +8685,16 @@ function calcularPrevisaoServicos() {
       if (a.atipico) { fator = fatorSazonal(f.porMes, a.mes1idx); if (fator == null) fator = _fatorGeral(a.mes1idx); }
       const base = mediaDiaPond * a.duProj * fator;
       const proj = a.ehAtual ? (realAtual + base) : base;
-      totalPorAlvo[k] += proj;
+      // no mês atual, somamos ao total APENAS a projeção dos dias restantes (base);
+      // o realizado real (de todos) é somado separadamente abaixo para não duplicar nem omitir
+      totalPorAlvo[k] += a.ehAtual ? base : proj;
       return { key: a.key, ehAtual: a.ehAtual, atipico: a.atipico, fator, duProj: a.duProj, realAtual: a.ehAtual?realAtual:0, proj };
     });
 
     detalhe.push({ cod, nome: f.nome, mediaDiaPond, bases: basesInfo, projecoes });
   });
+  // adiciona o realizado REAL total do mês atual ao total projetado do mês atual
+  totalPorAlvo[0] += realizadoMesAtual;
 
   detalhe.sort((a,b) => b.projecoes[0].proj - a.projecoes[0].proj);
   return { baseMeses, alvos, detalhe, totalPorAlvo, realizadoMesAtual, mesAtualKey, fatorGeralDez, fatorGeralJan };
@@ -8796,7 +8806,7 @@ function abrirModalProcForn() {
     .sort((a,b)=> a.processo.localeCompare(b.processo) || a.cod.localeCompare(b.cod));
   // Detecta processos customizados já em uso (vindos do Sheets) para aparecerem nos dropdowns
   _pfProcessosExtra = [];
-  _pfProcessosRemovidos = [];
+  _pfProcessosRemovidos = (DATA.procExcluidos || []).slice(); // começa com os já excluídos persistidos
   _pfDados.forEach(d => { if (d.processo && !_PF_PROCESSOS_FIXOS.includes(d.processo) && !_pfProcessosExtra.includes(d.processo)) _pfProcessosExtra.push(d.processo); });
   pfAtualizarDropdownNovo();
   const busca = document.getElementById('pf-busca'); if (busca) busca.value = '';
@@ -8914,6 +8924,7 @@ function pfNovoProcSelect(sel) {
   const novo = (prompt('Nome do novo processo:')||'').trim().toUpperCase();
   if (novo) {
     if (!_pfProcessosExtra.includes(novo) && !_PF_PROCESSOS_FIXOS.includes(novo)) _pfProcessosExtra.push(novo);
+    _pfProcessosRemovidos = (_pfProcessosRemovidos||[]).filter(p => p !== novo); // recriar tira da lista de excluídos
     pfAtualizarDropdownNovo();
     sel.value = novo;
   } else {
@@ -8926,6 +8937,7 @@ function pfEditarProc(idx, val) {
     const novo = (prompt('Nome do novo processo:')||'').trim().toUpperCase();
     if (novo) {
       if (!_pfProcessosExtra.includes(novo) && !_PF_PROCESSOS_FIXOS.includes(novo)) _pfProcessosExtra.push(novo);
+    _pfProcessosRemovidos = (_pfProcessosRemovidos||[]).filter(p => p !== novo); // recriar tira da lista de excluídos
       _pfDados[idx].processo = novo;
     }
     pfRenderLista();          // re-renderiza para refletir o novo processo nos dropdowns
@@ -8969,6 +8981,11 @@ async function pfSalvar() {
     // Atualiza o mapa em memória imediatamente para refletir sem recarregar tudo
     DATA.procFornecedor = {};
     _pfDados.forEach(d => { if (d.cod && d.processo) DATA.procFornecedor[d.cod] = { processo: d.processo, nome: d.nome||'' }; });
+    // Persiste a lista de processos EXCLUÍDOS (os que não têm mais fornecedor vinculado)
+    const aindaUsados = new Set(_pfDados.map(d => d.processo));
+    const excluidosFinal = (_pfProcessosRemovidos||[]).filter(p => !aindaUsados.has(p));
+    DATA.procExcluidos = excluidosFinal.slice();
+    try { _saveConfig({ PROC_EXCLUIDOS: excluidosFinal.join('|') }); } catch(e) { console.warn('saveConfig excluidos', e); }
     if (st) { st.textContent = '✅ Salvo! Reclassificando...'; st.style.color = 'var(--green)'; }
     // re-parseia serviços com o novo mapa (reclassifica os processos)
     try {
@@ -9003,27 +9020,33 @@ function parseServico(text) {
     if (!emp || val <= 0) return;
 
     // Try DT ENT (col8) first, fallback to DT EMIS (col9)
-    let mes;
+    let mes, diaIso;
     const tryDate = d => {
       const s = String(d||'').trim();
       const ddmm = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
-      if (ddmm) return ddmm[3]+'-'+ddmm[2];
+      if (ddmm) { diaIso = ddmm[3]+'-'+ddmm[2]+'-'+ddmm[1]; return ddmm[3]+'-'+ddmm[2]; }
       const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-      if (iso) return iso[1]+'-'+iso[2];
+      if (iso) { diaIso = iso[1]+'-'+iso[2]+'-'+iso[3]; return iso[1]+'-'+iso[2]; }
       return null;
     };
+    diaIso = null;
     mes = tryDate(r[8]) || tryDate(r[9]);
     if (!mes) return;
+
+    // hoje em ISO para separar "realizado até ontem" de "lançado hoje"
+    const _hojeIso = (() => { const h = new Date(); return h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0')+'-'+String(h.getDate()).padStart(2,'0'); })();
+    const ehHoje = (diaIso && diaIso === _hojeIso);
 
     // Linha (Força/Guincho) só para Matriz (emp 1). Filial SP (emp 2) fica sem linha.
     const linha = empresa_num === '1' ? classificaLinha(r[4]) : null;
     const key = emp+'|'+empresa_num+'|'+mes+'|'+(linha||'');
-    if (!result[key]) result[key] = {valor:0, linha};
+    if (!result[key]) result[key] = {valor:0, valorAteOntem:0, linha};
     result[key].valor += val;
+    if (!ehHoje) result[key].valorAteOntem += val; // exclui lançamentos de hoje
   });
   DATA.servico = Object.entries(result).map(([k,v]) => {
     const [empresa,empresa_num,mes] = k.split('|');
-    return {empresa, empresa_num, mes, valor: Math.round(v.valor*100)/100, linha: v.linha, processo: getFornProcesso(empresa)};
+    return {empresa, empresa_num, mes, valor: Math.round(v.valor*100)/100, valorAteOntem: Math.round(v.valorAteOntem*100)/100, linha: v.linha, processo: getFornProcesso(empresa)};
   });
 }
 // ===== NS CHART — dynamic product selector =====
@@ -9413,6 +9436,8 @@ async function readSheets() {
     const cfgText = await cfgRes.text();
     if (cfgText && cfgText.startsWith('{')) {
       DATA.config = JSON.parse(cfgText);
+      // Processos excluídos (persistidos): chave PROC_EXCLUIDOS = lista separada por "|"
+      DATA.procExcluidos = (DATA.config.PROC_EXCLUIDOS || '').split('|').map(s=>s.trim()).filter(Boolean);
       // Build terceiros metas
       DATA.tercMeta = {};
       DATA.tercComp = {};
