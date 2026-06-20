@@ -711,6 +711,36 @@
   /* FORNECEDOR COLUMN — truncate with tooltip */
   .fornecedor-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; font-size: 12px; }
 
+  /* ── TABELA DISPONIBILIDADE: larguras fixas + scroll horizontal ── */
+  #disp-table { table-layout: fixed; border-collapse: collapse; width: max-content; min-width: 100%; }
+  #disp-table th, #disp-table td {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    padding: 5px 8px; border: 1px solid var(--border); font-size: 11px; box-sizing: border-box;
+  }
+  #disp-table thead th { position: sticky; top: 0; background: var(--header-table-bg, #0d1b3e); color: #fff; z-index: 2; }
+  #disp-table th.sortable { cursor: pointer; user-select: none; }
+  #disp-table th .col-filter-btn { cursor: pointer; opacity: .6; font-size: 9px; margin-left: 3px; }
+  #disp-table th .col-filter-btn.active { opacity: 1; color: var(--green); }
+  /* larguras por coluna (na ordem do email, sem ID) */
+  #disp-table .c-emp     { width: 90px; }
+  #disp-table .c-ped     { width: 90px; }
+  #disp-table .c-item    { width: 120px; }
+  #disp-table .c-desc    { width: 260px; }
+  #disp-table .c-saldo   { width: 80px; text-align: right; }
+  #disp-table .c-qtd     { width: 80px; text-align: right; }
+  #disp-table .c-proj    { width: 90px; text-align: right; }
+  #disp-table .c-end     { width: 120px; }
+  #disp-table .c-emis    { width: 90px; }
+  #disp-table .c-entr    { width: 90px; }
+  #disp-table .c-cli     { width: 160px; }
+  #disp-table .c-rep     { width: 120px; }
+  #disp-table .c-obs     { width: 140px; }
+  #disp-table .c-codgrp  { width: 100px; }
+  #disp-table .c-descgrp { width: 200px; }
+  #disp-table .c-fat     { width: 90px; text-align: center; }
+  .disp-col-dropdown { position: absolute; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px; z-index: 1000; max-height: 260px; overflow-y: auto; min-width: 160px; box-shadow: 0 4px 16px rgba(0,0,0,.3); }
+  .disp-col-dropdown label { display: block; font-size: 11px; padding: 2px 4px; cursor: pointer; white-space: nowrap; }
+
 /* ═══════════ MOBILE RESPONSIVE ═══════════ */
 @media (max-width: 768px) {
   .diario-grid { grid-template-columns: 1fr !important; }
@@ -9047,6 +9077,25 @@ async function pfSalvar() {
 // Layout (ordem visual): col1=ID col2=EMPRESA col3=NUM PEDIDO col4=COD ITEM col5=DESC TECNICA
 // col6=SALDO col7=QTDE PDV col8=PROJETADO col9=ENDEREÇO col10=DT EMIS col11=DT ENTREGA
 // col12=CLIENTE col13=REPRESENTANTE col14=OBS col15=COD GRP ITE col16=DESC GRP col17=PODE FATURAR col18=DATA ATUAL
+// Classifica a FAMÍLIA do card: itens importados (COD GRP 400) viram IMPORTADOS;
+// o resto é classificado pela palavra-chave do DESC GRP.
+function _dispFamiliaCard(codGrp, descGrp) {
+  const cod = String(codGrp||'').trim();
+  if (cod.indexOf('400') === 0) return 'IMPORTADOS';
+  const g = String(descGrp||'').toUpperCase();
+  if (g.indexOf('TOMADA') >= 0 || g.indexOf('MULT') >= 0) return 'TOMADA+MULT';
+  if (g.indexOf('BOMBA') >= 0)    return 'BOMBA';
+  if (g.indexOf('CILINDRO') >= 0) return 'CILINDRO';
+  if (g.indexOf('EIXO') >= 0 || g.indexOf('CONJ') >= 0) return 'CONJ EIXO';
+  if (g.indexOf('GUINCHO') >= 0 || g.indexOf('ENROLADOR') >= 0) return 'GUINCHO+ENROLADOR';
+  if (g.indexOf('COMANDO') >= 0)  return 'COMANDO';
+  if (g.indexOf('VALVULA') >= 0 || g.indexOf('VÁLVULA') >= 0) return 'VALVULA';
+  if (g.indexOf('KIT') >= 0)      return 'KIT HIDRAULICO';
+  return 'OUTROS';
+}
+// Ordem fixa das famílias nos cards (OUTROS sempre por último)
+const _DISP_FAM_ORDEM = ['IMPORTADOS','TOMADA+MULT','BOMBA','CILINDRO','CONJ EIXO','GUINCHO+ENROLADOR','COMANDO','VALVULA','KIT HIDRAULICO','OUTROS'];
+
 function parseDisponibilidade(text) {
   const rows = parseCSV(text, ';');
   const itens = {}; // chave empresa|item -> agrupado (para os cards)
@@ -9076,7 +9125,7 @@ function parseDisponibilidade(text) {
       codGrp: String(r[14]||'').trim(),
       descGrp: String(r[15]||'').trim() || 'SEM GRUPO',
       podeFaturar: String(r[16]||'').trim(),
-      familia: String(r[15]||'').trim() || 'SEM GRUPO'
+      familia: _dispFamiliaCard(String(r[14]||''), String(r[15]||''))
     });
 
     const key = empresa+'|'+item;
@@ -9091,7 +9140,7 @@ function parseDisponibilidade(text) {
         temNegativo: false,
         codGrp,
         descGrp,
-        familia: descGrp, // DESC GRP direto do Focco (classificação real do relatório)
+        familia: _dispFamiliaCard(codGrp, descGrp), // IMPORTADOS (400) ou palavra-chave do DESC GRP
         endereco: String(r[8]||'').trim(),
         pedidos: []
       };
@@ -9122,10 +9171,10 @@ function parseDisponibilidade(text) {
   DATA.disponibilidadeRaw = raw; // linhas brutas para a tabela
 }
 
-let _dispSort = { col: 'disponivel', asc: false };
+let _dispSort = { col: null, asc: false };
 function dispSort(col) {
   if (_dispSort.col === col) _dispSort.asc = !_dispSort.asc;
-  else { _dispSort.col = col; _dispSort.asc = (col==='item'||col==='desc'||col==='classe'); }
+  else { _dispSort.col = col; _dispSort.asc = true; }
   renderDisponibilidade();
 }
 function _dispEmpLabel(num) {
@@ -9215,15 +9264,14 @@ function renderDisponibilidade() {
     cardsEl.innerHTML = Object.keys(porEmp).sort().map(emp => {
       const e = porEmp[emp];
       const famsTxt = Object.keys(e.fams).sort((a,b)=>{
-        // OUTROS / SEM GRUPO sempre por último
-        const aLast = /OUTROS|SEM GRUPO/i.test(a), bLast = /OUTROS|SEM GRUPO/i.test(b);
-        if (aLast && !bLast) return 1;
-        if (!aLast && bLast) return -1;
+        const ia = _DISP_FAM_ORDEM.indexOf(a), ib = _DISP_FAM_ORDEM.indexOf(b);
+        const oa = ia < 0 ? 999 : ia, ob = ib < 0 ? 999 : ib;
+        if (oa !== ob) return oa - ob;
         return e.fams[b].disponivel - e.fams[a].disponivel;
       }).map(f => {
         const fv = e.fams[f];
-        return '<div style="display:flex;justify-content:space-between;gap:8px;font-size:10px;padding:1px 0;border-top:1px solid var(--border)">'
-          +'<span style="color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px" title="'+f+'">'+f+'</span>'
+        return '<div onclick="dispFiltrarProduto(\''+emp+'\',\''+f.replace(/'/g,"\\'")+'\')" style="display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:3px 0;border-top:1px solid var(--border);cursor:pointer" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'\'">'
+          +'<span style="color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px" title="'+f+'">'+f+'</span>'
           +'<span style="white-space:nowrap"><span style="color:var(--green);font-weight:700">'+fmtN(fv.disponivel)+'</span> <span style="color:var(--text-muted)">/ '+fmtN(fv.saldo)+'</span></span>'
           +'</div>';
       }).join('');
@@ -9244,55 +9292,150 @@ function renderDisponibilidade() {
 
   // ── TABELA: igual ao email, uma linha por registro (sem coluna ID) ──
   const raw = DATA.disponibilidadeRaw || [];
+  // colunas: chave, label, classe css
+  const COLS = [
+    ['empresa','EMPRESA','c-emp'],['numPedido','NUM PEDIDO','c-ped'],['item','COD ITEM','c-item'],
+    ['desc','DESC TECNICA','c-desc'],['saldo','SALDO','c-saldo'],['qtdPdv','QTDE PDV','c-qtd'],
+    ['projetado','PROJETADO','c-proj'],['endereco','ENDEREÇO','c-end'],['dtEmis','DT EMIS','c-emis'],
+    ['dtEntrega','DT ENTREGA','c-entr'],['cliente','CLIENTE','c-cli'],['representante','REPRESENTANTE','c-rep'],
+    ['obs','OBS','c-obs'],['codGrp','COD GRP ITE','c-codgrp'],['descGrp','DESC GRP','c-descgrp'],
+    ['podeFaturar','PODE FATURAR','c-fat']
+  ];
+
+  // base: aplica filtros do topo (empresa/família/busca/só disponíveis) ao raw
   let listaRaw = raw.filter(d => {
     if (empAtivo && !empSel.includes(d.empresa)) return false;
     if (famAtivo && !famSel.includes(d.familia)) return false;
     if (q && !(d.item.toLowerCase().includes(q) || (d.desc||'').toLowerCase().includes(q))) return false;
-    // "só disponíveis": filtra pelos itens que têm disponibilidade (cruzando com o agrupado)
     if (soDisp) {
       const ag = dados.find(x => x.empresa===d.empresa && x.item===d.item);
       if (!ag || ag.disponivel <= 0) return false;
     }
     return true;
   });
+  // aplica filtros por coluna (estilo Excel)
+  Object.keys(_dispColFiltros).forEach(col => {
+    const set = _dispColFiltros[col];
+    if (set && set.size) listaRaw = listaRaw.filter(d => set.has(String(d[col]==null?'':d[col])));
+  });
+  // ordenação por coluna
+  if (_dispSort.col) {
+    const sc = _dispSort.col, asc = _dispSort.asc ? 1 : -1;
+    listaRaw.sort((a,b) => {
+      let va = a[sc], vb = b[sc];
+      if (typeof va === 'number' && typeof vb === 'number') return (va-vb)*asc;
+      return String(va||'').localeCompare(String(vb||''), 'pt-BR', {numeric:true}) * asc;
+    });
+  }
 
+  const setaCol = c => _dispSort.col===c ? (_dispSort.asc?' ▲':' ▼') : '';
   const thead = document.getElementById('disp-thead');
-  if (thead) thead.innerHTML =
-    '<th>EMPRESA</th><th>NUM PEDIDO</th><th>COD ITEM</th><th>DESC TECNICA</th>'
-    +'<th style="text-align:right">SALDO</th><th style="text-align:right">QTDE PDV</th><th style="text-align:right">PROJETADO</th>'
-    +'<th>ENDEREÇO</th><th>DT EMIS</th><th>DT ENTREGA</th><th>CLIENTE</th><th>REPRESENTANTE</th>'
-    +'<th>OBS</th><th>COD GRP ITE</th><th>DESC GRP</th><th style="text-align:center">PODE FATURAR</th>';
+  if (thead) thead.innerHTML = COLS.map(([k,l,cls]) => {
+    const fAtivo = _dispColFiltros[k] && _dispColFiltros[k].size ? ' active' : '';
+    return '<th class="'+cls+' sortable">'
+      +'<span onclick="dispSort(\''+k+'\')">'+l+setaCol(k)+'</span>'
+      +'<span class="col-filter-btn'+fAtivo+'" onclick="dispToggleColFiltro(event,\''+k+'\')">▼</span>'
+      +'</th>';
+  }).join('');
 
   const tb = document.getElementById('disp-tbody');
   if (tb) {
     tb.innerHTML = listaRaw.map(d => {
       return '<tr>'
-        +'<td class="text-center">'+_dispEmpLabel(d.empresa)+'</td>'
-        +'<td class="text-center">'+(d.numPedido||'')+'</td>'
-        +'<td style="font-family:monospace">'+d.item+'</td>'
-        +'<td>'+d.desc+'</td>'
-        +'<td class="money">'+fmtN(d.saldo)+'</td>'
-        +'<td class="money">'+(d.qtdPdv?fmtN(d.qtdPdv):'')+'</td>'
-        +'<td class="money">'+fmtN(d.projetado)+'</td>'
-        +'<td style="font-size:9px;color:var(--text-muted)">'+(d.endereco||'')+'</td>'
-        +'<td style="font-size:9px">'+(d.dtEmis||'')+'</td>'
-        +'<td style="font-size:9px">'+(d.dtEntrega||'')+'</td>'
-        +'<td style="font-size:9px">'+(d.cliente||'')+'</td>'
-        +'<td style="font-size:9px;color:var(--text-muted)">'+(d.representante||'')+'</td>'
-        +'<td style="font-size:9px;color:var(--text-muted)">'+(d.obs||'')+'</td>'
-        +'<td style="font-family:monospace;font-size:9px;color:var(--text-muted)">'+(d.codGrp||'')+'</td>'
-        +'<td style="font-size:9px;color:var(--text-muted)">'+(d.descGrp||'')+'</td>'
-        +'<td class="text-center" style="font-size:9px">'+(d.podeFaturar||'')+'</td>'
+        +'<td class="c-emp text-center">'+_dispEmpLabel(d.empresa)+'</td>'
+        +'<td class="c-ped text-center">'+(d.numPedido||'')+'</td>'
+        +'<td class="c-item" style="font-family:monospace">'+d.item+'</td>'
+        +'<td class="c-desc" title="'+(d.desc||'').replace(/"/g,"'")+'">'+d.desc+'</td>'
+        +'<td class="c-saldo money">'+fmtN(d.saldo)+'</td>'
+        +'<td class="c-qtd money">'+(d.qtdPdv?fmtN(d.qtdPdv):'')+'</td>'
+        +'<td class="c-proj money">'+fmtN(d.projetado)+'</td>'
+        +'<td class="c-end" title="'+(d.endereco||'').replace(/"/g,"'")+'">'+(d.endereco||'')+'</td>'
+        +'<td class="c-emis">'+(d.dtEmis||'')+'</td>'
+        +'<td class="c-entr">'+(d.dtEntrega||'')+'</td>'
+        +'<td class="c-cli" title="'+(d.cliente||'').replace(/"/g,"'")+'">'+(d.cliente||'')+'</td>'
+        +'<td class="c-rep" title="'+(d.representante||'').replace(/"/g,"'")+'">'+(d.representante||'')+'</td>'
+        +'<td class="c-obs" title="'+(d.obs||'').replace(/"/g,"'")+'">'+(d.obs||'')+'</td>'
+        +'<td class="c-codgrp" style="font-family:monospace">'+(d.codGrp||'')+'</td>'
+        +'<td class="c-descgrp" title="'+(d.descGrp||'').replace(/"/g,"'")+'">'+(d.descGrp||'')+'</td>'
+        +'<td class="c-fat text-center">'+(d.podeFaturar||'')+'</td>'
         +'</tr>';
     }).join('');
   }
   const cont = document.getElementById('disp-contagem');
   if (cont) cont.textContent = listaRaw.length + ' registros';
   _dispExport = listaRaw;
+  _dispListaBase = listaRaw; // para os dropdowns de filtro por coluna
+}
+
+// ── Filtros por coluna (estilo Excel) ──
+let _dispColFiltros = {}; // { coluna: Set(valores) }
+let _dispListaBase = [];
+function dispToggleColFiltro(ev, col) {
+  ev.stopPropagation();
+  // fecha qualquer dropdown aberto
+  const existente = document.getElementById('disp-col-dd');
+  if (existente) { existente.remove(); if (existente.dataset.col === col) return; }
+  // valores únicos da coluna (a partir do raw filtrado pelos filtros do topo, ignorando o filtro desta coluna)
+  const raw = DATA.disponibilidadeRaw || [];
+  const valores = [...new Set(raw.map(d => String(d[col]==null?'':d[col])))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
+  const sel = _dispColFiltros[col] || new Set();
+  const dd = document.createElement('div');
+  dd.className = 'disp-col-dropdown'; dd.id = 'disp-col-dd'; dd.dataset.col = col;
+  dd.innerHTML = '<div style="display:flex;gap:6px;margin-bottom:4px">'
+    +'<button onclick="dispColMarcar(\''+col+'\',true)" style="font-size:10px;padding:2px 6px;cursor:pointer">Todos</button>'
+    +'<button onclick="dispColMarcar(\''+col+'\',false)" style="font-size:10px;padding:2px 6px;cursor:pointer">Limpar</button></div>'
+    + valores.map(v => '<label><input type="checkbox" value="'+String(v).replace(/"/g,'&quot;')+'" '
+        +((sel.size===0||sel.has(v))?'checked':'')+' onchange="dispColCheck(\''+col+'\',this)"> '+(v||'(vazio)')+'</label>').join('');
+  document.body.appendChild(dd);
+  const r = ev.target.getBoundingClientRect();
+  dd.style.left = Math.min(r.left, window.innerWidth-180)+'px';
+  dd.style.top = (r.bottom+window.scrollY+2)+'px';
+  setTimeout(()=>{ document.addEventListener('click', _dispFecharDD, {once:true}); }, 0);
+}
+function _dispFecharDD(e){ const dd=document.getElementById('disp-col-dd'); if(dd && !dd.contains(e.target)) dd.remove(); }
+function dispColCheck(col, cb) {
+  if (!_dispColFiltros[col]) {
+    // inicializa com todos os valores marcados
+    const raw = DATA.disponibilidadeRaw || [];
+    _dispColFiltros[col] = new Set([...new Set(raw.map(d=>String(d[col]==null?'':d[col])))]);
+  }
+  if (cb.checked) _dispColFiltros[col].add(cb.value); else _dispColFiltros[col].delete(cb.value);
+  // se todos marcados, remove o filtro
+  const raw = DATA.disponibilidadeRaw || [];
+  const totalVals = new Set(raw.map(d=>String(d[col]==null?'':d[col]))).size;
+  if (_dispColFiltros[col].size === 0 || _dispColFiltros[col].size === totalVals) delete _dispColFiltros[col];
+  renderDisponibilidade();
+}
+function dispColMarcar(col, marcar) {
+  const raw = DATA.disponibilidadeRaw || [];
+  if (marcar) { delete _dispColFiltros[col]; }
+  else { _dispColFiltros[col] = new Set(); }
+  renderDisponibilidade();
+  const dd=document.getElementById('disp-col-dd'); if(dd) dd.remove();
+}
+// Clicar num produto do card → aplica filtro de empresa + família na tabela
+function dispFiltrarProduto(empresa, familia) {
+  // marca só a empresa clicada
+  const empItens = document.querySelectorAll('#ms-disp-emp-itens input[type=checkbox]');
+  empItens.forEach(cb => { cb.checked = (cb.value === empresa); });
+  const empAll = document.getElementById('ms-disp-emp-all'); if (empAll) empAll.checked = false;
+  // marca só a família clicada
+  const famItens = document.querySelectorAll('#ms-disp-classe-itens input[type=checkbox]');
+  famItens.forEach(cb => { cb.checked = (cb.value === familia); });
+  const famAll = document.getElementById('ms-disp-classe-all'); if (famAll) famAll.checked = false;
+  // atualiza labels
+  const le=document.getElementById('ms-disp-emp-label'); if(le) le.textContent=_dispEmpLabel(empresa);
+  const lc=document.getElementById('ms-disp-classe-label'); if(lc) lc.textContent=familia;
+  renderDisponibilidade();
+  // rola até a tabela
+  const tbl = document.getElementById('disp-table');
+  if (tbl) tbl.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 function dispLimparFiltros() {
   const b = document.getElementById('disp-search'); if (b) b.value = '';
   const so = document.getElementById('disp-so-disponiveis'); if (so) so.checked = false;
+  _dispColFiltros = {}; // limpa filtros por coluna
+  _dispSort = { col: null, asc: false }; // limpa ordenação
   msMarcarTodos('ms-disp-emp'); msMarcarTodos('ms-disp-classe');
   const le=document.getElementById('ms-disp-emp-label'); if(le) le.textContent='Todas as empresas';
   const lc=document.getElementById('ms-disp-classe-label'); if(lc) lc.textContent='Todas as famílias';
