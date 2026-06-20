@@ -908,6 +908,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="tab" onclick="showTab('termico')">Térmico & Polimento</div>
   <div class="tab" onclick="showTab('ife')">IFE</div>
   <div class="tab" onclick="showTab('pedidos')">Pedidos de Venda</div>
+  <div class="tab" onclick="showTab('disponibilidade')">Disponibilidade</div>
 </nav>
 
 <!-- ======= OF ABERTAS ======= -->
@@ -1887,6 +1888,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </div>
 
+<!-- ═══ ABA DISPONIBILIDADE ═══ -->
+<div id="tab-disponibilidade" class="tab-content">
+  <div class="section-title" style="margin-bottom:6px">DISPONIBILIDADE PARA VENDA</div>
+  <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Itens em estoque nas 5 empresas, separando o comprometido com pedidos do disponível para venda. Disponível = Saldo − Qtd em PDV, apenas quando não há saldo projetado negativo.</div>
+
+  <div id="disp-cards" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px"></div>
+
+  <div class="filter-bar" style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <input class="search-input" type="text" id="disp-search" placeholder="Filtrar código ou descrição…" autocomplete="off" oninput="renderDisponibilidade()" style="min-width:200px">
+    <div class="ms-wrap" id="ms-disp-emp" style="min-width:150px">
+      <div class="ms-btn" onclick="toggleMsDropdown('ms-disp-emp')"><span id="ms-disp-emp-label">Todas as empresas</span><span>▾</span></div>
+      <div class="ms-dropdown">
+        <div class="ms-all" onclick="msToggleAll('ms-disp-emp')"><input type="checkbox" id="ms-disp-emp-all" checked> Todas as empresas</div>
+        <div id="ms-disp-emp-itens"></div>
+      </div>
+    </div>
+    <div class="ms-wrap" id="ms-disp-classe" style="min-width:180px">
+      <div class="ms-btn" onclick="toggleMsDropdown('ms-disp-classe')"><span id="ms-disp-classe-label">Todas as classificações</span><span>▾</span></div>
+      <div class="ms-dropdown">
+        <div class="ms-all" onclick="msToggleAll('ms-disp-classe')"><input type="checkbox" id="ms-disp-classe-all" checked> Todas as classificações</div>
+        <div id="ms-disp-classe-itens"></div>
+      </div>
+    </div>
+    <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);cursor:pointer">
+      <input type="checkbox" id="disp-so-disponiveis" onchange="renderDisponibilidade()"> Só disponíveis p/ venda
+    </label>
+    <button class="upload-btn" style="background:rgba(0,201,122,.15);color:var(--green);border:1px solid var(--green);font-size:12px;padding:6px 12px" onclick="exportarDisponibilidadeExcel()">📊 Gerar Excel</button>
+    <button class="upload-btn" style="background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);font-size:12px;padding:6px 12px" onclick="dispLimparFiltros()">✕ Limpar filtros</button>
+    <span style="margin-left:auto;font-size:11px;color:var(--text-muted)" id="disp-contagem"></span>
+  </div>
+
+  <div style="overflow-x:auto">
+    <table id="disp-table" style="min-width:900px">
+      <thead><tr id="disp-thead"></tr></thead>
+      <tbody id="disp-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
 <script>
 // ===== TEMA (claro/escuro) =====
 function aplicarTema(tema){
@@ -2040,6 +2080,7 @@ function msChange(id) {
   // trigger render
   if (id === 'ms-produto') renderTransito();
   else if (id.startsWith('ms-serv')) renderServico();
+  else if (id.startsWith('ms-disp')) renderDisponibilidade();
   else if (id.startsWith('ms-est')) renderEstoque();
   else if (id === 'ms-pv-dias' || id === 'ms-pv-fam2' || id === 'ms-pv-prior-status') renderPvPrioridades();
   else if (id.startsWith('ms-pv')) renderPedidos();
@@ -2085,7 +2126,7 @@ function msToggleAll(id) {
 
 function showTab(id) {
   document.querySelectorAll('.tab').forEach((t,i) => {
-    const ids = ['montados','of','estoque','servicos','termico','ife','pedidos'];
+    const ids = ['montados','of','estoque','servicos','termico','ife','pedidos','disponibilidade'];
     t.classList.toggle('active', ids[i] === id);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -9002,6 +9043,222 @@ async function pfSalvar() {
   }
 }
 
+// ═══════════ ABA DISPONIBILIDADE (Estoque para Venda) ═══════════
+// Layout (ordem visual): col1=ID col2=EMPRESA col3=NUM PEDIDO col4=COD ITEM col5=DESC TECNICA
+// col6=SALDO col7=QTDE PDV col8=PROJETADO col9=ENDEREÇO col10=DT EMIS col11=DT ENTREGA
+// col12=CLIENTE col13=REPRESENTANTE col14=OBS col15=COD GRP ITE col16=DESC GRP col17=PODE FATURAR col18=DATA ATUAL
+function parseDisponibilidade(text) {
+  const rows = parseCSV(text, ';');
+  const itens = {}; // chave empresa|item -> { ...dados, pedidos:[], saldo, comprometido, temNegativo }
+  rows.forEach(r => {
+    if (r.length < 8) return;
+    const empresa = String(r[1]||'').trim();
+    if (empresa === 'EMPRESA' || empresa === '') return; // cabeçalho
+    const item = String(r[3]||'').trim();
+    if (!item) return;
+    const saldo = parseFloat(String(r[5]||'0').replace(/\./g,'').replace(',','.'))||0;
+    const qtdPdv = parseFloat(String(r[6]||'0').replace(/\./g,'').replace(',','.'))||0;
+    const projetado = parseFloat(String(r[7]||'0').replace(/\./g,'').replace(',','.'))||0;
+    const numPedido = String(r[2]||'').trim();
+
+    const key = empresa+'|'+item;
+    if (!itens[key]) {
+      itens[key] = {
+        empresa, item,
+        desc: String(r[4]||'').trim(),
+        saldo,
+        comprometido: 0,
+        temNegativo: false,
+        codGrp: String(r[14]||'').trim(),
+        classe: String(r[15]||'').trim() || 'SEM CLASSIFICAÇÃO',
+        pedidos: []
+      };
+    }
+    const reg = itens[key];
+    // soma comprometido (QTDE PDV) só de linhas que são pedido de fato
+    if (numPedido && qtdPdv > 0) {
+      reg.comprometido += qtdPdv;
+      reg.pedidos.push({
+        numPedido, qtd: qtdPdv,
+        endereco: String(r[8]||'').trim(),
+        dtEmis: String(r[9]||'').trim(),
+        dtEntrega: String(r[10]||'').trim(),
+        cliente: String(r[11]||'').trim(),
+        representante: String(r[12]||'').trim(),
+        obs: String(r[13]||'').trim(),
+        podeFaturar: String(r[16]||'').trim()
+      });
+    }
+    if (projetado < 0) reg.temNegativo = true;
+  });
+  // calcula disponível por item: SALDO - comprometido, só se nenhum PROJETADO < 0 e diferença > 0
+  DATA.disponibilidade = Object.values(itens).map(it => {
+    const diff = it.saldo - it.comprometido;
+    const disponivel = (!it.temNegativo && diff > 0) ? diff : 0;
+    return { ...it, disponivel };
+  });
+}
+
+let _dispSort = { col: 'disponivel', asc: false };
+function dispSort(col) {
+  if (_dispSort.col === col) _dispSort.asc = !_dispSort.asc;
+  else { _dispSort.col = col; _dispSort.asc = (col==='item'||col==='desc'||col==='classe'); }
+  renderDisponibilidade();
+}
+function _dispEmpLabel(num) {
+  const mapa = { '1':'Matriz', '2':'Filial SP', '3':'Filial MG', '4':'Filial GO', '5':'Filial PE' };
+  return mapa[num] || ('Emp '+num);
+}
+function _dispPopularFiltros(dados) {
+  const empEl = document.getElementById('ms-disp-emp-itens');
+  if (empEl) {
+    const emps = [...new Set(dados.map(d => d.empresa))].sort();
+    const sig = emps.join(',');
+    if (empEl.dataset.sig !== sig) {
+      const marc = new Set(getMsValues('ms-disp-emp'));
+      const antes = new Set((empEl.dataset.sig||'').split(',').filter(Boolean));
+      const prim = !empEl.dataset.sig;
+      empEl.innerHTML = emps.map(e => {
+        const chk = (prim || marc.has(e) || !antes.has(e)) ? 'checked' : '';
+        return '<label class="ms-item"><input type="checkbox" value="'+e+'" '+chk+' onchange="msChange(\'ms-disp-emp\')"> '+_dispEmpLabel(e)+'</label>';
+      }).join('');
+      empEl.dataset.sig = sig;
+    }
+  }
+  const clsEl = document.getElementById('ms-disp-classe-itens');
+  if (clsEl) {
+    const cls = [...new Set(dados.map(d => d.classe))].sort();
+    const sig = cls.join('|');
+    if (clsEl.dataset.sig !== sig) {
+      const marc = new Set(getMsValues('ms-disp-classe'));
+      const antes = new Set((clsEl.dataset.sig||'').split('|').filter(Boolean));
+      const prim = !clsEl.dataset.sig;
+      clsEl.innerHTML = cls.map(c => {
+        const chk = (prim || marc.has(c) || !antes.has(c)) ? 'checked' : '';
+        return '<label class="ms-item"><input type="checkbox" value="'+c.replace(/"/g,'&quot;')+'" '+chk+' onchange="msChange(\'ms-disp-classe\')"> '+c+'</label>';
+      }).join('');
+      clsEl.dataset.sig = sig;
+    }
+  }
+}
+let _dispExport = null;
+function renderDisponibilidade() {
+  const dados = DATA.disponibilidade || [];
+  if (!dados.length) {
+    const tb = document.getElementById('disp-tbody');
+    if (tb) tb.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted)">Sem dados de disponibilidade. Aguardando relatório.</td></tr>';
+    return;
+  }
+  _dispPopularFiltros(dados);
+
+  const q = (document.getElementById('disp-search')?.value||'').toLowerCase();
+  const empSel = getMsValues('ms-disp-emp');
+  const clsSel = getMsValues('ms-disp-classe');
+  const soDisp = document.getElementById('disp-so-disponiveis')?.checked;
+  const _empTot = [...new Set(dados.map(d=>d.empresa))].length;
+  const _clsTot = [...new Set(dados.map(d=>d.classe))].length;
+  const empAtivo = empSel.length>0 && empSel.length<_empTot;
+  const clsAtivo = clsSel.length>0 && clsSel.length<_clsTot;
+
+  let lista = dados.filter(d => {
+    if (empAtivo && !empSel.includes(d.empresa)) return false;
+    if (clsAtivo && !clsSel.includes(d.classe)) return false;
+    if (soDisp && d.disponivel <= 0) return false;
+    if (q && !(d.item.toLowerCase().includes(q) || (d.desc||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+
+  const sc = _dispSort.col, asc = _dispSort.asc ? 1 : -1;
+  lista.sort((a,b) => {
+    let va = a[sc], vb = b[sc];
+    if (typeof va === 'number' && typeof vb === 'number') return (va-vb)*asc;
+    return String(va||'').localeCompare(String(vb||'')) * asc;
+  });
+
+  const porClasse = {};
+  lista.forEach(d => {
+    if (!porClasse[d.classe]) porClasse[d.classe] = { itens:0, disponivel:0, comprometido:0, saldo:0 };
+    const c = porClasse[d.classe];
+    c.itens++; c.disponivel += d.disponivel; c.comprometido += d.comprometido; c.saldo += d.saldo;
+  });
+  const fmtN = v => Math.round(v).toLocaleString('pt-BR');
+  const cardsEl = document.getElementById('disp-cards');
+  if (cardsEl) {
+    const totGeral = { itens:lista.length, disp:lista.reduce((s,d)=>s+d.disponivel,0), comp:lista.reduce((s,d)=>s+d.comprometido,0) };
+    let html = '<div style="flex:1;min-width:160px;background:var(--surface);border:1px solid var(--blue);border-radius:10px;padding:12px 14px">'
+      +'<div style="font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:1px">TOTAL</div>'
+      +'<div style="font-size:22px;font-weight:900;color:var(--blue)">'+fmtN(totGeral.disp)+'</div>'
+      +'<div style="font-size:9px;color:var(--text-muted)">disponível · '+totGeral.itens+' itens · '+fmtN(totGeral.comp)+' comprometido</div></div>';
+    html += Object.keys(porClasse).sort((a,b)=>porClasse[b].disponivel-porClasse[a].disponivel).map(cl => {
+      const c = porClasse[cl];
+      return '<div style="flex:1;min-width:160px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px">'
+        +'<div style="font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+cl+'">'+cl+'</div>'
+        +'<div style="font-size:20px;font-weight:900;color:var(--green)">'+fmtN(c.disponivel)+'</div>'
+        +'<div style="font-size:9px;color:var(--text-muted)">disponível · '+c.itens+' itens</div></div>';
+    }).join('');
+    cardsEl.innerHTML = html;
+  }
+
+  const seta = c => _dispSort.col===c ? (_dispSort.asc?' ▲':' ▼') : '';
+  const thead = document.getElementById('disp-thead');
+  if (thead) thead.innerHTML =
+    '<th onclick="dispSort(\'empresa\')" style="cursor:pointer">EMP'+seta('empresa')+'</th>'
+    +'<th onclick="dispSort(\'item\')" style="cursor:pointer">CÓD ITEM'+seta('item')+'</th>'
+    +'<th onclick="dispSort(\'desc\')" style="cursor:pointer">DESCRIÇÃO'+seta('desc')+'</th>'
+    +'<th onclick="dispSort(\'classe\')" style="cursor:pointer">CLASSIFICAÇÃO'+seta('classe')+'</th>'
+    +'<th onclick="dispSort(\'saldo\')" style="cursor:pointer;text-align:right">SALDO'+seta('saldo')+'</th>'
+    +'<th onclick="dispSort(\'comprometido\')" style="cursor:pointer;text-align:right">COMPROMETIDO'+seta('comprometido')+'</th>'
+    +'<th onclick="dispSort(\'disponivel\')" style="cursor:pointer;text-align:right">DISPONÍVEL'+seta('disponivel')+'</th>'
+    +'<th style="text-align:center">PEDIDOS</th>';
+
+  const tb = document.getElementById('disp-tbody');
+  if (tb) {
+    tb.innerHTML = lista.map(d => {
+      const corDisp = d.disponivel > 0 ? 'var(--green)' : 'var(--text-muted)';
+      const pedTxt = d.pedidos.length ? d.pedidos.map(p=>p.numPedido+(p.cliente?' ('+p.cliente+')':'')).join(', ') : '—';
+      return '<tr>'
+        +'<td class="text-center">'+_dispEmpLabel(d.empresa)+'</td>'
+        +'<td style="font-family:monospace">'+d.item+'</td>'
+        +'<td>'+d.desc+'</td>'
+        +'<td style="font-size:10px;color:var(--text-muted)">'+d.classe+'</td>'
+        +'<td class="money">'+fmtN(d.saldo)+'</td>'
+        +'<td class="money">'+fmtN(d.comprometido)+'</td>'
+        +'<td class="money" style="font-weight:700;color:'+corDisp+'">'+fmtN(d.disponivel)+'</td>'
+        +'<td style="font-size:10px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+pedTxt.replace(/"/g,"'")+'">'+pedTxt+'</td>'
+        +'</tr>';
+    }).join('');
+  }
+  const cont = document.getElementById('disp-contagem');
+  if (cont) cont.textContent = lista.length + ' itens';
+  _dispExport = lista;
+}
+function dispLimparFiltros() {
+  const b = document.getElementById('disp-search'); if (b) b.value = '';
+  const so = document.getElementById('disp-so-disponiveis'); if (so) so.checked = false;
+  msMarcarTodos('ms-disp-emp'); msMarcarTodos('ms-disp-classe');
+  const le=document.getElementById('ms-disp-emp-label'); if(le) le.textContent='Todas as empresas';
+  const lc=document.getElementById('ms-disp-classe-label'); if(lc) lc.textContent='Todas as classificações';
+  renderDisponibilidade();
+}
+function exportarDisponibilidadeExcel() {
+  if (!_dispExport || !_dispExport.length) { alert('Nada para exportar.'); return; }
+  const cab = ['EMPRESA','COD ITEM','DESCRICAO','CLASSIFICACAO','SALDO','COMPROMETIDO','DISPONIVEL','PEDIDOS'];
+  const linhas = _dispExport.map(d => [_dispEmpLabel(d.empresa), d.item, d.desc, d.classe, d.saldo, d.comprometido, d.disponivel, d.pedidos.map(p=>p.numPedido).join(' ')]);
+  const nome = 'Disponibilidade_'+new Date().toISOString().slice(0,10);
+  if (window.XLSX && XLSX.utils) {
+    try {
+      const ws = XLSX.utils.aoa_to_sheet([cab].concat(linhas));
+      ws['!cols'] = [{wch:12},{wch:16},{wch:40},{wch:28},{wch:10},{wch:13},{wch:11},{wch:20}];
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Disponibilidade');
+      XLSX.writeFile(wb, nome+'.xlsx'); return;
+    } catch(e){ console.warn('xlsx', e); }
+  }
+  const csv = [cab].concat(linhas).map(r=>r.map(c=>{const s=String(c==null?'':c).replace(/"/g,'""');return /[;"\n]/.test(s)?'"'+s+'"':s;}).join(';')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=nome+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
+}
+
 function parseServico(text) {
   const rows = parseCSV(text, ';');
   const result = {};
@@ -9298,6 +9555,7 @@ function renderAll() {
   renderIFE();
   renderPedidos();
   renderTransito();
+  try { renderDisponibilidade(); } catch(e){ console.warn('disponibilidade', e); }
   try { injetarDataEmail(); } catch(e){}
 }
 
@@ -9429,7 +9687,8 @@ async function readSheets() {
     'SERVICO_TERCEIROS': parseServico,
     'TERMICO_POLIMENTO': parseTermico,
     'IFE':               parseIFE,
-    'PEDIDOS_DE_VENDA':  parsePedidos
+    'PEDIDOS_DE_VENDA':  parsePedidos,
+    'DISPONIBILIDADE':   parseDisponibilidade
   };
 
   // Fetch CONFIG primeiro (metas, feriados, etc.)
