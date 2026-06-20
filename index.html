@@ -9049,7 +9049,8 @@ async function pfSalvar() {
 // col12=CLIENTE col13=REPRESENTANTE col14=OBS col15=COD GRP ITE col16=DESC GRP col17=PODE FATURAR col18=DATA ATUAL
 function parseDisponibilidade(text) {
   const rows = parseCSV(text, ';');
-  const itens = {}; // chave empresa|item -> { ...dados, pedidos:[], saldo, comprometido, temNegativo }
+  const itens = {}; // chave empresa|item -> agrupado (para os cards)
+  const raw = [];   // uma linha por registro do email (para a tabela)
   rows.forEach(r => {
     if (r.length < 8) return;
     const empresa = String(r[1]||'').trim();
@@ -9061,9 +9062,27 @@ function parseDisponibilidade(text) {
     const projetado = parseFloat(String(r[7]||'0').replace(/\./g,'').replace(',','.'))||0;
     const numPedido = String(r[2]||'').trim();
 
+    // linha bruta (igual ao email, sem a coluna ID) — para a tabela
+    raw.push({
+      empresa, numPedido, item,
+      desc: String(r[4]||'').trim(),
+      saldo, qtdPdv, projetado,
+      endereco: String(r[8]||'').trim(),
+      dtEmis: String(r[9]||'').trim(),
+      dtEntrega: String(r[10]||'').trim(),
+      cliente: String(r[11]||'').trim(),
+      representante: String(r[12]||'').trim(),
+      obs: String(r[13]||'').trim(),
+      codGrp: String(r[14]||'').trim(),
+      descGrp: String(r[15]||'').trim() || 'SEM GRUPO',
+      podeFaturar: String(r[16]||'').trim(),
+      familia: String(r[15]||'').trim() || 'SEM GRUPO'
+    });
+
     const key = empresa+'|'+item;
     if (!itens[key]) {
       const codGrp = String(r[14]||'').trim();
+      const descGrp = String(r[15]||'').trim() || 'SEM GRUPO';
       itens[key] = {
         empresa, item,
         desc: String(r[4]||'').trim(),
@@ -9071,8 +9090,8 @@ function parseDisponibilidade(text) {
         comprometido: 0,
         temNegativo: false,
         codGrp,
-        descGrp: String(r[15]||'').trim(),
-        familia: pvFamilia(codGrp), // mesma classificação dos Pedidos de Venda
+        descGrp,
+        familia: descGrp, // DESC GRP direto do Focco (classificação real do relatório)
         endereco: String(r[8]||'').trim(),
         pedidos: []
       };
@@ -9100,6 +9119,7 @@ function parseDisponibilidade(text) {
     const disponivel = (!it.temNegativo && diff > 0) ? diff : 0;
     return { ...it, disponivel };
   });
+  DATA.disponibilidadeRaw = raw; // linhas brutas para a tabela
 }
 
 let _dispSort = { col: 'disponivel', asc: false };
@@ -9109,7 +9129,7 @@ function dispSort(col) {
   renderDisponibilidade();
 }
 function _dispEmpLabel(num) {
-  const mapa = { '1':'Matriz', '2':'Filial SP', '8':'Filial GO', '9':'Filial PE' };
+  const mapa = { '1':'Matriz', '2':'Filial SP', '3':'Filial MG', '8':'Filial GO', '9':'Filial PE' };
   return mapa[num] || ('Emp '+num);
 }
 function _dispPopularFiltros(dados) {
@@ -9194,7 +9214,13 @@ function renderDisponibilidade() {
   if (cardsEl) {
     cardsEl.innerHTML = Object.keys(porEmp).sort().map(emp => {
       const e = porEmp[emp];
-      const famsTxt = Object.keys(e.fams).sort((a,b)=>e.fams[b].disponivel-e.fams[a].disponivel).map(f => {
+      const famsTxt = Object.keys(e.fams).sort((a,b)=>{
+        // OUTROS / SEM GRUPO sempre por último
+        const aLast = /OUTROS|SEM GRUPO/i.test(a), bLast = /OUTROS|SEM GRUPO/i.test(b);
+        if (aLast && !bLast) return 1;
+        if (!aLast && bLast) return -1;
+        return e.fams[b].disponivel - e.fams[a].disponivel;
+      }).map(f => {
         const fv = e.fams[f];
         return '<div style="display:flex;justify-content:space-between;gap:8px;font-size:10px;padding:1px 0;border-top:1px solid var(--border)">'
           +'<span style="color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px" title="'+f+'">'+f+'</span>'
@@ -9216,44 +9242,53 @@ function renderDisponibilidade() {
     }).join('');
   }
 
-  // ── TABELA: todas as colunas ──
-  const seta = c => _dispSort.col===c ? (_dispSort.asc?' ▲':' ▼') : '';
-  const cols = [
-    ['empresa','EMP'],['item','CÓD ITEM'],['desc','DESCRIÇÃO'],['familia','FAMÍLIA'],
-    ['descGrp','GRUPO'],['codGrp','COD GRP'],['saldo','SALDO'],['comprometido','COMPROMET.'],
-    ['disponivel','DISPONÍVEL']
-  ];
+  // ── TABELA: igual ao email, uma linha por registro (sem coluna ID) ──
+  const raw = DATA.disponibilidadeRaw || [];
+  let listaRaw = raw.filter(d => {
+    if (empAtivo && !empSel.includes(d.empresa)) return false;
+    if (famAtivo && !famSel.includes(d.familia)) return false;
+    if (q && !(d.item.toLowerCase().includes(q) || (d.desc||'').toLowerCase().includes(q))) return false;
+    // "só disponíveis": filtra pelos itens que têm disponibilidade (cruzando com o agrupado)
+    if (soDisp) {
+      const ag = dados.find(x => x.empresa===d.empresa && x.item===d.item);
+      if (!ag || ag.disponivel <= 0) return false;
+    }
+    return true;
+  });
+
   const thead = document.getElementById('disp-thead');
-  if (thead) thead.innerHTML = cols.map(([k,l]) => {
-    const align = ['saldo','comprometido','disponivel'].includes(k) ? ';text-align:right' : '';
-    return '<th onclick="dispSort(\''+k+'\')" style="cursor:pointer'+align+'">'+l+seta(k)+'</th>';
-  }).join('') + '<th>ENDEREÇO</th><th>PEDIDOS / CLIENTES</th><th style="text-align:center">FATURAR?</th>';
+  if (thead) thead.innerHTML =
+    '<th>EMPRESA</th><th>NUM PEDIDO</th><th>COD ITEM</th><th>DESC TECNICA</th>'
+    +'<th style="text-align:right">SALDO</th><th style="text-align:right">QTDE PDV</th><th style="text-align:right">PROJETADO</th>'
+    +'<th>ENDEREÇO</th><th>DT EMIS</th><th>DT ENTREGA</th><th>CLIENTE</th><th>REPRESENTANTE</th>'
+    +'<th>OBS</th><th>COD GRP ITE</th><th>DESC GRP</th><th style="text-align:center">PODE FATURAR</th>';
 
   const tb = document.getElementById('disp-tbody');
   if (tb) {
-    tb.innerHTML = lista.map(d => {
-      const corDisp = d.disponivel > 0 ? 'var(--green)' : 'var(--text-muted)';
-      const pedTxt = d.pedidos.length ? d.pedidos.map(p=>p.numPedido+(p.cliente?' ('+p.cliente+')':'')).join(', ') : '—';
-      const podeFat = d.pedidos.length ? (d.pedidos.some(p=>/SIM/i.test(p.podeFaturar))?'SIM':'—') : (d.disponivel>0?'DISPONÍVEL':'—');
+    tb.innerHTML = listaRaw.map(d => {
       return '<tr>'
         +'<td class="text-center">'+_dispEmpLabel(d.empresa)+'</td>'
+        +'<td class="text-center">'+(d.numPedido||'')+'</td>'
         +'<td style="font-family:monospace">'+d.item+'</td>'
         +'<td>'+d.desc+'</td>'
-        +'<td style="font-size:10px">'+d.familia+'</td>'
-        +'<td style="font-size:9px;color:var(--text-muted)">'+d.descGrp+'</td>'
-        +'<td style="font-family:monospace;font-size:9px;color:var(--text-muted)">'+d.codGrp+'</td>'
         +'<td class="money">'+fmtN(d.saldo)+'</td>'
-        +'<td class="money">'+fmtN(d.comprometido)+'</td>'
-        +'<td class="money" style="font-weight:700;color:'+corDisp+'">'+fmtN(d.disponivel)+'</td>'
-        +'<td style="font-size:9px;color:var(--text-muted)">'+(d.endereco||'—')+'</td>'
-        +'<td style="font-size:9px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+pedTxt.replace(/"/g,"'")+'">'+pedTxt+'</td>'
-        +'<td class="text-center" style="font-size:9px">'+podeFat+'</td>'
+        +'<td class="money">'+(d.qtdPdv?fmtN(d.qtdPdv):'')+'</td>'
+        +'<td class="money">'+fmtN(d.projetado)+'</td>'
+        +'<td style="font-size:9px;color:var(--text-muted)">'+(d.endereco||'')+'</td>'
+        +'<td style="font-size:9px">'+(d.dtEmis||'')+'</td>'
+        +'<td style="font-size:9px">'+(d.dtEntrega||'')+'</td>'
+        +'<td style="font-size:9px">'+(d.cliente||'')+'</td>'
+        +'<td style="font-size:9px;color:var(--text-muted)">'+(d.representante||'')+'</td>'
+        +'<td style="font-size:9px;color:var(--text-muted)">'+(d.obs||'')+'</td>'
+        +'<td style="font-family:monospace;font-size:9px;color:var(--text-muted)">'+(d.codGrp||'')+'</td>'
+        +'<td style="font-size:9px;color:var(--text-muted)">'+(d.descGrp||'')+'</td>'
+        +'<td class="text-center" style="font-size:9px">'+(d.podeFaturar||'')+'</td>'
         +'</tr>';
     }).join('');
   }
   const cont = document.getElementById('disp-contagem');
-  if (cont) cont.textContent = lista.length + ' itens';
-  _dispExport = lista;
+  if (cont) cont.textContent = listaRaw.length + ' registros';
+  _dispExport = listaRaw;
 }
 function dispLimparFiltros() {
   const b = document.getElementById('disp-search'); if (b) b.value = '';
@@ -9265,18 +9300,16 @@ function dispLimparFiltros() {
 }
 function exportarDisponibilidadeExcel() {
   if (!_dispExport || !_dispExport.length) { alert('Nada para exportar.'); return; }
-  const cab = ['EMPRESA','COD ITEM','DESCRICAO','FAMILIA','GRUPO','COD GRP','SALDO','COMPROMETIDO','DISPONIVEL','ENDERECO','PEDIDOS','CLIENTES'];
+  const cab = ['EMPRESA','NUM PEDIDO','COD ITEM','DESC TECNICA','SALDO','QTDE PDV','PROJETADO','ENDERECO','DT EMIS','DT ENTREGA','CLIENTE','REPRESENTANTE','OBS','COD GRP ITE','DESC GRP','PODE FATURAR'];
   const linhas = _dispExport.map(d => [
-    _dispEmpLabel(d.empresa), d.item, d.desc, d.familia, d.descGrp, d.codGrp,
-    d.saldo, d.comprometido, d.disponivel, d.endereco,
-    d.pedidos.map(p=>p.numPedido).join(' '),
-    d.pedidos.map(p=>p.cliente).filter(Boolean).join(' | ')
+    _dispEmpLabel(d.empresa), d.numPedido, d.item, d.desc, d.saldo, d.qtdPdv, d.projetado,
+    d.endereco, d.dtEmis, d.dtEntrega, d.cliente, d.representante, d.obs, d.codGrp, d.descGrp, d.podeFaturar
   ]);
   const nome = 'Disponibilidade_'+new Date().toISOString().slice(0,10);
   if (window.XLSX && XLSX.utils) {
     try {
       const ws = XLSX.utils.aoa_to_sheet([cab].concat(linhas));
-      ws['!cols'] = [{wch:12},{wch:16},{wch:40},{wch:18},{wch:24},{wch:12},{wch:10},{wch:13},{wch:11},{wch:18},{wch:18},{wch:30}];
+      ws['!cols'] = [{wch:12},{wch:11},{wch:16},{wch:40},{wch:9},{wch:9},{wch:10},{wch:18},{wch:11},{wch:11},{wch:22},{wch:18},{wch:20},{wch:12},{wch:26},{wch:12}];
       const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Disponibilidade');
       XLSX.writeFile(wb, nome+'.xlsx'); return;
     } catch(e){ console.warn('xlsx', e); }
