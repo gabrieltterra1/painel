@@ -1905,9 +1905,9 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </div>
     <div class="ms-wrap" id="ms-disp-classe" style="min-width:180px">
-      <div class="ms-btn" onclick="toggleMsDropdown('ms-disp-classe')"><span id="ms-disp-classe-label">Todas as classificações</span><span>▾</span></div>
+      <div class="ms-btn" onclick="toggleMsDropdown('ms-disp-classe')"><span id="ms-disp-classe-label">Todas as famílias</span><span>▾</span></div>
       <div class="ms-dropdown">
-        <div class="ms-all" onclick="msToggleAll('ms-disp-classe')"><input type="checkbox" id="ms-disp-classe-all" checked> Todas as classificações</div>
+        <div class="ms-all" onclick="msToggleAll('ms-disp-classe')"><input type="checkbox" id="ms-disp-classe-all" checked> Todas as famílias</div>
         <div id="ms-disp-classe-itens"></div>
       </div>
     </div>
@@ -9063,14 +9063,17 @@ function parseDisponibilidade(text) {
 
     const key = empresa+'|'+item;
     if (!itens[key]) {
+      const codGrp = String(r[14]||'').trim();
       itens[key] = {
         empresa, item,
         desc: String(r[4]||'').trim(),
         saldo,
         comprometido: 0,
         temNegativo: false,
-        codGrp: String(r[14]||'').trim(),
-        classe: String(r[15]||'').trim() || 'SEM CLASSIFICAÇÃO',
+        codGrp,
+        descGrp: String(r[15]||'').trim(),
+        familia: pvFamilia(codGrp), // mesma classificação dos Pedidos de Venda
+        endereco: String(r[8]||'').trim(),
         pedidos: []
       };
     }
@@ -9106,7 +9109,7 @@ function dispSort(col) {
   renderDisponibilidade();
 }
 function _dispEmpLabel(num) {
-  const mapa = { '1':'Matriz', '2':'Filial SP', '3':'Filial MG', '4':'Filial GO', '5':'Filial PE' };
+  const mapa = { '1':'Matriz', '2':'Filial SP', '8':'Filial GO', '9':'Filial PE' };
   return mapa[num] || ('Emp '+num);
 }
 function _dispPopularFiltros(dados) {
@@ -9125,19 +9128,19 @@ function _dispPopularFiltros(dados) {
       empEl.dataset.sig = sig;
     }
   }
-  const clsEl = document.getElementById('ms-disp-classe-itens');
-  if (clsEl) {
-    const cls = [...new Set(dados.map(d => d.classe))].sort();
-    const sig = cls.join('|');
-    if (clsEl.dataset.sig !== sig) {
+  const famEl = document.getElementById('ms-disp-classe-itens');
+  if (famEl) {
+    const fams = [...new Set(dados.map(d => d.familia))].sort();
+    const sig = fams.join('|');
+    if (famEl.dataset.sig !== sig) {
       const marc = new Set(getMsValues('ms-disp-classe'));
-      const antes = new Set((clsEl.dataset.sig||'').split('|').filter(Boolean));
-      const prim = !clsEl.dataset.sig;
-      clsEl.innerHTML = cls.map(c => {
+      const antes = new Set((famEl.dataset.sig||'').split('|').filter(Boolean));
+      const prim = !famEl.dataset.sig;
+      famEl.innerHTML = fams.map(c => {
         const chk = (prim || marc.has(c) || !antes.has(c)) ? 'checked' : '';
         return '<label class="ms-item"><input type="checkbox" value="'+c.replace(/"/g,'&quot;')+'" '+chk+' onchange="msChange(\'ms-disp-classe\')"> '+c+'</label>';
       }).join('');
-      clsEl.dataset.sig = sig;
+      famEl.dataset.sig = sig;
     }
   }
 }
@@ -9146,23 +9149,23 @@ function renderDisponibilidade() {
   const dados = DATA.disponibilidade || [];
   if (!dados.length) {
     const tb = document.getElementById('disp-tbody');
-    if (tb) tb.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted)">Sem dados de disponibilidade. Aguardando relatório.</td></tr>';
+    if (tb) tb.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:20px;color:var(--text-muted)">Sem dados de disponibilidade. Aguardando relatório.</td></tr>';
     return;
   }
   _dispPopularFiltros(dados);
 
   const q = (document.getElementById('disp-search')?.value||'').toLowerCase();
   const empSel = getMsValues('ms-disp-emp');
-  const clsSel = getMsValues('ms-disp-classe');
+  const famSel = getMsValues('ms-disp-classe');
   const soDisp = document.getElementById('disp-so-disponiveis')?.checked;
   const _empTot = [...new Set(dados.map(d=>d.empresa))].length;
-  const _clsTot = [...new Set(dados.map(d=>d.classe))].length;
+  const _famTot = [...new Set(dados.map(d=>d.familia))].length;
   const empAtivo = empSel.length>0 && empSel.length<_empTot;
-  const clsAtivo = clsSel.length>0 && clsSel.length<_clsTot;
+  const famAtivo = famSel.length>0 && famSel.length<_famTot;
 
   let lista = dados.filter(d => {
     if (empAtivo && !empSel.includes(d.empresa)) return false;
-    if (clsAtivo && !clsSel.includes(d.classe)) return false;
+    if (famAtivo && !famSel.includes(d.familia)) return false;
     if (soDisp && d.disponivel <= 0) return false;
     if (q && !(d.item.toLowerCase().includes(q) || (d.desc||'').toLowerCase().includes(q))) return false;
     return true;
@@ -9175,56 +9178,76 @@ function renderDisponibilidade() {
     return String(va||'').localeCompare(String(vb||'')) * asc;
   });
 
-  const porClasse = {};
-  lista.forEach(d => {
-    if (!porClasse[d.classe]) porClasse[d.classe] = { itens:0, disponivel:0, comprometido:0, saldo:0 };
-    const c = porClasse[d.classe];
-    c.itens++; c.disponivel += d.disponivel; c.comprometido += d.comprometido; c.saldo += d.saldo;
-  });
   const fmtN = v => Math.round(v).toLocaleString('pt-BR');
+
+  // ── CARDS por EMPRESA, com quebra por FAMÍLIA dentro ──
+  const porEmp = {};
+  lista.forEach(d => {
+    if (!porEmp[d.empresa]) porEmp[d.empresa] = { saldo:0, disponivel:0, itens:0, fams:{} };
+    const e = porEmp[d.empresa];
+    e.saldo += d.saldo; e.disponivel += d.disponivel; e.itens++;
+    if (!e.fams[d.familia]) e.fams[d.familia] = { saldo:0, disponivel:0 };
+    e.fams[d.familia].saldo += d.saldo;
+    e.fams[d.familia].disponivel += d.disponivel;
+  });
   const cardsEl = document.getElementById('disp-cards');
   if (cardsEl) {
-    const totGeral = { itens:lista.length, disp:lista.reduce((s,d)=>s+d.disponivel,0), comp:lista.reduce((s,d)=>s+d.comprometido,0) };
-    let html = '<div style="flex:1;min-width:160px;background:var(--surface);border:1px solid var(--blue);border-radius:10px;padding:12px 14px">'
-      +'<div style="font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:1px">TOTAL</div>'
-      +'<div style="font-size:22px;font-weight:900;color:var(--blue)">'+fmtN(totGeral.disp)+'</div>'
-      +'<div style="font-size:9px;color:var(--text-muted)">disponível · '+totGeral.itens+' itens · '+fmtN(totGeral.comp)+' comprometido</div></div>';
-    html += Object.keys(porClasse).sort((a,b)=>porClasse[b].disponivel-porClasse[a].disponivel).map(cl => {
-      const c = porClasse[cl];
-      return '<div style="flex:1;min-width:160px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px">'
-        +'<div style="font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+cl+'">'+cl+'</div>'
-        +'<div style="font-size:20px;font-weight:900;color:var(--green)">'+fmtN(c.disponivel)+'</div>'
-        +'<div style="font-size:9px;color:var(--text-muted)">disponível · '+c.itens+' itens</div></div>';
+    cardsEl.innerHTML = Object.keys(porEmp).sort().map(emp => {
+      const e = porEmp[emp];
+      const famsTxt = Object.keys(e.fams).sort((a,b)=>e.fams[b].disponivel-e.fams[a].disponivel).map(f => {
+        const fv = e.fams[f];
+        return '<div style="display:flex;justify-content:space-between;gap:8px;font-size:10px;padding:1px 0;border-top:1px solid var(--border)">'
+          +'<span style="color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px" title="'+f+'">'+f+'</span>'
+          +'<span style="white-space:nowrap"><span style="color:var(--green);font-weight:700">'+fmtN(fv.disponivel)+'</span> <span style="color:var(--text-muted)">/ '+fmtN(fv.saldo)+'</span></span>'
+          +'</div>';
+      }).join('');
+      return '<div style="flex:1;min-width:230px;max-width:320px;background:var(--surface);border:1px solid var(--blue);border-radius:10px;padding:12px 14px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">'
+          +'<div style="font-size:13px;font-weight:800;color:var(--text)">'+_dispEmpLabel(emp)+'</div>'
+          +'<div style="font-size:9px;color:var(--text-muted)">'+e.itens+' itens</div>'
+        +'</div>'
+        +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">'
+          +'<div><div style="font-size:18px;font-weight:900;color:var(--green)">'+fmtN(e.disponivel)+'</div><div style="font-size:8px;color:var(--text-muted)">DISPONÍVEL</div></div>'
+          +'<div style="text-align:right"><div style="font-size:18px;font-weight:900;color:var(--blue)">'+fmtN(e.saldo)+'</div><div style="font-size:8px;color:var(--text-muted)">SALDO</div></div>'
+        +'</div>'
+        +'<div style="font-size:8px;color:var(--text-muted);margin-bottom:2px">disponível / saldo por família:</div>'
+        +famsTxt
+        +'</div>';
     }).join('');
-    cardsEl.innerHTML = html;
   }
 
+  // ── TABELA: todas as colunas ──
   const seta = c => _dispSort.col===c ? (_dispSort.asc?' ▲':' ▼') : '';
+  const cols = [
+    ['empresa','EMP'],['item','CÓD ITEM'],['desc','DESCRIÇÃO'],['familia','FAMÍLIA'],
+    ['descGrp','GRUPO'],['codGrp','COD GRP'],['saldo','SALDO'],['comprometido','COMPROMET.'],
+    ['disponivel','DISPONÍVEL']
+  ];
   const thead = document.getElementById('disp-thead');
-  if (thead) thead.innerHTML =
-    '<th onclick="dispSort(\'empresa\')" style="cursor:pointer">EMP'+seta('empresa')+'</th>'
-    +'<th onclick="dispSort(\'item\')" style="cursor:pointer">CÓD ITEM'+seta('item')+'</th>'
-    +'<th onclick="dispSort(\'desc\')" style="cursor:pointer">DESCRIÇÃO'+seta('desc')+'</th>'
-    +'<th onclick="dispSort(\'classe\')" style="cursor:pointer">CLASSIFICAÇÃO'+seta('classe')+'</th>'
-    +'<th onclick="dispSort(\'saldo\')" style="cursor:pointer;text-align:right">SALDO'+seta('saldo')+'</th>'
-    +'<th onclick="dispSort(\'comprometido\')" style="cursor:pointer;text-align:right">COMPROMETIDO'+seta('comprometido')+'</th>'
-    +'<th onclick="dispSort(\'disponivel\')" style="cursor:pointer;text-align:right">DISPONÍVEL'+seta('disponivel')+'</th>'
-    +'<th style="text-align:center">PEDIDOS</th>';
+  if (thead) thead.innerHTML = cols.map(([k,l]) => {
+    const align = ['saldo','comprometido','disponivel'].includes(k) ? ';text-align:right' : '';
+    return '<th onclick="dispSort(\''+k+'\')" style="cursor:pointer'+align+'">'+l+seta(k)+'</th>';
+  }).join('') + '<th>ENDEREÇO</th><th>PEDIDOS / CLIENTES</th><th style="text-align:center">FATURAR?</th>';
 
   const tb = document.getElementById('disp-tbody');
   if (tb) {
     tb.innerHTML = lista.map(d => {
       const corDisp = d.disponivel > 0 ? 'var(--green)' : 'var(--text-muted)';
       const pedTxt = d.pedidos.length ? d.pedidos.map(p=>p.numPedido+(p.cliente?' ('+p.cliente+')':'')).join(', ') : '—';
+      const podeFat = d.pedidos.length ? (d.pedidos.some(p=>/SIM/i.test(p.podeFaturar))?'SIM':'—') : (d.disponivel>0?'DISPONÍVEL':'—');
       return '<tr>'
         +'<td class="text-center">'+_dispEmpLabel(d.empresa)+'</td>'
         +'<td style="font-family:monospace">'+d.item+'</td>'
         +'<td>'+d.desc+'</td>'
-        +'<td style="font-size:10px;color:var(--text-muted)">'+d.classe+'</td>'
+        +'<td style="font-size:10px">'+d.familia+'</td>'
+        +'<td style="font-size:9px;color:var(--text-muted)">'+d.descGrp+'</td>'
+        +'<td style="font-family:monospace;font-size:9px;color:var(--text-muted)">'+d.codGrp+'</td>'
         +'<td class="money">'+fmtN(d.saldo)+'</td>'
         +'<td class="money">'+fmtN(d.comprometido)+'</td>'
         +'<td class="money" style="font-weight:700;color:'+corDisp+'">'+fmtN(d.disponivel)+'</td>'
-        +'<td style="font-size:10px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+pedTxt.replace(/"/g,"'")+'">'+pedTxt+'</td>'
+        +'<td style="font-size:9px;color:var(--text-muted)">'+(d.endereco||'—')+'</td>'
+        +'<td style="font-size:9px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+pedTxt.replace(/"/g,"'")+'">'+pedTxt+'</td>'
+        +'<td class="text-center" style="font-size:9px">'+podeFat+'</td>'
         +'</tr>';
     }).join('');
   }
@@ -9237,18 +9260,23 @@ function dispLimparFiltros() {
   const so = document.getElementById('disp-so-disponiveis'); if (so) so.checked = false;
   msMarcarTodos('ms-disp-emp'); msMarcarTodos('ms-disp-classe');
   const le=document.getElementById('ms-disp-emp-label'); if(le) le.textContent='Todas as empresas';
-  const lc=document.getElementById('ms-disp-classe-label'); if(lc) lc.textContent='Todas as classificações';
+  const lc=document.getElementById('ms-disp-classe-label'); if(lc) lc.textContent='Todas as famílias';
   renderDisponibilidade();
 }
 function exportarDisponibilidadeExcel() {
   if (!_dispExport || !_dispExport.length) { alert('Nada para exportar.'); return; }
-  const cab = ['EMPRESA','COD ITEM','DESCRICAO','CLASSIFICACAO','SALDO','COMPROMETIDO','DISPONIVEL','PEDIDOS'];
-  const linhas = _dispExport.map(d => [_dispEmpLabel(d.empresa), d.item, d.desc, d.classe, d.saldo, d.comprometido, d.disponivel, d.pedidos.map(p=>p.numPedido).join(' ')]);
+  const cab = ['EMPRESA','COD ITEM','DESCRICAO','FAMILIA','GRUPO','COD GRP','SALDO','COMPROMETIDO','DISPONIVEL','ENDERECO','PEDIDOS','CLIENTES'];
+  const linhas = _dispExport.map(d => [
+    _dispEmpLabel(d.empresa), d.item, d.desc, d.familia, d.descGrp, d.codGrp,
+    d.saldo, d.comprometido, d.disponivel, d.endereco,
+    d.pedidos.map(p=>p.numPedido).join(' '),
+    d.pedidos.map(p=>p.cliente).filter(Boolean).join(' | ')
+  ]);
   const nome = 'Disponibilidade_'+new Date().toISOString().slice(0,10);
   if (window.XLSX && XLSX.utils) {
     try {
       const ws = XLSX.utils.aoa_to_sheet([cab].concat(linhas));
-      ws['!cols'] = [{wch:12},{wch:16},{wch:40},{wch:28},{wch:10},{wch:13},{wch:11},{wch:20}];
+      ws['!cols'] = [{wch:12},{wch:16},{wch:40},{wch:18},{wch:24},{wch:12},{wch:10},{wch:13},{wch:11},{wch:18},{wch:18},{wch:30}];
       const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Disponibilidade');
       XLSX.writeFile(wb, nome+'.xlsx'); return;
     } catch(e){ console.warn('xlsx', e); }
