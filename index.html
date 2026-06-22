@@ -716,28 +716,38 @@
   #disp-table th, #disp-table td {
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     padding: 5px 8px; border: 1px solid var(--border); font-size: 11px; box-sizing: border-box;
+    text-align: left;  /* textos à esquerda por padrão */
   }
+  #disp-table td.c-wrap { white-space: normal; overflow: visible; word-break: break-word; }
   #disp-table thead th { position: sticky; top: 0; background: var(--header-table-bg, #0d1b3e); color: #fff; z-index: 2; }
   #disp-table th.sortable { cursor: pointer; user-select: none; }
   #disp-table th .col-filter-btn { cursor: pointer; opacity: .6; font-size: 9px; margin-left: 3px; }
   #disp-table th .col-filter-btn.active { opacity: 1; color: var(--green); }
+  /* números à direita */
+  #disp-table .c-saldo, #disp-table .c-qtd, #disp-table .c-proj { text-align: right; }
+  #disp-table .c-emp, #disp-table .c-ped, #disp-table .c-fat { text-align: center; }
   /* larguras por coluna (na ordem do email, sem ID) */
   #disp-table .c-emp     { width: 90px; }
   #disp-table .c-ped     { width: 90px; }
   #disp-table .c-item    { width: 120px; }
   #disp-table .c-desc    { width: 260px; }
-  #disp-table .c-saldo   { width: 80px; text-align: right; }
-  #disp-table .c-qtd     { width: 80px; text-align: right; }
-  #disp-table .c-proj    { width: 90px; text-align: right; }
-  #disp-table .c-end     { width: 120px; }
+  #disp-table .c-saldo   { width: 80px; }
+  #disp-table .c-qtd     { width: 80px; }
+  #disp-table .c-proj    { width: 90px; }
+  #disp-table .c-end     { width: 130px; }
   #disp-table .c-emis    { width: 90px; }
   #disp-table .c-entr    { width: 90px; }
-  #disp-table .c-cli     { width: 160px; }
-  #disp-table .c-rep     { width: 120px; }
-  #disp-table .c-obs     { width: 140px; }
+  #disp-table .c-cli     { width: 180px; }
+  #disp-table .c-rep     { width: 140px; }
+  #disp-table .c-obs     { width: 200px; }
   #disp-table .c-codgrp  { width: 100px; }
   #disp-table .c-descgrp { width: 200px; }
-  #disp-table .c-fat     { width: 90px; text-align: center; }
+  #disp-table .c-fat     { width: 90px; }
+  /* wrapper com rolagem vertical + horizontal */
+  .disp-table-scroll { max-height: 70vh; overflow: auto; border: 1px solid var(--border); border-radius: 6px; }
+  /* barra de rolagem horizontal SUPERIOR (espelho) */
+  .disp-scroll-top { overflow-x: auto; overflow-y: hidden; }
+  .disp-scroll-top > div { height: 1px; }
   .disp-col-dropdown { position: absolute; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px; z-index: 1000; max-height: 260px; overflow-y: auto; min-width: 160px; box-shadow: 0 4px 16px rgba(0,0,0,.3); }
   .disp-col-dropdown label { display: block; font-size: 11px; padding: 2px 4px; cursor: pointer; white-space: nowrap; }
 
@@ -1949,7 +1959,8 @@ document.addEventListener('DOMContentLoaded', () => {
     <span style="margin-left:auto;font-size:11px;color:var(--text-muted)" id="disp-contagem"></span>
   </div>
 
-  <div style="overflow-x:auto">
+  <div class="disp-scroll-top" id="disp-scroll-top"><div id="disp-scroll-top-inner"></div></div>
+  <div class="disp-table-scroll" id="disp-scroll-main">
     <table id="disp-table" style="min-width:900px">
       <thead><tr id="disp-thead"></tr></thead>
       <tbody id="disp-tbody"></tbody>
@@ -9345,13 +9356,13 @@ function renderDisponibilidade() {
         +'<td class="c-desc" title="'+(d.desc||'').replace(/"/g,"'")+'">'+d.desc+'</td>'
         +'<td class="c-saldo money">'+fmtN(d.saldo)+'</td>'
         +'<td class="c-qtd money">'+(d.qtdPdv?fmtN(d.qtdPdv):'')+'</td>'
-        +'<td class="c-proj money">'+fmtN(d.projetado)+'</td>'
+        +'<td class="c-proj money"'+(d.projetado<0?' style="color:var(--red);font-weight:700"':'')+'>'+fmtN(d.projetado)+'</td>'
         +'<td class="c-end" title="'+(d.endereco||'').replace(/"/g,"'")+'">'+(d.endereco||'')+'</td>'
         +'<td class="c-emis">'+(d.dtEmis||'')+'</td>'
         +'<td class="c-entr">'+(d.dtEntrega||'')+'</td>'
         +'<td class="c-cli" title="'+(d.cliente||'').replace(/"/g,"'")+'">'+(d.cliente||'')+'</td>'
         +'<td class="c-rep" title="'+(d.representante||'').replace(/"/g,"'")+'">'+(d.representante||'')+'</td>'
-        +'<td class="c-obs" title="'+(d.obs||'').replace(/"/g,"'")+'">'+(d.obs||'')+'</td>'
+        +'<td class="c-obs c-wrap" title="'+(d.obs||'').replace(/"/g,"'")+'">'+(d.obs||'')+'</td>'
         +'<td class="c-codgrp" style="font-family:monospace">'+(d.codGrp||'')+'</td>'
         +'<td class="c-descgrp" title="'+(d.descGrp||'').replace(/"/g,"'")+'">'+(d.descGrp||'')+'</td>'
         +'<td class="c-fat text-center">'+(d.podeFaturar||'')+'</td>'
@@ -9362,6 +9373,22 @@ function renderDisponibilidade() {
   if (cont) cont.textContent = listaRaw.length + ' registros';
   _dispExport = listaRaw;
   _dispListaBase = listaRaw; // para os dropdowns de filtro por coluna
+  _dispSyncScroll();
+}
+// Sincroniza a barra de rolagem horizontal superior (espelho) com a tabela
+function _dispSyncScroll() {
+  const top = document.getElementById('disp-scroll-top');
+  const topInner = document.getElementById('disp-scroll-top-inner');
+  const main = document.getElementById('disp-scroll-main');
+  const tbl = document.getElementById('disp-table');
+  if (!top || !topInner || !main || !tbl) return;
+  // largura do espelho = largura real da tabela
+  setTimeout(() => { topInner.style.width = tbl.scrollWidth + 'px'; }, 0);
+  if (top.dataset.bound) return; // evita múltiplos listeners
+  top.dataset.bound = '1';
+  let lock = false;
+  top.addEventListener('scroll', () => { if (lock) return; lock = true; main.scrollLeft = top.scrollLeft; lock = false; });
+  main.addEventListener('scroll', () => { if (lock) return; lock = true; top.scrollLeft = main.scrollLeft; lock = false; });
 }
 
 // ── Filtros por coluna (estilo Excel) ──
