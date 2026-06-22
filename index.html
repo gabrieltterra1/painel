@@ -9077,24 +9077,21 @@ async function pfSalvar() {
 // Layout (ordem visual): col1=ID col2=EMPRESA col3=NUM PEDIDO col4=COD ITEM col5=DESC TECNICA
 // col6=SALDO col7=QTDE PDV col8=PROJETADO col9=ENDEREÇO col10=DT EMIS col11=DT ENTREGA
 // col12=CLIENTE col13=REPRESENTANTE col14=OBS col15=COD GRP ITE col16=DESC GRP col17=PODE FATURAR col18=DATA ATUAL
-// Classifica a FAMÍLIA do card: itens importados (COD GRP 400) viram IMPORTADOS;
-// o resto é classificado pela palavra-chave do DESC GRP.
+// Classifica a FAMÍLIA do card usando o MESMO mapeamento de OF Abertas / Itens Montados
+// (OF_CLASS_MAP por código de grupo). Itens importados (COD GRP 400) que NÃO são uma das 8
+// famílias caem em IMPORTADOS. O resto que não bate vai para OUTROS.
 function _dispFamiliaCard(codGrp, descGrp) {
-  const cod = String(codGrp||'').trim();
-  if (cod.indexOf('400') === 0) return 'IMPORTADOS';
   const g = String(descGrp||'').toUpperCase();
-  if (g.indexOf('TOMADA') >= 0 || g.indexOf('MULT') >= 0) return 'TOMADA+MULT';
-  if (g.indexOf('BOMBA') >= 0)    return 'BOMBA';
-  if (g.indexOf('CILINDRO') >= 0) return 'CILINDRO';
-  if (g.indexOf('EIXO') >= 0 || g.indexOf('CONJ') >= 0) return 'CONJ EIXO';
-  if (g.indexOf('GUINCHO') >= 0 || g.indexOf('ENROLADOR') >= 0) return 'GUINCHO+ENROLADOR';
-  if (g.indexOf('COMANDO') >= 0)  return 'COMANDO';
-  if (g.indexOf('VALVULA') >= 0 || g.indexOf('VÁLVULA') >= 0) return 'VALVULA';
-  if (g.indexOf('KIT') >= 0)      return 'KIT HIDRAULICO';
+  // Kit Montagem e Kit Reparo NÃO são KIT HIDRÁULICO → vão para OUTROS
+  if (g.indexOf('KIT') >= 0 && (g.indexOf('MONTAGEM') >= 0 || g.indexOf('REPARO') >= 0)) return 'OUTROS';
+  const cod = ofCodigoClasse(codGrp) || String(codGrp||'').trim();
+  const fam = OF_CLASS_MAP[cod];
+  if (fam) return OF_FAM_LABEL[fam] || fam; // família oficial (ex: KIT_HIDR → "KIT HIDR.")
+  if (String(cod).indexOf('400') === 0) return 'IMPORTADOS';
   return 'OUTROS';
 }
-// Ordem fixa das famílias nos cards (OUTROS sempre por último)
-const _DISP_FAM_ORDEM = ['IMPORTADOS','TOMADA+MULT','BOMBA','CILINDRO','CONJ EIXO','GUINCHO+ENROLADOR','COMANDO','VALVULA','KIT HIDRAULICO','OUTROS'];
+// Ordem fixa das famílias nos cards (OUTROS por último)
+const _DISP_FAM_ORDEM = ['TOMADA E MULT','BOMBA','CILINDRO','CONJ. EIXO','GUINCHO E ENROL.','COMANDO','VÁLVULA','KIT HIDR.','IMPORTADOS','OUTROS'];
 
 function parseDisponibilidade(text) {
   const rows = parseCSV(text, ';');
