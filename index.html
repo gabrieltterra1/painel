@@ -6526,6 +6526,17 @@ function _pvGerarRelatorio() {
 
   const agora = new Date();
   const hojeHora = agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR');
+  // data do último banco de dados (email de Pedidos de Venda)
+  const ultimoDado = _fmtDataEmail((DATA.config||{})['DATA_EMAIL_PEDIDOS_DE_VENDA']) || '—';
+  // filtros aplicados (família e status, quando não estão "todos")
+  const _famSel = getMsValues('ms-pv-familia');
+  const _famTot = document.querySelectorAll('#ms-pv-familia input[type=checkbox]:not(#ms-pv-familia-all)').length;
+  const _stSel = getMsValues('ms-pv-status');
+  const _stTot = document.querySelectorAll('#ms-pv-status input[type=checkbox]:not(#ms-pv-status-all)').length;
+  const _filtros = [];
+  if (_famSel.length && _famSel.length < _famTot) _filtros.push('Famílias: ' + _famSel.join(', '));
+  if (_stSel.length && _stSel.length < _stTot) _filtros.push('Status: ' + _stSel.join(', '));
+  const filtrosLabel = _filtros.length ? _filtros.join(' &middot; ') : 'Nenhum filtro de família/status';
 
   // ── Cards por família ──────────────────────────────────────────────────
   const _famOrder  = ['TOMADA+MULT','CONJ EIXO','BOMBA','CILINDRO',
@@ -6616,7 +6627,9 @@ function _pvGerarRelatorio() {
   const estilo =
     '* { box-sizing:border-box; margin:0; padding:0; }'
     +'body { font-family:"Segoe UI",Arial,sans-serif; font-size:11px; color:#1a1a2e; margin:14px; background:#fff; }'
-    +'.header { display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid #1a6fcc; padding-bottom:8px; margin-bottom:10px; }'
+    +'.header { display:flex; align-items:flex-start; justify-content:space-between; border-bottom:3px solid #1a6fcc; padding-bottom:8px; margin-bottom:10px; }'
+    +'.header-left { display:flex; flex-direction:column; gap:4px; }'
+    +'.head-info { font-size:9px; color:#555; font-weight:600; }'
     +'.header h2 { font-size:18px; font-weight:900; color:#0d1b3e; }'
     +'.header h2 span { color:#1a6fcc; }'
     +'.header .sub { font-size:9px; color:#666; text-align:right; line-height:1.5; }'
@@ -6633,8 +6646,11 @@ function _pvGerarRelatorio() {
 
   const corpo =
      '<div class="header">'
+    +'<div class="header-left">'
     +'<h2>&#x1F4CB; PAINEL <span>INDUSTRIAL</span> &mdash; Prioridades de Venda</h2>'
-    +'<div class="sub">Impresso em ' + hojeHora + '<br>Per&iacute;odo: ' + periodoLabel + '<br>Filtro: projetado negativo</div>'
+    +'<div class="head-info">Impresso em ' + hojeHora + ' &nbsp;|&nbsp; &#x1F4E7; &Uacute;ltimo dado: ' + ultimoDado + ' &nbsp;|&nbsp; ' + filtrosLabel + '</div>'
+    +'</div>'
+    +'<div class="sub">Per&iacute;odo: ' + periodoLabel + '<br>Filtro: projetado negativo</div>'
     +'</div>'
     +'<div class="cards-title">RESUMO POR FAM&Iacute;LIA</div>'
     +'<div class="cards">' + cardsHtml + '</div>'
