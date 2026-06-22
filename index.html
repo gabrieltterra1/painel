@@ -9350,10 +9350,23 @@ function renderDisponibilidade() {
 
   const tb = document.getElementById('disp-tbody');
   if (tb) {
-    // itens disponíveis para venda (empresa|item com disponível > 0) → linha verde
+    // itens disponíveis para venda (empresa|item com disponível > 0)
     const dispSet = new Set((dados||[]).filter(x => x.disponivel > 0).map(x => x.empresa+'|'+x.item));
+    // para cada item disponível, marca SÓ a linha com o MENOR projetado positivo (o disponível real)
+    const linhaVerde = new Set(); // guarda a referência da linha escolhida
+    const menorPorItem = {};      // empresa|item -> { ref, proj }
+    listaRaw.forEach(d => {
+      const chave = d.empresa+'|'+d.item;
+      if (!dispSet.has(chave)) return;
+      if (d.projetado > 0) {
+        if (!menorPorItem[chave] || d.projetado < menorPorItem[chave].proj) {
+          menorPorItem[chave] = { ref: d, proj: d.projetado };
+        }
+      }
+    });
+    Object.values(menorPorItem).forEach(x => linhaVerde.add(x.ref));
     tb.innerHTML = listaRaw.map(d => {
-      const ehDisp = dispSet.has(d.empresa+'|'+d.item);
+      const ehDisp = linhaVerde.has(d);
       return '<tr'+(ehDisp?' class="disp-row-ok"':'')+'>'
         +'<td class="c-emp text-center">'+_dispEmpLabel(d.empresa)+'</td>'
         +'<td class="c-ped text-center">'+(d.numPedido||'')+'</td>'
