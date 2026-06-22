@@ -6536,7 +6536,7 @@ function _pvGerarRelatorio() {
   const _filtros = [];
   if (_famSel.length && _famSel.length < _famTot) _filtros.push('Famílias: ' + _famSel.join(', '));
   if (_stSel.length && _stSel.length < _stTot) _filtros.push('Status: ' + _stSel.join(', '));
-  const filtrosLabel = _filtros.length ? _filtros.join(' &middot; ') : 'Nenhum filtro de família/status';
+  const filtrosLabel = _filtros.length ? _filtros.join(' &middot; ') : '';
 
   // ── Cards por família ──────────────────────────────────────────────────
   const _famOrder  = ['TOMADA+MULT','CONJ EIXO','BOMBA','CILINDRO',
@@ -6648,9 +6648,8 @@ function _pvGerarRelatorio() {
      '<div class="header">'
     +'<div class="header-left">'
     +'<h2>&#x1F4CB; PAINEL <span>INDUSTRIAL</span> &mdash; Prioridades de Venda</h2>'
-    +'<div class="head-info">Impresso em ' + hojeHora + ' &nbsp;|&nbsp; &#x1F4E7; &Uacute;ltimo dado: ' + ultimoDado + ' &nbsp;|&nbsp; ' + filtrosLabel + '</div>'
+    +'<div class="head-info">Impresso em ' + hojeHora + ' &nbsp;|&nbsp; &#x1F4E7; &Uacute;ltimo dado: ' + ultimoDado + ' &nbsp;|&nbsp; Per&iacute;odo: ' + periodoLabel + (filtrosLabel ? ' &nbsp;|&nbsp; ' + filtrosLabel : '') + '</div>'
     +'</div>'
-    +'<div class="sub">Per&iacute;odo: ' + periodoLabel + '<br>Filtro: projetado negativo</div>'
     +'</div>'
     +'<div class="cards-title">RESUMO POR FAM&Iacute;LIA</div>'
     +'<div class="cards">' + cardsHtml + '</div>'
