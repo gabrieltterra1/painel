@@ -719,6 +719,7 @@
     text-align: left;  /* textos à esquerda por padrão */
   }
   #disp-table td.c-wrap { white-space: normal; overflow: visible; word-break: break-word; }
+  #disp-table tr.disp-row-ok td { background: rgba(0, 201, 122, 0.12); }
   #disp-table thead th { position: sticky; top: 0; background: var(--header-table-bg, #0d1b3e); color: #fff; z-index: 2; }
   #disp-table th.sortable { cursor: pointer; user-select: none; }
   #disp-table th .col-filter-btn { cursor: pointer; opacity: .6; font-size: 9px; margin-left: 3px; }
@@ -9348,8 +9349,11 @@ function renderDisponibilidade() {
 
   const tb = document.getElementById('disp-tbody');
   if (tb) {
+    // itens disponíveis para venda (empresa|item com disponível > 0) → linha verde
+    const dispSet = new Set((dados||[]).filter(x => x.disponivel > 0).map(x => x.empresa+'|'+x.item));
     tb.innerHTML = listaRaw.map(d => {
-      return '<tr>'
+      const ehDisp = dispSet.has(d.empresa+'|'+d.item);
+      return '<tr'+(ehDisp?' class="disp-row-ok"':'')+'>'
         +'<td class="c-emp text-center">'+_dispEmpLabel(d.empresa)+'</td>'
         +'<td class="c-ped text-center">'+(d.numPedido||'')+'</td>'
         +'<td class="c-item" style="font-family:monospace">'+d.item+'</td>'
