@@ -10347,38 +10347,54 @@ function _dashFamiliaPergunta(q){
 // Determina o período pela pergunta
 function _dashPeriodoPergunta(q){
   const s=q.toLowerCase();
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+  const fmtBR=d=>String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+  const parseData=(diaS,mesS,anoS)=>{ const dia=parseInt(diaS,10),mes=parseInt(mesS,10)-1; let ano=anoS?parseInt(anoS,10):hoje.getFullYear(); if(ano<100)ano+=2000; const d=new Date(ano,mes,dia); d.setHours(0,0,0,0); return isNaN(d.getTime())?null:d; };
+
   if(/atrasad/.test(s)) return {tipo:'atrasados', label:'pedidos atrasados'};
-  if(/pr[óo]ximo m[êe]s|mes que vem/.test(s)) return {tipo:'proximo', label:'próximo mês'};
+
+  // "de DD/MM a DD/MM" ou "de DD/MM até DD/MM" (intervalo)
+  const mInt = s.match(/(?:de\s+)?(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\s*(?:a|at[ée]|-)\s*(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?/);
+  if(mInt){
+    const ini=parseData(mInt[1],mInt[2],mInt[3]);
+    const fim=parseData(mInt[4],mInt[5],mInt[6]);
+    if(ini&&fim) return {tipo:'intervalo', ini, fim, label:'de '+fmtBR(ini)+' a '+fmtBR(fim)};
+  }
+
+  // "próximo mês" / "mês que vem" / "semana que vem" / "próxima semana"
+  if(/semana que vem|pr[óo]xima semana/.test(s)){
+    const ini=new Date(hoje); const dow=hoje.getDay(); ini.setDate(hoje.getDate()+((8-dow)%7||7)); // próxima segunda
+    const fim=new Date(ini); fim.setDate(ini.getDate()+6); // até domingo
+    return {tipo:'intervalo', ini, fim, label:'semana que vem ('+fmtBR(ini)+' a '+fmtBR(fim)+')'};
+  }
+  if(/essa semana|esta semana|nesta semana|dessa semana|desta semana/.test(s)){
+    const fim=new Date(hoje); const dow=hoje.getDay(); fim.setDate(hoje.getDate()+((7-dow)%7)); // até domingo desta semana
+    return {tipo:'intervalo', ini:hoje, fim, label:'esta semana (até '+fmtBR(fim)+')'};
+  }
+  if(/pr[óo]ximo m[êe]s|m[êe]s que vem/.test(s)) return {tipo:'proximo', label:'próximo mês'};
+  if(/(dentro|durante|ainda|at[ée] o fim|no)\s+(deste|desse|do)?\s*m[êe]s|este m[êe]s|neste m[êe]s|m[êe]s atual/.test(s)) return {tipo:'mes', label:'este mês'};
+
+  // "amanhã"
+  if(/amanh[ãa]/.test(s)){ const d=new Date(hoje); d.setDate(hoje.getDate()+1); return {tipo:'ate', dataLim:d, label:'até amanhã ('+fmtBR(d)+')'}; }
+
+  // "daqui a X dias" / "em X dias" / "próximos X dias"
+  const mDias = s.match(/(?:daqui\s+a?\s*|em\s+|pr[óo]ximos\s+)(\d{1,3})\s*dias?/);
+  if(mDias){ const n=parseInt(mDias[1],10); const d=new Date(hoje); d.setDate(hoje.getDate()+n); return {tipo:'ate', dataLim:d, label:'próximos '+n+' dias (até '+fmtBR(d)+')'}; }
 
   // "até DD/MM/AAAA" ou "até DD/MM"
   const mData = s.match(/at[ée]\s+(?:o\s+dia\s+)?(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?/);
-  if(mData){
-    const dia=parseInt(mData[1],10), mes=parseInt(mData[2],10)-1;
-    let ano=mData[3]?parseInt(mData[3],10):(new Date().getFullYear());
-    if(ano<100) ano+=2000;
-    const lim=new Date(ano,mes,dia); lim.setHours(0,0,0,0);
-    if(!isNaN(lim.getTime())){
-      const fmtBR=String(dia).padStart(2,'0')+'/'+String(mes+1).padStart(2,'0')+'/'+ano;
-      return {tipo:'ate', dataLim:lim, label:'até '+fmtBR};
-    }
-  }
+  if(mData){ const lim=parseData(mData[1],mData[2],mData[3]); if(lim) return {tipo:'ate', dataLim:lim, label:'até '+fmtBR(lim)}; }
 
-  // "até <dia da semana>" (segunda..domingo / sex / sexta-feira)
+  // "até <dia da semana>"
   const diasSem = {'domingo':0,'segunda':1,'terça':2,'terca':2,'quarta':3,'quinta':4,'sexta':5,'sábado':6,'sabado':6};
   const mDS = s.match(/at[ée]\s+(?:a\s+|o\s+)?(domingo|segunda|terça|terca|quarta|quinta|sexta|sábado|sabado)(?:-?feira)?/);
   if(mDS){
-    const alvo=diasSem[mDS[1]];
-    const hoje=new Date(); hoje.setHours(0,0,0,0);
-    const lim=new Date(hoje);
-    let add=(alvo-hoje.getDay()+7)%7; if(add===0) add=7; // próximo dia daquele nome
+    const alvo=diasSem[mDS[1]]; const lim=new Date(hoje);
+    let add=(alvo-hoje.getDay()+7)%7; if(add===0) add=7;
     lim.setDate(lim.getDate()+add);
-    const fmtBR=String(lim.getDate()).padStart(2,'0')+'/'+String(lim.getMonth()+1).padStart(2,'0')+'/'+lim.getFullYear();
-    return {tipo:'ate', dataLim:lim, label:'até '+mDS[1]+' ('+fmtBR+')'};
+    return {tipo:'ate', dataLim:lim, label:'até '+mDS[1]+' ('+fmtBR(lim)+')'};
   }
-  if(/at[ée]\s+hoje/.test(s)){
-    const hoje=new Date(); hoje.setHours(0,0,0,0);
-    return {tipo:'ate', dataLim:hoje, label:'até hoje'};
-  }
+  if(/at[ée]\s+hoje/.test(s)) return {tipo:'ate', dataLim:hoje, label:'até hoje'};
 
   return {tipo:'mes', label:'este mês'};
 }
@@ -10613,7 +10629,7 @@ function _dashResponder(q){
   }
 
   // ═══ Trânsito enche o estoque de segurança da filial? (CÓDIGO A CÓDIGO) ═══
-  if((/tr[âa]nsito/.test(s) && /seguran[çc]a|estoque.*seguran|abastec|enche|completa|suficiente/.test(s)) || /falta enviar|enviar.*complet|complet.*seguran|falta.*complet.*estoque/.test(s)){
+  if((/tr[âa]nsito/.test(s) && /seguran[çc]a|estoque.*seguran|abastec|enche|completa|suficiente/.test(s)) || /falta enviar|enviar.*complet|complet.*seguran|falta.*complet.*estoque|preciso enviar|que.*enviar|itens.*enviar|enviar.*filial|enviar.*para.*(sp|mg|go|pe)/.test(s)){
     try {
       const mapaUF=[['são paulo','SP'],['sao paulo','SP'],['\\bsp\\b','SP'],['minas','MG'],['\\bmg\\b','MG'],['goi','GO'],['\\bgo\\b','GO'],['pernambuco','PE'],['recife','PE'],['\\bpe\\b','PE']];
       let uf=null; for(const [k,v] of mapaUF){ if(new RegExp(k).test(s)){ uf=v; break; } }
@@ -11078,6 +11094,7 @@ function _dashResponder(q){
     let peds=(DATA.pedidos||[]).filter(p=>_dashFamPedido(p)===famInfo.fam);
     if(periodo.tipo==='atrasados') peds=peds.filter(p=>p.atrasado);
     else if(periodo.tipo==='proximo') peds=peds.filter(p=>p.dataEnt && p.dataEnt>=iniProx && p.dataEnt<=fimProx);
+    else if(periodo.tipo==='intervalo' && periodo.ini && periodo.fim) peds=peds.filter(p=>p.dataEnt && p.dataEnt>=periodo.ini && p.dataEnt<=periodo.fim);
     else if(periodo.tipo==='ate' && periodo.dataLim) peds=peds.filter(p=>p.dataEnt && p.dataEnt<=periodo.dataLim); // até data específica (inclui atrasados)
     else peds=peds.filter(p=>p.dataEnt && p.dataEnt<=fimMes); // este mês (inclui atrasados até fim do mês)
     // datas do período (para aplicar o mesmo filtro ao clicar em "ver pedidos")
