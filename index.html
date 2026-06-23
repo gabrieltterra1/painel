@@ -820,17 +820,30 @@
   .darow .n { font-family: var(--font-display); font-size: 24px; font-weight: 900; color: var(--amber); }
   .darow.crit .n { color: var(--red); } .darow.ok .n { color: var(--green); }
 
-  /* assistente do painel */
-  .dash-assist { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 20px; }
-  .da-inputrow { display: flex; gap: 8px; margin-bottom: 12px; }
-  .da-inputrow input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 11px 14px; color: var(--text); font-size: 14px; font-family: var(--font-body); }
-  .da-inputrow input:focus { outline: none; border-color: #a855f7; }
-  .da-inputrow button { background: #a855f7; color: #fff; border: none; border-radius: 9px; padding: 0 18px; font-weight: 700; font-size: 14px; cursor: pointer; white-space: nowrap; }
-  .da-inputrow button:hover { background: #9333ea; }
-  .da-sugestoes { display: flex; gap: 7px; flex-wrap: wrap; }
-  .da-sug { background: var(--surface2); border: 1px solid var(--border); border-radius: 18px; padding: 6px 13px; font-size: 12px; color: var(--text-muted); cursor: pointer; transition: all .12s; font-family: var(--font-body); }
-  .da-sug:hover { border-color: #a855f7; color: #c084fc; }
-  .da-resposta { margin-top: 12px; }
+  /* assistente do painel — visual chamativo */
+  @keyframes daBorderFlow { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+  @keyframes daGlowPulse { 0%,100%{box-shadow:0 0 24px rgba(168,85,247,.22),0 0 0 1px rgba(168,85,247,.28)} 50%{box-shadow:0 0 40px rgba(168,85,247,.42),0 0 0 1px rgba(168,85,247,.5)} }
+  @keyframes daFloatBot { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+  .assist-card { position:relative; border-radius:18px; padding:2px; margin-bottom:20px; background:linear-gradient(120deg,#a855f7,#6366f1,#ec4899,#a855f7); background-size:300% 300%; animation:daBorderFlow 6s ease infinite; }
+  .assist-inner { background:linear-gradient(160deg,var(--surface2),var(--surface)); border-radius:16px; padding:22px 24px; animation:daGlowPulse 3.5s ease-in-out infinite; }
+  .assist-head { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
+  .bot-ic { font-size:38px; animation:daFloatBot 3s ease-in-out infinite; filter:drop-shadow(0 4px 10px rgba(168,85,247,.5)); flex-shrink:0; }
+  .assist-headtext { flex:1; min-width:0; }
+  .assist-title { font-family:var(--font-display); font-size:24px; font-weight:900; letter-spacing:.5px; }
+  .assist-title .grad { background:linear-gradient(90deg,#c084fc,#818cf8); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .assist-sub { font-size:12px; color:var(--text-muted); margin-top:1px; }
+  .da-inputrow { display:flex; gap:10px; margin-bottom:14px; }
+  .da-inputrow input { flex:1; min-width:0; background:rgba(0,0,0,.25); border:1px solid #a855f744; border-radius:11px; padding:14px 16px; color:var(--text); font-size:15px; font-family:var(--font-body); }
+  .da-inputrow input:focus { outline:none; border-color:#a855f7; box-shadow:0 0 0 3px rgba(168,85,247,.15); }
+  .da-inputrow button { background:linear-gradient(135deg,#a855f7,#7c3aed); color:#fff; border:none; border-radius:11px; padding:0 24px; font-weight:800; font-size:15px; cursor:pointer; box-shadow:0 4px 14px rgba(168,85,247,.4); transition:transform .12s; white-space:nowrap; }
+  .da-inputrow button:hover { transform:translateY(-2px); }
+  .da-sugestoes { display:flex; gap:8px; flex-wrap:wrap; }
+  .da-sug { background:rgba(168,85,247,.1); border:1px solid #a855f733; border-radius:20px; padding:7px 14px; font-size:12px; color:#c084fc; cursor:pointer; transition:all .12s; font-family:var(--font-body); }
+  .da-sug:hover { background:#a855f7; color:#fff; transform:translateY(-1px); }
+  .da-resposta { margin-top:12px; }
+  .da-modo-ia { flex-shrink:0; background:rgba(0,0,0,.25); border:1px solid #a855f755; color:#c084fc; border-radius:16px; padding:5px 13px; font-size:11px; font-weight:700; cursor:pointer; font-family:var(--font-body); transition:all .12s; }
+  .da-modo-ia:hover { background:#a855f7; color:#fff; }
+  @media(max-width:600px){ .assist-head{flex-wrap:wrap} .da-modo-ia{order:3} }
 
 /* ═══════════ MOBILE RESPONSIVE ═══════════ */
 @media (max-width: 768px) {
@@ -10139,16 +10152,25 @@ function renderDashboard(){
 
   // ── ASSISTENTE DO PAINEL (perguntas programadas) ──
   const sugestoes = _dashSugestoes();
-  const assistHtml = '<div class="dash-eyebrow" style="margin-top:8px"><span class="bar-accent" style="background:#a855f7"></span>Assistente do Painel</div>'
-    + '<div class="dash-assist">'
+  const assistHtml = '<div class="assist-card">'
+    + '<div class="assist-inner">'
+    + '<div class="assist-head">'
+      + '<span class="bot-ic">🤖</span>'
+      + '<div class="assist-headtext">'
+        + '<div class="assist-title">Assistente do <span class="grad">Painel</span></div>'
+        + '<div class="assist-sub">Pergunte sobre montagem, pedidos, estoque e produção</div>'
+      + '</div>'
+      + '<button class="da-modo-ia" id="da-modo-ia-btn" onclick="dashConfigIA()" title="Modo IA avançado">'+(_daIAAtivo()?'🤖 IA on':'🤖 Modo IA')+'</button>'
+    + '</div>'
     + '<div class="da-inputrow">'
-      + '<input type="text" id="dash-pergunta" placeholder="Pergunte algo… ex: quantos guinchos montar este mês?" autocomplete="off" onkeydown="if(event.key===\'Enter\')dashPerguntar()">'
+      + '<input type="text" id="dash-pergunta" placeholder="Ex: quantos guinchos montar até o fim do mês?" autocomplete="off" onkeydown="if(event.key===\'Enter\')dashPerguntar()">'
       + '<button onclick="dashPerguntar()">Perguntar</button>'
     + '</div>'
     + '<div class="da-sugestoes" id="dash-sugestoes">'
       + sugestoes.map(s=>'<button class="da-sug" onclick="dashPerguntarTexto(this.textContent)">'+s+'</button>').join('')
     + '</div>'
     + '<div id="dash-resposta" class="da-resposta" style="display:none"></div>'
+    + '</div>'
     + '</div>';
 
   cont.innerHTML='<div class="dash-eyebrow"><span class="bar-accent"></span>Indicadores do mês</div>'+heroHtml+montHtml+alertasHtml+assistHtml;
@@ -10241,7 +10263,7 @@ function _dashFamPedido(p){
   // fallback: família simples dos pedidos (GUINCHO/WALVOIL/FORCA)
   return p.familia || null;
 }
-function dashPerguntar(){
+async function dashPerguntar(){
   const inp=document.getElementById('dash-pergunta');
   const out=document.getElementById('dash-resposta');
   if(!inp||!out) return;
@@ -10250,11 +10272,30 @@ function dashPerguntar(){
   _dashSalvarHist(q);
   const resp = _dashResponder(q);
   out.style.display='block';
-  out.innerHTML = resp;
+  if(resp==='__NAO_SABE__'){
+    if(_daIAAtivo()){
+      // aciona a IA
+      out.innerHTML=_daBox('🤖 Consultando IA…','<div style="font-size:13px;color:var(--text-muted)">Analisando os dados do painel…</div>');
+      const r=await _daChamarIA(q);
+      if(r&&r.texto){
+        out.innerHTML=_daBox('🤖 Resposta da IA', '<div style="font-size:14px;line-height:1.7;white-space:pre-wrap">'+_daEscapeHtml(r.texto)+'</div>');
+      } else {
+        out.innerHTML=_daBox('Erro', '<div style="font-size:13px;color:var(--red)">'+(r&&r.erro?_daEscapeHtml(r.erro):'Não foi possível obter resposta da IA.')+'</div>');
+      }
+    } else {
+      out.innerHTML=_daBox('Não consegui calcular',
+        '<div style="font-size:13px;color:var(--text-muted);line-height:1.6">Ainda não sei responder essa no modo grátis. Tente algo como:<br>'
+        +'• "quantos guinchos montar este mês"<br>• "quanto falta montar de bomba"<br>• "ritmo/dia necessário para cilindro"<br>• "o que está atrasado"<br><br>'
+        +'Ou ative o <b>🤖 Modo IA</b> (canto superior) para perguntas livres.</div>');
+    }
+  } else {
+    out.innerHTML = resp;
+  }
   // atualiza sugestões
   const sugEl=document.getElementById('dash-sugestoes');
   if(sugEl){ sugEl.innerHTML=_dashSugestoes().map(s=>'<button class="da-sug" onclick="dashPerguntarTexto(this.textContent)">'+s+'</button>').join(''); }
 }
+function _daEscapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 // Motor de resposta (cálculos programados)
 function _dashResponder(q){
   const s=q.toLowerCase();
@@ -10295,8 +10336,25 @@ function _dashResponder(q){
     else if(periodo.tipo==='proximo') peds=peds.filter(p=>p.dataEnt && p.dataEnt>=iniProx && p.dataEnt<=fimProx);
     else peds=peds.filter(p=>p.dataEnt && p.dataEnt<=fimMes); // este mês (inclui atrasados até fim do mês)
 
-    // "quantos montar / quanto falta" = soma dos projetados negativos (já é estoque - pedidos)
-    const faltam = peds.reduce((acc,p)=> acc + (p.projetado<0 ? -p.projetado : 0), 0);
+    // "quantos montar / quanto falta" — cálculo por ITEM:
+    // soma as quantidades pendentes (qtde) dos pedidos do período por código,
+    // desconta o saldo (estoque atual do item, mesmo valor em todas as linhas do item),
+    // e conta só o que der negativo (falta real).
+    const porItem = {};
+    peds.forEach(p=>{
+      const cod = p.codigo || p.chave || '';
+      if(!porItem[cod]) porItem[cod] = { pend:0, saldo: p.saldo||0, desc:p.descricao||'' };
+      porItem[cod].pend += (p.qtde||0);
+      // saldo é o estoque atual do item: pega o mesmo valor (todas as linhas do item têm o mesmo)
+      porItem[cod].saldo = p.saldo||0;
+    });
+    let faltam = 0;
+    const itensFalta = [];
+    Object.entries(porItem).forEach(([cod,v])=>{
+      const proj = v.pend - v.saldo; // pendente - estoque do item
+      if(proj > 0){ faltam += proj; itensFalta.push({cod, desc:v.desc, pend:v.pend, saldo:v.saldo, falta:proj}); }
+    });
+    itensFalta.sort((a,b)=>b.falta-a.falta);
     const ritmo = duRest>0 ? faltam/duRest : 0;
 
     if(/ritmo|por dia|\/dia|media/.test(s)){
@@ -10308,18 +10366,26 @@ function _dashResponder(q){
         +'</div>'+_daLink('Ver pedidos desta família','dashAbrirPedidosFamilia(\''+famInfo.fam+'\')'));
     }
     // quantos montar / quanto falta
+    let tabela = '';
+    if(itensFalta.length){
+      tabela = '<div style="margin-top:12px;font-size:11px;color:var(--text-muted)">Detalhe por item (pendente − saldo):</div>'
+        +'<div style="margin-top:6px;max-height:200px;overflow:auto;border:1px solid var(--border);border-radius:8px">'
+        +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
+        +'<thead><tr style="background:var(--surface2)"><th style="text-align:left;padding:6px 8px">Item</th><th style="text-align:right;padding:6px 8px">Pend.</th><th style="text-align:right;padding:6px 8px">Saldo</th><th style="text-align:right;padding:6px 8px">Falta</th></tr></thead><tbody>'
+        +itensFalta.slice(0,15).map(it=>'<tr style="border-top:1px solid var(--border)"><td style="padding:5px 8px">'+(it.desc||it.cod).slice(0,28)+'</td><td style="text-align:right;padding:5px 8px">'+fmt(it.pend)+'</td><td style="text-align:right;padding:5px 8px">'+fmt(it.saldo)+'</td><td style="text-align:right;padding:5px 8px;color:var(--amber);font-weight:700">'+fmt(it.falta)+'</td></tr>').join('')
+        +'</tbody></table></div>'
+        +(itensFalta.length>15?'<div style="font-size:10px;color:var(--text-muted);margin-top:4px">+'+(itensFalta.length-15)+' itens…</div>':'');
+    }
     return _daBox((/falta/.test(s)?'Quanto falta montar':'Quantos montar')+' — '+famInfo.label+' ('+periodo.label+')',
       '<div style="font-size:14px;line-height:1.8">'
-      +'Considerando os pedidos ('+periodo.label+') já descontando o estoque atual:<br>'
+      +'Por item: soma da quantidade pendente dos pedidos ('+periodo.label+') menos o saldo (estoque) de cada item, contando só onde falta:<br>'
       +'<span style="font-size:26px;font-weight:900;color:var(--amber)">'+fmt(faltam)+'</span> '+famInfo.label.toLowerCase()+' a montar<br>'
       +(duRest>0?'Ritmo: <b style="color:var(--green)">'+fmt(ritmo)+'/dia</b> ('+duRest+' dias úteis restantes)':'')
-      +'</div>'+_daLink('Ver pedidos desta família','dashAbrirPedidosFamilia(\''+famInfo.fam+'\')'));
+      +'</div>'+tabela+_daLink('Ver pedidos desta família','dashAbrirPedidosFamilia(\''+famInfo.fam+'\')'));
   }
 
-  // não reconheceu
-  return _daBox('Não consegui calcular',
-    '<div style="font-size:13px;color:var(--text-muted);line-height:1.6">Ainda não sei responder essa. Tente algo como:<br>'
-    +'• "quantos guinchos montar este mês"<br>• "quanto falta montar de bomba"<br>• "ritmo/dia necessário para cilindro"<br>• "o que está atrasado"</div>');
+  // não reconheceu — sinaliza para acionar IA (se ativa) ou mostra ajuda
+  return '__NAO_SABE__';
 }
 function _daBox(titulo, corpo){
   return '<div style="background:var(--surface2);border:1px solid #a855f755;border-radius:10px;padding:14px 16px;margin-top:4px">'
@@ -10341,6 +10407,113 @@ function dashAbrirPedidosFamilia(famKey){
     } catch(e){ console.warn('dashAbrirPedidosFamilia',e); }
   },60);
 }
+
+// ═══════════ MODO IA AVANÇADO (chave local, só no navegador do usuário) ═══════════
+function _daIAAtivo(){ try { return !!localStorage.getItem('dash_ia_key'); } catch(e){ return false; } }
+function _daIAKey(){ try { return localStorage.getItem('dash_ia_key')||''; } catch(e){ return ''; } }
+// Abre config da chave (ativar/desativar modo IA)
+function dashConfigIA(){
+  const ativo=_daIAAtivo();
+  const out=document.getElementById('dash-resposta');
+  if(!out) return;
+  out.style.display='block';
+  out.innerHTML=_daBox('🤖 Modo IA avançado',
+    '<div style="font-size:13px;line-height:1.7;color:var(--text)">'
+    +(ativo
+      ? 'Modo IA está <b style="color:var(--green)">ativo</b> neste navegador. A IA responde quando o modo programado não souber.<br>'
+        +'<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'
+        +'<button onclick="dashDesativarIA()" style="background:rgba(255,59,59,.15);color:var(--red);border:1px solid #ff3b3b55;border-radius:6px;padding:7px 13px;font-size:12px;cursor:pointer">Desativar modo IA</button>'
+        +'</div>'
+      : 'Cole sua chave de API da Anthropic (começa com <code>sk-ant-</code>). Ela fica salva <b>só neste navegador</b>, nunca no código público.<br>'
+        +'<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+        +'<input type="password" id="da-ia-key-input" placeholder="sk-ant-..." style="flex:1;min-width:200px;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:9px 12px;color:var(--text);font-size:13px">'
+        +'<button onclick="dashAtivarIA()" style="background:#a855f7;color:#fff;border:none;border-radius:7px;padding:9px 16px;font-weight:700;font-size:13px;cursor:pointer">Ativar</button>'
+        +'</div>'
+        +'<div style="margin-top:8px;font-size:11px;color:var(--text-muted)">A chave é gerada em console.anthropic.com · uso cobrado à parte da assinatura.</div>'
+    )
+    +'</div>');
+}
+function dashAtivarIA(){
+  const inp=document.getElementById('da-ia-key-input');
+  const k=inp?inp.value.trim():'';
+  if(!k || !k.startsWith('sk-ant-')){ alert('Chave inválida. Deve começar com sk-ant-'); return; }
+  try { localStorage.setItem('dash_ia_key', k); } catch(e){}
+  const btn=document.getElementById('da-modo-ia-btn'); if(btn) btn.textContent='🤖 IA on';
+  const out=document.getElementById('dash-resposta');
+  if(out) out.innerHTML=_daBox('🤖 Modo IA ativado','<div style="font-size:13px;color:var(--green)">Pronto! Agora a IA responde quando o modo programado não souber. Faça uma pergunta livre.</div>');
+}
+function dashDesativarIA(){
+  try { localStorage.removeItem('dash_ia_key'); } catch(e){}
+  const btn=document.getElementById('da-modo-ia-btn'); if(btn) btn.textContent='🤖 Modo IA';
+  const out=document.getElementById('dash-resposta');
+  if(out) out.innerHTML=_daBox('Modo IA desativado','<div style="font-size:13px;color:var(--text-muted)">Voltou ao modo programado (grátis).</div>');
+}
+// Monta um resumo compacto dos dados do painel para enviar à IA
+function _daResumoPainel(){
+  const fmt=n=>Math.round(n).toLocaleString('pt-BR');
+  const linhas=[];
+  try {
+    // Pedidos por família (qtde e atrasados)
+    if(DATA.pedidos&&DATA.pedidos.length){
+      const porFam={};
+      DATA.pedidos.forEach(p=>{ const f=_dashFamPedido(p)||'OUTROS'; if(!porFam[f])porFam[f]={qtde:0,atras:0,projNeg:0}; porFam[f].qtde+=p.qtde||0; if(p.atrasado)porFam[f].atras+=p.qtde||0; if(p.projetado<0)porFam[f].projNeg+=-p.projetado; });
+      linhas.push('PEDIDOS por família (qtde total | qtde atrasada | falta montar=projetado negativo):');
+      Object.entries(porFam).forEach(([f,v])=>linhas.push('  '+f+': '+fmt(v.qtde)+' | '+fmt(v.atras)+' | '+fmt(v.projNeg)));
+    }
+    // Montagem média/dia por família com meta
+    if(DATA.montados&&DATA.montados.length){
+      linhas.push('MONTAGEM (médias do mês já calculadas estão nos cards do painel).');
+    }
+    // Estoque resumo
+    if(DATA.estoque&&DATA.estoque.length){
+      const abaixo=DATA.estoque.filter(r=>r.qtde_param_es>0&&r.estoque_total<r.qtde_param_es).length;
+      const falta=DATA.estoque.filter(r=>r.tot_falta>0).length;
+      linhas.push('ESTOQUE: '+abaixo+' itens abaixo do estoque de segurança, '+falta+' com falta a abastecer.');
+    }
+    // Disponibilidade
+    if(DATA.disponibilidade&&DATA.disponibilidade.length){
+      const disp=DATA.disponibilidade.filter(d=>d.disponivel>0).length;
+      linhas.push('DISPONIBILIDADE: '+disp+' itens disponíveis para venda.');
+    }
+    // dias úteis restantes
+    let duRest=0;
+    const hoje=new Date(); hoje.setHours(0,0,0,0);
+    const fer=new Set(getFeriados().map(f=>f.data));
+    const ultDia=new Date(hoje.getFullYear(),hoje.getMonth()+1,0).getDate();
+    for(let d=hoje.getDate();d<=ultDia;d++){const dt=new Date(hoje.getFullYear(),hoje.getMonth(),d);const dw=dt.getDay();const iso=hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');if(dw!==0&&dw!==6&&!fer.has(iso))duRest++;}
+    linhas.push('DIAS ÚTEIS restantes no mês (com hoje): '+duRest+'.');
+  } catch(e){ console.warn('resumo painel',e); }
+  return linhas.join('\n');
+}
+// Chama a API da Claude com a pergunta + resumo dos dados
+async function _daChamarIA(pergunta){
+  const key=_daIAKey();
+  if(!key) return null;
+  const resumo=_daResumoPainel();
+  const sysPrompt='Você é um assistente de PCP/Almoxarifado de uma indústria (Interpump). Responda em português brasileiro, de forma objetiva e direta, com os cálculos quando fizer sentido. Use SOMENTE os dados fornecidos abaixo do painel industrial. Se faltar dado, diga o que falta. Famílias de montagem: Tomada+Mult, Bomba, Cilindro, Conj.Eixo, Guincho+Enrolador, Comando, Válvula, Kit Hidráulico.\n\nDADOS ATUAIS DO PAINEL:\n'+resumo;
+  try {
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1024,
+        system:sysPrompt,
+        messages:[{role:'user',content:pergunta}]
+      })
+    });
+    if(!resp.ok){ const t=await resp.text(); return {erro:'Erro da API ('+resp.status+'): '+t.slice(0,200)}; }
+    const data=await resp.json();
+    const txt=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    return {texto:txt};
+  } catch(e){ return {erro:'Falha ao chamar a IA: '+e.message}; }
+}
+
 
 // helper: converte 'YYYY-MM-DD' para Date local (para isOverdue)
 function _dashParseISO(s){
