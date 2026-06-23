@@ -754,35 +754,71 @@
   .disp-col-dropdown label { display: block; font-size: 11px; padding: 2px 4px; cursor: pointer; white-space: nowrap; }
 
   /* ── DASHBOARD (tela inicial de indicadores + alertas) ── */
-  .dash-eyebrow { font-family: var(--font-display); font-size: 13px; font-weight: 700; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; margin: 0 0 12px; display: flex; align-items: center; gap: 10px; }
+  .dash-eyebrow { font-family: var(--font-display); font-size: 14px; font-weight: 700; letter-spacing: 2px; color: var(--text); text-transform: uppercase; margin: 0 0 14px; display: flex; align-items: center; gap: 12px; }
+  .dash-eyebrow .bar-accent { width: 4px; height: 16px; border-radius: 2px; background: var(--blue); }
   .dash-eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--border); }
-  .dash-hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 26px; }
-  .dh { background: linear-gradient(150deg, var(--surface2), var(--surface)); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; cursor: pointer; transition: transform .12s; position: relative; overflow: hidden; }
-  .dh:hover { transform: translateY(-3px); }
+  .dash-hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .dh { background: linear-gradient(155deg, var(--surface2), var(--surface)); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; cursor: pointer; transition: transform .15s; position: relative; overflow: hidden; }
+  .dh:hover { transform: translateY(-4px); }
   .dh::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
   .dh.ife::before { background: var(--blue); } .dh.terc::before { background: var(--amber); }
   .dh.tt::before { background: var(--red); } .dh.pm::before { background: var(--green); }
-  .dh .cap { font-family: var(--font-display); font-size: 13px; font-weight: 700; letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; }
-  .dh .big { font-family: var(--font-display); font-size: 38px; font-weight: 900; line-height: 1; margin: 6px 0 2px; }
-  .dh .meta { font-size: 12px; color: var(--text-muted); }
-  .dh .bar { height: 6px; background: var(--surface); border-radius: 3px; margin-top: 10px; overflow: hidden; }
-  .dh .bar i { display: block; height: 100%; border-radius: 3px; }
-  .dash-mont { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 10px; margin-bottom: 26px; }
-  .dmc { background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--green); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: transform .12s; }
-  .dmc:hover { transform: translateY(-2px); }
+  .dh.du::before { background: #a855f7; }
+  .dh.du { box-shadow: 0 0 0 1px rgba(168,85,247,.1), 0 8px 30px rgba(168,85,247,.06); }
+  .dh.du .dh-big { color: #c084fc; }
+  .dprog.du i { background: linear-gradient(90deg, #7c3aed, #c084fc); }
+  .dh.ife { box-shadow: 0 0 0 1px rgba(26,109,255,.1), 0 8px 30px rgba(26,109,255,.06); }
+  .dh.terc { box-shadow: 0 0 0 1px rgba(255,167,38,.1), 0 8px 30px rgba(255,167,38,.06); }
+  .dh.tt { box-shadow: 0 0 0 1px rgba(255,59,59,.1), 0 8px 30px rgba(255,59,59,.06); }
+  .dh.pm { box-shadow: 0 0 0 1px rgba(0,201,122,.1), 0 8px 30px rgba(0,201,122,.06); }
+  .dh-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .dh-cap { font-family: var(--font-display); font-size: 13px; font-weight: 700; letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; display: flex; align-items: center; gap: 7px; }
+  .dh-ic { font-size: 17px; }
+  .dh-selo { font-size: 9px; font-weight: 800; letter-spacing: .5px; padding: 3px 8px; border-radius: 20px; display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+  .dh-selo.up { background: rgba(0,201,122,.18); color: var(--green); }
+  .dh-selo.down { background: rgba(255,59,59,.18); color: var(--red); }
+  .dh-selo.neutral { background: rgba(61,139,255,.18); color: var(--blue-light); }
+  .dh-big { font-family: var(--font-display); font-size: 42px; font-weight: 900; line-height: .95; margin-bottom: 3px; }
+  .dh.ife .dh-big { color: var(--blue-light); } .dh.terc .dh-big { color: var(--amber); }
+  .dh.tt .dh-big { color: #ff6b6b; } .dh.pm .dh-big { color: var(--green); }
+  .dh-big small { font-size: 17px; color: var(--text-muted); font-weight: 600; }
+  .dh-meta { font-size: 11px; color: var(--text-muted); margin-bottom: 12px; }
+  .dprog { position: relative; height: 8px; background: rgba(255,255,255,.06); border-radius: 5px; margin-top: 4px; }
+  .dprog i { display: block; height: 100%; border-radius: 5px; }
+  .dprog.terc i { background: linear-gradient(90deg, #b87410, var(--amber)); }
+  .dprog.tt i { background: linear-gradient(90deg, #b32020, #ff6b6b); }
+  .dprog.pm i { background: linear-gradient(90deg, #00794a, var(--green)); }
+  .dprog .mark { position: absolute; top: -3px; width: 2px; height: 14px; background: #fff; border-radius: 1px; opacity: .6; }
+  .dspark { margin-top: 10px; height: 30px; width: 100%; }
+  /* montagem */
+  .dash-mont { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 32px; }
+  .dmc { background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--green); border-radius: 12px; padding: 14px 16px; cursor: pointer; transition: transform .15s; }
+  .dmc:hover { transform: translateY(-3px); }
   .dmc.crit { border-top-color: var(--red); }
+  .dmc-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
   .dmc .ml { font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: .5px; color: var(--text-muted); }
-  .dmc .mv { font-family: var(--font-display); font-size: 27px; font-weight: 900; line-height: 1; color: var(--green); }
-  .dmc.crit .mv { color: var(--red); }
+  .dmc .badge { font-size: 13px; }
+  .dmc .mv { font-family: var(--font-display); font-size: 28px; font-weight: 900; line-height: 1; color: var(--green); }
+  .dmc.crit .mv { color: #ff6b6b; }
   .dmc .mv small { font-size: 13px; color: var(--text-muted); }
-  .dmc .ms { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
-  .dash-al { display: flex; flex-direction: column; gap: 8px; }
-  .darow { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--red); border-radius: 9px; padding: 10px 14px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: background .12s; }
-  .darow:hover { background: var(--surface2); }
-  .darow.warn { border-left-color: var(--amber); } .darow.ok { border-left-color: var(--green); }
+  .dmc .dprog { margin-top: 8px; height: 5px; }
+  .dmc.crit .dprog i { background: linear-gradient(90deg, #b32020, #ff6b6b); }
+  .dmc:not(.crit) .dprog i { background: linear-gradient(90deg, #00794a, var(--green)); }
+  /* alertas críticos grandes */
+  .dash-crit-big { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 14px; }
+  .dcb { background: linear-gradient(135deg, rgba(255,59,59,.13), var(--surface)); border: 1px solid rgba(255,59,59,.3); border-radius: 13px; padding: 15px 18px; cursor: pointer; display: flex; align-items: center; gap: 15px; transition: transform .15s; }
+  .dcb:hover { transform: translateY(-3px); }
+  .dcb .cb-ic { font-size: 24px; opacity: .85; }
+  .dcb .cb-n { font-family: var(--font-display); font-size: 40px; font-weight: 900; color: #ff6b6b; line-height: .9; }
+  .dcb .cb-t { font-size: 12px; font-weight: 600; line-height: 1.3; } .dcb .cb-t small { display: block; color: var(--text-muted); font-weight: 400; font-size: 10px; margin-top: 2px; }
+  .dash-al { display: flex; flex-direction: column; gap: 9px; }
+  .darow { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 10px; padding: 11px 15px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: background .12s, transform .12s; }
+  .darow:hover { background: var(--surface2); transform: translateX(2px); }
+  .darow.crit { border-left-color: var(--red); } .darow.ok { border-left-color: var(--green); }
+  .darow .a-ic { font-size: 15px; opacity: .8; }
   .darow .lbl { flex: 1; font-size: 13px; } .darow .lbl small { color: var(--text-muted); }
-  .darow .n { font-family: var(--font-display); font-size: 23px; font-weight: 900; color: var(--red); }
-  .darow.warn .n { color: var(--amber); } .darow.ok .n { color: var(--green); }
+  .darow .n { font-family: var(--font-display); font-size: 24px; font-weight: 900; color: var(--amber); }
+  .darow.crit .n { color: var(--red); } .darow.ok .n { color: var(--green); }
 
 /* ═══════════ MOBILE RESPONSIVE ═══════════ */
 @media (max-width: 768px) {
@@ -9911,30 +9947,89 @@ function renderDashboard(){
   const pctBar=(r,m)=> m>0?Math.min(100,Math.round(r/m*100)):0;
   const _dfmt = n => Math.round(n).toLocaleString('pt-BR');
 
+  // helper sparkline: recebe array de números, devolve <svg>
+  const _spark = (vals, cor) => {
+    if (!vals || vals.length < 2) return '';
+    const max=Math.max(...vals), min=Math.min(...vals), rng=(max-min)||1;
+    const n=vals.length;
+    const pts=vals.map((v,i)=>{ const x=Math.round(i/(n-1)*200); const y=Math.round(26-((v-min)/rng)*22)+2; return x+','+y; }).join(' ');
+    return '<svg class="dspark" viewBox="0 0 200 30" preserveAspectRatio="none"><polyline points="'+pts+'" fill="none" stroke="'+cor+'" stroke-width="2"/></svg>';
+  };
+  // séries para sparkline
+  let ifeSerie=[], ttSerie=[], pmSerie=[];
+  try {
+    if (DATA.ife && DATA.ife.length) {
+      const meses=[...new Set(DATA.ife.map(r=>r.mesKey))].sort().slice(-8);
+      ifeSerie = meses.map(m=>{ const c=_ifeCalc(DATA.ife.filter(_ifeFiltrar('CONSOLIDADO')).filter(r=>r.mesKey===m)); return c.ife||0; });
+    }
+    if (DATA.termico && DATA.termico.diarioTT) {
+      const dTT={}, dPM={};
+      (DATA.termico.diarioTT||[]).forEach(r=>{if(r.dt)dTT[r.dt]=(dTT[r.dt]||0)+r.qtde;});
+      (DATA.termico.diarioPM||[]).forEach(r=>{if(r.dt)dPM[r.dt]=(dPM[r.dt]||0)+r.qtde;});
+      ttSerie = Object.keys(dTT).sort().slice(-10).map(k=>dTT[k]);
+      pmSerie = Object.keys(dPM).sort().slice(-10).map(k=>dPM[k]);
+    }
+  } catch(e){ console.warn('dash spark', e); }
+
   // ── HERO (indicadores) ──
+  // Dias úteis do mês corrente: total, passados (até ontem), restantes (de hoje ao fim)
+  let duTotal=0, duPassados=0, duRestantes=0;
+  try {
+    const hojeD=new Date(); hojeD.setHours(0,0,0,0);
+    const anoM=hojeD.getFullYear(), mesM=hojeD.getMonth();
+    const fer=new Set(getFeriados().map(f=>f.data));
+    const ultDia=new Date(anoM,mesM+1,0).getDate();
+    for(let d=1;d<=ultDia;d++){
+      const dt=new Date(anoM,mesM,d); const dw=dt.getDay();
+      const iso=anoM+'-'+String(mesM+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      if(dw===0||dw===6||fer.has(iso)) continue;
+      duTotal++;
+      if(d < hojeD.getDate()) duPassados++;
+      else duRestantes++;  // inclui hoje
+    }
+  } catch(e){ console.warn('dash du', e); }
+
   let heroHtml='<div class="dash-hero">';
-  // IFE com 3 percentuais
-  heroHtml += '<div class="dh ife" onclick="showTab(\'ife\')"><div class="cap">📈 IFE — mês atual</div>'
-    + '<div class="big">'+ifeCons+'</div>'
-    + '<div class="meta">consolidado · Matriz '+ifeMatr+' · Filial SP '+ifeFil+'</div></div>';
-  // Terceiros: valor + meta + % + previsão
-  heroHtml += '<div class="dh terc" onclick="showTab(\'servicos\')"><div class="cap">🔧 Terceiros — realizado</div>'
-    + '<div class="big">'+fmtMoney(tercReal)+'</div>'
-    + '<div class="meta">meta '+fmtMoney(tercMeta)+(tercMeta>0?' · '+Math.round(tercReal/tercMeta*100)+'%':'')
-      + (tercPrev>0?' · prev. '+fmtMoney(tercPrev):'')+'</div>'
-    + (tercMeta>0?'<div class="bar"><i style="width:'+pctBar(tercReal,tercMeta)+'%;background:var(--amber)"></i></div>':'')+'</div>';
-  // TT: último dia (destaque) + média acumulada + meta/dia
+  // Card de DIAS ÚTEIS do mês
+  heroHtml += '<div class="dh du">'
+    + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📅</span>Dias úteis do mês</div></div>'
+    + '<div class="dh-big">'+duPassados+'<small> / '+duTotal+'</small></div>'
+    + '<div class="dh-meta">'+duPassados+' passados · '+duRestantes+' restantes (com hoje)</div>'
+    + '<div class="dprog du"><i style="width:'+(duTotal>0?Math.round(duPassados/duTotal*100):0)+'%"></i></div></div>';
+  // IFE — % consolidado + selo + sparkline
+  const ifeNum = parseFloat(String(ifeCons).replace('%','').replace(',','.'))||0;
+  const ifeSelo = ifeNum>=95 ? '<div class="dh-selo up">▲ na meta</div>' : '<div class="dh-selo down">▼ abaixo</div>';
+  heroHtml += '<div class="dh ife" onclick="showTab(\'ife\')">'
+    + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📈</span>IFE — mês atual</div>'+ifeSelo+'</div>'
+    + '<div class="dh-big">'+ifeCons+'</div>'
+    + '<div class="dh-meta">consolidado · Matriz '+ifeMatr+' · Filial SP '+ifeFil+'</div>'
+    + _spark(ifeSerie, '#3d8bff') + '</div>';
+  // Terceiros — valor + meta + % + previsão + barra com marcador
+  const tercPct = tercMeta>0 ? Math.round(tercReal/tercMeta*100) : 0;
+  heroHtml += '<div class="dh terc" onclick="showTab(\'servicos\')">'
+    + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">🔧</span>Terceiros</div>'
+      + (tercMeta>0?'<div class="dh-selo neutral">'+tercPct+'% meta</div>':'')+'</div>'
+    + '<div class="dh-big">'+fmtMoney(tercReal)+'</div>'
+    + '<div class="dh-meta">meta '+fmtMoney(tercMeta)+(tercPrev>0?' · prev. '+fmtMoney(tercPrev):'')+'</div>'
+    + (tercMeta>0?'<div class="dprog terc"><i style="width:'+pctBar(tercReal,tercMeta)+'%"></i><span class="mark" style="left:100%"></span></div>':'')+'</div>';
+  // TT — último dia + média + meta + selo + barra + sparkline
   const ttOk=ttMed>=ttMetaDia;
-  heroHtml += '<div class="dh tt" onclick="showTab(\'termico\')"><div class="cap">🌡️ TT — Térmico (último dia)</div>'
-    + '<div class="big">'+_dfmt(ttUltDia)+'</div>'
-    + '<div class="meta">média '+_dfmt(ttMed)+'/dia · meta '+_dfmt(ttMetaDia)+'/dia · '+(ttOk?'▲':'▼')+'</div>'
-    + '<div class="bar"><i style="width:'+pctBar(ttMed,ttMetaDia)+'%;background:var(--red)"></i></div></div>';
-  // PM: último dia (destaque) + média acumulada + meta/dia
+  heroHtml += '<div class="dh tt" onclick="showTab(\'termico\')">'
+    + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">🌡️</span>TT — último dia</div>'
+      + '<div class="dh-selo '+(ttOk?'up':'down')+'">'+(ttOk?'▲ na meta':'▼ abaixo')+'</div></div>'
+    + '<div class="dh-big">'+_dfmt(ttUltDia)+'</div>'
+    + '<div class="dh-meta">média '+_dfmt(ttMed)+'/dia · meta '+_dfmt(ttMetaDia)+'/dia</div>'
+    + '<div class="dprog tt"><i style="width:'+pctBar(ttMed,ttMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div>'
+    + _spark(ttSerie, '#ff6b6b') + '</div>';
+  // PM — último dia + média + meta + selo + barra + sparkline
   const pmOk=pmMed>=pmMetaDia;
-  heroHtml += '<div class="dh pm" onclick="showTab(\'termico\')"><div class="cap">✨ PM — Polimento (último dia)</div>'
-    + '<div class="big">'+_dfmt(pmUltDia)+'</div>'
-    + '<div class="meta">média '+_dfmt(pmMed)+'/dia · meta '+_dfmt(pmMetaDia)+'/dia · '+(pmOk?'▲':'▼')+'</div>'
-    + '<div class="bar"><i style="width:'+pctBar(pmMed,pmMetaDia)+'%;background:var(--green)"></i></div></div>';
+  heroHtml += '<div class="dh pm" onclick="showTab(\'termico\')">'
+    + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">✨</span>PM — último dia</div>'
+      + '<div class="dh-selo '+(pmOk?'up':'down')+'">'+(pmOk?'▲ na meta':'▼ abaixo')+'</div></div>'
+    + '<div class="dh-big">'+_dfmt(pmUltDia)+'</div>'
+    + '<div class="dh-meta">média '+_dfmt(pmMed)+'/dia · meta '+_dfmt(pmMetaDia)+'/dia</div>'
+    + '<div class="dprog pm"><i style="width:'+pctBar(pmMed,pmMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div>'
+    + _spark(pmSerie, '#00c97a') + '</div>';
   heroHtml += '</div>';
 
   // ── MONTAGEM (só famílias com meta, 1 casa decimal) ──
@@ -9956,12 +10051,14 @@ function renderDashboard(){
       const media=duEmail>0?semHoje/duEmail:0;
       const metaDia=getMontadosMeta(col,mesAtual)||0;
       const ok=metaDia>0?media>=metaDia:true;
+      const pctM=metaDia>0?Math.min(100,Math.round(media/metaDia*100)):0;
       return '<div class="dmc '+(ok?'':'crit')+'" onclick="showTab(\'montados\')">'
-        +'<div class="ml">'+label+'</div>'
+        +'<div class="dmc-top"><span class="ml">'+label+'</span><span class="badge">'+(metaDia>0?(ok?'▲':'▼'):'')+'</span></div>'
         +'<div class="mv">'+fmt1(media)+' <small>/'+fmt1(metaDia)+'</small></div>'
-        +'<div class="ms">'+(metaDia>0?(ok?'▲ acima da meta':'▼ abaixo da meta'):'sem meta')+'</div></div>';
+        +(metaDia>0?'<div class="dprog"><i style="width:'+pctM+'%"></i></div>':'<div class="ms" style="font-size:10px;color:var(--text-muted);margin-top:4px">sem meta</div>')
+        +'</div>';
     }).join('');
-    montHtml='<div class="dash-eyebrow" style="margin-top:6px">Montagem — média/dia vs meta (mês atual)</div><div class="dash-mont">'+cards+'</div>';
+    montHtml='<div class="dash-eyebrow"><span class="bar-accent" style="background:var(--green)"></span>Montagem — média/dia vs meta</div><div class="dash-mont">'+cards+'</div>';
   } catch(e){ console.warn('dash mont',e); }
 
   // ── ALERTAS ──
@@ -9970,15 +10067,15 @@ function renderDashboard(){
     // Itens atrasados nos pedidos (substitui projetado negativo)
     if (DATA.pedidos && DATA.pedidos.length) {
       const atrasados=DATA.pedidos.filter(r=>r.atrasado).length;
-      if(atrasados>0) alertas.push({sev:'crit',n:atrasados,lbl:'<b>Itens atrasados em pedidos</b> — data de entrega vencida',tab:'pedidos'});
+      if(atrasados>0) alertas.push({sev:'crit',n:atrasados,lbl:'<b>Itens atrasados em pedidos</b> — data de entrega vencida',tab:'pedidos',filtro:'atrasado'});
     }
     // OFs em atraso: 2 cards — Montagem (soma qtde) e Produção (contagem de ordens)
     if (DATA.ofItens && DATA.ofItens.length) {
       const atrasadas=DATA.ofItens.filter(it=>it.DT_FINAL && isOverdue(it.DT_FINAL));
       const montQtd=atrasadas.filter(it=>it.FAMILIA).reduce((s,it)=>s+(it.QTDE_PEND||0),0);
       const prodOrdens=new Set(atrasadas.filter(it=>!it.FAMILIA).map(it=>it.NUM_ORDEM)).size;
-      if(montQtd>0) alertas.push({sev:'crit',n:Math.round(montQtd),lbl:'<b>OFs Montagem em atraso</b> <small>· soma das quantidades pendentes</small>',tab:'of'});
-      if(prodOrdens>0) alertas.push({sev:'crit',n:prodOrdens,lbl:'<b>OFs Produção em atraso</b> <small>· nº de ordens</small>',tab:'of'});
+      if(montQtd>0) alertas.push({sev:'crit',n:Math.round(montQtd),lbl:'<b>OFs Montagem em atraso</b> <small>· soma das quantidades pendentes</small>',tab:'of',filtro:'montagem'});
+      if(prodOrdens>0) alertas.push({sev:'crit',n:prodOrdens,lbl:'<b>OFs Produção em atraso</b> <small>· nº de ordens</small>',tab:'of',filtro:'producao'});
     }
     // Estoque abaixo da segurança + falta a abastecer
     if (DATA.estoque && DATA.estoque.length) {
@@ -9990,18 +10087,67 @@ function renderDashboard(){
     // Disponibilidade
     if (DATA.disponibilidade && DATA.disponibilidade.length) {
       const disp=DATA.disponibilidade.filter(d=>d.disponivel>0).length;
-      if(disp>0) alertas.push({sev:'ok',n:disp,lbl:'Itens disponíveis para venda',tab:'disponibilidade'});
+      if(disp>0) alertas.push({sev:'ok',n:disp,lbl:'Itens disponíveis para venda',tab:'disponibilidade',filtro:'disponivel'});
     }
   } catch(e){ console.warn('dash alertas',e); }
 
+  // ícones por aba/tipo
+  const _icAlert = a => {
+    if (a.filtro==='atrasado') return '⏰';
+    if (a.filtro==='montagem') return '🔩';
+    if (a.filtro==='producao') return '⚙️';
+    if (a.tab==='estoque') return a.lbl.indexOf('falta')>=0?'🚚':'📦';
+    if (a.tab==='disponibilidade') return '✅';
+    return '🔔';
+  };
+  const criticos = alertas.filter(a=>a.sev==='crit');
+  const demais = alertas.filter(a=>a.sev!=='crit');
   let alertasHtml='';
-  if(alertas.length){
-    alertasHtml='<div class="dash-eyebrow" style="margin-top:6px">Alertas</div><div class="dash-al">'
-      + alertas.map(a=>'<div class="darow '+a.sev+'" onclick="showTab(\''+a.tab+'\')"><span class="lbl">'+a.lbl+'</span><span class="n">'+a.n.toLocaleString('pt-BR')+'</span></div>').join('')
+  if (criticos.length) {
+    alertasHtml += '<div class="dash-eyebrow"><span class="bar-accent" style="background:var(--red)"></span>Crítico — exige ação</div>';
+    alertasHtml += '<div class="dash-crit-big">'
+      + criticos.map(a=>{
+          const onclick = a.filtro ? 'dashIrFiltrado(\''+a.tab+'\',\''+a.filtro+'\')' : 'showTab(\''+a.tab+'\')';
+          const lblClean = a.lbl.replace(/<b>|<\/b>/g,'').replace(/ <small>.*?<\/small>/,'');
+          const sub = (a.lbl.match(/<small>(.*?)<\/small>/)||[])[1] || (a.lbl.match(/— (.*)$/)||[])[1] || '';
+          return '<div class="dcb" onclick="'+onclick+'"><span class="cb-ic">'+_icAlert(a)+'</span><span class="cb-n">'+a.n.toLocaleString('pt-BR')+'</span>'
+            +'<div class="cb-t">'+lblClean.replace(/ —.*$/,'')+(sub?'<small>'+sub+'</small>':'')+'</div></div>';
+        }).join('')
+      + '</div>';
+  }
+  if (demais.length) {
+    if (!criticos.length) alertasHtml += '<div class="dash-eyebrow"><span class="bar-accent" style="background:var(--amber)"></span>Alertas</div>';
+    alertasHtml += '<div class="dash-al">'
+      + demais.map(a=>{
+          const onclick = a.filtro ? 'dashIrFiltrado(\''+a.tab+'\',\''+a.filtro+'\')' : 'showTab(\''+a.tab+'\')';
+          return '<div class="darow '+a.sev+'" onclick="'+onclick+'"><span class="a-ic">'+_icAlert(a)+'</span><span class="lbl">'+a.lbl+'</span><span class="n">'+a.n.toLocaleString('pt-BR')+'</span></div>';
+        }).join('')
       + '</div>';
   }
 
-  cont.innerHTML='<div class="dash-eyebrow">Indicadores do mês</div>'+heroHtml+montHtml+alertasHtml;
+  cont.innerHTML='<div class="dash-eyebrow"><span class="bar-accent"></span>Indicadores do mês</div>'+heroHtml+montHtml+alertasHtml;
+}
+
+// Navega para uma aba aplicando o filtro correspondente ao alerta clicado
+function dashIrFiltrado(tab, filtro){
+  showTab(tab);
+  setTimeout(()=>{
+    try {
+      if (tab==='of') {
+        if (filtro==='montagem'){ setOFEscopo('montagem'); setOFSituacao('atraso'); }
+        else if (filtro==='producao'){ setOFEscopo('producao'); setOFSituacao('atraso'); }
+      } else if (tab==='pedidos' && filtro==='atrasado') {
+        // marca só o status ATRASADO no multi-select de status
+        const itens=document.querySelectorAll('#ms-pv-status .ms-item input[type=checkbox]');
+        itens.forEach(cb=>{ cb.checked = (cb.value==='ATRASADO'); });
+        const all=document.getElementById('ms-pv-status-all'); if(all) all.checked=false;
+        if (typeof msChange==='function') msChange('ms-pv-status');
+      } else if (tab==='disponibilidade' && filtro==='disponivel') {
+        const so=document.getElementById('disp-so-disponiveis'); if(so){ so.checked=true; }
+        if (typeof renderDisponibilidade==='function') renderDisponibilidade();
+      }
+    } catch(e){ console.warn('dashIrFiltrado', e); }
+  }, 60);
 }
 // helper: converte 'YYYY-MM-DD' para Date local (para isOverdue)
 function _dashParseISO(s){
