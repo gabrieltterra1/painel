@@ -10238,7 +10238,7 @@ function renderDashboard(){
       + '<button class="da-modo-ia" id="da-modo-ia-btn" onclick="dashConfigIA()" title="Modo IA avançado">'+(_daIAAtivo()?'🤖 IA on':'🤖 Modo IA')+'</button>'
     + '</div>'
     + '<div class="da-inputrow">'
-      + '<input type="text" id="dash-pergunta" placeholder="Ex: quantos guinchos montar até o fim do mês?" autocomplete="off" onkeydown="if(event.key===\'Enter\')dashPerguntar()">'
+      + '<input type="text" id="dash-pergunta" placeholder="Ex: quantos guinchos montar até o fim do mês?" autocomplete="off" onfocus="dashMostrarIdeias()" onkeydown="if(event.key===\'Enter\')dashPerguntar()">'
       + '<button onclick="dashPerguntar()">Perguntar</button>'
     + '</div>'
     + '<div class="da-sugestoes" id="dash-sugestoes">'
@@ -10290,15 +10290,17 @@ function _dashSalvarHist(p){
 function _dashSugestoes(){
   const padrao = [
     'Quantos guinchos montar este mês?',
-    'Quanto falta montar de bomba?',
+    'Consigo atender os guinchos no ritmo atual?',
+    'O que está disponível e tem pedido atrasado?',
+    'Os terceiros vão estourar a meta?',
+    'Tenho estoque pra faturar os pedidos prontos?',
     'Como está o IFE?',
     'Quanto gastei com terceiros?',
     'Como está o térmico e polimento?',
     'O que está abaixo do estoque de segurança?',
-    'Quantos itens disponíveis para venda?',
-    'Como estão os pedidos atrasados?',
     'Quantas OFs em atraso?',
-    'Quanto montei este mês?'
+    'Quanto montei este mês?',
+    'Como estão os pedidos atrasados?'
   ];
   const hist = _dashHistorico();
   const todas = [...hist, ...padrao];
@@ -10332,6 +10334,22 @@ function _dashPeriodoPergunta(q){
   return {tipo:'mes', label:'este mês'};
 }
 // Classifica família do pedido (usa pvFamilia pelo código de classificação)
+// Média/dia de montagem do mês atual para uma família (col = chave tipo BOMBA, GUINCHO...)
+function _dashMediaMontagem(col){
+  try {
+    const hoje=new Date(); hoje.setHours(0,0,0,0);
+    const mesA=hoje.getMonth(), anoA=hoje.getFullYear();
+    const feriados=getFeriados().map(f=>f.data);
+    const norm=s=>String(s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const isMediaLabel=s=>{const n=norm(s);return /M.DIA/.test(n)&&!n.includes('TOTAL');};
+    const num=v=>{const n=parseFloat(String(v||'').replace('.','').replace(',','.'));return isNaN(n)?0:n;};
+    const rows=(DATA.montados||[]).filter(r=>!norm(r.DATA).includes('TOTAL')&&!isMediaLabel(r.DATA)&&!norm(r.DATA).includes('DIAS')&&!norm(r.DATA).includes('UTEIS')&&r.DATA).filter(r=>{const d=parseDate(r.DATA||'');return d&&d.getMonth()===mesA&&d.getFullYear()===anoA;});
+    const hojeKey=hoje.getTime();
+    const du=rows.filter(r=>{const d=parseDate(r.DATA||'');if(!d)return false;if(d.getTime()===hojeKey)return false;if(d.getDay()===0||d.getDay()===6)return false;const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');if(feriados.includes(iso))return false;return true;}).length;
+    const soma=rows.reduce((s,r)=>{const d=parseDate(r.DATA||'');if(d&&d.getTime()===hojeKey)return s;return s+num(r[col]);},0);
+    return du>0?soma/du:0;
+  } catch(e){ return 0; }
+}
 function _dashFamPedido(p){
   try {
     if (typeof pvFamilia === 'function') {
@@ -10353,9 +10371,32 @@ function _dashFamPedido(p){
   } catch(e){}
   return null;
 }
+function _daEscapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// Mostra um catálogo de ideias de perguntas, organizado por categoria
+function dashMostrarIdeias(){
+  const out=document.getElementById('dash-resposta');
+  if(!out) return;
+  // só mostra se ainda não há resposta visível (não atrapalha)
+  if(out.style.display==='block' && out.dataset.tipo!=='ideias' && out.innerHTML.trim()) return;
+  const cats=[
+    ['🔧 Montagem & Pedidos', ['Quantos guinchos montar este mês?','Quanto falta montar de bomba?','Qual o ritmo necessário para cilindro?','Consigo atender os guinchos no ritmo atual?','Projeção de fechamento de guincho','Quanto montei este mês?']],
+    ['📦 Estoque & Disponibilidade', ['O que está abaixo do estoque de segurança?','Quanto falta a abastecer?','Qual o NS de abastecimento?','Quantos itens disponíveis para venda?','O que está disponível e tem pedido atrasado?']],
+    ['📋 Pedidos & OFs', ['Como estão os pedidos atrasados?','Tenho estoque pra faturar os pedidos prontos?','Quantas OFs em atraso?','Quais OFs travam pedidos atrasados?','Top clientes da carteira']],
+    ['📊 Indicadores', ['Como está o IFE?','Qual a tendência do IFE?','Como está o térmico e polimento?','Quanto gastei com terceiros?','Os terceiros vão estourar a meta?']]
+  ];
+  out.style.display='block';
+  out.dataset.tipo='ideias';
+  out.innerHTML='<div style="background:var(--surface2);border:1px solid #a855f733;border-radius:10px;padding:14px 16px">'
+    +'<div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:#c084fc;margin-bottom:10px">💡 Coisas que você pode me perguntar</div>'
+    +cats.map(([titulo,perguntas])=>'<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:5px">'+titulo+'</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px">'+perguntas.map(p=>'<button class="da-sug" onclick="dashPerguntarTexto(\''+p.replace(/'/g,"\\'")+'\')">'+p+'</button>').join('')+'</div></div>').join('')
+    +'<div style="font-size:11px;color:var(--text-muted);margin-top:6px">Pode perguntar com suas palavras — eu entendo variações. Famílias: guincho, bomba, cilindro, tomada, conj. eixo, comando, válvula, kit.</div>'
+    +'</div>';
+}
 async function dashPerguntar(){
   const inp=document.getElementById('dash-pergunta');
   const out=document.getElementById('dash-resposta');
+  if(out) out.dataset.tipo='';
   if(!inp||!out) return;
   const q=inp.value.trim();
   if(!q){ return; }
@@ -10385,7 +10426,6 @@ async function dashPerguntar(){
   const sugEl=document.getElementById('dash-sugestoes');
   if(sugEl){ sugEl.innerHTML=_dashSugestoes().map(s=>'<button class="da-sug" onclick="dashPerguntarTexto(this.textContent)">'+s+'</button>').join(''); }
 }
-function _daEscapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 // Motor de resposta (cálculos programados)
 function _dashResponder(q){
   const s=q.toLowerCase();
@@ -10406,8 +10446,155 @@ function _dashResponder(q){
   const anoAt=agora.getFullYear(), mmAt=String(agora.getMonth()+1).padStart(2,'0');
 
   // Prioridade: pergunta de família + (montar/falta/ritmo) vai direto ao cálculo de família (mais abaixo)
-  const _famPrior = _dashFamiliaPergunta(q) && /montar|falta|ritmo|por dia|\/dia|atender|carreira/.test(s);
+  // "consigo/atender/no ritmo" NÃO entram aqui — são tratados como cruzamento inteligente.
+  const _ehCruzamento = /consigo|d[áa] tempo|vou conseguir|no ritmo|atender.*ritmo|ritmo.*atender/.test(s);
+  const _famPrior = _dashFamiliaPergunta(q) && /montar|falta|ritmo|por dia|\/dia/.test(s) && !_ehCruzamento;
   if(!_famPrior){
+
+  // ═══════════ CRUZAMENTOS ENTRE ABAS (perguntas inteligentes) ═══════════
+  // "consigo entregar/atender no ritmo atual" — pedidos atrasados+mês vs ritmo de montagem
+  if(/consigo|d[áa] tempo|vou conseguir|no ritmo|atender.*ritmo|ritmo.*atender/.test(s) && _dashFamiliaPergunta(q)){
+    try {
+      const famInfo=_dashFamiliaPergunta(q);
+      const hoje=new Date(); hoje.setHours(0,0,0,0);
+      const fimMes=new Date(hoje.getFullYear(),hoje.getMonth()+1,0);
+      let peds=(DATA.pedidos||[]).filter(p=>_dashFamPedido(p)===famInfo.fam && p.dataEnt && p.dataEnt<=fimMes);
+      const porItem={}; peds.forEach(p=>{const c=p.codigo||'';if(!porItem[c])porItem[c]={pend:0,saldo:p.saldo||0};porItem[c].pend+=p.qtde||0;porItem[c].saldo=p.saldo||0;});
+      let falta=0; Object.values(porItem).forEach(v=>{const pr=v.pend-v.saldo;if(pr>0)falta+=pr;});
+      // ritmo atual de montagem (média/dia do mês) da família
+      const colMap={'TOMADA_MULT':'TOMADA_MULT','BOMBA':'BOMBA','CILINDRO':'CILINDRO','CONJ_EIXO':'CONJ_EIXO','GUINCHO':'GUINCHO','COMANDO':'COMANDO','VALVULA':'VALVULA','KIT_HIDR':'KIT_HIDR'};
+      const col=colMap[famInfo.fam];
+      const mediaAtual=_dashMediaMontagem(col);
+      const ritmoNec=duRest>0?falta/duRest:0;
+      const ok=mediaAtual>=ritmoNec;
+      return _daBox('Consigo atender '+famInfo.label+' este mês?',
+        '<div style="font-size:14px;line-height:1.9">'
+        +'Falta montar: <b style="color:var(--amber)">'+fmt(falta)+'</b> em <b>'+duRest+'</b> dias úteis<br>'
+        +'Ritmo necessário: <b>'+fmt(ritmoNec)+'/dia</b><br>'
+        +'Ritmo atual (média/dia): <b>'+fmt(mediaAtual)+'/dia</b><br>'
+        +'<b style="color:'+(ok?'var(--green)':'var(--red)')+';font-size:16px">'+(ok?'✓ No ritmo atual dá para atender':'✗ Ritmo insuficiente — precisa acelerar')+'</b>'
+        +(ok?'':'<br><span style="font-size:12px;color:var(--text-muted)">Faltam '+fmt(ritmoNec-mediaAtual)+'/dia a mais</span>')
+        +'</div>'+_daLink('Ver pedidos desta família','dashAbrirPedidosFamilia(\''+famInfo.fam+'\')'));
+    } catch(e){ return _daBox('Erro','<div>Não consegui cruzar os dados.</div>'); }
+  }
+
+  // "o que está disponível e tem pedido atrasado" — disponibilidade vs pedidos atrasados
+  if(/dispon[íi]vel.*atrasad|atrasad.*dispon[íi]vel|vender.*atrasad|tem.*estoque.*atrasad/.test(s)){
+    try {
+      const dispItens=new Set((DATA.disponibilidade||[]).filter(d=>d.disponivel>0).map(d=>d.item));
+      const pedAtras=(DATA.pedidos||[]).filter(p=>p.atrasado);
+      const cruzados={}; pedAtras.forEach(p=>{ if(dispItens.has(p.codigo)){ if(!cruzados[p.codigo])cruzados[p.codigo]={desc:p.descricao,qtde:0}; cruzados[p.codigo].qtde+=p.qtde||0; } });
+      const lista=Object.entries(cruzados);
+      let tab=''; if(lista.length){ tab='<div style="margin-top:8px;font-size:12px;line-height:1.7">'+lista.slice(0,12).map(([c,v])=>'• '+(v.desc||c).slice(0,32)+': <b>'+fmt(v.qtde)+'</b>').join('<br>')+'</div>'; }
+      return _daBox('Disponível em estoque COM pedido atrasado',
+        '<div style="font-size:14px;line-height:1.8">'
+        +'<b style="color:var(--green);font-size:20px">'+fmt(lista.length)+'</b> itens podem ser faturados agora para quitar atrasos.'
+        +'</div>'+tab+_daLink('Ver disponibilidade','dashIrFiltrado(\'disponibilidade\',\'disponivel\')'));
+    } catch(e){ return _daBox('Erro','<div>Não consegui cruzar disponibilidade com pedidos.</div>'); }
+  }
+
+  // "tenho estoque pra faturar os pedidos prontos" — pedidos FATURAR
+  if(/estoque.*faturar|faturar.*pronto|pronto.*faturar|posso faturar/.test(s)){
+    try {
+      const faturar=(DATA.pedidos||[]).filter(p=>p.status==='FATURAR');
+      const qtde=faturar.reduce((sm,p)=>sm+(p.qtde||0),0);
+      const valor=faturar.reduce((sm,p)=>sm+(p.valor||0),0);
+      return _daBox('Pedidos prontos para faturar',
+        '<div style="font-size:14px;line-height:1.9">'
+        +'<b style="color:var(--green);font-size:20px">'+fmt(faturar.length)+'</b> linhas com estoque disponível<br>'
+        +'Quantidade: <b>'+fmt(qtde)+'</b> · Valor: <b>'+fmtMoney(valor)+'</b><br>'
+        +'<span style="font-size:12px;color:var(--text-muted)">Ação: priorizar faturamento destes itens</span>'
+        +'</div>'+_daLink('Ver pedidos','showTab(\'pedidos\')'));
+    } catch(e){ return _daBox('Erro','<div>Não consegui calcular.</div>'); }
+  }
+
+  // "terceiros vão estourar a meta" — realizado vs previsão vs meta
+  if(/terceiro.*estourar|estourar.*meta|vai passar.*meta|previs[ãa]o.*terceiro|terceiro.*previs/.test(s)){
+    try {
+      let real=0; (DATA.servico||[]).forEach(r=>{ if((r.mes||'').indexOf(anoAt+'-'+mmAt)===0) real+=r.valor||0; });
+      let meta=0; if(typeof getMetaTerc==='function') meta=getMetaTerc(anoAt,mmAt)||0;
+      let prev=0; if(typeof calcularPrevisaoServicos==='function'){ try{ const pv=calcularPrevisaoServicos(); if(pv&&pv.totalPorAlvo)prev=pv.totalPorAlvo[0]||0; }catch(_){} }
+      const vaiEstourar=prev>meta;
+      return _daBox('Terceiros vão estourar a meta?',
+        '<div style="font-size:14px;line-height:1.9">'
+        +'Realizado: <b>'+fmtMoney(real)+'</b><br>'
+        +'Previsão fim do mês: <b style="color:'+(vaiEstourar?'var(--red)':'var(--green)')+'">'+fmtMoney(prev)+'</b><br>'
+        +'Meta: <b>'+fmtMoney(meta)+'</b><br>'
+        +'<b style="color:'+(vaiEstourar?'var(--red)':'var(--green)')+';font-size:15px">'+(vaiEstourar?'⚠ Tendência de estourar em '+fmtMoney(prev-meta):'✓ Dentro da meta')+'</b>'
+        +'</div>'+_daLink('Ver serviços','showTab(\'servicos\')'));
+    } catch(e){ return _daBox('Erro','<div>Não consegui calcular.</div>'); }
+  }
+
+  // ═══ PROJEÇÃO DE FECHAMENTO (montagem família ou TT/PM) ═══
+  if(/proje[çc][ãa]o|vou fechar|fecha.*m[êe]s|fim do m[êe]s.*ritmo|no ritmo.*fechar|quanto vou/.test(s)){
+    try {
+      const famInfo=_dashFamiliaPergunta(q);
+      if(famInfo){
+        const media=_dashMediaMontagem(famInfo.fam);
+        // dias úteis totais do mês e já passados
+        const hoje=new Date(); hoje.setHours(0,0,0,0);
+        const fer=new Set(getFeriados().map(f=>f.data));
+        const ultDia=new Date(hoje.getFullYear(),hoje.getMonth()+1,0).getDate();
+        let duTot=0,duPass=0; for(let d=1;d<=ultDia;d++){const dt=new Date(hoje.getFullYear(),hoje.getMonth(),d);const dw=dt.getDay();const iso=hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');if(dw!==0&&dw!==6&&!fer.has(iso)){duTot++;if(d<hoje.getDate())duPass++;}}
+        const projecao=media*duTot;
+        const meta=(typeof getMontadosMeta==='function')?(getMontadosMeta(famInfo.fam,hoje.getMonth())||0):0;
+        const metaMes=meta*duTot;
+        return _daBox('Projeção de fechamento — '+famInfo.label,
+          '<div style="font-size:14px;line-height:1.9">'
+          +'Média atual: <b>'+fmt(media)+'/dia</b> × <b>'+duTot+'</b> dias úteis<br>'
+          +'Projeção do mês: <b style="color:var(--blue-light);font-size:18px">'+fmt(projecao)+'</b><br>'
+          +(metaMes>0?'Meta do mês: <b>'+fmt(metaMes)+'</b> · '+(projecao>=metaMes?'<span style="color:var(--green)">✓ deve bater</span>':'<span style="color:var(--red)">✗ abaixo em '+fmt(metaMes-projecao)+'</span>'):'')
+          +'</div>'+_daLink('Ver Itens Montados','showTab(\'montados\')'));
+      }
+    } catch(e){}
+  }
+
+  // ═══ TENDÊNCIA IFE (subindo/caindo) ═══
+  if(/tend[êe]ncia|ife.*subindo|ife.*caindo|ife.*melhor|ife.*pior|evolu[çc][ãa]o.*ife/.test(s)){
+    try {
+      const meses=[...new Set(DATA.ife.map(r=>r.mesKey))].sort().slice(-3);
+      const serie=meses.map(m=>({m, ife:_ifeCalc(DATA.ife.filter(_ifeFiltrar('CONSOLIDADO')).filter(r=>r.mesKey===m)).ife}));
+      const fp=v=> v==null?'—':(Math.round(v*10)/10)+'%';
+      let dir='estável';
+      if(serie.length>=2 && serie[serie.length-1].ife!=null && serie[serie.length-2].ife!=null){
+        const d=serie[serie.length-1].ife-serie[serie.length-2].ife;
+        dir = d>0.5?'<span style="color:var(--green)">▲ subindo</span>':d<-0.5?'<span style="color:var(--red)">▼ caindo</span>':'estável';
+      }
+      return _daBox('Tendência do IFE',
+        '<div style="font-size:14px;line-height:1.9">'
+        +serie.map(x=>x.m+': <b>'+fp(x.ife)+'</b>').join('<br>')+'<br>'
+        +'Tendência: <b>'+dir+'</b>'
+        +'</div>'+_daLink('Ver IFE','showTab(\'ife\')'));
+    } catch(e){}
+  }
+
+  // ═══ RANKING DE CLIENTES (pedidos) ═══
+  if(/cliente|quem.*comprou|maior.*pedido|ranking.*cliente|top.*cliente/.test(s)){
+    try {
+      const porCli={}; (DATA.pedidos||[]).forEach(p=>{ const c=p.cliente||'(sem cliente)'; if(!porCli[c])porCli[c]={valor:0,qtde:0}; porCli[c].valor+=p.valor||0; porCli[c].qtde+=p.qtde||0; });
+      const top=Object.entries(porCli).sort((a,b)=>b[1].valor-a[1].valor).slice(0,8);
+      return _daBox('Top clientes (carteira atual)',
+        '<div style="font-size:13px;line-height:1.8">'
+        +top.map(([c,v],i)=>(i+1)+'. '+c.slice(0,28)+': <b>'+fmtMoney(v.valor)+'</b>').join('<br>')
+        +'</div>'+_daLink('Ver pedidos','showTab(\'pedidos\')'));
+    } catch(e){}
+  }
+
+  // ═══ OFs que travam pedidos atrasados (cruzamento OF × pedidos) ═══
+  if(/of.*trava|trava.*pedido|of.*pedido.*atrasad|pedido.*atrasad.*of|gargalo/.test(s)){
+    try {
+      const codAtras=new Set((DATA.pedidos||[]).filter(p=>p.atrasado).map(p=>p.codigo));
+      const ofTravam=(DATA.ofItens||[]).filter(it=>it.DT_FINAL&&isOverdue(it.DT_FINAL)&&codAtras.has(it.COD_ITEM));
+      const porItem={}; ofTravam.forEach(it=>{ if(!porItem[it.COD_ITEM])porItem[it.COD_ITEM]={desc:it.DESC,pend:0,ofs:new Set()}; porItem[it.COD_ITEM].pend+=it.QTDE_PEND||0; porItem[it.COD_ITEM].ofs.add(it.NUM_ORDEM); });
+      const lista=Object.entries(porItem).sort((a,b)=>b[1].pend-a[1].pend);
+      let tab=''; if(lista.length){ tab='<div style="margin-top:8px;font-size:12px;line-height:1.7">'+lista.slice(0,12).map(([c,v])=>'• '+(v.desc||c).slice(0,30)+': <b>'+fmt(v.pend)+'</b> pç ('+v.ofs.size+' OFs)').join('<br>')+'</div>'; }
+      return _daBox('OFs em atraso que travam pedidos atrasados',
+        '<div style="font-size:14px;line-height:1.8">'
+        +'<b style="color:var(--red);font-size:18px">'+fmt(lista.length)+'</b> itens têm pedido atrasado E OF de produção em atraso.<br>'
+        +'<span style="font-size:12px;color:var(--text-muted)">Ação: priorizar estas OFs para liberar os pedidos</span>'
+        +'</div>'+tab+_daLink('Ver OFs em atraso','dashIrFiltrado(\'of\',\'producao\')'));
+    } catch(e){}
+  }
 
   // ═══ TÉRMICO & POLIMENTO ═══
   if(/t[ée]rmico|polimento|\btt\b|\bpm\b|tratamento/.test(s)){
@@ -10553,6 +10740,53 @@ function _dashResponder(q){
         '<div style="font-size:14px;line-height:1.8">Total montado no mês: <b style="color:var(--green);font-size:20px">'+fmt(totalGeral)+'</b></div>'
         +tab+_daLink('Ver aba Itens Montados','showTab(\'montados\')'));
     } catch(e){ return _daBox('Erro','<div>Não consegui calcular a montagem.</div>'); }
+  }
+
+  // ═══ OFs que vencem esta semana ═══
+  if(/vence.*semana|esta semana|pr[óo]xim.*dias|vencer.*dias|semana.*of/.test(s)){
+    try {
+      const hoje=new Date(); hoje.setHours(0,0,0,0);
+      const fim7=new Date(hoje); fim7.setDate(fim7.getDate()+7);
+      const venc=(DATA.ofItens||[]).filter(it=>{ if(!it.DT_FINAL)return false; const d=parseDate(it.DT_FINAL); return d&&d>=hoje&&d<=fim7; });
+      const ordens=new Set(venc.map(it=>it.NUM_ORDEM)).size;
+      const pend=venc.reduce((sm,it)=>sm+(it.QTDE_PEND||0),0);
+      return _daBox('OFs que vencem nos próximos 7 dias',
+        '<div style="font-size:14px;line-height:1.9">'
+        +'Ordens: <b style="color:var(--amber);font-size:18px">'+fmt(ordens)+'</b><br>'
+        +'Peças pendentes: <b>'+fmt(pend)+'</b><br>'
+        +'<span style="font-size:12px;color:var(--text-muted)">Ação: garantir material e capacidade</span>'
+        +'</div>'+_daLink('Ver OFs','showTab(\'of\')'));
+    } catch(e){}
+  }
+
+  // ═══ Ranking de fornecedor/processo de terceiros ═══
+  if(/fornecedor|processo.*terceiro|terceiro.*processo|quem.*terceiriz|ranking.*fornecedor/.test(s)){
+    try {
+      const porF={}; (DATA.servico||[]).forEach(r=>{ if((r.mes||'').indexOf(anoAt+'-'+mmAt)===0){ const f=r.empresa||r.processo||'(sem)'; porF[f]=(porF[f]||0)+(r.valor||0); } });
+      const top=Object.entries(porF).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      return _daBox('Fornecedores de terceiros (mês atual)',
+        '<div style="font-size:13px;line-height:1.8">'
+        +(top.length?top.map(([f,v],i)=>(i+1)+'. '+f.slice(0,30)+': <b>'+fmtMoney(v)+'</b>').join('<br>'):'Sem dados no mês.')
+        +'</div>'+_daLink('Ver serviços','showTab(\'servicos\')'));
+    } catch(e){}
+  }
+
+  // ═══ Melhor/pior dia de produção (TT/PM) ═══
+  if(/melhor dia|pior dia|melhor.*produ|recorde|maior.*dia/.test(s)){
+    try {
+      const ehPM=/polimento|\bpm\b/.test(s);
+      const diario=ehPM?(DATA.termico.diarioPM||[]):(DATA.termico.diarioTT||[]);
+      const porDia={}; diario.forEach(r=>{ if(r.dt)porDia[r.dt]=(porDia[r.dt]||0)+r.qtde; });
+      const arr=Object.entries(porDia).sort((a,b)=>b[1]-a[1]);
+      if(!arr.length) return _daBox('Sem dados','<div>Não há dados diários.</div>');
+      const melhor=arr[0], pior=arr[arr.length-1];
+      const fd=iso=>{const[a,m,d]=iso.split('-');return d+'/'+m;};
+      return _daBox('Melhor e pior dia — '+(ehPM?'Polimento':'Térmico'),
+        '<div style="font-size:14px;line-height:1.9">'
+        +'Melhor: <b style="color:var(--green)">'+fmt(melhor[1])+'</b> em '+fd(melhor[0])+'<br>'
+        +'Pior: <b style="color:var(--red)">'+fmt(pior[1])+'</b> em '+fd(pior[0])
+        +'</div>'+_daLink('Ver Térmico & Polimento','showTab(\'termico\')'));
+    } catch(e){}
   }
   } // fim do if(!_famPrior)
 
