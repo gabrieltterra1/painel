@@ -10160,6 +10160,7 @@ function renderDashboard(){
         + '<div class="assist-title">Assistente do <span class="grad">Painel</span></div>'
         + '<div class="assist-sub">Pergunte sobre montagem, pedidos, estoque e produção</div>'
       + '</div>'
+      + '<button class="da-modo-ia" id="da-copiar-btn" onclick="dashCopiarPergunta()" title="Copiar pergunta + dados para colar no app do Claude ou na extensão">📋 Copiar p/ Claude</button>'
       + '<button class="da-modo-ia" id="da-modo-ia-btn" onclick="dashConfigIA()" title="Modo IA avançado">'+(_daIAAtivo()?'🤖 IA on':'🤖 Modo IA')+'</button>'
     + '</div>'
     + '<div class="da-inputrow">'
@@ -10512,6 +10513,24 @@ async function _daChamarIA(pergunta){
     const txt=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
     return {texto:txt};
   } catch(e){ return {erro:'Falha ao chamar a IA: '+e.message}; }
+}
+
+// Copia a pergunta + resumo dos dados do painel para colar no app do Claude ou na extensão
+function dashCopiarPergunta(){
+  const inp=document.getElementById('dash-pergunta');
+  const pergunta=(inp&&inp.value.trim()) ? inp.value.trim() : '(escreva sua pergunta aqui)';
+  const resumo=_daResumoPainel();
+  const texto='Você é um assistente de PCP/Almoxarifado da indústria Interpump. Responda em português, com cálculos quando fizer sentido, usando os dados do painel abaixo.\n\n'
+    +'PERGUNTA: '+pergunta+'\n\n'
+    +'DADOS ATUAIS DO PAINEL:\n'+resumo;
+  const out=document.getElementById('dash-resposta');
+  const okMsg=()=>{ if(out){ out.style.display='block'; out.innerHTML=_daBox('📋 Copiado!','<div style="font-size:13px;line-height:1.6;color:var(--text)">Pergunta + dados copiados. Agora cole (Ctrl+V) no <b>app/site do Claude</b> ou na <b>extensão Claude in Chrome</b> para obter a resposta usando sua assinatura.</div>'); } };
+  const falhaMsg=()=>{ if(out){ out.style.display='block'; out.innerHTML=_daBox('Copie manualmente','<textarea readonly style="width:100%;height:160px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;padding:10px">'+_daEscapeHtml(texto)+'</textarea>'); } };
+  try {
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(texto).then(okMsg).catch(falhaMsg);
+    } else { falhaMsg(); }
+  } catch(e){ falhaMsg(); }
 }
 
 
