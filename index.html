@@ -10679,7 +10679,7 @@ function _dashResponder(q){
       const pedAtras=(DATA.pedidos||[]).filter(p=>p.atrasado);
       const cruzados={}; pedAtras.forEach(p=>{ if(dispItens.has(p.codigo)){ if(!cruzados[p.codigo])cruzados[p.codigo]={desc:p.descricao,qtde:0}; cruzados[p.codigo].qtde+=p.qtde||0; } });
       const lista=Object.entries(cruzados);
-      let tab=''; if(lista.length){ tab='<div style="margin-top:8px;font-size:12px;line-height:1.7">'+lista.slice(0,12).map(([c,v])=>'• '+(v.desc||c).slice(0,32)+': <b>'+fmt(v.qtde)+'</b>').join('<br>')+'</div>'; }
+      let tab=''; if(lista.length){ tab='<div style="margin-top:8px;font-size:12px;line-height:1.7">'+lista.slice(0,12).map(([c,v])=>'• <b>'+c+'</b> '+(v.desc||'').slice(0,30)+': <b>'+fmt(v.qtde)+'</b>').join('<br>')+'</div>'; }
       return _daBox('Disponível em estoque COM pedido atrasado',
         '<div style="font-size:14px;line-height:1.8">'
         +'<b style="color:var(--green);font-size:20px">'+fmt(lista.length)+'</b> itens podem ser faturados agora para quitar atrasos.'
@@ -10781,7 +10781,7 @@ function _dashResponder(q){
       const ofTravam=(DATA.ofItens||[]).filter(it=>it.DT_FINAL&&isOverdue(it.DT_FINAL)&&codAtras.has(it.COD_ITEM));
       const porItem={}; ofTravam.forEach(it=>{ if(!porItem[it.COD_ITEM])porItem[it.COD_ITEM]={desc:it.DESC,pend:0,ofs:new Set()}; porItem[it.COD_ITEM].pend+=it.QTDE_PEND||0; porItem[it.COD_ITEM].ofs.add(it.NUM_ORDEM); });
       const lista=Object.entries(porItem).sort((a,b)=>b[1].pend-a[1].pend);
-      let tab=''; if(lista.length){ tab='<div style="margin-top:8px;font-size:12px;line-height:1.7">'+lista.slice(0,12).map(([c,v])=>'• '+(v.desc||c).slice(0,30)+': <b>'+fmt(v.pend)+'</b> pç ('+v.ofs.size+' OFs)').join('<br>')+'</div>'; }
+      let tab=''; if(lista.length){ tab='<div style="margin-top:8px;font-size:12px;line-height:1.7">'+lista.slice(0,12).map(([c,v])=>'• <b>'+c+'</b> '+(v.desc||'').slice(0,28)+': <b>'+fmt(v.pend)+'</b> pç ('+v.ofs.size+' OFs)').join('<br>')+'</div>'; }
       return _daBox('OFs em atraso que travam pedidos atrasados',
         '<div style="font-size:14px;line-height:1.8">'
         +'<b style="color:var(--red);font-size:18px">'+fmt(lista.length)+'</b> itens têm pedido atrasado E OF de produção em atraso.<br>'
@@ -11077,18 +11077,20 @@ function _dashResponder(q){
         +'<div style="margin-top:6px;max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:8px">'
         +'<table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed">'
         +'<thead><tr style="background:var(--surface2)">'
-          +'<th style="text-align:left;padding:6px 8px;width:34%">Item</th>'
-          +'<th style="text-align:right;padding:6px 6px;width:11%">Pend.</th>'
-          +'<th style="text-align:right;padding:6px 6px;width:11%">Falta</th>'
-          +'<th style="text-align:right;padding:6px 6px;width:22%">R$ Pend.</th>'
-          +'<th style="text-align:right;padding:6px 6px;width:22%">R$ Falta</th>'
+          +'<th style="text-align:left;padding:6px 8px;width:16%">Código</th>'
+          +'<th style="text-align:left;padding:6px 8px;width:28%">Descrição</th>'
+          +'<th style="text-align:right;padding:6px 5px;width:10%">Pend.</th>'
+          +'<th style="text-align:right;padding:6px 5px;width:10%">Falta</th>'
+          +'<th style="text-align:right;padding:6px 5px;width:18%">R$ Pend.</th>'
+          +'<th style="text-align:right;padding:6px 5px;width:18%">R$ Falta</th>'
         +'</tr></thead><tbody>'
         +itensFalta.slice(0,15).map(it=>'<tr style="border-top:1px solid var(--border)">'
-          +'<td style="padding:5px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+_daEscapeHtml(it.desc||it.cod)+'">'+_daEscapeHtml((it.desc||it.cod))+'</td>'
-          +'<td style="text-align:right;padding:5px 6px">'+fmt(it.pend)+'</td>'
-          +'<td style="text-align:right;padding:5px 6px;color:var(--amber);font-weight:700">'+fmt(it.falta)+'</td>'
-          +'<td style="text-align:right;padding:5px 6px">'+fmtM(it.valorPend)+'</td>'
-          +'<td style="text-align:right;padding:5px 6px;color:var(--amber)">'+fmtM(it.valorFalta)+'</td>'
+          +'<td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+_daEscapeHtml(it.cod)+'">'+_daEscapeHtml(it.cod)+'</td>'
+          +'<td style="padding:5px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+_daEscapeHtml(it.desc||'')+'">'+_daEscapeHtml(it.desc||'')+'</td>'
+          +'<td style="text-align:right;padding:5px 5px">'+fmt(it.pend)+'</td>'
+          +'<td style="text-align:right;padding:5px 5px;color:var(--amber);font-weight:700">'+fmt(it.falta)+'</td>'
+          +'<td style="text-align:right;padding:5px 5px">'+fmtM(it.valorPend)+'</td>'
+          +'<td style="text-align:right;padding:5px 5px;color:var(--amber)">'+fmtM(it.valorFalta)+'</td>'
         +'</tr>').join('')
         +'</tbody></table></div>'
         +(itensFalta.length>15?'<div style="font-size:10px;color:var(--text-muted);margin-top:4px">+'+(itensFalta.length-15)+' itens…</div>':'');
