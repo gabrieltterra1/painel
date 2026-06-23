@@ -10327,7 +10327,11 @@ function _dashFamiliaPergunta(q){
   if(/cilindro/.test(s)) return {fam:'CILINDRO', label:'Cilindro'};
   if(/tomada|mult/.test(s)) return {fam:'TOMADA_MULT', label:'Tomada+Mult'};
   if(/eixo|conj/.test(s)) return {fam:'CONJ_EIXO', label:'Conj. Eixo'};
-  if(/comando/.test(s)) return {fam:'COMANDO', label:'Comando'};
+  if(/comando/.test(s)) {
+    if(/monobloco/.test(s)) return {fam:'COMANDO', label:'Comando Monobloco', subtipo:'MONOBLOCO'};
+    if(/compon[íi]vel/.test(s)) return {fam:'COMANDO', label:'Comando Componível', subtipo:'COMPONIVEL'};
+    return {fam:'COMANDO', label:'Comando'};
+  }
   if(/v[áa]lvula/.test(s)) return {fam:'VALVULA', label:'Válvula'};
   if(/kit/.test(s)) return {fam:'KIT_HIDR', label:'Kit Hidráulico'};
   return null;
@@ -10911,9 +10915,14 @@ function _dashResponder(q){
     const porItem = {};
     peds.forEach(p=>{
       const cod = p.codigo || p.chave || '';
+      // filtro de subtipo de comando (monobloco/componível) pela descrição
+      if(famInfo.subtipo){
+        const d=String(p.descricao||'').toUpperCase();
+        if(famInfo.subtipo==='MONOBLOCO' && !/MONOBLOCO/.test(d)) return;
+        if(famInfo.subtipo==='COMPONIVEL' && !/COMPON[ÍI]VEL/.test(d)) return;
+      }
       if(!porItem[cod]) porItem[cod] = { pend:0, saldo: p.saldo||0, desc:p.descricao||'' };
       porItem[cod].pend += (p.qtde||0);
-      // saldo é o estoque atual do item: pega o mesmo valor (todas as linhas do item têm o mesmo)
       porItem[cod].saldo = p.saldo||0;
     });
     let faltam = 0;
@@ -10954,12 +10963,28 @@ function _dashResponder(q){
         +'</tbody></table></div>'
         +(itensFalta.length>15?'<div style="font-size:10px;color:var(--text-muted);margin-top:4px">+'+(itensFalta.length-15)+' itens…</div>':'');
     }
+    // Quebra por tipo de comando (monobloco / componível) via descrição
+    let quebraComando='';
+    if(famInfo.fam==='COMANDO' && !famInfo.subtipo){
+      let mono=0, comp=0, outro=0;
+      itensFalta.forEach(it=>{
+        const d=String(it.desc||'').toUpperCase();
+        if(/MONOBLOCO/.test(d)) mono+=it.falta;
+        else if(/COMPON[ÍI]VEL/.test(d)) comp+=it.falta;
+        else outro+=it.falta;
+      });
+      quebraComando='<div style="margin-top:10px;font-size:13px;line-height:1.8;padding-top:8px;border-top:1px solid var(--border)">'
+        +'• Monobloco: <b style="color:var(--amber)">'+fmt(mono)+'</b><br>'
+        +'• Componível: <b style="color:var(--amber)">'+fmt(comp)+'</b>'
+        +(outro>0?'<br>• Outros: <b>'+fmt(outro)+'</b>':'')
+        +'</div>';
+    }
     return _daBox((/falta/.test(s)?'Quanto falta montar':'Quantos montar')+' — '+famInfo.label+' ('+periodo.label+')',
       '<div style="font-size:14px;line-height:1.8">'
       +'Por item: soma da quantidade pendente dos pedidos ('+periodo.label+') menos o saldo (estoque) de cada item, contando só onde falta:<br>'
       +'<span style="font-size:26px;font-weight:900;color:var(--amber)">'+fmt(faltam)+'</span> '+famInfo.label.toLowerCase()+' a montar<br>'
       +(duRest>0?'Ritmo: <b style="color:var(--green)">'+fmt(ritmo)+'/dia</b> ('+duRest+' dias úteis restantes)':'')
-      +'</div>'+tabela+_daLink('Ver na tabela Prioridades (mesmo filtro)','dashAbrirPrioridades(\''+famInfo.fam+'\')'));
+      +'</div>'+quebraComando+tabela+_daLink('Ver na tabela Prioridades (mesmo filtro)','dashAbrirPrioridades(\''+famInfo.fam+'\')'));
   }
 
   // não reconheceu — sinaliza para acionar IA (se ativa) ou mostra ajuda
@@ -10988,33 +11013,43 @@ function dashAbrirPedidosFamilia(famKey){
 // Abre a tabela Prioridades aplicando família + as datas do período da pergunta (mesmo filtro do cálculo)
 function dashAbrirPrioridades(famKey){
   showTab('pedidos');
-  // mapeia a chave do assistente para o valor do filtro fam2 da tabela Prioridades
   const map={'TOMADA_MULT':'TOMADA+MULT','BOMBA':'BOMBA','CILINDRO':'CILINDRO','CONJ_EIXO':'CONJ EIXO','GUINCHO':'GUINCHO','COMANDO':'WALVOIL','VALVULA':'WALVOIL','KIT_HIDR':'KIT HIDRAULICO'};
   const alvoFam=map[famKey]||famKey;
   const filtro=window._daUltimoFiltro||{};
   const datas=(filtro.fam===famKey && filtro.datas)?filtro.datas:[];
   setTimeout(()=>{
     try {
-      // 1) Família (ms-pv-fam2)
+      // limpa filtro de projetado e busca que poderiam mascarar
+      const projEl=document.getElementById('pv-proj-filt'); if(projEl) projEl.value='';
+      const buscaEl=document.getElementById('pv-search2'); if(buscaEl) buscaEl.value='';
+      // 1) Família (ms-pv-fam2): marca só a família alvo
       const famCbs=document.querySelectorAll('#ms-pv-fam2 .ms-item input[type=checkbox]');
-      if(famCbs.length){ famCbs.forEach(cb=>{ cb.checked=(cb.value===alvoFam); }); const allF=document.getElementById('ms-pv-fam2-all'); if(allF)allF.checked=false; }
-      // 2) Datas (ms-pv-dias) — marca só as datas do período
+      if(famCbs.length){
+        famCbs.forEach(cb=>{ cb.checked=(cb.value===alvoFam); });
+        const allF=document.getElementById('ms-pv-fam2-all'); if(allF)allF.checked=false;
+      }
+      // 2) Datas (ms-pv-dias): marca só as datas do período (se houver)
       if(datas.length){
         const diaCbs=document.querySelectorAll('#ms-pv-dias .ms-item input[type=checkbox]');
         const setDatas=new Set(datas);
-        diaCbs.forEach(cb=>{ cb.checked=setDatas.has(cb.value); });
+        let achou=0;
+        diaCbs.forEach(cb=>{ const m=setDatas.has(cb.value); cb.checked=m; if(m)achou++; });
         const allD=document.getElementById('ms-pv-dias-all'); if(allD)allD.checked=false;
-        // sincroniza checkboxes de mês (estrutura hierárquica)
         document.querySelectorAll('#ms-pv-dias .pv-dias-box').forEach(box=>{ const mk=box.getAttribute('data-mes'); if(typeof _pvSyncMesCb==='function'&&mk)_pvSyncMesCb(mk); });
+        // se nenhuma data casou (datas fora do dropdown), não filtra por data pra não zerar tudo
+        if(achou===0 && diaCbs.length){ diaCbs.forEach(cb=>cb.checked=true); if(allD)allD.checked=true; }
       }
-      // 3) Re-renderiza a tabela Prioridades
-      if(typeof renderPvPrioridades==='function') renderPvPrioridades();
+      // 3) Aplica via msChange (caminho oficial → atualiza label + renderiza)
+      if(typeof msChange==='function'){ msChange('ms-pv-fam2'); msChange('ms-pv-dias'); }
+      else if(typeof renderPvPrioridades==='function'){ renderPvPrioridades(); }
       // 4) Rola até a tabela Prioridades
-      const anchor=document.getElementById('ms-pv-fam2');
-      if(anchor) setTimeout(()=>anchor.scrollIntoView({behavior:'smooth',block:'center'}),120);
+      const anchor=document.querySelector('.section-title') || document.getElementById('ms-pv-fam2');
+      const alvo=[...document.querySelectorAll('.section-title')].find(e=>/Prioridades/i.test(e.textContent));
+      if(alvo) setTimeout(()=>alvo.scrollIntoView({behavior:'smooth',block:'start'}),150);
     } catch(e){ console.warn('dashAbrirPrioridades',e); }
-  },80);
+  },120);
 }
+
 
 function _daIAAtivo(){ try { return !!localStorage.getItem('dash_ia_key'); } catch(e){ return false; } }
 function _daIAKey(){ try { return localStorage.getItem('dash_ia_key')||''; } catch(e){ return ''; } }
