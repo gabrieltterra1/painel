@@ -10621,53 +10621,75 @@ function _dashResponder(q){
       let uf=null; for(const [k,v] of mapaUF){ if(new RegExp(k).test(s)){ uf=v; break; } }
       if(!uf){ return _daBox('Qual filial?','<div style="font-size:13px;line-height:1.6">Diga a filial: <b>SP, MG, GO ou PE</b>.</div>'); }
       if(!DATA.estoqueDet || !DATA.estoqueDet.length){ return _daBox('Dados indisponíveis','<div style="font-size:13px;color:var(--text-muted)">O detalhamento por item (ESD) não está carregado. Abra a aba Estoque & Trânsito primeiro.</div>'); }
-      // itens em falta na filial (DIF_SALDO < 0), código a código
-      const itensFalta=(DATA.estoqueDet||[]).filter(it=>it.EMPRESA===uf && it.DIF_SALDO<0);
-      // monta análise por item
-      const linhas=itensFalta.map(it=>{
-        const falta=Math.abs(it.DIF_SALDO);
-        const transAba=(DATA.transito_detail||[]).filter(r=>r.codigo===it.COD_ITEM && r.empresa===uf).reduce((s,r)=>s+r.quantidade,0);
-        const transito=it.EST_TRANSITO || transAba;
-        const aindaFalta=Math.max(0, falta-transito); // o que falta enviar depois do trânsito
-        return {cod:it.COD_ITEM, desc:it.DESC, classe:it.COD_CLASSE, falta, transito, aindaFalta};
-      }).sort((a,b)=>b.aindaFalta-a.aindaFalta);
-      // totais
-      const totFalta=linhas.reduce((s,l)=>s+l.falta,0);
-      const totTransito=linhas.reduce((s,l)=>s+l.transito,0);
-      const totAindaFalta=linhas.reduce((s,l)=>s+l.aindaFalta,0);
-      const itensCobertos=linhas.filter(l=>l.aindaFalta===0).length;
-      const itensPendentes=linhas.filter(l=>l.aindaFalta>0).length;
-      // ── Nível 1: resumo por classificação ──
+
+      // ── ANÁLISE CÓDIGO A CÓDIGO (regra correta: trânsito de um código não cobre outro) ──
+      // Para cada código da filial: faltaES = max(0, PARAM_ES − EST_ATUAL);
+      // coberto se faltaES===0 OU EST_TRANSITO >= faltaES (≡ DIF_TRANSITO >= 0);
+      // descoberto = max(0, faltaES − EST_TRANSITO).
+      const itens = (DATA.estoqueDet||[])
+        .filter(it => it.EMPRESA===uf)
+        .map(it => {
+          const estoqueAtual = it.EST_ATUAL||0;
+          const paramES = it.PARAM_ES||0;
+          const estqTransito = it.EST_TRANSITO||0;
+          const faltaES = Math.max(0, paramES - estoqueAtual);
+          const coberto = faltaES===0 || estqTransito >= faltaES;
+          const descoberto = Math.max(0, faltaES - estqTransito);
+          return { codigo:it.COD_ITEM, descricao:it.DESC, classe:it.COD_CLASSE,
+                   estoqueAtual, paramES, estqTransito, difTransito:it.DIF_TRANSITO,
+                   faltaES, coberto, descoberto };
+        });
+
+      // só interessam os que têm falta de ES
+      const comFalta = itens.filter(i => i.faltaES > 0);
+      // cobreTudo: TODO código com faltaES>0 precisa estar coberto
+      const cobreTudo = comFalta.every(i => i.coberto);
+
+      const descobertos = comFalta.filter(i => i.descoberto > 0).sort((a,b)=>b.descoberto-a.descoberto);
+      const totFalta = comFalta.reduce((s,i)=>s+i.faltaES,0);
+      const totTransito = comFalta.reduce((s,i)=>s+i.estqTransito,0);
+      const totDescoberto = descobertos.reduce((s,i)=>s+i.descoberto,0);
+
+      // ── Nível 1: resumo por família/classe (família só é ✓ se TODOS os códigos cobertos) ──
       const porClasse={};
-      linhas.forEach(l=>{ const c=l.classe||'(sem classe)'; if(!porClasse[c])porClasse[c]={falta:0,transito:0,aindaFalta:0,desc:l.desc}; porClasse[c].falta+=l.falta; porClasse[c].transito+=l.transito; porClasse[c].aindaFalta+=l.aindaFalta; });
-      const resumoClasse=Object.entries(porClasse).sort((a,b)=>b[1].aindaFalta-a[1].aindaFalta)
+      comFalta.forEach(i=>{
+        const c=i.classe||'(sem classe)';
+        if(!porClasse[c]) porClasse[c]={faltaES:0,transito:0,descoberto:0,todosCobertos:true};
+        porClasse[c].faltaES+=i.faltaES;
+        porClasse[c].transito+=i.estqTransito;
+        porClasse[c].descoberto+=i.descoberto;
+        if(!i.coberto) porClasse[c].todosCobertos=false;
+      });
+      const resumoClasse=Object.entries(porClasse).sort((a,b)=>b[1].descoberto-a[1].descoberto)
         .map(([c,v])=>'<tr style="border-top:1px solid var(--border)">'
           +'<td style="padding:5px 8px">'+c+'</td>'
-          +'<td style="text-align:right;padding:5px 8px">'+fmt(v.falta)+'</td>'
-          +'<td style="text-align:right;padding:5px 8px;color:var(--serie-azul,#4a9eff)">'+fmt(v.transito)+'</td>'
-          +'<td style="text-align:right;padding:5px 8px;color:'+(v.aindaFalta>0?'var(--red)':'var(--green)')+';font-weight:700">'+fmt(v.aindaFalta)+'</td></tr>').join('');
-      const tabClasse='<div style="margin-top:6px;font-size:11px;color:var(--text-muted)">Resumo por classificação:</div>'
+          +'<td style="text-align:right;padding:5px 8px">'+fmt(v.faltaES)+'</td>'
+          +'<td style="text-align:right;padding:5px 8px;color:#4a9eff">'+fmt(v.transito)+'</td>'
+          +'<td style="text-align:center;padding:5px 8px;font-weight:700;color:'+(v.todosCobertos?'var(--green)':'var(--red)')+'">'+(v.todosCobertos?'✓':'✗ '+fmt(v.descoberto))+'</td></tr>').join('');
+      const tabClasse='<div style="margin-top:6px;font-size:11px;color:var(--text-muted)">Por classificação (✓ só se todos os códigos cobertos):</div>'
         +'<div style="margin-top:4px;border:1px solid var(--border);border-radius:8px;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
-        +'<thead><tr style="background:var(--surface2)"><th style="text-align:left;padding:6px 8px">Classe</th><th style="text-align:right;padding:6px 8px">Falta</th><th style="text-align:right;padding:6px 8px">Trânsito</th><th style="text-align:right;padding:6px 8px">Falta enviar</th></tr></thead><tbody>'+resumoClasse+'</tbody></table></div>';
-      // ── Nível 2: detalhe por código (top 20 que ainda faltam) ──
-      const pend=linhas.filter(l=>l.aindaFalta>0).slice(0,20);
-      const detCod = pend.length
-        ? '<div style="margin-top:10px;font-size:11px;color:var(--text-muted)">Código a código — ainda falta enviar (top 20):</div>'
+        +'<thead><tr style="background:var(--surface2)"><th style="text-align:left;padding:6px 8px">Classe</th><th style="text-align:right;padding:6px 8px">Falta ES</th><th style="text-align:right;padding:6px 8px">Trânsito</th><th style="text-align:center;padding:6px 8px">Enche?</th></tr></thead><tbody>'+(resumoClasse||'<tr><td colspan="4" style="padding:8px;color:var(--text-muted)">Sem itens em falta.</td></tr>')+'</tbody></table></div>';
+
+      // ── Nível 2: códigos descobertos (o que ainda falta enviar) ──
+      const detCod = descobertos.length
+        ? '<div style="margin-top:10px;font-size:11px;color:var(--text-muted)">Códigos descobertos — ainda falta enviar (top 20):</div>'
           +'<div style="margin-top:4px;max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:8px"><table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed">'
-          +'<thead><tr style="background:var(--surface2)"><th style="text-align:left;padding:5px 6px;width:38%">Item</th><th style="text-align:right;padding:5px 6px;width:18%">Falta</th><th style="text-align:right;padding:5px 6px;width:20%">Trânsito</th><th style="text-align:right;padding:5px 6px;width:24%">Falta enviar</th></tr></thead><tbody>'
-          +pend.map(l=>'<tr style="border-top:1px solid var(--border)">'
-            +'<td style="padding:4px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+_daEscapeHtml(l.cod+' — '+l.desc)+'">'+_daEscapeHtml(l.desc||l.cod)+'</td>'
-            +'<td style="text-align:right;padding:4px 6px">'+fmt(l.falta)+'</td>'
-            +'<td style="text-align:right;padding:4px 6px;color:var(--serie-azul,#4a9eff)">'+fmt(l.transito)+'</td>'
-            +'<td style="text-align:right;padding:4px 6px;color:var(--red);font-weight:700">'+fmt(l.aindaFalta)+'</td></tr>').join('')
+          +'<thead><tr style="background:var(--surface2)"><th style="text-align:left;padding:5px 6px;width:36%">Item</th><th style="text-align:right;padding:5px 6px;width:16%">Falta ES</th><th style="text-align:right;padding:5px 6px;width:18%">Trânsito</th><th style="text-align:right;padding:5px 6px;width:22%">Falta enviar</th></tr></thead><tbody>'
+          +descobertos.slice(0,20).map(i=>'<tr style="border-top:1px solid var(--border)">'
+            +'<td style="padding:4px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+_daEscapeHtml(i.codigo+' — '+i.descricao)+'">'+_daEscapeHtml(i.descricao||i.codigo)+'</td>'
+            +'<td style="text-align:right;padding:4px 6px">'+fmt(i.faltaES)+'</td>'
+            +'<td style="text-align:right;padding:4px 6px;color:#4a9eff">'+fmt(i.estqTransito)+'</td>'
+            +'<td style="text-align:right;padding:4px 6px;color:var(--red);font-weight:700">'+fmt(i.descoberto)+'</td></tr>').join('')
           +'</tbody></table></div>'
-        : '<div style="margin-top:8px;font-size:13px;color:var(--green)">✓ O trânsito cobre todos os itens em falta!</div>';
-      const conclusao = itensPendentes===0
-        ? '<b style="color:var(--green)">✓ Com o que está em trânsito, todos os '+itensCobertos+' itens em falta ficam cobertos.</b>'
-        : '<b style="color:var(--red)">Ainda falta enviar '+fmt(totAindaFalta)+' peças</b> em <b>'+itensPendentes+'</b> itens (mesmo considerando o trânsito).';
-      return _daBox('Falta enviar p/ completar segurança — Filial '+uf,
+          +(descobertos.length>20?'<div style="font-size:10px;color:var(--text-muted);margin-top:4px">+'+(descobertos.length-20)+' códigos…</div>':'')
+        : '';
+
+      const conclusao = cobreTudo
+        ? '<b style="color:var(--green)">✓ Sim — com o que está em trânsito, todos os '+comFalta.length+' códigos em falta ficam cobertos.</b>'
+        : '<b style="color:var(--red)">✗ Não — cobre parcialmente.</b> Ainda falta enviar <b>'+fmt(totDescoberto)+'</b> peças em <b>'+descobertos.length+'</b> códigos.';
+      return _daBox('Trânsito × Estoque de Segurança — Filial '+uf,
         '<div style="font-size:14px;line-height:1.7">'+conclusao+'<br>'
-        +'<span style="font-size:12px;color:var(--text-muted)">Falta total: '+fmt(totFalta)+' · Em trânsito: '+fmt(totTransito)+' · Ainda falta enviar: '+fmt(totAindaFalta)+'</span></div>'
+        +'<span style="font-size:12px;color:var(--text-muted)">Códigos em falta: '+comFalta.length+' · Falta ES total: '+fmt(totFalta)+' · Em trânsito: '+fmt(totTransito)+' · Ainda falta enviar: '+fmt(totDescoberto)+'</span></div>'
         +tabClasse+detCod+_daLink('Ver Estoque & Trânsito','showTab(\'estoque\')'));
     } catch(e){ return _daBox('Erro','<div>Não consegui cruzar trânsito com falta (código a código).</div>'); }
   }
@@ -11281,6 +11303,30 @@ function _daResumoPainel(){
     if(DATA.disponibilidade&&DATA.disponibilidade.length){
       const disp=DATA.disponibilidade.filter(d=>d.disponivel>0).length;
       linhas.push('DISPONIBILIDADE: '+disp+' itens disponíveis para venda.');
+    }
+    // ESTOQUE DE SEGURANÇA — DETALHADO POR CÓDIGO (por filial), para análise trânsito × ES
+    if(DATA.estoqueDet&&DATA.estoqueDet.length){
+      const FILIAIS=['SP','MG','GO','PE'];
+      FILIAIS.forEach(uf=>{
+        const comFalta=(DATA.estoqueDet||[])
+          .filter(it=>it.EMPRESA===uf)
+          .map(it=>{
+            const estoqueAtual=it.EST_ATUAL||0, paramES=it.PARAM_ES||0, estqTransito=it.EST_TRANSITO||0;
+            const faltaES=Math.max(0, paramES-estoqueAtual);
+            return { codigo:it.COD_ITEM, descricao:it.DESC, estoqueAtual, paramES, estqTransito, difTransito:it.DIF_TRANSITO, faltaES, descoberto:Math.max(0,faltaES-estqTransito) };
+          })
+          .filter(i=>i.faltaES>0);
+        if(!comFalta.length) return;
+        const descobertos=comFalta.filter(i=>i.descoberto>0);
+        linhas.push('');
+        linhas.push('ESTOQUE SEGURANÇA — '+uf+' (código | descr | estoqueAtual | paramES | estqTransito | difTransito):');
+        linhas.push('  Resumo: '+comFalta.length+' códigos com falta de ES, '+descobertos.length+' ainda descobertos após trânsito.');
+        // lista os códigos (limita a 40 por filial para o payload não explodir)
+        comFalta.slice(0,40).forEach(i=>{
+          linhas.push('  '+i.codigo+' | '+(i.descricao||'').slice(0,40)+' | '+fmt(i.estoqueAtual)+' | '+fmt(i.paramES)+' | '+fmt(i.estqTransito)+' | '+fmt(i.difTransito));
+        });
+        if(comFalta.length>40) linhas.push('  (+'+(comFalta.length-40)+' códigos omitidos)');
+      });
     }
     // dias úteis restantes
     let duRest=0;
