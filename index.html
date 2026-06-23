@@ -10532,63 +10532,6 @@ function _dashResponder(q){
   const _famPrior = _dashFamiliaPergunta(q) && /montar|falta|ritmo|por dia|\/dia/.test(s) && !_ehCruzamento && !_ehAteHoje;
   if(!_famPrior){
 
-  // ═══ Trânsito enche o estoque de segurança da filial? (cruzamento trânsito × estoque) ═══
-  if(/tr[âa]nsito/.test(s) && /seguran[çc]a|estoque de seg|enche|encher|abastec|suficiente/.test(s)){
-    try {
-      const mapUF=[['\\bsp\\b|s[ãa]o paulo','SP'],['\\bmg\\b|minas','MG'],['\\bgo\\b|goi[áa]s|goias','GO'],['\\bpe\\b|pernambuco|recife','PE']];
-      let uf=null; for(const [rx,u] of mapUF){ if(new RegExp(rx).test(s)){ uf=u; break; } }
-      if(!uf){
-        return _daBox('Qual filial?','<div style="font-size:13px;line-height:1.6">Diga a filial: SP, MG, GO ou PE. Ex.: "o trânsito enche o estoque de segurança da filial SP?"</div>');
-      }
-      const CLS={'300.200.001':'Tomada','300.200.100':'Tomada','300.300.001':'Tomada','300.300.005':'Tomada',
-        '300.500.001':'Bomba','300.500.100':'Bomba','300.400.001':'Cilindro','300.400.010':'Cilindro',
-        '300.200.002':'ConjEixo','300.200.005':'ConjEixo','100.200.260':'ConjEixo','100.100.060':'ConjEixo','300.700.010':'ConjEixo',
-        '800.010.020':'Guincho','800.010.040':'Guincho','800.050.010':'Guincho',
-        '300.600.001':'Kit','300.600.002':'Kit','300.600.005':'Kit','300.600.010':'Kit','300.600.020':'Kit','300.600.025':'Kit','300.600.030':'Kit','300.600.035':'Kit','300.600.040':'Kit','300.600.045':'Kit','300.600.050':'Kit','300.600.055':'Kit','300.600.060':'Kit','300.600.065':'Kit','300.600.070':'Kit','300.600.075':'Kit','400.030.005':'Kit'};
-      const FAMS=['Tomada','Bomba','Cilindro','Guincho','ConjEixo','Kit'];
-      const falta={}; FAMS.forEach(f=>falta[f]=0);
-      (DATA.estoque||[]).filter(r=>r.uf===uf).forEach(r=>{
-        const fam=CLS[String(r.classificacao||'').trim()]; if(!fam) return;
-        const f=(r.qtde_param_es||0)-(r.estoque_total||0);
-        if(f>0) falta[fam]+=f;
-      });
-      const transito={}; FAMS.forEach(f=>transito[f]=0);
-      (DATA.transito_detail||[]).filter(r=>r.empresa===uf).forEach(r=>{
-        const fam=CLS[String(r.classificacao||'').trim()]; if(!fam) return;
-        transito[fam]+=(r.quantidade||0);
-      });
-      let linhas=''; let totFalta=0, totTrans=0, totCobre=0;
-      FAMS.forEach(f=>{
-        const ft=falta[f], tr=transito[f];
-        if(ft===0 && tr===0) return;
-        totFalta+=ft; totTrans+=tr;
-        const cobre = tr>=ft;
-        const cobreQtd = Math.min(tr,ft); totCobre+=cobreQtd;
-        const cor = ft===0?'var(--text-muted)':(cobre?'var(--green)':'var(--red)');
-        const icon = ft===0?'—':(cobre?'✓':'✗');
-        linhas+='<tr style="border-top:1px solid var(--border)">'
-          +'<td style="padding:5px 8px">'+f+'</td>'
-          +'<td style="text-align:right;padding:5px 8px">'+fmt(ft)+'</td>'
-          +'<td style="text-align:right;padding:5px 8px">'+fmt(tr)+'</td>'
-          +'<td style="text-align:center;padding:5px 8px;color:'+cor+';font-weight:700">'+icon+'</td>'
-        +'</tr>';
-      });
-      const tabela='<div style="margin-top:10px;border:1px solid var(--border);border-radius:8px;overflow:hidden">'
-        +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
-        +'<thead><tr style="background:var(--surface2)"><th style="text-align:left;padding:6px 8px">Família</th><th style="text-align:right;padding:6px 8px">Falta ES</th><th style="text-align:right;padding:6px 8px">Trânsito</th><th style="text-align:center;padding:6px 8px">Enche?</th></tr></thead>'
-        +'<tbody>'+(linhas||'<tr><td colspan="4" style="padding:8px;color:var(--text-muted)">Sem dados.</td></tr>')+'</tbody></table></div>';
-      const cobreTudo = totTrans>=totFalta && totFalta>0;
-      const concl = totFalta===0
-        ? '<b style="color:var(--green)">A filial '+uf+' já está com o estoque de segurança completo (nada faltando).</b>'
-        : (cobreTudo
-            ? '<b style="color:var(--green)">✓ Sim — o trânsito cobre toda a falta de estoque de segurança da filial '+uf+'.</b>'
-            : '<b style="color:var(--red)">✗ Não — o trânsito cobre '+fmt(totCobre)+' de '+fmt(totFalta)+' que faltam. Ainda faltariam '+fmt(totFalta-totCobre)+'.</b>');
-      return _daBox('Trânsito × Estoque de Segurança — Filial '+uf,
-        '<div style="font-size:14px;line-height:1.7">'+concl+'</div>'+tabela
-        +'<div style="font-size:11px;color:var(--text-muted);margin-top:6px">Considera as 6 famílias (Tomada, Bomba, Cilindro, Guincho, Conj. Eixo, Kit), sem redutores. "Falta ES" = estoque de segurança − estoque atual.</div>'
-        +_daLink('Ver Estoque & Trânsito','showTab(\'estoque\')'));
-    } catch(e){ return _daBox('Erro','<div>Não consegui cruzar trânsito com estoque de segurança.</div>'); }
-  }
 
   if(/at[ée] hoje/.test(s) || /montar.*hoje|a montar.*hoje|preciso montar(?!.*m[êe]s)/.test(s)){
     try {
