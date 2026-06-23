@@ -2974,13 +2974,14 @@ function renderMontados() {
     ];
     cardsEl.innerHTML=cardProds.map(({col,label})=>{
       const hasMeta=HAS_META.includes(col);
-      const cor=hasMeta?'var(--green)':'var(--green-soft)';
       const metaDia=getMontadosMeta(col,mesAtual);
       const metaAcum=metaDia*duAteMes;
       // Total do mês atual da linha TOTAL do email
       const totalMes=totalRow?parseFloat(String(totalRow[col]||'0').replace(',','.'))||0:0;
       // Média do email (já calculada corretamente)
       const mediaDia=mediaRow?parseFloat(String(mediaRow[col]||'0').replace(',','.'))||0:0;
+      // Cor: vermelho se tem meta e está abaixo dela; senão verde (ou verde-suave sem meta)
+      const cor = (hasMeta && metaDia>0 && mediaDia < metaDia) ? 'var(--red)' : (hasMeta?'var(--green)':'var(--green-soft)');
       // Quantidade de hoje
       const hojeRow=sorted.find(r=>parseDate(r.DATA||'01/01/2000').getTime()===hoje.getTime());
       const hojeQtd=hojeRow?parseFloat(String(hojeRow[col]||'0').replace(',','.'))||0:null;
@@ -2995,7 +2996,7 @@ function renderMontados() {
         : 0;
       const isAbove=hasMeta&&metaDia>0&&mediaDia>=metaDia;
 
-      return '<div style="background:var(--surface);border:'+(hasMeta?'2':'1')+'px solid '+(hasMeta?'var(--green)':'var(--border)')+';border-radius:10px;padding:12px 14px;flex:1;min-width:'+(hasMeta?'195':'140')+'px;box-shadow:var(--card-shadow,none)">'
+      return '<div style="background:var(--surface);border:'+(hasMeta?'2':'1')+'px solid '+(hasMeta?cor:'var(--border)')+';border-radius:10px;padding:12px 14px;flex:1;min-width:'+(hasMeta?'195':'140')+'px;box-shadow:var(--card-shadow,none)">'
         +'<div style="font-size:9px;font-weight:700;color:'+cor+';letter-spacing:1px;margin-bottom:6px;white-space:nowrap">'+label+'</div>'
         +'<div style="display:flex;align-items:baseline;gap:10px;white-space:nowrap">'
         +'<div style="font-size:'+(hasMeta?'23':'20')+'px;font-weight:900;color:'+cor+'">'+Math.round(totalMes).toLocaleString('pt-BR')+'</div>'
@@ -9864,10 +9865,9 @@ function renderDashboard(){
     if (DATA.ife && DATA.ife.length) {
       const meses=[...new Set(DATA.ife.map(r=>r.mesKey))].sort();
       const mesAt=meses[meses.length-1];
-      const calc=emp=>{ const d=DATA.ife.filter(_ifeFiltrar(emp)).filter(r=>r.mesKey===mesAt); const c=_ifeCalc(d); return c.ife; };
-      const cAll=_ifeCalc(DATA.ife.filter(r=>r.mesKey===mesAt)).ife;
+      const calc=emp=>{ const d=DATA.ife.filter(_ifeFiltrar(emp)).filter(r=>r.mesKey===mesAt); return _ifeCalc(d).ife; };
       const fp=v=> v==null?'—':(Math.round(v*10)/10).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
-      ifeCons=fp(cAll); ifeMatr=fp(calc('1')); ifeFil=fp(calc('2'));
+      ifeCons=fp(calc('CONSOLIDADO')); ifeMatr=fp(calc('1')); ifeFil=fp(calc('2'));
     }
   } catch(e){ console.warn('dash ife',e); }
 
@@ -9884,17 +9884,27 @@ function renderDashboard(){
   } catch(e){ console.warn('dash terc',e); }
   const fmtMoney = n => 'R$ ' + Math.round(n).toLocaleString('pt-BR');
 
-  // ───── TT e PM: média/dia atual vs meta/dia ─────
-  let ttMed=0, pmMed=0, ttMetaDia=0, pmMetaDia=0, ttReal=0, pmReal=0, ttMeta=0, pmMeta=0;
+  // ───── TT e PM: último dia (destaque) + média acumulada + meta/dia ─────
+  let ttUltDia=0, pmUltDia=0, ttMed=0, pmMed=0, ttMetaDia=0, pmMetaDia=0;
   try {
     if (DATA.termico && DATA.termico.polimento) {
       const _ref=mesReferencia(); const ano=_ref.ano, mesAtual=_ref.mes;
-      const duMes=diasUteisMes(ano,mesAtual,true); const metas=getMetas();
-      DATA.termico.termico.forEach(r=>{const [a,m]=(r.mes||'').split('-').map(Number);if(a===ano&&m-1===mesAtual)ttReal+=r.qtde;});
-      DATA.termico.polimento.forEach(r=>{const [a,m]=(r.mes||'').split('-').map(Number);if(a===ano&&m-1===mesAtual)pmReal+=r.qtde/2;});
+      const duMes=diasUteisMes(ano,mesAtual); // até ontem (igual à aba)
+      const metas=getMetas();
+      let ttRealMes=0, pmRealMes=0;
+      DATA.termico.termico.forEach(r=>{const [a,m]=(r.mes||'').split('-').map(Number);if(a===ano&&m-1===mesAtual)ttRealMes+=r.qtde;});
+      DATA.termico.polimento.forEach(r=>{const [a,m]=(r.mes||'').split('-').map(Number);if(a===ano&&m-1===mesAtual)pmRealMes+=r.qtde/2;});
       ttMetaDia=metas.TT[mesAtual]; pmMetaDia=metas.PM[mesAtual];
-      ttMeta=ttMetaDia*duMes; pmMeta=pmMetaDia*duMes;
-      ttMed=duMes>0?ttReal/duMes:0; pmMed=duMes>0?pmReal/duMes:0;
+      ttMed=duMes>0?Math.round(ttRealMes/duMes):0; pmMed=duMes>0?Math.round(pmRealMes/duMes):0;
+      // último dia útil antes de hoje
+      const hoje=new Date(); hoje.setHours(0,0,0,0);
+      const fer=new Set(getFeriados().map(f=>f.data));
+      let ult=null;
+      for(let i=1;i<=10;i++){const d=new Date(hoje);d.setDate(d.getDate()-i);const dw=d.getDay();const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');if(dw!==0&&dw!==6&&!fer.has(iso)){ult=iso;break;}}
+      const diarioTT={}, diarioPM={};
+      (DATA.termico.diarioTT||[]).forEach(r=>{if(r.dt)diarioTT[r.dt]=(diarioTT[r.dt]||0)+r.qtde;});
+      (DATA.termico.diarioPM||[]).forEach(r=>{if(r.dt)diarioPM[r.dt]=(diarioPM[r.dt]||0)+r.qtde;});
+      ttUltDia=Math.round(diarioTT[ult]||0); pmUltDia=Math.round(diarioPM[ult]||0);
     }
   } catch(e){ console.warn('dash ttpm',e); }
 
@@ -9913,18 +9923,18 @@ function renderDashboard(){
     + '<div class="meta">meta '+fmtMoney(tercMeta)+(tercMeta>0?' · '+Math.round(tercReal/tercMeta*100)+'%':'')
       + (tercPrev>0?' · prev. '+fmtMoney(tercPrev):'')+'</div>'
     + (tercMeta>0?'<div class="bar"><i style="width:'+pctBar(tercReal,tercMeta)+'%;background:var(--amber)"></i></div>':'')+'</div>';
-  // TT: média/dia vs meta/dia
+  // TT: último dia (destaque) + média acumulada + meta/dia
   const ttOk=ttMed>=ttMetaDia;
-  heroHtml += '<div class="dh tt" onclick="showTab(\'termico\')"><div class="cap">🌡️ TT — Térmico (média/dia)</div>'
-    + '<div class="big">'+_dfmt(ttMed)+' <span style="font-size:16px;color:var(--text-muted)">/ '+_dfmt(ttMetaDia)+'</span></div>'
-    + '<div class="meta">'+pctBar(ttReal,ttMeta)+'% da meta mensal · '+(ttOk?'▲':'▼')+'</div>'
-    + '<div class="bar"><i style="width:'+pctBar(ttReal,ttMeta)+'%;background:var(--red)"></i></div></div>';
-  // PM: média/dia vs meta/dia
+  heroHtml += '<div class="dh tt" onclick="showTab(\'termico\')"><div class="cap">🌡️ TT — Térmico (último dia)</div>'
+    + '<div class="big">'+_dfmt(ttUltDia)+'</div>'
+    + '<div class="meta">média '+_dfmt(ttMed)+'/dia · meta '+_dfmt(ttMetaDia)+'/dia · '+(ttOk?'▲':'▼')+'</div>'
+    + '<div class="bar"><i style="width:'+pctBar(ttMed,ttMetaDia)+'%;background:var(--red)"></i></div></div>';
+  // PM: último dia (destaque) + média acumulada + meta/dia
   const pmOk=pmMed>=pmMetaDia;
-  heroHtml += '<div class="dh pm" onclick="showTab(\'termico\')"><div class="cap">✨ PM — Polimento (média/dia)</div>'
-    + '<div class="big">'+_dfmt(pmMed)+' <span style="font-size:16px;color:var(--text-muted)">/ '+_dfmt(pmMetaDia)+'</span></div>'
-    + '<div class="meta">'+pctBar(pmReal,pmMeta)+'% da meta mensal · '+(pmOk?'▲':'▼')+'</div>'
-    + '<div class="bar"><i style="width:'+pctBar(pmReal,pmMeta)+'%;background:var(--green)"></i></div></div>';
+  heroHtml += '<div class="dh pm" onclick="showTab(\'termico\')"><div class="cap">✨ PM — Polimento (último dia)</div>'
+    + '<div class="big">'+_dfmt(pmUltDia)+'</div>'
+    + '<div class="meta">média '+_dfmt(pmMed)+'/dia · meta '+_dfmt(pmMetaDia)+'/dia · '+(pmOk?'▲':'▼')+'</div>'
+    + '<div class="bar"><i style="width:'+pctBar(pmMed,pmMetaDia)+'%;background:var(--green)"></i></div></div>';
   heroHtml += '</div>';
 
   // ── MONTAGEM (só famílias com meta, 1 casa decimal) ──
