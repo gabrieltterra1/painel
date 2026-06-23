@@ -10745,10 +10745,26 @@ function _dashResponder(q){
   if(/dispon[íi]vel|disponibilidade|para venda|pra venda|pode vender|estoque.*venda/.test(s)){
     try {
       let itens=(DATA.disponibilidade||[]).filter(d=>d.disponivel>0);
+      // detecta família citada (rótulos da aba Disponibilidade)
+      const _dispFam=(()=>{
+        if(/guincho|enrolador/.test(s)) return {label:'Guincho e Enrol.', teste:f=>f==='GUINCHO E ENROL.'};
+        if(/bomba/.test(s)) return {label:'Bomba', teste:f=>f==='BOMBA'};
+        if(/cilindro/.test(s)) return {label:'Cilindro', teste:f=>f==='CILINDRO'};
+        if(/tomada|mult/.test(s)) return {label:'Tomada e Mult', teste:f=>f==='TOMADA E MULT'};
+        if(/eixo|conj/.test(s)) return {label:'Conj. Eixo', teste:f=>f==='CONJ. EIXO'};
+        if(/comando/.test(s)) return {label:'Comando', teste:f=>f==='COMANDO'};
+        if(/v[áa]lvula/.test(s)) return {label:'Válvula', teste:f=>f==='VÁLVULA'};
+        if(/\bkit\b/.test(s)) return {label:'Kit Hidr.', teste:f=>f==='KIT HIDR.'};
+        if(/importad/.test(s)) return {label:'Importados', teste:f=>f==='IMPORTADOS'};
+        return null;
+      })();
+      if(_dispFam) itens=itens.filter(d=>_dispFam.teste(d.familia));
       const porEmp={}; itens.forEach(d=>{ const e=_dispEmpLabel(d.empresa); if(!porEmp[e])porEmp[e]={itens:0,disp:0}; porEmp[e].itens++; porEmp[e].disp+=d.disponivel; });
       const totalItens=itens.length, totalDisp=itens.reduce((sm,d)=>sm+d.disponivel,0);
-      let tab='<div style="margin-top:10px;font-size:11px;color:var(--text-muted)">Por empresa:</div><div style="margin-top:4px;font-size:12px;line-height:1.7">'+Object.entries(porEmp).map(([e,v])=>'• '+e+': <b>'+fmt(v.itens)+'</b> itens ('+fmt(v.disp)+' un.)').join('<br>')+'</div>';
-      return _daBox('Disponibilidade para venda',
+      const tab=Object.keys(porEmp).length
+        ? '<div style="margin-top:10px;font-size:11px;color:var(--text-muted)">Por empresa:</div><div style="margin-top:4px;font-size:12px;line-height:1.7">'+Object.entries(porEmp).map(([e,v])=>'• '+e+': <b>'+fmt(v.itens)+'</b> itens ('+fmt(v.disp)+' un.)').join('<br>')+'</div>'
+        : '<div style="margin-top:8px;font-size:12px;color:var(--text-muted)">Nenhum item disponível dessa família.</div>';
+      return _daBox('Disponível para venda'+(_dispFam?' — '+_dispFam.label:''),
         '<div style="font-size:14px;line-height:1.9">'
         +'Itens disponíveis: <b style="color:var(--green);font-size:20px">'+fmt(totalItens)+'</b><br>'
         +'Quantidade total disponível: <b>'+fmt(totalDisp)+'</b> un.'
