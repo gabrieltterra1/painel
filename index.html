@@ -10240,6 +10240,7 @@ function renderDashboard(){
         + '<div class="assist-sub">Pergunte sobre montagem, pedidos, estoque e produção</div>'
       + '</div>'
       + '<button class="da-modo-ia" id="da-copiar-btn" onclick="dashCopiarPergunta()" title="Copiar pergunta + dados para colar no app do Claude ou na extensão">📋 Copiar p/ Claude</button>'
+      + '<button class="da-modo-ia" id="da-pendentes-btn" onclick="dashVerPendentes()" title="Ver perguntas que ainda não sei responder">❓ Sem resposta</button>'
       + '<button class="da-modo-ia" id="da-modo-ia-btn" onclick="dashConfigIA()" title="Modo IA avançado">'+(_daIAAtivo()?'🤖 IA on':'🤖 Modo IA')+'</button>'
     + '</div>'
     + '<div class="da-inputrow">'
@@ -11133,6 +11134,40 @@ function _daSalvarPerguntaPendente(pergunta){
     const payload=JSON.stringify({ action:'salvarPerguntaPendente', pergunta:p });
     fetch(WEBAPP, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body:payload });
   } catch(e){ /* silencioso */ }
+}
+// Busca a aba PERGUNTAS_PENDENTES do Sheets e lista no painel
+async function dashVerPendentes(){
+  const out=document.getElementById('dash-resposta');
+  if(!out) return;
+  out.style.display='block'; out.dataset.tipo='';
+  out.innerHTML=_daBox('❓ Buscando perguntas sem resposta…','<div style="font-size:13px;color:var(--text-muted)">Consultando a planilha…</div>');
+  try {
+    if(typeof WEBAPP==='undefined'){ out.innerHTML=_daBox('Indisponível','<div style="font-size:13px;color:var(--text-muted)">Conexão com a planilha não configurada.</div>'); return; }
+    const res=await fetch(WEBAPP+'?aba=PERGUNTAS_PENDENTES&t='+Date.now());
+    const txt=(await res.text()).trim();
+    // CSV simples: 1 coluna PERGUNTA, primeira linha é cabeçalho
+    const linhas=txt.split(/\r?\n/).map(l=>l.replace(/^"|"$/g,'').trim()).filter(Boolean);
+    const perguntas=linhas.slice(1).filter(p=>p && p.toLowerCase()!=='pergunta');
+    if(!perguntas.length){
+      out.innerHTML=_daBox('❓ Perguntas sem resposta','<div style="font-size:13px;color:var(--text-muted)">Nenhuma pergunta pendente registrada. 🎉</div>');
+      return;
+    }
+    const lista='<div style="margin-top:8px;max-height:260px;overflow:auto;font-size:13px;line-height:1.8">'
+      +perguntas.map((p,i)=>'<div style="padding:5px 0;border-bottom:1px solid var(--border)">'+(i+1)+'. '+_daEscapeHtml(p)+'</div>').join('')+'</div>';
+    window._daPerguntasPendentes=perguntas;
+    out.innerHTML=_daBox('❓ Perguntas sem resposta ('+perguntas.length+')',
+      '<div style="font-size:13px;color:var(--text-muted);line-height:1.6">Estas perguntas ainda não têm resposta programada. Copie e envie ao desenvolvedor para programá-las.</div>'
+      +lista
+      +'<div style="margin-top:10px"><button onclick="dashCopiarPendentes(this)" style="background:rgba(168,85,247,.15);color:#c084fc;border:1px solid #a855f755;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer">📋 Copiar todas</button></div>');
+  } catch(e){
+    out.innerHTML=_daBox('Erro','<div style="font-size:13px;color:var(--red)">Não consegui buscar as perguntas. Verifique a conexão com a planilha.</div>');
+  }
+}
+function dashCopiarPendentes(btn){
+  try {
+    const txt=(window._daPerguntasPendentes||[]).join('\n');
+    if(navigator.clipboard) navigator.clipboard.writeText(txt).then(()=>{ if(btn)btn.textContent='✓ Copiado'; });
+  } catch(e){}
 }
 function dashCopiarPergunta(){
   const inp=document.getElementById('dash-pergunta');
