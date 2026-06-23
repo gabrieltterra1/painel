@@ -10467,8 +10467,8 @@ function dashMostrarIdeias(){
   // só mostra se ainda não há resposta visível (não atrapalha)
   if(out.style.display==='block' && out.dataset.tipo!=='ideias' && out.innerHTML.trim()) return;
   const cats=[
-    ['🔧 Montagem & Pedidos', ['Quantos guinchos montar este mês?','Quanto falta montar de bomba?','Qual o ritmo necessário para cilindro?','Consigo atender os guinchos no ritmo atual?','Projeção de fechamento de guincho','Quanto montei este mês?']],
-    ['📦 Estoque & Disponibilidade', ['O que está abaixo do estoque de segurança?','Quanto falta a abastecer?','Qual o NS de abastecimento?','Quantos itens disponíveis para venda?','O que está disponível e tem pedido atrasado?']],
+    ['🔧 Montagem & Pedidos', ['Quantos guinchos montar este mês?','Prioridades de hoje','Quantos cilindros montar essa semana?','Quantos comandos montar até sexta?','Consigo atender os guinchos no ritmo atual?','Quanto montei este mês?']],
+    ['📦 Estoque & Trânsito', ['O trânsito enche o estoque de segurança de SP?','O que falta enviar para GO?','Qual filial está mais crítica?','O que está abaixo do estoque de segurança?','Quantos itens disponíveis para venda?']],
     ['📋 Pedidos & OFs', ['Como estão os pedidos atrasados?','Tenho estoque pra faturar os pedidos prontos?','Quantas OFs em atraso?','Quais OFs travam pedidos atrasados?','Top clientes da carteira']],
     ['📊 Indicadores', ['Como está o IFE?','Qual a tendência do IFE?','Como está o térmico e polimento?','Quanto gastei com terceiros?','Os terceiros vão estourar a meta?']]
   ];
@@ -10557,21 +10557,92 @@ async function dashPerguntar(){
     }
   } else {
     out.innerHTML = resp;
+    // anexa follow-ups (próximas perguntas) se a resposta não for de erro
+    try {
+      if(!/Não consegui|Não sei|Erro|Qual filial|💡|❓/.test(resp)){
+        const fu=_daFollowups(q);
+        if(fu) out.innerHTML += fu;
+      }
+    } catch(e){}
   }
   // atualiza sugestões
   const sugEl=document.getElementById('dash-sugestoes');
   if(sugEl){ sugEl.innerHTML=_dashSugestoes().map(s=>'<button class="da-sug" onclick="dashPerguntarTexto(this.textContent)">'+s+'</button>').join(''); }
 }
 // Motor de resposta (cálculos programados)
+// Expande perguntas curtas de continuação usando a última pergunta respondida.
+// Ex: última="quantos guinchos montar este mês" + atual="e bomba?" → "quantos bomba montar este mês"
+// Sugere próximos passos clicáveis com base no tema da pergunta respondida
+function _daFollowups(q){
+  const s=(q||'').toLowerCase();
+  let fu=[];
+  const fam=(typeof _dashFamiliaPergunta==='function')?_dashFamiliaPergunta(q):null;
+  if(/montar|montag|falta/.test(s) && fam){
+    fu=['Consigo atender '+fam.label.toLowerCase()+' no ritmo atual?','Quantos '+fam.label.toLowerCase()+' montar até sexta?','Projeção de fechamento de '+fam.label.toLowerCase()];
+  } else if(/pedido|atrasad|faturar/.test(s)){
+    fu=['Quais OFs travam pedidos atrasados?','Tenho estoque pra faturar os pedidos prontos?','Top clientes da carteira'];
+  } else if(/tr[âa]nsito|seguran|enviar|abastec/.test(s)){
+    fu=['O que falta enviar para GO?','O que está abaixo do estoque de segurança?','Qual o NS de abastecimento?'];
+  } else if(/terceiro|servi[çc]o|gasto/.test(s)){
+    fu=['Os terceiros vão estourar a meta?','Fornecedores de terceiros do mês'];
+  } else if(/\bife\b/.test(s)){
+    fu=['Qual a tendência do IFE?'];
+  } else if(/t[ée]rmico|polimento/.test(s)){
+    fu=['Melhor dia de térmico','Como está o IFE?'];
+  } else if(/dispon|venda/.test(s)){
+    fu=['O que está disponível e tem pedido atrasado?'];
+  } else if(/of\b|ordens|ordem/.test(s)){
+    fu=['OFs que vencem esta semana','Quais OFs travam pedidos atrasados?'];
+  }
+  if(!fu.length) return '';
+  return '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">'
+    +'<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Próximas perguntas:</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:6px">'+fu.slice(0,3).map(p=>'<button class="da-sug" onclick="dashPerguntarTexto(\''+p.replace(/'/g,"\\'")+'\')">'+p+'</button>').join('')+'</div></div>';
+}
+function _dashExpandirContexto(q){
+  try {
+    const s=q.trim().toLowerCase();
+    const ultima=window._daUltimaPergunta;
+    if(!ultima) return q;
+    // famílias reconhecíveis
+    const familias=['guincho','enrolador','bomba','cilindro','tomada','mult','comando','válvula','valvula','kit','eixo','conj','walvoil','força','forca'];
+    // padrão "e <familia>?" ou só "<familia>?" (curto, sem verbo)
+    const mCont = s.match(/^(?:e\s+|e\s+a\s+|e\s+o\s+|e\s+os\s+|e\s+as\s+)?(guincho|enrolador|bomba|cilindro|tomada|mult|comando|v[áa]lvula|kit|eixo|conj|walvoil|for[çc]a)s?\??$/);
+    if(mCont){
+      const novaFam=mCont[1];
+      // troca a família mencionada na última pergunta pela nova
+      let exp=ultima;
+      const regexFam=new RegExp('\\b(guincho|enrolador|bomba|cilindro|tomada|mult|comando|v[áa]lvula|valvula|kit|eixo|conj|walvoil|for[çc]a)s?\\b','i');
+      if(regexFam.test(exp)){
+        exp=exp.replace(regexFam, novaFam);
+        return exp;
+      }
+      // se a última não tinha família, anexa
+      return ultima+' '+novaFam;
+    }
+    // "e até sexta?" / "e próximo mês?" — troca o período mantendo o resto
+    const mPer = s.match(/^e\s+(at[ée].+|pr[óo]ximo m[êe]s|essa semana|semana que vem|amanh[ãa]|hoje|daqui.+)\??$/);
+    if(mPer && /montar|montag|falta/.test(ultima.toLowerCase())){
+      // remove período antigo da última e anexa o novo
+      let exp=ultima.replace(/at[ée]\s+[^\s]+(\s+\d{4})?|este m[êe]s|pr[óo]ximo m[êe]s|essa semana|semana que vem|amanh[ãa]|hoje/gi,'').trim();
+      return exp+' '+mPer[1];
+    }
+  } catch(e){}
+  return q;
+}
 function _dashResponder(q){
+  // Memória de contexto: expande perguntas curtas de continuação ("e bomba?") usando a última pergunta
+  q = _dashExpandirContexto(q);
   const s=q.toLowerCase();
   const fmt=n=>Math.round(n).toLocaleString('pt-BR');
+  // guarda a pergunta atual como contexto (se mencionar família ou for substantiva)
+  try { if(q && q.length>4) window._daUltimaPergunta = q; } catch(e){}
 
   // ═══ "O que você pode fazer / ajuda / o que pergunto" ═══
   if(/o que voc[êe] (pode|consegue|sabe) (fazer|responder)|o que (posso|da pra) perguntar|no que.*ajuda|me ajuda com o qu[êe]|quais perguntas|\bajuda\b|o que voc[êe] faz|suas funcion/.test(s)){
     const cats=[
-      ['🔧 Montagem & Pedidos', ['Quantos guinchos montar este mês?','Quanto falta montar de bomba?','Quantos itens montar até hoje?','Consigo atender os guinchos no ritmo atual?','Projeção de fechamento de guincho','Quanto montei este mês?']],
-      ['📦 Estoque & Disponibilidade', ['O que está abaixo do estoque de segurança?','Quanto falta a abastecer?','Qual o NS de abastecimento?','Quantos itens disponíveis para venda?','O que está disponível e tem pedido atrasado?']],
+      ['🔧 Montagem & Pedidos', ['Quantos guinchos montar este mês?','Prioridades de hoje','Quantos cilindros montar essa semana?','Quantos comandos montar até sexta?','Consigo atender os guinchos no ritmo atual?','Quanto montei este mês?']],
+      ['📦 Estoque & Trânsito', ['O trânsito enche o estoque de segurança de SP?','O que falta enviar para GO?','Qual filial está mais crítica?','O que está abaixo do estoque de segurança?','Quantos itens disponíveis para venda?']],
       ['📋 Pedidos & OFs', ['Como estão os pedidos atrasados?','Tenho estoque pra faturar os pedidos prontos?','Quantas OFs em atraso?','Quais OFs travam pedidos atrasados?','OFs que vencem esta semana','Top clientes da carteira']],
       ['📊 Indicadores', ['Como está o IFE?','Qual a tendência do IFE?','Como está o térmico e polimento?','Melhor dia de térmico','Quanto gastei com terceiros?','Os terceiros vão estourar a meta?']]
     ];
@@ -10603,6 +10674,51 @@ function _dashResponder(q){
   const _famPrior = _dashFamiliaPergunta(q) && /montar|falta|ritmo|por dia|\/dia/.test(s) && !_ehCruzamento && !_ehAteHoje;
   if(!_famPrior){
 
+
+  // ═══ "Prioridades de hoje" — a montar (atrasados até hoje), com escolha todas/força ═══
+  if(/prioridade.*hoje|hoje.*prioridade|o que priorizar|prioridade.*dia|priorizar hoje|foco de hoje|o que fazer hoje/.test(s)){
+    try {
+      const hoje=new Date(); hoje.setHours(0,0,0,0);
+      // detecta escopo já citado: "todas" / "força"
+      let escopo=null;
+      if(/\bfor[çc]a\b|so for[çc]a|apenas for[çc]a/.test(s)) escopo='forca';
+      else if(/\btodas\b|tudo|todas as linhas|geral/.test(s)) escopo='todas';
+      if(!escopo){
+        // pergunta o escopo com botões
+        return _daBox('Prioridades de hoje',
+          '<div style="font-size:14px;line-height:1.6">Quer ver as prioridades de <b>todas as linhas</b> ou apenas <b>Força</b> (tudo menos guincho e walvoil)?</div>'
+          +'<div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px">'
+          +'<button class="da-sug" onclick="dashPerguntarTexto(\'prioridades de hoje todas as linhas\')">📋 Todas as linhas</button>'
+          +'<button class="da-sug" onclick="dashPerguntarTexto(\'prioridades de hoje força\')">⚙️ Apenas Força</button>'
+          +'</div>');
+      }
+      const base=(DATA.pedidos||[]).filter(p=>p.dataEnt && p.dataEnt<=hoje);
+      const grupos=_pvCalcularGrupos(base);
+      const ehForca = escopo==='forca';
+      const porFam={}; let total=0; const detalhe=[];
+      Object.values(grupos).forEach(g=>{
+        const am=(typeof g.a_montar==='number'?g.a_montar:0);
+        if(am<=0) return;
+        const f=g.familia||'OUTROS';
+        if(ehForca && (String(f).startsWith('GUINCHO')||String(f).startsWith('WALVOIL'))) return; // força = exclui guincho e walvoil
+        porFam[f]=(porFam[f]||0)+am; total+=am;
+        detalhe.push({cod:g.codigo||g.cod||'', desc:g.descricao||g.desc||'', fam:f, am});
+      });
+      const ordem=Object.entries(porFam).sort((a,b)=>b[1]-a[1]);
+      const tabFam=ordem.length?'<div style="margin-top:8px;font-size:13px;line-height:1.8">'+ordem.map(([f,v])=>'• '+f+': <b style="color:var(--amber)">'+fmt(v)+'</b>').join('<br>')+'</div>':'';
+      // top itens
+      detalhe.sort((a,b)=>b.am-a.am);
+      const topItens=detalhe.slice(0,15);
+      const tabItens=topItens.length?'<div style="margin-top:10px;font-size:11px;color:var(--text-muted)">Itens prioritários (top 15):</div>'
+        +'<div style="margin-top:4px;max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:8px"><table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed">'
+        +'<thead><tr style="background:var(--surface2)"><th style="text-align:left;padding:5px 6px;width:18%">Código</th><th style="text-align:left;padding:5px 6px;width:52%">Descrição</th><th style="text-align:right;padding:5px 6px;width:30%">A montar</th></tr></thead><tbody>'
+        +topItens.map(i=>'<tr style="border-top:1px solid var(--border)"><td style="padding:4px 6px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_daEscapeHtml(i.cod)+'</td><td style="padding:4px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+_daEscapeHtml(i.desc)+'">'+_daEscapeHtml(i.desc)+'</td><td style="text-align:right;padding:4px 6px;color:var(--amber);font-weight:700">'+fmt(i.am)+'</td></tr>').join('')
+        +'</tbody></table></div>':'';
+      return _daBox('Prioridades de hoje — '+(ehForca?'Força (sem guincho/walvoil)':'Todas as linhas'),
+        '<div style="font-size:14px;line-height:1.8">A montar (atrasados + entrega até hoje): <b style="color:var(--amber);font-size:22px">'+fmt(total)+'</b> peças</div>'
+        +tabFam+tabItens+_daLink('Ver Prioridades','showTab(\'pedidos\')'));
+    } catch(e){ return _daBox('Erro','<div>Não consegui calcular as prioridades de hoje.</div>'); }
+  }
 
   if(/at[ée] hoje/.test(s) || /montar.*hoje|a montar.*hoje|preciso montar(?!.*m[êe]s)/.test(s)){
     try {
@@ -10788,6 +10904,35 @@ function _dashResponder(q){
         +'<b style="color:'+(vaiEstourar?'var(--red)':'var(--green)')+';font-size:15px">'+(vaiEstourar?'⚠ Tendência de estourar em '+fmtMoney(prev-meta):'✓ Dentro da meta')+'</b>'
         +'</div>'+_daLink('Ver serviços','showTab(\'servicos\')'));
     } catch(e){ return _daBox('Erro','<div>Não consegui calcular.</div>'); }
+  }
+
+  // ═══ Qual filial está mais crítica (descoberto de ES por filial) ═══
+  if(/filial.*cr[íi]tic|cr[íi]tic.*filial|qual filial.*pior|pior filial|filial.*mais falta|onde.*falta mais/.test(s)){
+    try {
+      if(!DATA.estoqueDet||!DATA.estoqueDet.length){ return _daBox('Dados indisponíveis','<div style="font-size:13px;color:var(--text-muted)">O detalhamento por item não está carregado.</div>'); }
+      const FILIAIS=['SP','MG','GO','PE'];
+      const clienteCodMap=(typeof FILIAL_CLIENTE_COD!=='undefined')?FILIAL_CLIENTE_COD:{};
+      const res=FILIAIS.map(uf=>{
+        const clienteCod=clienteCodMap[uf]||null;
+        let descoberto=0, codigos=0;
+        (DATA.estoqueDet||[]).filter(it=>it.EMPRESA===uf).forEach(it=>{
+          const faltaES=Math.max(0,(it.PARAM_ES||0)-(it.EST_ATUAL||0));
+          if(faltaES<=0) return;
+          const pedFilial=Number(it.PEDIDOS)||0;
+          const programado=(DATA.pedidos||[]).filter(p=>p.codigo===it.COD_ITEM && clienteCod && p.clienteCod===clienteCod).reduce((sm,p)=>sm+(Number(p.qtde)||0),0);
+          const desc=Math.max(0, faltaES+pedFilial-(it.EST_TRANSITO||0)-programado);
+          if(desc>0){ descoberto+=desc; codigos++; }
+        });
+        return {uf, descoberto, codigos};
+      }).sort((a,b)=>b.descoberto-a.descoberto);
+      const tab='<div style="margin-top:8px;border:1px solid var(--border);border-radius:8px;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'
+        +'<thead><tr style="background:var(--surface2)"><th style="text-align:left;padding:6px 10px">Filial</th><th style="text-align:right;padding:6px 10px">Códigos descobertos</th><th style="text-align:right;padding:6px 10px">Peças a enviar</th></tr></thead><tbody>'
+        +res.map((r,i)=>'<tr style="border-top:1px solid var(--border)"><td style="padding:6px 10px;font-weight:'+(i===0?'700':'400')+'">'+(i===0?'🔴 ':'')+r.uf+'</td><td style="text-align:right;padding:6px 10px">'+fmt(r.codigos)+'</td><td style="text-align:right;padding:6px 10px;color:'+(i===0?'var(--red)':'var(--amber)')+';font-weight:700">'+fmt(r.descoberto)+'</td></tr>').join('')
+        +'</tbody></table></div>';
+      return _daBox('Filiais mais críticas (falta enviar)',
+        '<div style="font-size:14px;line-height:1.7">A filial mais crítica é <b style="color:var(--red)">'+res[0].uf+'</b> com <b>'+fmt(res[0].descoberto)+'</b> peças a enviar em '+res[0].codigos+' códigos.</div>'
+        +tab+_daLink('Ver Estoque & Trânsito','showTab(\'estoque\')'));
+    } catch(e){ return _daBox('Erro','<div>Não consegui comparar as filiais.</div>'); }
   }
 
   // ═══ PROJEÇÃO DE FECHAMENTO (montagem família ou TT/PM) ═══
