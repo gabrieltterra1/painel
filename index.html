@@ -10217,8 +10217,14 @@ function _dashSugestoes(){
   const padrao = [
     'Quantos guinchos montar este mês?',
     'Quanto falta montar de bomba?',
-    'Qual o ritmo/dia necessário para guincho?',
-    'O que está atrasado nos pedidos?'
+    'Como está o IFE?',
+    'Quanto gastei com terceiros?',
+    'Como está o térmico e polimento?',
+    'O que está abaixo do estoque de segurança?',
+    'Quantos itens disponíveis para venda?',
+    'Como estão os pedidos atrasados?',
+    'Quantas OFs em atraso?',
+    'Quanto montei este mês?'
   ];
   const hist = _dashHistorico();
   const todas = [...hist, ...padrao];
@@ -10311,6 +10317,161 @@ function _dashResponder(q){
     const ultDia=new Date(anoM,mesM+1,0).getDate();
     for(let d=hoje.getDate();d<=ultDia;d++){const dt=new Date(anoM,mesM,d);const dw=dt.getDay();const iso=anoM+'-'+String(mesM+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');if(dw!==0&&dw!==6&&!fer.has(iso))duRest++;}
   } catch(e){}
+
+  const fmtMoney=n=>'R$ '+Math.round(n).toLocaleString('pt-BR');
+  const agora=new Date();
+  const anoAt=agora.getFullYear(), mmAt=String(agora.getMonth()+1).padStart(2,'0');
+
+  // Prioridade: pergunta de família + (montar/falta/ritmo) vai direto ao cálculo de família (mais abaixo)
+  const _famPrior = _dashFamiliaPergunta(q) && /montar|falta|ritmo|por dia|\/dia|atender|carreira/.test(s);
+  if(!_famPrior){
+
+  // ═══ TÉRMICO & POLIMENTO ═══
+  if(/t[ée]rmico|polimento|\btt\b|\bpm\b|tratamento/.test(s)){
+    try {
+      const _ref=mesReferencia(); const ano=_ref.ano, mesA=_ref.mes;
+      const duMes=diasUteisMes(ano,mesA); const metas=getMetas();
+      let ttReal=0,pmReal=0;
+      (DATA.termico.termico||[]).forEach(r=>{const [a,m]=(r.mes||'').split('-').map(Number);if(a===ano&&m-1===mesA)ttReal+=r.qtde;});
+      (DATA.termico.polimento||[]).forEach(r=>{const [a,m]=(r.mes||'').split('-').map(Number);if(a===ano&&m-1===mesA)pmReal+=r.qtde/2;});
+      const ehPM=/polimento|\bpm\b/.test(s) && !/t[ée]rmico|\btt\b/.test(s);
+      const real=ehPM?pmReal:ttReal, metaDia=ehPM?metas.PM[mesA]:metas.TT[mesA], nome=ehPM?'Polimento (PM)':'Térmico (TT)';
+      const med=duMes>0?real/duMes:0, metaMes=metaDia*duMes;
+      return _daBox(nome+' — mês atual',
+        '<div style="font-size:14px;line-height:1.9">'
+        +'Produção no mês: <b style="color:var(--blue-light)">'+fmt(real)+'</b><br>'
+        +'Média/dia: <b>'+fmt(med)+'</b> · Meta/dia: <b>'+fmt(metaDia)+'</b> '+(med>=metaDia?'<span style="color:var(--green)">▲</span>':'<span style="color:var(--red)">▼</span>')+'<br>'
+        +'Meta do mês: <b>'+fmt(metaMes)+'</b> ('+fmt(duMes)+' dias úteis) · '+(real>=metaMes?'<span style="color:var(--green)">acima</span>':'<span style="color:var(--red)">faltam '+fmt(metaMes-real)+'</span>')
+        +'</div>'+_daLink('Ver aba Térmico & Polimento','showTab(\'termico\')'));
+    } catch(e){ return _daBox('Erro','<div>Não consegui calcular o térmico/polimento.</div>'); }
+  }
+
+  // ═══ IFE ═══
+  if(/\bife\b|atendiment|índice.*entrega|indice.*entrega/.test(s)){
+    try {
+      const meses=[...new Set(DATA.ife.map(r=>r.mesKey))].sort();
+      const mesAt=meses[meses.length-1];
+      const calc=emp=>{ const c=_ifeCalc(DATA.ife.filter(_ifeFiltrar(emp)).filter(r=>r.mesKey===mesAt)); return c.ife; };
+      const fp=v=> v==null?'—':(Math.round(v*10)/10).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+      return _daBox('IFE — '+(mesAt||'mês atual'),
+        '<div style="font-size:14px;line-height:1.9">'
+        +'Consolidado: <b style="color:var(--blue-light);font-size:20px">'+fp(calc('CONSOLIDADO'))+'</b><br>'
+        +'Matriz: <b>'+fp(calc('1'))+'</b> · Filial SP: <b>'+fp(calc('2'))+'</b><br>'
+        +'<span style="font-size:12px;color:var(--text-muted)">Meta: 95%</span>'
+        +'</div>'+_daLink('Ver aba IFE','showTab(\'ife\')'));
+    } catch(e){ return _daBox('Erro','<div>Não consegui calcular o IFE.</div>'); }
+  }
+
+  // ═══ SERVIÇOS TERCEIROS ═══
+  if(/terceiro|servi[çc]o|galv[âa]nica|pintura|gasto.*fornecedor|usinagem.*terceiro/.test(s)){
+    try {
+      let real=0; (DATA.servico||[]).forEach(r=>{ if((r.mes||'').indexOf(anoAt+'-'+mmAt)===0) real+=r.valor||0; });
+      let meta=0; if(typeof getMetaTerc==='function') meta=getMetaTerc(anoAt,mmAt)||0;
+      let prev=0; if(typeof calcularPrevisaoServicos==='function'){ try{ const pv=calcularPrevisaoServicos(); if(pv&&pv.totalPorAlvo)prev=pv.totalPorAlvo[0]||0; }catch(_){} }
+      const porProc={}; (DATA.servico||[]).forEach(r=>{ if((r.mes||'').indexOf(anoAt+'-'+mmAt)===0){ const p=r.processo||'(sem proc.)'; porProc[p]=(porProc[p]||0)+(r.valor||0); } });
+      const procList=Object.entries(porProc).sort((a,b)=>b[1]-a[1]).slice(0,8);
+      let tab=''; if(procList.length){ tab='<div style="margin-top:10px;font-size:11px;color:var(--text-muted)">Por processo:</div><div style="margin-top:4px;font-size:12px;line-height:1.7">'+procList.map(([p,v])=>'• '+p+': <b>'+fmtMoney(v)+'</b>').join('<br>')+'</div>'; }
+      return _daBox('Serviços Terceiros — mês atual',
+        '<div style="font-size:14px;line-height:1.9">'
+        +'Realizado: <b style="color:var(--amber);font-size:20px">'+fmtMoney(real)+'</b><br>'
+        +'Meta: <b>'+fmtMoney(meta)+'</b>'+(meta>0?' ('+Math.round(real/meta*100)+'%)':'')+'<br>'
+        +(prev>0?'Previsão fim do mês: <b>'+fmtMoney(prev)+'</b>':'')
+        +'</div>'+tab+_daLink('Ver aba Serviços Terceiros','showTab(\'servicos\')'));
+    } catch(e){ return _daBox('Erro','<div>Não consegui calcular os serviços de terceiros.</div>'); }
+  }
+
+  // ═══ ESTOQUE & TRÂNSITO / NS ═══
+  if(/estoque.*seguran|abaixo.*seguran|falta.*abastec|abastec|trânsito|transito|\bns\b|n[íi]vel.*servi/.test(s)){
+    try {
+      const abaixo=(DATA.estoque||[]).filter(r=>r.qtde_param_es>0&&r.estoque_total<r.qtde_param_es);
+      const falta=(DATA.estoque||[]).filter(r=>r.tot_falta>0);
+      const faltaQtd=falta.reduce((sm,r)=>sm+(r.tot_falta||0),0);
+      let nsTxt='';
+      if(/\bns\b|n[íi]vel.*servi|abastec/.test(s) && DATA.ns){
+        const ufs=Object.keys(DATA.ns); const todos=[];
+        ufs.forEach(uf=>Object.values(DATA.ns[uf]).forEach(v=>todos.push(v)));
+        if(todos.length){ const m=todos.reduce((a,b)=>a+b,0)/todos.length; nsTxt='NS médio (abastecimento): <b>'+m.toFixed(1)+'%</b><br>'; }
+      }
+      let tabAbaixo=''; if(abaixo.length){ const top=abaixo.slice(0,10); tabAbaixo='<div style="margin-top:10px;font-size:11px;color:var(--text-muted)">Itens abaixo da segurança (top 10):</div><div style="margin-top:4px;font-size:12px;line-height:1.6">'+top.map(r=>'• '+(r.descricao||'').slice(0,30)+' ('+r.uf+'): <b style="color:var(--red)">'+fmt(r.estoque_total)+'</b>/'+fmt(r.qtde_param_es)).join('<br>')+'</div>'; }
+      return _daBox('Estoque & Abastecimento',
+        '<div style="font-size:14px;line-height:1.9">'
+        +nsTxt
+        +'Itens abaixo do estoque de segurança: <b style="color:var(--amber)">'+fmt(abaixo.length)+'</b><br>'
+        +'Itens com falta a abastecer: <b style="color:var(--amber)">'+fmt(falta.length)+'</b> (qtde total: '+fmt(faltaQtd)+')'
+        +'</div>'+tabAbaixo+_daLink('Ver aba Estoque & Trânsito','showTab(\'estoque\')'));
+    } catch(e){ return _daBox('Erro','<div>Não consegui calcular o estoque.</div>'); }
+  }
+
+  // ═══ DISPONIBILIDADE ═══
+  if(/dispon[íi]vel|disponibilidade|para venda|pra venda|pode vender|estoque.*venda/.test(s)){
+    try {
+      let itens=(DATA.disponibilidade||[]).filter(d=>d.disponivel>0);
+      const porEmp={}; itens.forEach(d=>{ const e=_dispEmpLabel(d.empresa); if(!porEmp[e])porEmp[e]={itens:0,disp:0}; porEmp[e].itens++; porEmp[e].disp+=d.disponivel; });
+      const totalItens=itens.length, totalDisp=itens.reduce((sm,d)=>sm+d.disponivel,0);
+      let tab='<div style="margin-top:10px;font-size:11px;color:var(--text-muted)">Por empresa:</div><div style="margin-top:4px;font-size:12px;line-height:1.7">'+Object.entries(porEmp).map(([e,v])=>'• '+e+': <b>'+fmt(v.itens)+'</b> itens ('+fmt(v.disp)+' un.)').join('<br>')+'</div>';
+      return _daBox('Disponibilidade para venda',
+        '<div style="font-size:14px;line-height:1.9">'
+        +'Itens disponíveis: <b style="color:var(--green);font-size:20px">'+fmt(totalItens)+'</b><br>'
+        +'Quantidade total disponível: <b>'+fmt(totalDisp)+'</b> un.'
+        +'</div>'+tab+_daLink('Ver aba Disponibilidade','dashIrFiltrado(\'disponibilidade\',\'disponivel\')'));
+    } catch(e){ return _daBox('Erro','<div>Não consegui calcular a disponibilidade.</div>'); }
+  }
+
+  // ═══ OF ABERTAS ═══
+  if(/\bofs?\b|ordem.*fabrica|ordens|abertas|em aberto|of.*atras|atras.*of/.test(s) && !/montar|montagem.*pedido/.test(s)){
+    try {
+      const todas=(DATA.ofItens||[]);
+      const atrasadas=todas.filter(it=>it.DT_FINAL&&isOverdue(it.DT_FINAL));
+      const montAtraso=atrasadas.filter(it=>it.FAMILIA);
+      const prodAtraso=atrasadas.filter(it=>!it.FAMILIA);
+      const montQtd=montAtraso.reduce((sm,it)=>sm+(it.QTDE_PEND||0),0);
+      const prodOrdens=new Set(prodAtraso.map(it=>it.NUM_ORDEM)).size;
+      const totalOrdens=new Set(todas.map(it=>it.NUM_ORDEM)).size;
+      return _daBox('OF Abertas',
+        '<div style="font-size:14px;line-height:1.9">'
+        +'Total de ordens abertas: <b>'+fmt(totalOrdens)+'</b><br>'
+        +'<b style="color:var(--red)">Em atraso:</b><br>'
+        +'• Montagem: <b>'+fmt(montQtd)+'</b> peças pendentes<br>'
+        +'• Produção: <b>'+fmt(prodOrdens)+'</b> ordens'
+        +'</div>'+_daLink('Ver OFs em atraso','dashIrFiltrado(\'of\',\'producao\')'));
+    } catch(e){ return _daBox('Erro','<div>Não consegui calcular as OFs.</div>'); }
+  }
+
+  // ═══ PEDIDOS (visão geral) ═══
+  if(/pedido|faturar|carteira|venda/.test(s) && !_dashFamiliaPergunta(q) && !/montar/.test(s)){
+    try {
+      const peds=(DATA.pedidos||[]);
+      const atrasados=peds.filter(p=>p.atrasado);
+      const qtdAtras=atrasados.reduce((sm,p)=>sm+(p.qtde||0),0);
+      const valAtras=atrasados.reduce((sm,p)=>sm+(p.valor||0),0);
+      const faturar=peds.filter(p=>p.status==='FATURAR');
+      const valFaturar=faturar.reduce((sm,p)=>sm+(p.valor||0),0);
+      return _daBox('Pedidos de Venda',
+        '<div style="font-size:14px;line-height:1.9">'
+        +'Itens atrasados: <b style="color:var(--red)">'+fmt(qtdAtras)+'</b> un. ('+fmtMoney(valAtras)+')<br>'
+        +'Prontos para faturar (estoque ok): <b style="color:var(--green)">'+fmt(faturar.length)+'</b> linhas ('+fmtMoney(valFaturar)+')'
+        +'</div>'+_daLink('Ver pedidos atrasados','dashIrFiltrado(\'pedidos\',\'atrasado\')'));
+    } catch(e){ return _daBox('Erro','<div>Não consegui calcular os pedidos.</div>'); }
+  }
+
+  // ═══ MONTAGEM (quanto foi montado) ═══
+  if(/montei|montad|montagem|produzi/.test(s) && !/montar|pedido/.test(s) && !_dashFamiliaPergunta(q)){
+    try {
+      const hoje=new Date(); hoje.setHours(0,0,0,0);
+      const mesA=hoje.getMonth(), anoA=hoje.getFullYear();
+      const norm=x=>String(x||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const num=v=>{const n=parseFloat(String(v||'').replace('.','').replace(',','.'));return isNaN(n)?0:n;};
+      const cols=[['TOMADA_MULT','Tomada+Mult'],['BOMBA','Bomba'],['CILINDRO','Cilindro'],['CONJ_EIXO','Conj.Eixo'],['GUINCHO','Guincho'],['COMANDO','Comando'],['VALVULA','Válvula'],['KIT_HIDR','Kit Hidr.']];
+      const rows=(DATA.montados||[]).filter(r=>{const d=parseDate(r.DATA||'');return d&&d.getMonth()===mesA&&d.getFullYear()===anoA&&!norm(r.DATA).includes('TOTAL')&&!norm(r.DATA).includes('MEDIA')&&!norm(r.DATA).includes('DIA');});
+      const tot={}; cols.forEach(([c])=>tot[c]=rows.reduce((sm,r)=>sm+num(r[c]),0));
+      const totalGeral=Object.values(tot).reduce((a,b)=>a+b,0);
+      let tab='<div style="margin-top:8px;font-size:12px;line-height:1.7">'+cols.map(([c,l])=>'• '+l+': <b>'+fmt(tot[c])+'</b>').join('<br>')+'</div>';
+      return _daBox('Itens Montados — mês atual',
+        '<div style="font-size:14px;line-height:1.8">Total montado no mês: <b style="color:var(--green);font-size:20px">'+fmt(totalGeral)+'</b></div>'
+        +tab+_daLink('Ver aba Itens Montados','showTab(\'montados\')'));
+    } catch(e){ return _daBox('Erro','<div>Não consegui calcular a montagem.</div>'); }
+  }
+  } // fim do if(!_famPrior)
 
   // ── "O que está atrasado" ──
   if(/o que est[áa] atrasad|quais.*atrasad|lista.*atrasad/.test(s) && !_dashFamiliaPergunta(q)){
