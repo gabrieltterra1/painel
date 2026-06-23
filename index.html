@@ -10693,6 +10693,8 @@ function _dashResponder(q){
           +'</div>');
       }
       const base=(DATA.pedidos||[]).filter(p=>p.dataEnt && p.dataEnt<=hoje);
+      // guarda as datas (até hoje) e o escopo para o botão aplicar o mesmo filtro na tabela
+      window._daFiltroHoje = { datas:[...new Set(base.map(p=>p.dataEntStr).filter(Boolean))], escopo };
       const grupos=_pvCalcularGrupos(base);
       const ehForca = escopo==='forca';
       const porFam={}; let total=0; const detalhe=[];
@@ -10716,7 +10718,7 @@ function _dashResponder(q){
         +'</tbody></table></div>':'';
       return _daBox('Prioridades de hoje — '+(ehForca?'Força (sem guincho/walvoil)':'Todas as linhas'),
         '<div style="font-size:14px;line-height:1.8">A montar (atrasados + entrega até hoje): <b style="color:var(--amber);font-size:22px">'+fmt(total)+'</b> peças</div>'
-        +tabFam+tabItens+_daLink('Ver Prioridades','showTab(\'pedidos\')'));
+        +tabFam+tabItens+_daLink('Ver na tabela Prioridades (mesmo filtro)','dashAbrirPrioridadesHoje(\''+escopo+'\')'));
     } catch(e){ return _daBox('Erro','<div>Não consegui calcular as prioridades de hoje.</div>'); }
   }
 
@@ -11404,6 +11406,41 @@ function dashAbrirPrioridades(famKey){
       const alvo=[...document.querySelectorAll('.section-title')].find(e=>/Prioridades por Data/i.test(e.textContent));
       if(alvo) setTimeout(()=>alvo.scrollIntoView({behavior:'smooth',block:'start'}),150);
     } catch(e){ console.warn('dashAbrirPrioridades',e); }
+  },120);
+}
+// Abre a tabela Prioridades aplicando o filtro de "prioridades de hoje" (datas até hoje + escopo força/todas)
+function dashAbrirPrioridadesHoje(escopo){
+  showTab('pedidos');
+  const filtro=window._daFiltroHoje||{};
+  const datas=filtro.datas||[];
+  const ehForca=escopo==='forca';
+  setTimeout(()=>{
+    try {
+      // Família: força = todas menos guincho e walvoil; todas = marca tudo
+      const famCbs=document.querySelectorAll('#ms-pv-familia .ms-item input[type=checkbox]');
+      if(famCbs.length){
+        if(ehForca){
+          famCbs.forEach(cb=>{ const v=String(cb.value).toUpperCase(); cb.checked = !(v.startsWith('GUINCHO')||v.startsWith('WALVOIL')); });
+          const allF=document.getElementById('ms-pv-familia-all'); if(allF)allF.checked=false;
+        } else {
+          famCbs.forEach(cb=>cb.checked=true);
+          const allF=document.getElementById('ms-pv-familia-all'); if(allF)allF.checked=true;
+        }
+      }
+      // Datas: marca só as datas até hoje
+      if(datas.length){
+        const diaCbs=document.querySelectorAll('#ms-pv-data .ms-item input[type=checkbox]');
+        const setD=new Set(datas); let achou=0;
+        diaCbs.forEach(cb=>{ const m=setD.has(cb.value); cb.checked=m; if(m)achou++; });
+        const allD=document.getElementById('ms-pv-data-all'); if(allD)allD.checked=false;
+        document.querySelectorAll('#ms-pv-data .pv-dias-box').forEach(box=>{ const mk=box.getAttribute('data-mes'); if(typeof _pvSyncMesCb==='function'&&mk)_pvSyncMesCb(mk); });
+        if(achou===0 && diaCbs.length){ diaCbs.forEach(cb=>cb.checked=true); if(allD)allD.checked=true; }
+      }
+      if(typeof msChange==='function'){ msChange('ms-pv-familia'); msChange('ms-pv-data'); }
+      else if(typeof renderPedidos==='function'){ renderPedidos(); }
+      const alvo=[...document.querySelectorAll('.section-title')].find(e=>/Prioridades por Data/i.test(e.textContent));
+      if(alvo) setTimeout(()=>alvo.scrollIntoView({behavior:'smooth',block:'start'}),150);
+    } catch(e){ console.warn('dashAbrirPrioridadesHoje',e); }
   },120);
 }
 
