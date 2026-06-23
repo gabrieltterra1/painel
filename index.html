@@ -10575,16 +10575,15 @@ function _dashResponder(q){
           const paramES = it.PARAM_ES||0;
           const estqTransito = it.EST_TRANSITO||0;
           const faltaES = Math.max(0, paramES - estoqueAtual);
-          const pedFilial = Number(it.PEDIDOS)||0; // pedidos que a filial já tem (consomem estoque)
+          const pedFilial = Number(it.PEDIDOS)||0; // pedidos que a filial já tem (consomem cobertura)
           // pedidos de transferência = o que JÁ ESTÁ PROGRAMADO para enviar (pedidos de venda p/ o cliente-filial)
           const pedsTransf = (DATA.pedidos||[]).filter(p=>p.codigo===it.COD_ITEM && clienteCod && p.clienteCod===clienteCod);
           const programado = pedsTransf.reduce((s,p)=>s+(Number(p.qtde)||0),0);
           // saldo real (igual pop-up): trânsito + programado − pedidos na filial − falta
           const saldo = estqTransito + programado - pedFilial - faltaES;
-          // coberto: já considerando trânsito + o que está programado para enviar
-          const cobertoPor = estqTransito + programado;
-          const coberto = faltaES===0 || cobertoPor >= faltaES;
-          const descoberto = Math.max(0, faltaES - cobertoPor);
+          // descoberto = falta + pedidos na filial − trânsito − programado (≡ -saldo, quando negativo)
+          const descoberto = Math.max(0, faltaES + pedFilial - estqTransito - programado);
+          const coberto = faltaES===0 || descoberto===0;
           return { codigo:it.COD_ITEM, descricao:it.DESC, classe:it.COD_CLASSE,
                    estoqueAtual, paramES, estqTransito, programado, pedFilial, saldo,
                    faltaES, coberto, descoberto,
@@ -10599,7 +10598,23 @@ function _dashResponder(q){
       const totProgramado = comFalta.reduce((s,i)=>s+i.programado,0);
       const totDescoberto = descobertos.reduce((s,i)=>s+i.descoberto,0);
 
-      // ── Nível 1: resumo por classe (✓ só se todos os códigos cobertos) ──
+      // ── Nível 1 (PRIMEIRO): códigos descobertos, com código + falta enviar ──
+      const detCod = descobertos.length
+        ? '<div style="margin-top:8px;font-size:11px;color:var(--text-muted)">Por código — falta enviar (falta + pedidos na filial − trânsito − programado, top 20):</div>'
+          +'<div style="margin-top:4px;max-height:260px;overflow:auto;border:1px solid var(--border);border-radius:8px"><table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed">'
+          +'<thead><tr style="background:var(--surface2)"><th style="text-align:left;padding:5px 6px;width:16%">Código</th><th style="text-align:left;padding:5px 6px;width:30%">Descrição</th><th style="text-align:right;padding:5px 5px;width:11%">Falta</th><th style="text-align:right;padding:5px 5px;width:11%">Trâns.</th><th style="text-align:right;padding:5px 5px;width:11%">Prog.</th><th style="text-align:right;padding:5px 5px;width:21%">Falta enviar</th></tr></thead><tbody>'
+          +descobertos.slice(0,20).map(i=>'<tr style="border-top:1px solid var(--border)">'
+            +'<td style="padding:4px 6px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_daEscapeHtml(i.codigo)+'</td>'
+            +'<td style="padding:4px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+_daEscapeHtml(i.descricao+(i.programadoTxt?' | programado: '+i.programadoTxt:''))+'">'+_daEscapeHtml(i.descricao||'')+'</td>'
+            +'<td style="text-align:right;padding:4px 5px">'+fmt(i.faltaES)+'</td>'
+            +'<td style="text-align:right;padding:4px 5px;color:#4a9eff">'+(i.estqTransito>0?fmt(i.estqTransito):'—')+'</td>'
+            +'<td style="text-align:right;padding:4px 5px;color:var(--amber)">'+(i.programado>0?fmt(i.programado):'—')+'</td>'
+            +'<td style="text-align:right;padding:4px 5px;color:var(--red);font-weight:700">'+fmt(i.descoberto)+'</td></tr>').join('')
+          +'</tbody></table></div>'
+          +(descobertos.length>20?'<div style="font-size:10px;color:var(--text-muted);margin-top:4px">+'+(descobertos.length-20)+' códigos…</div>':'')
+        : '';
+
+      // ── Nível 2 (DEPOIS): resumo por classe (✓ só se todos os códigos cobertos) ──
       const porClasse={};
       comFalta.forEach(i=>{
         const c=i.classe||'(sem classe)';
@@ -10617,24 +10632,9 @@ function _dashResponder(q){
           +'<td style="text-align:right;padding:5px 8px;color:#4a9eff">'+fmt(v.transito)+'</td>'
           +'<td style="text-align:right;padding:5px 8px;color:var(--amber)">'+fmt(v.programado)+'</td>'
           +'<td style="text-align:center;padding:5px 8px;font-weight:700;color:'+(v.todosCobertos?'var(--green)':'var(--red)')+'">'+(v.todosCobertos?'✓':'✗ '+fmt(v.descoberto))+'</td></tr>').join('');
-      const tabClasse='<div style="margin-top:6px;font-size:11px;color:var(--text-muted)">Por classificação (✓ só se todos os códigos cobertos por trânsito + programado):</div>'
+      const tabClasse='<div style="margin-top:10px;font-size:11px;color:var(--text-muted)">Por classificação (✓ só se todos os códigos cobertos):</div>'
         +'<div style="margin-top:4px;border:1px solid var(--border);border-radius:8px;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
         +'<thead><tr style="background:var(--surface2)"><th style="text-align:left;padding:6px 8px">Classe</th><th style="text-align:right;padding:6px 8px">Falta ES</th><th style="text-align:right;padding:6px 8px">Trânsito</th><th style="text-align:right;padding:6px 8px">Programado</th><th style="text-align:center;padding:6px 8px">Enche?</th></tr></thead><tbody>'+(resumoClasse||'<tr><td colspan="5" style="padding:8px;color:var(--text-muted)">Sem itens em falta.</td></tr>')+'</tbody></table></div>';
-
-      // ── Nível 2: códigos descobertos (com trânsito e programado) ──
-      const detCod = descobertos.length
-        ? '<div style="margin-top:10px;font-size:11px;color:var(--text-muted)">Códigos descobertos — falta enviar (já descontados trânsito e programado, top 20):</div>'
-          +'<div style="margin-top:4px;max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:8px"><table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed">'
-          +'<thead><tr style="background:var(--surface2)"><th style="text-align:left;padding:5px 6px;width:32%">Item</th><th style="text-align:right;padding:5px 6px;width:15%">Falta</th><th style="text-align:right;padding:5px 6px;width:15%">Trânsito</th><th style="text-align:right;padding:5px 6px;width:16%">Program.</th><th style="text-align:right;padding:5px 6px;width:22%">Falta enviar</th></tr></thead><tbody>'
-          +descobertos.slice(0,20).map(i=>'<tr style="border-top:1px solid var(--border)">'
-            +'<td style="padding:4px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+_daEscapeHtml(i.codigo+' — '+i.descricao+(i.programadoTxt?' | programado: '+i.programadoTxt:''))+'">'+_daEscapeHtml(i.descricao||i.codigo)+'</td>'
-            +'<td style="text-align:right;padding:4px 6px">'+fmt(i.faltaES)+'</td>'
-            +'<td style="text-align:right;padding:4px 6px;color:#4a9eff">'+fmt(i.estqTransito)+'</td>'
-            +'<td style="text-align:right;padding:4px 6px;color:var(--amber)">'+(i.programado>0?fmt(i.programado):'—')+'</td>'
-            +'<td style="text-align:right;padding:4px 6px;color:var(--red);font-weight:700">'+fmt(i.descoberto)+'</td></tr>').join('')
-          +'</tbody></table></div>'
-          +(descobertos.length>20?'<div style="font-size:10px;color:var(--text-muted);margin-top:4px">+'+(descobertos.length-20)+' códigos…</div>':'')
-        : '';
 
       const conclusao = cobreTudo
         ? '<b style="color:var(--green)">✓ Sim — com o trânsito + o que já está programado, todos os '+comFalta.length+' códigos em falta ficam cobertos.</b>'
@@ -10642,7 +10642,7 @@ function _dashResponder(q){
       return _daBox('Trânsito × Estoque de Segurança — Filial '+uf,
         '<div style="font-size:14px;line-height:1.7">'+conclusao+'<br>'
         +'<span style="font-size:12px;color:var(--text-muted)">Códigos em falta: '+comFalta.length+' · Falta ES: '+fmt(totFalta)+' · Trânsito: '+fmt(totTransito)+' · Programado: '+fmt(totProgramado)+' · Falta enviar: '+fmt(totDescoberto)+'</span></div>'
-        +tabClasse+detCod+_daLink('Ver Estoque & Trânsito','showTab(\'estoque\')'));
+        +detCod+tabClasse+_daLink('Ver Estoque & Trânsito','showTab(\'estoque\')'));
     } catch(e){ return _daBox('Erro','<div>Não consegui cruzar trânsito com falta (código a código).</div>'); }
   }
 
