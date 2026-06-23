@@ -10432,6 +10432,7 @@ async function dashPerguntar(){
   const resp = _dashResponder(q);
   out.style.display='block';
   if(resp==='__NAO_SABE__'){
+    _daSalvarPerguntaPendente(q); // registra no Sheets para virar resposta programada depois
     if(_daIAAtivo()){
       // aciona a IA
       out.innerHTML=_daBox('🤖 Consultando IA…','<div style="font-size:13px;color:var(--text-muted)">Analisando os dados do painel…</div>');
@@ -10458,6 +10459,21 @@ async function dashPerguntar(){
 function _dashResponder(q){
   const s=q.toLowerCase();
   const fmt=n=>Math.round(n).toLocaleString('pt-BR');
+
+  // ═══ "O que você pode fazer / ajuda / o que pergunto" ═══
+  if(/o que voc[êe] (pode|consegue|sabe) (fazer|responder)|o que (posso|da pra) perguntar|no que.*ajuda|me ajuda com o qu[êe]|quais perguntas|\bajuda\b|o que voc[êe] faz|suas funcion/.test(s)){
+    const cats=[
+      ['🔧 Montagem & Pedidos', ['Quantos guinchos montar este mês?','Quanto falta montar de bomba?','Quantos itens montar até hoje?','Consigo atender os guinchos no ritmo atual?','Projeção de fechamento de guincho','Quanto montei este mês?']],
+      ['📦 Estoque & Disponibilidade', ['O que está abaixo do estoque de segurança?','Quanto falta a abastecer?','Qual o NS de abastecimento?','Quantos itens disponíveis para venda?','O que está disponível e tem pedido atrasado?']],
+      ['📋 Pedidos & OFs', ['Como estão os pedidos atrasados?','Tenho estoque pra faturar os pedidos prontos?','Quantas OFs em atraso?','Quais OFs travam pedidos atrasados?','OFs que vencem esta semana','Top clientes da carteira']],
+      ['📊 Indicadores', ['Como está o IFE?','Qual a tendência do IFE?','Como está o térmico e polimento?','Melhor dia de térmico','Quanto gastei com terceiros?','Os terceiros vão estourar a meta?']]
+    ];
+    const corpo='<div style="font-size:14px;line-height:1.6;margin-bottom:10px">Eu analiso os dados de todas as abas do painel e respondo perguntas com cálculos prontos. Posso somar, comparar com metas, projetar fechamento de mês e cruzar informações entre abas. É só clicar num exemplo ou escrever com suas palavras:</div>'
+      +cats.map(([titulo,perguntas])=>'<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:5px">'+titulo+'</div>'
+        +'<div style="display:flex;flex-wrap:wrap;gap:6px">'+perguntas.map(p=>'<button class="da-sug" onclick="dashPerguntarTexto(\''+p.replace(/'/g,"\\'")+'\')">'+p+'</button>').join('')+'</div></div>').join('')
+      +'<div style="font-size:11px;color:var(--text-muted);margin-top:4px">Famílias que entendo: guincho, walvoil, força, bomba, cilindro, tomada, conj. eixo, comando, válvula, kit. Também tenho o <b>🤖 Modo IA</b> e o <b>📋 Copiar p/ Claude</b> para perguntas livres.</div>';
+    return _daBox('💡 O que eu posso responder', corpo);
+  }
 
   // dias úteis restantes (com hoje)
   let duRest=0;
@@ -11057,6 +11073,19 @@ async function _daChamarIA(pergunta){
 }
 
 // Copia a pergunta + resumo dos dados do painel para colar no app do Claude ou na extensão
+// Registra no Sheets (via Apps Script) uma pergunta que o assistente não soube responder
+function _daSalvarPerguntaPendente(pergunta){
+  try {
+    const p=String(pergunta||'').trim();
+    if(!p || typeof WEBAPP==='undefined') return;
+    // evita reenviar a mesma pergunta na mesma sessão
+    window._daPendEnviadas = window._daPendEnviadas || new Set();
+    if(window._daPendEnviadas.has(p.toLowerCase())) return;
+    window._daPendEnviadas.add(p.toLowerCase());
+    const payload=JSON.stringify({ action:'salvarPerguntaPendente', pergunta:p });
+    fetch(WEBAPP, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body:payload });
+  } catch(e){ /* silencioso */ }
+}
 function dashCopiarPergunta(){
   const inp=document.getElementById('dash-pergunta');
   const temTexto = inp && inp.value.trim();
