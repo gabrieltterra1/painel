@@ -753,6 +753,37 @@
   .disp-col-dropdown { position: absolute; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px; z-index: 1000; max-height: 260px; overflow-y: auto; min-width: 160px; box-shadow: 0 4px 16px rgba(0,0,0,.3); }
   .disp-col-dropdown label { display: block; font-size: 11px; padding: 2px 4px; cursor: pointer; white-space: nowrap; }
 
+  /* ── DASHBOARD (tela inicial de indicadores + alertas) ── */
+  .dash-eyebrow { font-family: var(--font-display); font-size: 13px; font-weight: 700; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; margin: 0 0 12px; display: flex; align-items: center; gap: 10px; }
+  .dash-eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  .dash-hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 26px; }
+  .dh { background: linear-gradient(150deg, var(--surface2), var(--surface)); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; cursor: pointer; transition: transform .12s; position: relative; overflow: hidden; }
+  .dh:hover { transform: translateY(-3px); }
+  .dh::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
+  .dh.ife::before { background: var(--blue); } .dh.terc::before { background: var(--amber); }
+  .dh.tt::before { background: var(--red); } .dh.pm::before { background: var(--green); }
+  .dh .cap { font-family: var(--font-display); font-size: 13px; font-weight: 700; letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; }
+  .dh .big { font-family: var(--font-display); font-size: 38px; font-weight: 900; line-height: 1; margin: 6px 0 2px; }
+  .dh .meta { font-size: 12px; color: var(--text-muted); }
+  .dh .bar { height: 6px; background: var(--surface); border-radius: 3px; margin-top: 10px; overflow: hidden; }
+  .dh .bar i { display: block; height: 100%; border-radius: 3px; }
+  .dash-mont { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 10px; margin-bottom: 26px; }
+  .dmc { background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--green); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: transform .12s; }
+  .dmc:hover { transform: translateY(-2px); }
+  .dmc.crit { border-top-color: var(--red); }
+  .dmc .ml { font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: .5px; color: var(--text-muted); }
+  .dmc .mv { font-family: var(--font-display); font-size: 27px; font-weight: 900; line-height: 1; color: var(--green); }
+  .dmc.crit .mv { color: var(--red); }
+  .dmc .mv small { font-size: 13px; color: var(--text-muted); }
+  .dmc .ms { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+  .dash-al { display: flex; flex-direction: column; gap: 8px; }
+  .darow { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--red); border-radius: 9px; padding: 10px 14px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: background .12s; }
+  .darow:hover { background: var(--surface2); }
+  .darow.warn { border-left-color: var(--amber); } .darow.ok { border-left-color: var(--green); }
+  .darow .lbl { flex: 1; font-size: 13px; } .darow .lbl small { color: var(--text-muted); }
+  .darow .n { font-family: var(--font-display); font-size: 23px; font-weight: 900; color: var(--red); }
+  .darow.warn .n { color: var(--amber); } .darow.ok .n { color: var(--green); }
+
 /* ═══════════ MOBILE RESPONSIVE ═══════════ */
 @media (max-width: 768px) {
   .diario-grid { grid-template-columns: 1fr !important; }
@@ -943,7 +974,8 @@ document.addEventListener('DOMContentLoaded', () => {
 </header>
 
 <nav class="tabs">
-  <div class="tab active" onclick="showTab('montados')">Itens Montados</div>
+  <div class="tab active" onclick="showTab('dashboard')">📊 Dashboard</div>
+  <div class="tab" onclick="showTab('montados')">Itens Montados</div>
   <div class="tab" onclick="showTab('of')">OF Abertas</div>
   <div class="tab" onclick="showTab('estoque')">Estoque & Trânsito</div>
   <div class="tab" onclick="showTab('servicos')">Serviços Terceiros</div>
@@ -1028,7 +1060,15 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 <!-- ======= MONTADOS ======= -->
-<div id="tab-montados" class="tab-content active">
+<div id="tab-dashboard" class="tab-content active">
+  <div id="dash-content">
+    <div style="text-align:center;padding:40px;color:var(--text-muted)">Carregando indicadores…</div>
+  </div>
+</div>
+
+<div id="tab-montados" class="tab-content">
+  <!-- montados-inner -->
+
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
     <span class="section-title" style="margin:0">Itens Montados — EPP<span class="email-badge" data-sheet="ITENS_MONTADOS"></span></span>
     <button onclick="pedirSenha(abrirModalMetasMontados)" style="background:rgba(0,201,122,.15);border:1px solid #00c97a;color:#00c97a;padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✏ Definir Metas</button>
@@ -2169,7 +2209,7 @@ function msToggleAll(id) {
 
 function showTab(id) {
   document.querySelectorAll('.tab').forEach((t,i) => {
-    const ids = ['montados','of','estoque','servicos','termico','ife','pedidos','disponibilidade'];
+    const ids = ['dashboard','montados','of','estoque','servicos','termico','ife','pedidos','disponibilidade'];
     t.classList.toggle('active', ids[i] === id);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -9805,6 +9845,155 @@ async function salvarMetaComp() {
   }
 }
 
+// ═══════════ DASHBOARD (tela inicial: indicadores + alertas) ═══════════
+function _dashFmt(n){ return Math.round(n).toLocaleString('pt-BR'); }
+function _dashFmtK(n){
+  if (Math.abs(n) >= 1000) return 'R$ ' + (n/1000).toLocaleString('pt-BR',{maximumFractionDigits:0}) + 'k';
+  return 'R$ ' + Math.round(n).toLocaleString('pt-BR');
+}
+function renderDashboard(){
+  const cont = document.getElementById('dash-content');
+  if (!cont) return;
+
+  // ───── INDICADORES ─────
+  // IFE — total do mês atual (consolidado)
+  let ifeTotal = 0, ifeMesLabel = '';
+  try {
+    if (DATA.ife && DATA.ife.length) {
+      const meses = [...new Set(DATA.ife.map(r=>r.mesKey))].sort();
+      const mesAt = meses[meses.length-1];
+      ifeMesLabel = mesAt || '';
+      ifeTotal = DATA.ife.filter(r=>r.mesKey===mesAt).reduce((s,r)=>s+(r.total||0),0);
+    }
+  } catch(e){ console.warn('dash ife', e); }
+
+  // TERCEIROS — realizado no mês vs meta
+  let tercReal = 0, tercMeta = 0;
+  try {
+    const agora = new Date();
+    const anoT = agora.getFullYear(), mmT = String(agora.getMonth()+1).padStart(2,'0');
+    if (DATA.servico && DATA.servico.length) {
+      // soma valor do mês atual (campo valor + mês AAAA-MM)
+      DATA.servico.forEach(r=>{
+        const mk = r.mes || '';
+        if (mk && mk.indexOf(anoT+'-'+mmT)===0) tercReal += (r.valor||0);
+      });
+    }
+    if (typeof getMetaTerc === 'function') tercMeta = getMetaTerc(anoT, mmT) || 0;
+  } catch(e){ console.warn('dash terc', e); }
+
+  // TT e PM — realizado no mês de referência vs meta
+  let ttReal=0, ttMeta=0, pmReal=0, pmMeta=0, ttMed=0, pmMed=0, ttMetaDia=0, pmMetaDia=0;
+  try {
+    if (DATA.termico && DATA.termico.polimento) {
+      const _ref = mesReferencia();
+      const ano = _ref.ano, mesAtual = _ref.mes;
+      const duMes = diasUteisMes(ano, mesAtual, true);
+      const metas = getMetas();
+      DATA.termico.termico.forEach(r=>{ const [a,m]=(r.mes||'').split('-').map(Number); if(a===ano && m-1===mesAtual) ttReal += r.qtde; });
+      DATA.termico.polimento.forEach(r=>{ const [a,m]=(r.mes||'').split('-').map(Number); if(a===ano && m-1===mesAtual) pmReal += r.qtde/2; });
+      ttMetaDia = metas.TT[mesAtual]; pmMetaDia = metas.PM[mesAtual];
+      ttMeta = ttMetaDia * duMes; pmMeta = pmMetaDia * duMes;
+      ttMed = duMes>0 ? Math.round(ttReal/duMes) : 0;
+      pmMed = duMes>0 ? Math.round(pmReal/duMes) : 0;
+    }
+  } catch(e){ console.warn('dash ttpm', e); }
+
+  const pct = (r,m)=> m>0 ? Math.min(100, Math.round(r/m*100)) : 0;
+  const heroHtml =
+    '<div class="dash-hero">'
+    + '<div class="dh ife" onclick="showTab(\'ife\')"><div class="cap">📈 IFE — mês atual</div>'
+      + '<div class="big">'+_dashFmt(ifeTotal)+'</div><div class="meta">consolidado · todas as empresas</div></div>'
+    + '<div class="dh terc" onclick="showTab(\'servicos\')"><div class="cap">🔧 Terceiros — realizado</div>'
+      + '<div class="big">'+_dashFmtK(tercReal)+'</div>'
+      + '<div class="meta">meta '+_dashFmtK(tercMeta)+(tercMeta>0?' · '+Math.round(tercReal/tercMeta*100)+'% da meta':'')+'</div>'
+      + (tercMeta>0?'<div class="bar"><i style="width:'+pct(tercReal,tercMeta)+'%;background:var(--amber)"></i></div>':'')+'</div>'
+    + '<div class="dh tt" onclick="showTab(\'termico\')"><div class="cap">🌡️ TT — Térmico</div>'
+      + '<div class="big">'+_dashFmt(ttReal)+'</div>'
+      + '<div class="meta">meta '+_dashFmt(ttMeta)+' · '+pct(ttReal,ttMeta)+'% '+(ttReal>=ttMeta?'▲':'▼')+'</div>'
+      + '<div class="bar"><i style="width:'+pct(ttReal,ttMeta)+'%;background:var(--red)"></i></div></div>'
+    + '<div class="dh pm" onclick="showTab(\'termico\')"><div class="cap">✨ PM — Polimento</div>'
+      + '<div class="big">'+_dashFmt(pmReal)+'</div>'
+      + '<div class="meta">meta '+_dashFmt(pmMeta)+' · '+pct(pmReal,pmMeta)+'% '+(pmReal>=pmMeta?'▲':'▼')+'</div>'
+      + '<div class="bar"><i style="width:'+pct(pmReal,pmMeta)+'%;background:var(--green)"></i></div></div>'
+    + '</div>';
+
+  // ───── MONTAGEM (só famílias com meta) ─────
+  let montHtml = '';
+  try {
+    const HAS_META = [['TOMADA_MULT','TOMADA+MULT'],['BOMBA','BOMBA'],['CILINDRO','CILINDRO'],['GUINCHO','GUINCHO+ENROL.']];
+    const hoje=new Date(); hoje.setHours(0,0,0,0);
+    const mesAtual=hoje.getMonth(), anoAtual=hoje.getFullYear();
+    const feriados=getFeriados().map(f=>f.data);
+    const norm=s=>String(s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const isMediaLabel=s=>{const n=norm(s);return /M.DIA/.test(n)&&!n.includes('TOTAL');};
+    const num=v=>{const n=parseFloat(String(v||'').replace('.','').replace(',','.'));return isNaN(n)?0:n;};
+    const dataRowsAno=(DATA.montados||[]).filter(r=>!norm(r.DATA).includes('TOTAL')&&!isMediaLabel(r.DATA)&&!norm(r.DATA).includes('DIAS')&&!norm(r.DATA).includes('UTEIS')&&r.DATA);
+    const dataRows=dataRowsAno.filter(r=>{const d=parseDate(r.DATA||'');return d&&d.getMonth()===mesAtual&&d.getFullYear()===anoAtual;});
+    const duEmail=dataRows.filter(r=>{const d=parseDate(r.DATA||'');if(!d)return false;if(d.getTime()===hoje.getTime())return false;if(d.getDay()===0||d.getDay()===6)return false;const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');if(feriados.includes(iso))return false;return true;}).length;
+    const hojeKey=hoje.getTime();
+    const cards = HAS_META.map(([col,label])=>{
+      const semHoje=dataRows.reduce((s,r)=>{const d=parseDate(r.DATA||'');if(d&&d.getTime()===hojeKey)return s;return s+num(r[col]);},0);
+      const media = duEmail>0 ? semHoje/duEmail : 0;
+      const metaDia = getMontadosMeta(col, mesAtual) || 0;
+      const ok = metaDia>0 ? media>=metaDia : true;
+      return '<div class="dmc '+(ok?'':'crit')+'" onclick="showTab(\'montados\')">'
+        +'<div class="ml">'+label+'</div>'
+        +'<div class="mv">'+_dashFmt(media)+' <small>/'+_dashFmt(metaDia)+'</small></div>'
+        +'<div class="ms">'+(metaDia>0?(ok?'▲ acima da meta':'▼ abaixo da meta'):'sem meta')+'</div></div>';
+    }).join('');
+    montHtml = '<div class="dash-eyebrow" style="margin-top:6px">Montagem — média/dia vs meta (mês atual)</div><div class="dash-mont">'+cards+'</div>';
+  } catch(e){ console.warn('dash mont', e); }
+
+  // ───── ALERTAS ─────
+  const alertas = [];
+  try {
+    // Pedidos em atraso (entrega vencida) + projetado negativo
+    if (DATA.pedidos && DATA.pedidos.length) {
+      const atrasados = DATA.pedidos.filter(r => r.atrasado).length;
+      if (atrasados>0) alertas.push({sev:'crit', n:atrasados, lbl:'<b>Pedidos em atraso</b> — data de entrega vencida', tab:'pedidos'});
+      const projNeg = DATA.pedidos.filter(r => (r.projetado!=null && r.projetado<0)).length;
+      if (projNeg>0) alertas.push({sev:'crit', n:projNeg, lbl:'<b>Pedidos com projetado negativo</b> <small>· vendidos além do estoque</small>', tab:'pedidos'});
+    }
+    // OFs atrasadas / não separadas com entrega <= hoje
+    if (DATA.ofItens && DATA.ofItens.length) {
+      const ofAlerta = DATA.ofItens.filter(it => it.DT_FINAL && isOverdue(it.DT_FINAL)).length;
+      if (ofAlerta>0) alertas.push({sev:'crit', n:ofAlerta, lbl:'<b>OFs atrasadas / não separadas</b> <small>· entrega até hoje</small>', tab:'of'});
+    }
+    // Estoque abaixo do parâmetro de segurança + falta a abastecer
+    if (DATA.estoque && DATA.estoque.length) {
+      const abaixo = DATA.estoque.filter(r => (r.qtde_param_es>0 && r.estoque_total < r.qtde_param_es)).length;
+      if (abaixo>0) alertas.push({sev:'warn', n:abaixo, lbl:'Abaixo do estoque de segurança', tab:'estoque'});
+      const falta = DATA.estoque.filter(r => r.tot_falta > 0).length;
+      if (falta>0) alertas.push({sev:'warn', n:falta, lbl:'Itens com falta a abastecer', tab:'estoque'});
+    }
+    // Disponibilidade — itens disponíveis p/ venda
+    if (DATA.disponibilidade && DATA.disponibilidade.length) {
+      const disp = DATA.disponibilidade.filter(d => d.disponivel>0).length;
+      if (disp>0) alertas.push({sev:'ok', n:disp, lbl:'Itens disponíveis para venda', tab:'disponibilidade'});
+    }
+  } catch(e){ console.warn('dash alertas', e); }
+
+  let alertasHtml = '';
+  if (alertas.length) {
+    alertasHtml = '<div class="dash-eyebrow" style="margin-top:6px">Alertas</div><div class="dash-al">'
+      + alertas.map(a => '<div class="darow '+a.sev+'" onclick="showTab(\''+a.tab+'\')">'
+          +'<span class="lbl">'+a.lbl+'</span><span class="n">'+a.n+'</span></div>').join('')
+      + '</div>';
+  }
+
+  cont.innerHTML =
+    '<div class="dash-eyebrow">Indicadores do mês</div>'
+    + heroHtml + montHtml + alertasHtml;
+}
+// helper: converte 'YYYY-MM-DD' para Date local (para isOverdue)
+function _dashParseISO(s){
+  if (!s) return null;
+  const p = String(s).split('-');
+  if (p.length===3) return p[2]+'/'+p[1]+'/'+p[0]; // isOverdue espera DD/MM/AAAA
+  return s;
+}
+
 function renderAll() {
   window._dadosCarregados = true;
   try { aplicarChartDefaults(); } catch(e){}
@@ -9817,6 +10006,7 @@ function renderAll() {
   renderPedidos();
   renderTransito();
   try { renderDisponibilidade(); } catch(e){ console.warn('disponibilidade', e); }
+  try { renderDashboard(); } catch(e){ console.warn('dashboard', e); }
   try { injetarDataEmail(); } catch(e){}
 }
 
