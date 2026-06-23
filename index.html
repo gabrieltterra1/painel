@@ -10679,7 +10679,14 @@ async function _daChamarIA(pergunta){
 // Copia a pergunta + resumo dos dados do painel para colar no app do Claude ou na extensão
 function dashCopiarPergunta(){
   const inp=document.getElementById('dash-pergunta');
-  const pergunta=(inp&&inp.value.trim()) ? inp.value.trim() : '(escreva sua pergunta aqui)';
+  const temTexto = inp && inp.value.trim();
+  const pergunta = temTexto ? inp.value.trim() : '(escreva sua pergunta aqui)';
+  // Salva na memória só se o usuário realmente digitou uma pergunta
+  if(temTexto){
+    _dashSalvarHist(pergunta);
+    const sugEl=document.getElementById('dash-sugestoes');
+    if(sugEl){ sugEl.innerHTML=_dashSugestoes().map(x=>'<button class="da-sug" onclick="dashPerguntarTexto(this.textContent)">'+x+'</button>').join(''); }
+  }
   const resumo=_daResumoPainel();
   const texto='Você é um assistente de PCP/Almoxarifado da indústria Interpump. Responda em português, com cálculos quando fizer sentido, usando os dados do painel abaixo.\n\n'
     +'PERGUNTA: '+pergunta+'\n\n'
