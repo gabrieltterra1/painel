@@ -10532,7 +10532,64 @@ function _dashResponder(q){
   const _famPrior = _dashFamiliaPergunta(q) && /montar|falta|ritmo|por dia|\/dia/.test(s) && !_ehCruzamento && !_ehAteHoje;
   if(!_famPrior){
 
-  // ═══ "Quantos montar até hoje" — atrasados + hoje (geral ou por família) ═══
+  // ═══ Trânsito enche o estoque de segurança da filial? (cruzamento trânsito × estoque) ═══
+  if(/tr[âa]nsito/.test(s) && /seguran[çc]a|estoque de seg|enche|encher|abastec|suficiente/.test(s)){
+    try {
+      const mapUF=[['\\bsp\\b|s[ãa]o paulo','SP'],['\\bmg\\b|minas','MG'],['\\bgo\\b|goi[áa]s|goias','GO'],['\\bpe\\b|pernambuco|recife','PE']];
+      let uf=null; for(const [rx,u] of mapUF){ if(new RegExp(rx).test(s)){ uf=u; break; } }
+      if(!uf){
+        return _daBox('Qual filial?','<div style="font-size:13px;line-height:1.6">Diga a filial: SP, MG, GO ou PE. Ex.: "o trânsito enche o estoque de segurança da filial SP?"</div>');
+      }
+      const CLS={'300.200.001':'Tomada','300.200.100':'Tomada','300.300.001':'Tomada','300.300.005':'Tomada',
+        '300.500.001':'Bomba','300.500.100':'Bomba','300.400.001':'Cilindro','300.400.010':'Cilindro',
+        '300.200.002':'ConjEixo','300.200.005':'ConjEixo','100.200.260':'ConjEixo','100.100.060':'ConjEixo','300.700.010':'ConjEixo',
+        '800.010.020':'Guincho','800.010.040':'Guincho','800.050.010':'Guincho',
+        '300.600.001':'Kit','300.600.002':'Kit','300.600.005':'Kit','300.600.010':'Kit','300.600.020':'Kit','300.600.025':'Kit','300.600.030':'Kit','300.600.035':'Kit','300.600.040':'Kit','300.600.045':'Kit','300.600.050':'Kit','300.600.055':'Kit','300.600.060':'Kit','300.600.065':'Kit','300.600.070':'Kit','300.600.075':'Kit','400.030.005':'Kit'};
+      const FAMS=['Tomada','Bomba','Cilindro','Guincho','ConjEixo','Kit'];
+      const falta={}; FAMS.forEach(f=>falta[f]=0);
+      (DATA.estoque||[]).filter(r=>r.uf===uf).forEach(r=>{
+        const fam=CLS[String(r.classificacao||'').trim()]; if(!fam) return;
+        const f=(r.qtde_param_es||0)-(r.estoque_total||0);
+        if(f>0) falta[fam]+=f;
+      });
+      const transito={}; FAMS.forEach(f=>transito[f]=0);
+      (DATA.transito_detail||[]).filter(r=>r.empresa===uf).forEach(r=>{
+        const fam=CLS[String(r.classificacao||'').trim()]; if(!fam) return;
+        transito[fam]+=(r.quantidade||0);
+      });
+      let linhas=''; let totFalta=0, totTrans=0, totCobre=0;
+      FAMS.forEach(f=>{
+        const ft=falta[f], tr=transito[f];
+        if(ft===0 && tr===0) return;
+        totFalta+=ft; totTrans+=tr;
+        const cobre = tr>=ft;
+        const cobreQtd = Math.min(tr,ft); totCobre+=cobreQtd;
+        const cor = ft===0?'var(--text-muted)':(cobre?'var(--green)':'var(--red)');
+        const icon = ft===0?'—':(cobre?'✓':'✗');
+        linhas+='<tr style="border-top:1px solid var(--border)">'
+          +'<td style="padding:5px 8px">'+f+'</td>'
+          +'<td style="text-align:right;padding:5px 8px">'+fmt(ft)+'</td>'
+          +'<td style="text-align:right;padding:5px 8px">'+fmt(tr)+'</td>'
+          +'<td style="text-align:center;padding:5px 8px;color:'+cor+';font-weight:700">'+icon+'</td>'
+        +'</tr>';
+      });
+      const tabela='<div style="margin-top:10px;border:1px solid var(--border);border-radius:8px;overflow:hidden">'
+        +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
+        +'<thead><tr style="background:var(--surface2)"><th style="text-align:left;padding:6px 8px">Família</th><th style="text-align:right;padding:6px 8px">Falta ES</th><th style="text-align:right;padding:6px 8px">Trânsito</th><th style="text-align:center;padding:6px 8px">Enche?</th></tr></thead>'
+        +'<tbody>'+(linhas||'<tr><td colspan="4" style="padding:8px;color:var(--text-muted)">Sem dados.</td></tr>')+'</tbody></table></div>';
+      const cobreTudo = totTrans>=totFalta && totFalta>0;
+      const concl = totFalta===0
+        ? '<b style="color:var(--green)">A filial '+uf+' já está com o estoque de segurança completo (nada faltando).</b>'
+        : (cobreTudo
+            ? '<b style="color:var(--green)">✓ Sim — o trânsito cobre toda a falta de estoque de segurança da filial '+uf+'.</b>'
+            : '<b style="color:var(--red)">✗ Não — o trânsito cobre '+fmt(totCobre)+' de '+fmt(totFalta)+' que faltam. Ainda faltariam '+fmt(totFalta-totCobre)+'.</b>');
+      return _daBox('Trânsito × Estoque de Segurança — Filial '+uf,
+        '<div style="font-size:14px;line-height:1.7">'+concl+'</div>'+tabela
+        +'<div style="font-size:11px;color:var(--text-muted);margin-top:6px">Considera as 6 famílias (Tomada, Bomba, Cilindro, Guincho, Conj. Eixo, Kit), sem redutores. "Falta ES" = estoque de segurança − estoque atual.</div>'
+        +_daLink('Ver Estoque & Trânsito','showTab(\'estoque\')'));
+    } catch(e){ return _daBox('Erro','<div>Não consegui cruzar trânsito com estoque de segurança.</div>'); }
+  }
+
   if(/at[ée] hoje/.test(s) || /montar.*hoje|a montar.*hoje|preciso montar(?!.*m[êe]s)/.test(s)){
     try {
       const hoje=new Date(); hoje.setHours(0,0,0,0);
@@ -10555,6 +10612,62 @@ function _dashResponder(q){
         +'<span style="font-size:12px;color:var(--text-muted)">Mesma regra da tabela Prioridades — Agrupado por Produto (entrega ≤ hoje)</span></div>'
         +tab+_daLink('Ver Prioridades','showTab(\'pedidos\')'));
     } catch(e){ return _daBox('Erro','<div>Não consegui calcular (a tabela de Prioridades precisa estar carregada).</div>'); }
+  }
+
+  // ═══ Trânsito enche o estoque de segurança da filial? (por família, 6 grupos) ═══
+  if(/tr[âa]nsito/.test(s) && /seguran[çc]a|estoque.*seguran|abastec|enche|completa|suficiente/.test(s)){
+    try {
+      // detecta a filial citada
+      const mapaUF=[['sp','SP'],['são paulo','SP'],['sao paulo','SP'],['mg','MG'],['minas','MG'],['go','GO'],['goi','GO'],['pe','PE'],['pernambuco','PE'],['recife','PE']];
+      let uf=null; for(const [k,v] of mapaUF){ if(new RegExp('\\b'+k+'\\b').test(s)){ uf=v; break; } }
+      if(!uf){ return _daBox('Qual filial?','<div style="font-size:13px;line-height:1.6">Diga a filial: <b>SP, MG, GO ou PE</b>. Ex: "o trânsito enche o estoque de segurança de SP?"</div>'); }
+      // mapa classificação → família (6 grupos), igual ao trânsito
+      const CLS_FAM={'300.200.001':'Tomada','300.200.100':'Tomada','300.300.001':'Tomada','300.300.005':'Tomada','300.500.001':'Bomba','300.500.100':'Bomba','300.400.001':'Cilindro','300.400.010':'Cilindro','300.200.002':'Conj.Eixo','300.200.005':'Conj.Eixo','100.200.260':'Conj.Eixo','100.100.060':'Conj.Eixo','300.700.010':'Conj.Eixo','800.010.020':'Guincho','800.010.040':'Guincho','800.050.010':'Guincho','300.600.001':'Kit','300.600.002':'Kit','300.600.005':'Kit','300.600.010':'Kit','300.600.020':'Kit','300.600.025':'Kit','300.600.030':'Kit','300.600.035':'Kit','300.600.040':'Kit','300.600.045':'Kit','300.600.050':'Kit','300.600.055':'Kit','300.600.060':'Kit','300.600.065':'Kit','300.600.070':'Kit','300.600.075':'Kit','400.030.005':'Kit'};
+      const GRP_FAM={'TOM':'Tomada','BOM':'Bomba','CIL':'Cilindro','GUI':'Guincho','CON':'Conj.Eixo','KIT':'Kit'};
+      const FAMS=['Tomada','Bomba','Cilindro','Guincho','Conj.Eixo','Kit'];
+      // falta para o ES por família (qtde_param_es - estoque_total, só positivo)
+      const falta={}; FAMS.forEach(f=>falta[f]=0);
+      (DATA.estoque||[]).filter(r=>r.uf===uf).forEach(r=>{
+        const fam=CLS_FAM[r.classificacao]; if(!fam) return;
+        const def=(r.qtde_param_es||0)-(r.estoque_total||0);
+        if(def>0) falta[fam]+=def;
+      });
+      // trânsito para a filial por família
+      const transito={}; FAMS.forEach(f=>transito[f]=0);
+      (DATA.transito_detail||[]).filter(r=>r.empresa===uf).forEach(r=>{
+        const grp=(typeof r.classificacao==='string')?CLS_FAM[r.classificacao]:null;
+        const fam=grp||GRP_FAM[r.produto]||null;
+        // r.produto é label tipo 'GUINCHO'; tenta casar pela classificação primeiro
+        const famFinal = CLS_FAM[r.classificacao] || ({'TOMADA DE FORCA':'Tomada','BOMBA HIDRAULICA':'Bomba','CILINDRO HIDRAULICO':'Cilindro','GUINCHO':'Guincho','CONJUNTO EIXO':'Conj.Eixo','KIT HIDRAULICO':'Kit'})[r.produto];
+        if(famFinal && transito[famFinal]!==undefined) transito[famFinal]+=(r.quantidade||0);
+      });
+      // monta comparação
+      let linhas='', totFalta=0, totTrans=0, famsOk=0, famsComFalta=0;
+      FAMS.forEach(f=>{
+        const fal=falta[f], tr=transito[f];
+        if(fal<=0 && tr<=0) return; // ignora família sem movimento
+        totFalta+=fal; totTrans+=tr;
+        const enche = tr>=fal;
+        if(fal>0){ if(enche)famsOk++; else famsComFalta++; }
+        const saldo = tr-fal;
+        linhas+='<tr style="border-top:1px solid var(--border)">'
+          +'<td style="padding:5px 8px">'+f+'</td>'
+          +'<td style="text-align:right;padding:5px 8px">'+fmt(fal)+'</td>'
+          +'<td style="text-align:right;padding:5px 8px">'+fmt(tr)+'</td>'
+          +'<td style="text-align:right;padding:5px 8px;color:'+(saldo>=0?'var(--green)':'var(--red)')+';font-weight:700">'+(saldo>=0?'+':'')+fmt(saldo)+'</td>'
+          +'</tr>';
+      });
+      const tabela='<div style="margin-top:10px;border:1px solid var(--border);border-radius:8px;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+        +'<thead><tr style="background:var(--surface2)"><th style="text-align:left;padding:6px 8px">Família</th><th style="text-align:right;padding:6px 8px">Falta p/ ES</th><th style="text-align:right;padding:6px 8px">Trânsito</th><th style="text-align:right;padding:6px 8px">Saldo</th></tr></thead>'
+        +'<tbody>'+(linhas||'<tr><td colspan="4" style="padding:8px;color:var(--text-muted)">Sem movimento.</td></tr>')+'</tbody></table></div>';
+      const conclusao = famsComFalta===0
+        ? '<b style="color:var(--green)">✓ O trânsito cobre o estoque de segurança em todas as famílias.</b>'
+        : '<b style="color:var(--red)">✗ O trânsito NÃO cobre '+famsComFalta+' família(s).</b> '+(famsOk>0?'('+famsOk+' ok)':'');
+      return _daBox('Trânsito × Estoque de Segurança — Filial '+uf,
+        '<div style="font-size:14px;line-height:1.7">'+conclusao+'<br>'
+        +'<span style="font-size:12px;color:var(--text-muted)">Falta total p/ ES: '+fmt(totFalta)+' · Em trânsito: '+fmt(totTrans)+'</span></div>'
+        +tabela+_daLink('Ver Estoque & Trânsito','showTab(\'estoque\')'));
+    } catch(e){ return _daBox('Erro','<div>Não consegui cruzar trânsito com estoque de segurança.</div>'); }
   }
 
   // "consigo entregar/atender no ritmo atual" — pedidos atrasados+mês vs ritmo de montagem
