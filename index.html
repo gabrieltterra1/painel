@@ -842,6 +842,10 @@
   .assist-title .grad { background:linear-gradient(90deg,#c084fc,#818cf8); -webkit-background-clip:text; background-clip:text; color:transparent; }
   .assist-sub { font-size:12px; color:var(--text-muted); margin-top:1px; }
   .da-inputrow { display:flex; gap:10px; margin-bottom:14px; }
+  .da-input-wrap { position:relative; flex:1; min-width:0; display:flex; }
+  .da-input-wrap input { flex:1; min-width:0; padding-right:38px !important; }
+  .da-limpar { position:absolute; right:8px; top:50%; transform:translateY(-50%); background:rgba(255,255,255,.08); border:none; color:var(--text-muted); width:24px; height:24px; border-radius:50%; cursor:pointer; font-size:12px; line-height:1; display:flex; align-items:center; justify-content:center; padding:0; transition:all .12s; }
+  .da-limpar:hover { background:#a855f7; color:#fff; }
   .da-inputrow input { flex:1; min-width:0; background:rgba(0,0,0,.25); border:1px solid #a855f744; border-radius:11px; padding:14px 16px; color:var(--text); font-size:15px; font-family:var(--font-body); }
   .da-inputrow input:focus { outline:none; border-color:#a855f7; box-shadow:0 0 0 3px rgba(168,85,247,.15); }
   .da-inputrow button { background:linear-gradient(135deg,#a855f7,#7c3aed); color:#fff; border:none; border-radius:11px; padding:0 24px; font-weight:800; font-size:15px; cursor:pointer; box-shadow:0 4px 14px rgba(168,85,247,.4); transition:transform .12s; white-space:nowrap; }
@@ -10244,7 +10248,10 @@ function renderDashboard(){
       + '<button class="da-modo-ia" id="da-modo-ia-btn" onclick="dashConfigIA()" title="Modo IA avançado">'+(_daIAAtivo()?'🤖 IA on':'🤖 Modo IA')+'</button>'
     + '</div>'
     + '<div class="da-inputrow">'
-      + '<input type="text" id="dash-pergunta" placeholder="Ex: quantos guinchos montar até o fim do mês?" autocomplete="off" onfocus="dashMostrarIdeias()" onkeydown="if(event.key===\'Enter\')dashPerguntar()">'
+      + '<div class="da-input-wrap">'
+      + '<input type="text" id="dash-pergunta" placeholder="Ex: quantos guinchos montar até o fim do mês?" autocomplete="off" onfocus="dashMostrarIdeias()" oninput="dashToggleLimpar()" onkeydown="if(event.key===\'Enter\')dashPerguntar()">'
+      + '<button class="da-limpar" id="dash-limpar" onclick="dashLimpar()" title="Limpar" style="display:none">✕</button>'
+      + '</div>'
       + '<button onclick="dashPerguntar()">Perguntar</button>'
     + '</div>'
     + '<div class="da-sugestoes" id="dash-sugestoes">'
@@ -10317,6 +10324,7 @@ function _dashSugestoes(){
 }
 function dashPerguntarTexto(txt){
   const inp=document.getElementById('dash-pergunta'); if(inp) inp.value=txt;
+  if(typeof dashToggleLimpar==='function') dashToggleLimpar();
   dashPerguntar();
 }
 // Reconhece a família citada na pergunta
@@ -10457,6 +10465,51 @@ function dashMostrarIdeias(){
     +'<div style="font-size:11px;color:var(--text-muted);margin-top:6px">Pode perguntar com suas palavras — eu entendo variações. Famílias: guincho, bomba, cilindro, tomada, conj. eixo, comando, válvula, kit.</div>'
     +'</div>';
 }
+// Dada uma pergunta não reconhecida, sugere perguntas relacionadas que o assistente SABE responder.
+function _daSugestoesRelacionadas(q){
+  const s=(q||'').toLowerCase();
+  const temas=[
+    { kw:/guincho|enrolador|bomba|cilindro|tomada|comando|v[áa]lvula|kit|eixo|montar|montag|produ/, perguntas:[
+      'Quantos guinchos montar este mês?','Quanto falta montar de bomba?','Quantos cilindros montar até sexta?','Consigo atender os guinchos no ritmo atual?','Quantos itens montar até hoje?'] },
+    { kw:/pedido|faturar|carteira|venda|cliente|atrasad/, perguntas:[
+      'Como estão os pedidos atrasados?','Tenho estoque pra faturar os pedidos prontos?','Top clientes da carteira','O que está disponível e tem pedido atrasado?'] },
+    { kw:/\bof\b|ordem|ordens|fabrica|produção em atraso/, perguntas:[
+      'Quantas OFs em atraso?','OFs que vencem esta semana','Quais OFs travam pedidos atrasados?'] },
+    { kw:/estoque|seguran|abastec|tr[âa]nsito|enviar|filial|\bsp\b|\bmg\b|\bgo\b|\bpe\b/, perguntas:[
+      'O que está abaixo do estoque de segurança?','O trânsito enche o estoque de segurança de SP?','O que falta enviar para completar a segurança de GO?','Qual o NS de abastecimento?'] },
+    { kw:/dispon|vender|venda/, perguntas:[
+      'Quantos itens disponíveis para venda?','Quantos guinchos disponíveis nas filiais?'] },
+    { kw:/terceiro|servi[çc]o|gasto|fornecedor|galv|pintura|meta/, perguntas:[
+      'Quanto gastei com terceiros?','Os terceiros vão estourar a meta?','Fornecedores de terceiros do mês'] },
+    { kw:/t[ée]rmico|polimento|\btt\b|\bpm\b|tratamento/, perguntas:[
+      'Como está o térmico e polimento?','Melhor dia de térmico'] },
+    { kw:/ife|atendiment|entrega/, perguntas:[
+      'Como está o IFE?','Qual a tendência do IFE?'] }
+  ];
+  const achados=[];
+  temas.forEach(t=>{ if(t.kw.test(s)) achados.push(...t.perguntas); });
+  // se não casou nenhum tema, sugere um leque geral
+  if(!achados.length){
+    return ['Quantos guinchos montar este mês?','Como estão os pedidos atrasados?','O que está abaixo do estoque de segurança?','Como está o IFE?','Quanto gastei com terceiros?'];
+  }
+  // remove duplicados e limita
+  return [...new Set(achados)].slice(0,6);
+}
+// Mostra/esconde o X conforme há texto
+function dashToggleLimpar(){
+  const inp=document.getElementById('dash-pergunta');
+  const x=document.getElementById('dash-limpar');
+  if(x) x.style.display=(inp&&inp.value.trim())?'flex':'none';
+}
+// Limpa o texto digitado e a resposta
+function dashLimpar(){
+  const inp=document.getElementById('dash-pergunta');
+  const out=document.getElementById('dash-resposta');
+  const x=document.getElementById('dash-limpar');
+  if(inp){ inp.value=''; inp.focus(); }
+  if(out){ out.style.display='none'; out.innerHTML=''; out.dataset.tipo=''; }
+  if(x) x.style.display='none';
+}
 async function dashPerguntar(){
   const inp=document.getElementById('dash-pergunta');
   const out=document.getElementById('dash-resposta');
@@ -10479,10 +10532,12 @@ async function dashPerguntar(){
         out.innerHTML=_daBox('Erro', '<div style="font-size:13px;color:var(--red)">'+(r&&r.erro?_daEscapeHtml(r.erro):'Não foi possível obter resposta da IA.')+'</div>');
       }
     } else {
-      out.innerHTML=_daBox('Não consegui calcular',
-        '<div style="font-size:13px;color:var(--text-muted);line-height:1.6">Ainda não sei responder essa no modo grátis. Tente algo como:<br>'
-        +'• "quantos guinchos montar este mês"<br>• "quanto falta montar de bomba"<br>• "ritmo/dia necessário para cilindro"<br>• "o que está atrasado"<br><br>'
-        +'Ou ative o <b>🤖 Modo IA</b> (canto superior) para perguntas livres.</div>');
+      const relacionadas=_daSugestoesRelacionadas(q);
+      const botoes=relacionadas.map(p=>'<button class="da-sug" onclick="dashPerguntarTexto(\''+p.replace(/'/g,"\\'")+'\')">'+p+'</button>').join('');
+      out.innerHTML=_daBox('Não sei responder essa ainda',
+        '<div style="font-size:13px;color:var(--text-muted);line-height:1.6">Mas registrei sua pergunta para programá-la depois. Enquanto isso, talvez uma destas relacionadas ajude:</div>'
+        +'<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">'+botoes+'</div>'
+        +'<div style="font-size:11px;color:var(--text-muted);margin-top:10px">Para perguntas livres, use o <b>🤖 Modo IA</b> ou o <b>📋 Copiar p/ Claude</b>.</div>');
     }
   } else {
     out.innerHTML = resp;
