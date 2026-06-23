@@ -10341,6 +10341,37 @@ function _dashPeriodoPergunta(q){
   const s=q.toLowerCase();
   if(/atrasad/.test(s)) return {tipo:'atrasados', label:'pedidos atrasados'};
   if(/pr[óo]ximo m[êe]s|mes que vem/.test(s)) return {tipo:'proximo', label:'próximo mês'};
+
+  // "até DD/MM/AAAA" ou "até DD/MM"
+  const mData = s.match(/at[ée]\s+(?:o\s+dia\s+)?(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?/);
+  if(mData){
+    const dia=parseInt(mData[1],10), mes=parseInt(mData[2],10)-1;
+    let ano=mData[3]?parseInt(mData[3],10):(new Date().getFullYear());
+    if(ano<100) ano+=2000;
+    const lim=new Date(ano,mes,dia); lim.setHours(0,0,0,0);
+    if(!isNaN(lim.getTime())){
+      const fmtBR=String(dia).padStart(2,'0')+'/'+String(mes+1).padStart(2,'0')+'/'+ano;
+      return {tipo:'ate', dataLim:lim, label:'até '+fmtBR};
+    }
+  }
+
+  // "até <dia da semana>" (segunda..domingo / sex / sexta-feira)
+  const diasSem = {'domingo':0,'segunda':1,'terça':2,'terca':2,'quarta':3,'quinta':4,'sexta':5,'sábado':6,'sabado':6};
+  const mDS = s.match(/at[ée]\s+(?:a\s+|o\s+)?(domingo|segunda|terça|terca|quarta|quinta|sexta|sábado|sabado)(?:-?feira)?/);
+  if(mDS){
+    const alvo=diasSem[mDS[1]];
+    const hoje=new Date(); hoje.setHours(0,0,0,0);
+    const lim=new Date(hoje);
+    let add=(alvo-hoje.getDay()+7)%7; if(add===0) add=7; // próximo dia daquele nome
+    lim.setDate(lim.getDate()+add);
+    const fmtBR=String(lim.getDate()).padStart(2,'0')+'/'+String(lim.getMonth()+1).padStart(2,'0')+'/'+lim.getFullYear();
+    return {tipo:'ate', dataLim:lim, label:'até '+mDS[1]+' ('+fmtBR+')'};
+  }
+  if(/at[ée]\s+hoje/.test(s)){
+    const hoje=new Date(); hoje.setHours(0,0,0,0);
+    return {tipo:'ate', dataLim:hoje, label:'até hoje'};
+  }
+
   return {tipo:'mes', label:'este mês'};
 }
 // Classifica família do pedido (usa pvFamilia pelo código de classificação)
@@ -10903,6 +10934,7 @@ function _dashResponder(q){
     let peds=(DATA.pedidos||[]).filter(p=>_dashFamPedido(p)===famInfo.fam);
     if(periodo.tipo==='atrasados') peds=peds.filter(p=>p.atrasado);
     else if(periodo.tipo==='proximo') peds=peds.filter(p=>p.dataEnt && p.dataEnt>=iniProx && p.dataEnt<=fimProx);
+    else if(periodo.tipo==='ate' && periodo.dataLim) peds=peds.filter(p=>p.dataEnt && p.dataEnt<=periodo.dataLim); // até data específica (inclui atrasados)
     else peds=peds.filter(p=>p.dataEnt && p.dataEnt<=fimMes); // este mês (inclui atrasados até fim do mês)
     // datas do período (para aplicar o mesmo filtro ao clicar em "ver pedidos")
     const _datasPeriodo=[...new Set(peds.map(p=>p.dataEntStr).filter(Boolean))];
@@ -10921,15 +10953,21 @@ function _dashResponder(q){
         if(famInfo.subtipo==='MONOBLOCO' && !/MONOBLOCO/.test(d)) return;
         if(famInfo.subtipo==='COMPONIVEL' && !/COMPON[ÍI]VEL/.test(d)) return;
       }
-      if(!porItem[cod]) porItem[cod] = { pend:0, saldo: p.saldo||0, desc:p.descricao||'' };
+      if(!porItem[cod]) porItem[cod] = { pend:0, saldo: p.saldo||0, desc:p.descricao||'', valorPend:0 };
       porItem[cod].pend += (p.qtde||0);
+      porItem[cod].valorPend += (Number(p.valor)||0); // valor líquido pendente (qtde pend × unitário)
       porItem[cod].saldo = p.saldo||0;
     });
-    let faltam = 0;
+    let faltam = 0, valorFaltaTot = 0, valorPendTot = 0;
     const itensFalta = [];
     Object.entries(porItem).forEach(([cod,v])=>{
       const proj = v.pend - v.saldo; // pendente - estoque do item
-      if(proj > 0){ faltam += proj; itensFalta.push({cod, desc:v.desc, pend:v.pend, saldo:v.saldo, falta:proj}); }
+      if(proj > 0){
+        const unit = v.pend>0 ? v.valorPend/v.pend : 0; // preço unitário
+        const valorFalta = proj * unit;
+        faltam += proj; valorFaltaTot += valorFalta; valorPendTot += v.valorPend;
+        itensFalta.push({cod, desc:v.desc, pend:v.pend, saldo:v.saldo, falta:proj, valorPend:v.valorPend, valorFalta});
+      }
     });
     itensFalta.sort((a,b)=>b.falta-a.falta);
     const ritmo = duRest>0 ? faltam/duRest : 0;
@@ -10945,20 +10983,23 @@ function _dashResponder(q){
     // quantos montar / quanto falta
     let tabela = '';
     if(itensFalta.length){
-      tabela = '<div style="margin-top:12px;font-size:11px;color:var(--text-muted)">Detalhe por item (pendente − saldo):</div>'
+      const fmtM=n=>'R$ '+Math.round(n).toLocaleString('pt-BR');
+      tabela = '<div style="margin-top:12px;font-size:11px;color:var(--text-muted)">Detalhe por item (valores: pendente | a montar):</div>'
         +'<div style="margin-top:6px;max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:8px">'
         +'<table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed">'
         +'<thead><tr style="background:var(--surface2)">'
-          +'<th style="text-align:left;padding:6px 8px;width:52%">Item</th>'
-          +'<th style="text-align:right;padding:6px 8px;width:16%">Pend.</th>'
-          +'<th style="text-align:right;padding:6px 8px;width:16%">Saldo</th>'
-          +'<th style="text-align:right;padding:6px 8px;width:16%">Falta</th>'
+          +'<th style="text-align:left;padding:6px 8px;width:34%">Item</th>'
+          +'<th style="text-align:right;padding:6px 6px;width:11%">Pend.</th>'
+          +'<th style="text-align:right;padding:6px 6px;width:11%">Falta</th>'
+          +'<th style="text-align:right;padding:6px 6px;width:22%">R$ Pend.</th>'
+          +'<th style="text-align:right;padding:6px 6px;width:22%">R$ Falta</th>'
         +'</tr></thead><tbody>'
         +itensFalta.slice(0,15).map(it=>'<tr style="border-top:1px solid var(--border)">'
           +'<td style="padding:5px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+_daEscapeHtml(it.desc||it.cod)+'">'+_daEscapeHtml((it.desc||it.cod))+'</td>'
-          +'<td style="text-align:right;padding:5px 8px">'+fmt(it.pend)+'</td>'
-          +'<td style="text-align:right;padding:5px 8px">'+fmt(it.saldo)+'</td>'
-          +'<td style="text-align:right;padding:5px 8px;color:var(--amber);font-weight:700">'+fmt(it.falta)+'</td>'
+          +'<td style="text-align:right;padding:5px 6px">'+fmt(it.pend)+'</td>'
+          +'<td style="text-align:right;padding:5px 6px;color:var(--amber);font-weight:700">'+fmt(it.falta)+'</td>'
+          +'<td style="text-align:right;padding:5px 6px">'+fmtM(it.valorPend)+'</td>'
+          +'<td style="text-align:right;padding:5px 6px;color:var(--amber)">'+fmtM(it.valorFalta)+'</td>'
         +'</tr>').join('')
         +'</tbody></table></div>'
         +(itensFalta.length>15?'<div style="font-size:10px;color:var(--text-muted);margin-top:4px">+'+(itensFalta.length-15)+' itens…</div>':'');
@@ -10983,6 +11024,7 @@ function _dashResponder(q){
       '<div style="font-size:14px;line-height:1.8">'
       +'Por item: soma da quantidade pendente dos pedidos ('+periodo.label+') menos o saldo (estoque) de cada item, contando só onde falta:<br>'
       +'<span style="font-size:26px;font-weight:900;color:var(--amber)">'+fmt(faltam)+'</span> '+famInfo.label.toLowerCase()+' a montar<br>'
+      +'Valor a montar: <b style="color:var(--amber)">R$ '+Math.round(valorFaltaTot).toLocaleString('pt-BR')+'</b> · Valor pendente: <b>R$ '+Math.round(valorPendTot).toLocaleString('pt-BR')+'</b><br>'
       +(duRest>0?'Ritmo: <b style="color:var(--green)">'+fmt(ritmo)+'/dia</b> ('+duRest+' dias úteis restantes)':'')
       +'</div>'+quebraComando+tabela+_daLink('Ver na tabela Prioridades (mesmo filtro)','dashAbrirPrioridades(\''+famInfo.fam+'\')'));
   }
@@ -11013,42 +11055,50 @@ function dashAbrirPedidosFamilia(famKey){
 // Abre a tabela Prioridades aplicando família + as datas do período da pergunta (mesmo filtro do cálculo)
 function dashAbrirPrioridades(famKey){
   showTab('pedidos');
-  const map={'TOMADA_MULT':'TOMADA+MULT','BOMBA':'BOMBA','CILINDRO':'CILINDRO','CONJ_EIXO':'CONJ EIXO','GUINCHO':'GUINCHO','COMANDO':'WALVOIL','VALVULA':'WALVOIL','KIT_HIDR':'KIT HIDRAULICO'};
-  const alvoFam=map[famKey]||famKey;
+  // mapeia a chave do assistente para os rótulos finos do filtro ms-pv-familia (tabela Prioridades por Data)
+  const mapFam={
+    'TOMADA_MULT':['TOMADA+MULT'],
+    'BOMBA':['BOMBA'],
+    'CILINDRO':['CILINDRO'],
+    'CONJ_EIXO':['CONJ EIXO'],
+    'GUINCHO':['GUINCHO+ENROLADOR'],
+    'COMANDO':['WALVOIL - COMANDO'],
+    'VALVULA':['WALVOIL - VALVULA'],
+    'KIT_HIDR':['KIT HIDRAULICO']
+  };
+  const alvos=mapFam[famKey]||[];
   const filtro=window._daUltimoFiltro||{};
   const datas=(filtro.fam===famKey && filtro.datas)?filtro.datas:[];
   setTimeout(()=>{
     try {
-      // limpa filtro de projetado e busca que poderiam mascarar
-      const projEl=document.getElementById('pv-proj-filt'); if(projEl) projEl.value='';
-      const buscaEl=document.getElementById('pv-search2'); if(buscaEl) buscaEl.value='';
-      // 1) Família (ms-pv-fam2): marca só a família alvo
-      const famCbs=document.querySelectorAll('#ms-pv-fam2 .ms-item input[type=checkbox]');
-      if(famCbs.length){
-        famCbs.forEach(cb=>{ cb.checked=(cb.value===alvoFam); });
-        const allF=document.getElementById('ms-pv-fam2-all'); if(allF)allF.checked=false;
+      // 1) Família (ms-pv-familia): marca só os rótulos da família alvo
+      const famCbs=document.querySelectorAll('#ms-pv-familia .ms-item input[type=checkbox]');
+      if(famCbs.length && alvos.length){
+        famCbs.forEach(cb=>{ cb.checked=alvos.includes(cb.value); });
+        const allF=document.getElementById('ms-pv-familia-all'); if(allF)allF.checked=false;
       }
-      // 2) Datas (ms-pv-dias): marca só as datas do período (se houver)
+      // 2) Datas (ms-pv-data): marca só as datas do período
       if(datas.length){
-        const diaCbs=document.querySelectorAll('#ms-pv-dias .ms-item input[type=checkbox]');
+        const diaCbs=document.querySelectorAll('#ms-pv-data .ms-item input[type=checkbox]');
         const setDatas=new Set(datas);
         let achou=0;
         diaCbs.forEach(cb=>{ const m=setDatas.has(cb.value); cb.checked=m; if(m)achou++; });
-        const allD=document.getElementById('ms-pv-dias-all'); if(allD)allD.checked=false;
-        document.querySelectorAll('#ms-pv-dias .pv-dias-box').forEach(box=>{ const mk=box.getAttribute('data-mes'); if(typeof _pvSyncMesCb==='function'&&mk)_pvSyncMesCb(mk); });
-        // se nenhuma data casou (datas fora do dropdown), não filtra por data pra não zerar tudo
+        const allD=document.getElementById('ms-pv-data-all'); if(allD)allD.checked=false;
+        // sincroniza meses (estrutura hierárquica), se existir
+        document.querySelectorAll('#ms-pv-data .pv-dias-box').forEach(box=>{ const mk=box.getAttribute('data-mes'); if(typeof _pvSyncMesCb==='function'&&mk)_pvSyncMesCb(mk); });
+        // se nenhuma data casou, mantém todas (não zera)
         if(achou===0 && diaCbs.length){ diaCbs.forEach(cb=>cb.checked=true); if(allD)allD.checked=true; }
       }
       // 3) Aplica via msChange (caminho oficial → atualiza label + renderiza)
-      if(typeof msChange==='function'){ msChange('ms-pv-fam2'); msChange('ms-pv-dias'); }
-      else if(typeof renderPvPrioridades==='function'){ renderPvPrioridades(); }
-      // 4) Rola até a tabela Prioridades
-      const anchor=document.querySelector('.section-title') || document.getElementById('ms-pv-fam2');
-      const alvo=[...document.querySelectorAll('.section-title')].find(e=>/Prioridades/i.test(e.textContent));
+      if(typeof msChange==='function'){ msChange('ms-pv-familia'); msChange('ms-pv-data'); }
+      else if(typeof renderPedidos==='function'){ renderPedidos(); }
+      // 4) Rola até a tabela "Prioridades por Data de Entrega"
+      const alvo=[...document.querySelectorAll('.section-title')].find(e=>/Prioridades por Data/i.test(e.textContent));
       if(alvo) setTimeout(()=>alvo.scrollIntoView({behavior:'smooth',block:'start'}),150);
     } catch(e){ console.warn('dashAbrirPrioridades',e); }
   },120);
 }
+
 
 
 function _daIAAtivo(){ try { return !!localStorage.getItem('dash_ia_key'); } catch(e){ return false; } }
