@@ -6177,25 +6177,7 @@ function pvAtualizarKPIs(linhas) {
 }
 
 // ── Renderizar painel de prioridades agrupado ─────────────────────────────
-function renderPvPrioridades() {
-  if (!DATA.pedidos || DATA.pedidos.length === 0) return;
-
-  const diasSel  = getMsValues('ms-pv-dias');
-  const famSelRaw = getMsValues('ms-pv-fam2');
-  // Expandir "GUINCHO" e "WALVOIL" para incluir subfamílias
-  const famSel = famSelRaw.flatMap(f => {
-    if (f === 'GUINCHO') return ['GUINCHO+ENROLADOR','GUINCHO - OUTROS'];
-    if (f === 'WALVOIL') return ['WALVOIL - COMANDO','WALVOIL - VALVULA','WALVOIL - OUTROS'];
-    return [f];
-  });
-  const search   = (document.getElementById('pv-search2')?.value||'').trim().toLowerCase();
-
-  // Filtrar pelo período selecionado
-  const base = diasSel.length
-    ? DATA.pedidos.filter(r => diasSel.includes(r.dataEntStr||''))
-    : DATA.pedidos;
-
-  // Agrupar por código
+function _pvCalcularGrupos(base) {
   const grupos = {};
   base.forEach(r => {
     const cod = r.codigo;
@@ -6269,6 +6251,29 @@ function renderPvPrioridades() {
     g.statusOf = rv.statusOf;
     g.faturar  = rv.montar === 'FATURAR';
   });
+  return grupos;
+}
+
+function renderPvPrioridades() {
+  if (!DATA.pedidos || DATA.pedidos.length === 0) return;
+
+  const diasSel  = getMsValues('ms-pv-dias');
+  const famSelRaw = getMsValues('ms-pv-fam2');
+  // Expandir "GUINCHO" e "WALVOIL" para incluir subfamílias
+  const famSel = famSelRaw.flatMap(f => {
+    if (f === 'GUINCHO') return ['GUINCHO+ENROLADOR','GUINCHO - OUTROS'];
+    if (f === 'WALVOIL') return ['WALVOIL - COMANDO','WALVOIL - VALVULA','WALVOIL - OUTROS'];
+    return [f];
+  });
+  const search   = (document.getElementById('pv-search2')?.value||'').trim().toLowerCase();
+
+  // Filtrar pelo período selecionado
+  const base = diasSel.length
+    ? DATA.pedidos.filter(r => diasSel.includes(r.dataEntStr||''))
+    : DATA.pedidos;
+
+  // Agrupar e calcular a_montar (lógica compartilhada com o assistente)
+  const grupos = _pvCalcularGrupos(base);
 
   // Filtrar
   const projFilt = document.getElementById('pv-proj-filt')?.value || '';
@@ -10350,6 +10355,29 @@ function _dashMediaMontagem(col){
     return du>0?soma/du:0;
   } catch(e){ return 0; }
 }
+// Detecta filtro de família na pergunta para o "montar até hoje".
+// Aceita os 3 grandes (guincho/walvoil/força) e as 8 finas.
+// Retorna {label, teste:(familiaDoGrupo)=>bool} ou null se não citar família.
+function _daFiltroFamilia(q){
+  const s=q.toLowerCase();
+  // grandes
+  if(/\bwalvoil\b/.test(s)) return {label:'Walvoil', teste:f=>String(f||'').startsWith('WALVOIL')};
+  if(/\bfor[çc]a\b/.test(s)) return {label:'Força', teste:f=>{const x=String(f||'');return !x.startsWith('GUINCHO') && !x.startsWith('WALVOIL');}};
+  // guincho: se mencionar "enrolador" é só o fino; senão pega o grande (todos GUINCHO*)
+  if(/guincho|enrolador/.test(s)){
+    if(/enrolador/.test(s)) return {label:'Guincho+Enrolador', teste:f=>f==='GUINCHO+ENROLADOR'};
+    return {label:'Guincho', teste:f=>String(f||'').startsWith('GUINCHO')};
+  }
+  // finas
+  if(/tomada|mult/.test(s)) return {label:'Tomada+Mult', teste:f=>f==='TOMADA+MULT'};
+  if(/bomba/.test(s)) return {label:'Bomba', teste:f=>f==='BOMBA'};
+  if(/cilindro/.test(s)) return {label:'Cilindro', teste:f=>f==='CILINDRO'};
+  if(/eixo|conj/.test(s)) return {label:'Conj. Eixo', teste:f=>f==='CONJ EIXO'};
+  if(/comando/.test(s)) return {label:'Comando', teste:f=>f==='WALVOIL - COMANDO'};
+  if(/v[áa]lvula/.test(s)) return {label:'Válvula', teste:f=>f==='WALVOIL - VALVULA'};
+  if(/\bkit\b/.test(s)) return {label:'Kit Hidráulico', teste:f=>f==='KIT HIDRAULICO'};
+  return null;
+}
 function _dashFamPedido(p){
   try {
     if (typeof pvFamilia === 'function') {
@@ -10448,10 +10476,35 @@ function _dashResponder(q){
   // Prioridade: pergunta de família + (montar/falta/ritmo) vai direto ao cálculo de família (mais abaixo)
   // "consigo/atender/no ritmo" NÃO entram aqui — são tratados como cruzamento inteligente.
   const _ehCruzamento = /consigo|d[áa] tempo|vou conseguir|no ritmo|atender.*ritmo|ritmo.*atender/.test(s);
-  const _famPrior = _dashFamiliaPergunta(q) && /montar|falta|ritmo|por dia|\/dia/.test(s) && !_ehCruzamento;
+  const _ehAteHoje = /at[ée] hoje/.test(s);
+  const _famPrior = _dashFamiliaPergunta(q) && /montar|falta|ritmo|por dia|\/dia/.test(s) && !_ehCruzamento && !_ehAteHoje;
   if(!_famPrior){
 
-  // ═══════════ CRUZAMENTOS ENTRE ABAS (perguntas inteligentes) ═══════════
+  // ═══ "Quantos montar até hoje" — atrasados + hoje (geral ou por família) ═══
+  if(/at[ée] hoje/.test(s) || /montar.*hoje|a montar.*hoje|preciso montar(?!.*m[êe]s)/.test(s)){
+    try {
+      const hoje=new Date(); hoje.setHours(0,0,0,0);
+      const base=(DATA.pedidos||[]).filter(p=>p.dataEnt && p.dataEnt<=hoje);
+      const grupos=_pvCalcularGrupos(base);
+      const filtroFam=_daFiltroFamilia(q); // null = todas
+      const porFam={}; let total=0;
+      Object.values(grupos).forEach(g=>{
+        const am=(typeof g.a_montar==='number'?g.a_montar:0);
+        if(am<=0) return;
+        const f=g.familia||'OUTROS';
+        if(filtroFam && !filtroFam.teste(f)) return; // aplica filtro de família citada
+        porFam[f]=(porFam[f]||0)+am; total+=am;
+      });
+      const ordem=Object.entries(porFam).sort((a,b)=>b[1]-a[1]);
+      let tab=''; if(ordem.length){ tab='<div style="margin-top:8px;font-size:13px;line-height:1.8">'+ordem.map(([f,v])=>'• '+f+': <b style="color:var(--amber)">'+fmt(v)+'</b>').join('<br>')+'</div>'; }
+      const tituloFam = filtroFam ? ' — '+filtroFam.label : '';
+      return _daBox('A montar até hoje'+tituloFam+' (atrasados + entrega hoje)',
+        '<div style="font-size:14px;line-height:1.8">Total a montar: <b style="color:var(--amber);font-size:22px">'+fmt(total)+'</b><br>'
+        +'<span style="font-size:12px;color:var(--text-muted)">Mesma regra da tabela Prioridades — Agrupado por Produto (entrega ≤ hoje)</span></div>'
+        +tab+_daLink('Ver Prioridades','showTab(\'pedidos\')'));
+    } catch(e){ return _daBox('Erro','<div>Não consegui calcular (a tabela de Prioridades precisa estar carregada).</div>'); }
+  }
+
   // "consigo entregar/atender no ritmo atual" — pedidos atrasados+mês vs ritmo de montagem
   if(/consigo|d[áa] tempo|vou conseguir|no ritmo|atender.*ritmo|ritmo.*atender/.test(s) && _dashFamiliaPergunta(q)){
     try {
