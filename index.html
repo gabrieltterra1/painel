@@ -9854,74 +9854,83 @@ function _dashFmtK(n){
 function renderDashboard(){
   const cont = document.getElementById('dash-content');
   if (!cont) return;
+  const agora = new Date();
+  const anoT = agora.getFullYear(), mmT = String(agora.getMonth()+1).padStart(2,'0');
+  const fmt1 = n => (Math.round(n*10)/10).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
 
-  // ───── INDICADORES ─────
-  // IFE — total do mês atual (consolidado)
-  let ifeTotal = 0, ifeMesLabel = '';
+  // ───── IFE: % consolidado, Matriz e Filial SP (mês atual) ─────
+  let ifeCons='—', ifeMatr='—', ifeFil='—';
   try {
     if (DATA.ife && DATA.ife.length) {
-      const meses = [...new Set(DATA.ife.map(r=>r.mesKey))].sort();
-      const mesAt = meses[meses.length-1];
-      ifeMesLabel = mesAt || '';
-      ifeTotal = DATA.ife.filter(r=>r.mesKey===mesAt).reduce((s,r)=>s+(r.total||0),0);
+      const meses=[...new Set(DATA.ife.map(r=>r.mesKey))].sort();
+      const mesAt=meses[meses.length-1];
+      const calc=emp=>{ const d=DATA.ife.filter(_ifeFiltrar(emp)).filter(r=>r.mesKey===mesAt); const c=_ifeCalc(d); return c.ife; };
+      const cAll=_ifeCalc(DATA.ife.filter(r=>r.mesKey===mesAt)).ife;
+      const fp=v=> v==null?'—':(Math.round(v*10)/10).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+      ifeCons=fp(cAll); ifeMatr=fp(calc('1')); ifeFil=fp(calc('2'));
     }
-  } catch(e){ console.warn('dash ife', e); }
+  } catch(e){ console.warn('dash ife',e); }
 
-  // TERCEIROS — realizado no mês vs meta
-  let tercReal = 0, tercMeta = 0;
+  // ───── TERCEIROS: valor cheio + meta + % + previsão ─────
+  let tercReal=0, tercMeta=0, tercPrev=0;
   try {
-    const agora = new Date();
-    const anoT = agora.getFullYear(), mmT = String(agora.getMonth()+1).padStart(2,'0');
     if (DATA.servico && DATA.servico.length) {
-      // soma valor do mês atual (campo valor + mês AAAA-MM)
-      DATA.servico.forEach(r=>{
-        const mk = r.mes || '';
-        if (mk && mk.indexOf(anoT+'-'+mmT)===0) tercReal += (r.valor||0);
-      });
+      DATA.servico.forEach(r=>{ if((r.mes||'').indexOf(anoT+'-'+mmT)===0) tercReal += (r.valor||0); });
     }
-    if (typeof getMetaTerc === 'function') tercMeta = getMetaTerc(anoT, mmT) || 0;
-  } catch(e){ console.warn('dash terc', e); }
+    if (typeof getMetaTerc==='function') tercMeta = getMetaTerc(anoT, mmT)||0;
+    if (typeof calcularPrevisaoServicos==='function') {
+      try { const pv=calcularPrevisaoServicos(); if(pv && pv.totalPorAlvo) tercPrev=pv.totalPorAlvo[0]||0; } catch(_){}
+    }
+  } catch(e){ console.warn('dash terc',e); }
+  const fmtMoney = n => 'R$ ' + Math.round(n).toLocaleString('pt-BR');
 
-  // TT e PM — realizado no mês de referência vs meta
-  let ttReal=0, ttMeta=0, pmReal=0, pmMeta=0, ttMed=0, pmMed=0, ttMetaDia=0, pmMetaDia=0;
+  // ───── TT e PM: média/dia atual vs meta/dia ─────
+  let ttMed=0, pmMed=0, ttMetaDia=0, pmMetaDia=0, ttReal=0, pmReal=0, ttMeta=0, pmMeta=0;
   try {
     if (DATA.termico && DATA.termico.polimento) {
-      const _ref = mesReferencia();
-      const ano = _ref.ano, mesAtual = _ref.mes;
-      const duMes = diasUteisMes(ano, mesAtual, true);
-      const metas = getMetas();
-      DATA.termico.termico.forEach(r=>{ const [a,m]=(r.mes||'').split('-').map(Number); if(a===ano && m-1===mesAtual) ttReal += r.qtde; });
-      DATA.termico.polimento.forEach(r=>{ const [a,m]=(r.mes||'').split('-').map(Number); if(a===ano && m-1===mesAtual) pmReal += r.qtde/2; });
-      ttMetaDia = metas.TT[mesAtual]; pmMetaDia = metas.PM[mesAtual];
-      ttMeta = ttMetaDia * duMes; pmMeta = pmMetaDia * duMes;
-      ttMed = duMes>0 ? Math.round(ttReal/duMes) : 0;
-      pmMed = duMes>0 ? Math.round(pmReal/duMes) : 0;
+      const _ref=mesReferencia(); const ano=_ref.ano, mesAtual=_ref.mes;
+      const duMes=diasUteisMes(ano,mesAtual,true); const metas=getMetas();
+      DATA.termico.termico.forEach(r=>{const [a,m]=(r.mes||'').split('-').map(Number);if(a===ano&&m-1===mesAtual)ttReal+=r.qtde;});
+      DATA.termico.polimento.forEach(r=>{const [a,m]=(r.mes||'').split('-').map(Number);if(a===ano&&m-1===mesAtual)pmReal+=r.qtde/2;});
+      ttMetaDia=metas.TT[mesAtual]; pmMetaDia=metas.PM[mesAtual];
+      ttMeta=ttMetaDia*duMes; pmMeta=pmMetaDia*duMes;
+      ttMed=duMes>0?ttReal/duMes:0; pmMed=duMes>0?pmReal/duMes:0;
     }
-  } catch(e){ console.warn('dash ttpm', e); }
+  } catch(e){ console.warn('dash ttpm',e); }
 
-  const pct = (r,m)=> m>0 ? Math.min(100, Math.round(r/m*100)) : 0;
-  const heroHtml =
-    '<div class="dash-hero">'
-    + '<div class="dh ife" onclick="showTab(\'ife\')"><div class="cap">📈 IFE — mês atual</div>'
-      + '<div class="big">'+_dashFmt(ifeTotal)+'</div><div class="meta">consolidado · todas as empresas</div></div>'
-    + '<div class="dh terc" onclick="showTab(\'servicos\')"><div class="cap">🔧 Terceiros — realizado</div>'
-      + '<div class="big">'+_dashFmtK(tercReal)+'</div>'
-      + '<div class="meta">meta '+_dashFmtK(tercMeta)+(tercMeta>0?' · '+Math.round(tercReal/tercMeta*100)+'% da meta':'')+'</div>'
-      + (tercMeta>0?'<div class="bar"><i style="width:'+pct(tercReal,tercMeta)+'%;background:var(--amber)"></i></div>':'')+'</div>'
-    + '<div class="dh tt" onclick="showTab(\'termico\')"><div class="cap">🌡️ TT — Térmico</div>'
-      + '<div class="big">'+_dashFmt(ttReal)+'</div>'
-      + '<div class="meta">meta '+_dashFmt(ttMeta)+' · '+pct(ttReal,ttMeta)+'% '+(ttReal>=ttMeta?'▲':'▼')+'</div>'
-      + '<div class="bar"><i style="width:'+pct(ttReal,ttMeta)+'%;background:var(--red)"></i></div></div>'
-    + '<div class="dh pm" onclick="showTab(\'termico\')"><div class="cap">✨ PM — Polimento</div>'
-      + '<div class="big">'+_dashFmt(pmReal)+'</div>'
-      + '<div class="meta">meta '+_dashFmt(pmMeta)+' · '+pct(pmReal,pmMeta)+'% '+(pmReal>=pmMeta?'▲':'▼')+'</div>'
-      + '<div class="bar"><i style="width:'+pct(pmReal,pmMeta)+'%;background:var(--green)"></i></div></div>'
-    + '</div>';
+  const pctBar=(r,m)=> m>0?Math.min(100,Math.round(r/m*100)):0;
+  const _dfmt = n => Math.round(n).toLocaleString('pt-BR');
 
-  // ───── MONTAGEM (só famílias com meta) ─────
-  let montHtml = '';
+  // ── HERO (indicadores) ──
+  let heroHtml='<div class="dash-hero">';
+  // IFE com 3 percentuais
+  heroHtml += '<div class="dh ife" onclick="showTab(\'ife\')"><div class="cap">📈 IFE — mês atual</div>'
+    + '<div class="big">'+ifeCons+'</div>'
+    + '<div class="meta">consolidado · Matriz '+ifeMatr+' · Filial SP '+ifeFil+'</div></div>';
+  // Terceiros: valor + meta + % + previsão
+  heroHtml += '<div class="dh terc" onclick="showTab(\'servicos\')"><div class="cap">🔧 Terceiros — realizado</div>'
+    + '<div class="big">'+fmtMoney(tercReal)+'</div>'
+    + '<div class="meta">meta '+fmtMoney(tercMeta)+(tercMeta>0?' · '+Math.round(tercReal/tercMeta*100)+'%':'')
+      + (tercPrev>0?' · prev. '+fmtMoney(tercPrev):'')+'</div>'
+    + (tercMeta>0?'<div class="bar"><i style="width:'+pctBar(tercReal,tercMeta)+'%;background:var(--amber)"></i></div>':'')+'</div>';
+  // TT: média/dia vs meta/dia
+  const ttOk=ttMed>=ttMetaDia;
+  heroHtml += '<div class="dh tt" onclick="showTab(\'termico\')"><div class="cap">🌡️ TT — Térmico (média/dia)</div>'
+    + '<div class="big">'+_dfmt(ttMed)+' <span style="font-size:16px;color:var(--text-muted)">/ '+_dfmt(ttMetaDia)+'</span></div>'
+    + '<div class="meta">'+pctBar(ttReal,ttMeta)+'% da meta mensal · '+(ttOk?'▲':'▼')+'</div>'
+    + '<div class="bar"><i style="width:'+pctBar(ttReal,ttMeta)+'%;background:var(--red)"></i></div></div>';
+  // PM: média/dia vs meta/dia
+  const pmOk=pmMed>=pmMetaDia;
+  heroHtml += '<div class="dh pm" onclick="showTab(\'termico\')"><div class="cap">✨ PM — Polimento (média/dia)</div>'
+    + '<div class="big">'+_dfmt(pmMed)+' <span style="font-size:16px;color:var(--text-muted)">/ '+_dfmt(pmMetaDia)+'</span></div>'
+    + '<div class="meta">'+pctBar(pmReal,pmMeta)+'% da meta mensal · '+(pmOk?'▲':'▼')+'</div>'
+    + '<div class="bar"><i style="width:'+pctBar(pmReal,pmMeta)+'%;background:var(--green)"></i></div></div>';
+  heroHtml += '</div>';
+
+  // ── MONTAGEM (só famílias com meta, 1 casa decimal) ──
+  let montHtml='';
   try {
-    const HAS_META = [['TOMADA_MULT','TOMADA+MULT'],['BOMBA','BOMBA'],['CILINDRO','CILINDRO'],['GUINCHO','GUINCHO+ENROL.']];
+    const HAS_META=[['TOMADA_MULT','TOMADA+MULT'],['BOMBA','BOMBA'],['CILINDRO','CILINDRO'],['GUINCHO','GUINCHO+ENROL.']];
     const hoje=new Date(); hoje.setHours(0,0,0,0);
     const mesAtual=hoje.getMonth(), anoAtual=hoje.getFullYear();
     const feriados=getFeriados().map(f=>f.data);
@@ -9932,59 +9941,57 @@ function renderDashboard(){
     const dataRows=dataRowsAno.filter(r=>{const d=parseDate(r.DATA||'');return d&&d.getMonth()===mesAtual&&d.getFullYear()===anoAtual;});
     const duEmail=dataRows.filter(r=>{const d=parseDate(r.DATA||'');if(!d)return false;if(d.getTime()===hoje.getTime())return false;if(d.getDay()===0||d.getDay()===6)return false;const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');if(feriados.includes(iso))return false;return true;}).length;
     const hojeKey=hoje.getTime();
-    const cards = HAS_META.map(([col,label])=>{
+    const cards=HAS_META.map(([col,label])=>{
       const semHoje=dataRows.reduce((s,r)=>{const d=parseDate(r.DATA||'');if(d&&d.getTime()===hojeKey)return s;return s+num(r[col]);},0);
-      const media = duEmail>0 ? semHoje/duEmail : 0;
-      const metaDia = getMontadosMeta(col, mesAtual) || 0;
-      const ok = metaDia>0 ? media>=metaDia : true;
+      const media=duEmail>0?semHoje/duEmail:0;
+      const metaDia=getMontadosMeta(col,mesAtual)||0;
+      const ok=metaDia>0?media>=metaDia:true;
       return '<div class="dmc '+(ok?'':'crit')+'" onclick="showTab(\'montados\')">'
         +'<div class="ml">'+label+'</div>'
-        +'<div class="mv">'+_dashFmt(media)+' <small>/'+_dashFmt(metaDia)+'</small></div>'
+        +'<div class="mv">'+fmt1(media)+' <small>/'+fmt1(metaDia)+'</small></div>'
         +'<div class="ms">'+(metaDia>0?(ok?'▲ acima da meta':'▼ abaixo da meta'):'sem meta')+'</div></div>';
     }).join('');
-    montHtml = '<div class="dash-eyebrow" style="margin-top:6px">Montagem — média/dia vs meta (mês atual)</div><div class="dash-mont">'+cards+'</div>';
-  } catch(e){ console.warn('dash mont', e); }
+    montHtml='<div class="dash-eyebrow" style="margin-top:6px">Montagem — média/dia vs meta (mês atual)</div><div class="dash-mont">'+cards+'</div>';
+  } catch(e){ console.warn('dash mont',e); }
 
-  // ───── ALERTAS ─────
-  const alertas = [];
+  // ── ALERTAS ──
+  const alertas=[];
   try {
-    // Pedidos em atraso (entrega vencida) + projetado negativo
+    // Itens atrasados nos pedidos (substitui projetado negativo)
     if (DATA.pedidos && DATA.pedidos.length) {
-      const atrasados = DATA.pedidos.filter(r => r.atrasado).length;
-      if (atrasados>0) alertas.push({sev:'crit', n:atrasados, lbl:'<b>Pedidos em atraso</b> — data de entrega vencida', tab:'pedidos'});
-      const projNeg = DATA.pedidos.filter(r => (r.projetado!=null && r.projetado<0)).length;
-      if (projNeg>0) alertas.push({sev:'crit', n:projNeg, lbl:'<b>Pedidos com projetado negativo</b> <small>· vendidos além do estoque</small>', tab:'pedidos'});
+      const atrasados=DATA.pedidos.filter(r=>r.atrasado).length;
+      if(atrasados>0) alertas.push({sev:'crit',n:atrasados,lbl:'<b>Itens atrasados em pedidos</b> — data de entrega vencida',tab:'pedidos'});
     }
-    // OFs atrasadas / não separadas com entrega <= hoje
+    // OFs em atraso: 2 cards — Montagem (soma qtde) e Produção (contagem de ordens)
     if (DATA.ofItens && DATA.ofItens.length) {
-      const ofAlerta = DATA.ofItens.filter(it => it.DT_FINAL && isOverdue(it.DT_FINAL)).length;
-      if (ofAlerta>0) alertas.push({sev:'crit', n:ofAlerta, lbl:'<b>OFs atrasadas / não separadas</b> <small>· entrega até hoje</small>', tab:'of'});
+      const atrasadas=DATA.ofItens.filter(it=>it.DT_FINAL && isOverdue(it.DT_FINAL));
+      const montQtd=atrasadas.filter(it=>it.FAMILIA).reduce((s,it)=>s+(it.QTDE_PEND||0),0);
+      const prodOrdens=new Set(atrasadas.filter(it=>!it.FAMILIA).map(it=>it.NUM_ORDEM)).size;
+      if(montQtd>0) alertas.push({sev:'crit',n:Math.round(montQtd),lbl:'<b>OFs Montagem em atraso</b> <small>· soma das quantidades pendentes</small>',tab:'of'});
+      if(prodOrdens>0) alertas.push({sev:'crit',n:prodOrdens,lbl:'<b>OFs Produção em atraso</b> <small>· nº de ordens</small>',tab:'of'});
     }
-    // Estoque abaixo do parâmetro de segurança + falta a abastecer
+    // Estoque abaixo da segurança + falta a abastecer
     if (DATA.estoque && DATA.estoque.length) {
-      const abaixo = DATA.estoque.filter(r => (r.qtde_param_es>0 && r.estoque_total < r.qtde_param_es)).length;
-      if (abaixo>0) alertas.push({sev:'warn', n:abaixo, lbl:'Abaixo do estoque de segurança', tab:'estoque'});
-      const falta = DATA.estoque.filter(r => r.tot_falta > 0).length;
-      if (falta>0) alertas.push({sev:'warn', n:falta, lbl:'Itens com falta a abastecer', tab:'estoque'});
+      const abaixo=DATA.estoque.filter(r=>(r.qtde_param_es>0 && r.estoque_total<r.qtde_param_es)).length;
+      if(abaixo>0) alertas.push({sev:'warn',n:abaixo,lbl:'Abaixo do estoque de segurança <small>· estoque atual menor que o parâmetro mínimo</small>',tab:'estoque'});
+      const falta=DATA.estoque.filter(r=>r.tot_falta>0).length;
+      if(falta>0) alertas.push({sev:'warn',n:falta,lbl:'Itens com falta a abastecer',tab:'estoque'});
     }
-    // Disponibilidade — itens disponíveis p/ venda
+    // Disponibilidade
     if (DATA.disponibilidade && DATA.disponibilidade.length) {
-      const disp = DATA.disponibilidade.filter(d => d.disponivel>0).length;
-      if (disp>0) alertas.push({sev:'ok', n:disp, lbl:'Itens disponíveis para venda', tab:'disponibilidade'});
+      const disp=DATA.disponibilidade.filter(d=>d.disponivel>0).length;
+      if(disp>0) alertas.push({sev:'ok',n:disp,lbl:'Itens disponíveis para venda',tab:'disponibilidade'});
     }
-  } catch(e){ console.warn('dash alertas', e); }
+  } catch(e){ console.warn('dash alertas',e); }
 
-  let alertasHtml = '';
-  if (alertas.length) {
-    alertasHtml = '<div class="dash-eyebrow" style="margin-top:6px">Alertas</div><div class="dash-al">'
-      + alertas.map(a => '<div class="darow '+a.sev+'" onclick="showTab(\''+a.tab+'\')">'
-          +'<span class="lbl">'+a.lbl+'</span><span class="n">'+a.n+'</span></div>').join('')
+  let alertasHtml='';
+  if(alertas.length){
+    alertasHtml='<div class="dash-eyebrow" style="margin-top:6px">Alertas</div><div class="dash-al">'
+      + alertas.map(a=>'<div class="darow '+a.sev+'" onclick="showTab(\''+a.tab+'\')"><span class="lbl">'+a.lbl+'</span><span class="n">'+a.n.toLocaleString('pt-BR')+'</span></div>').join('')
       + '</div>';
   }
 
-  cont.innerHTML =
-    '<div class="dash-eyebrow">Indicadores do mês</div>'
-    + heroHtml + montHtml + alertasHtml;
+  cont.innerHTML='<div class="dash-eyebrow">Indicadores do mês</div>'+heroHtml+montHtml+alertasHtml;
 }
 // helper: converte 'YYYY-MM-DD' para Date local (para isOverdue)
 function _dashParseISO(s){
