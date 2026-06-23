@@ -426,6 +426,15 @@
   .ms-item:hover { background:rgba(61,139,255,.12); }
   .ms-item input[type=checkbox] { accent-color:var(--blue); width:14px; height:14px; }
 
+  /* filtro de datas hierárquico (mês > dias) */
+  .pv-mes-grupo { border-bottom:1px solid var(--border); }
+  .pv-mes-head { display:flex; align-items:center; gap:6px; padding:8px 12px; }
+  .pv-mes-toggle { cursor:pointer; color:var(--text-muted); font-size:12px; width:14px; user-select:none; }
+  .pv-mes-label { display:flex; align-items:center; gap:7px; font-size:13px; font-weight:600; cursor:pointer; flex:1; }
+  .pv-mes-label input[type=checkbox] { accent-color:var(--blue); width:14px; height:14px; }
+  .pv-dias-box { background:rgba(0,0,0,.15); }
+  .pv-dia-item { padding-left:34px; font-size:12px; }
+
   .transit-card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -824,7 +833,7 @@
   @keyframes daBorderFlow { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
   @keyframes daGlowPulse { 0%,100%{box-shadow:0 0 24px rgba(168,85,247,.22),0 0 0 1px rgba(168,85,247,.28)} 50%{box-shadow:0 0 40px rgba(168,85,247,.42),0 0 0 1px rgba(168,85,247,.5)} }
   @keyframes daFloatBot { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
-  .assist-card { position:relative; border-radius:18px; padding:2px; margin-bottom:20px; background:linear-gradient(120deg,#a855f7,#6366f1,#ec4899,#a855f7); background-size:300% 300%; animation:daBorderFlow 6s ease infinite; }
+  .assist-card { position:relative; border-radius:18px; padding:2px; margin-top:24px; margin-bottom:20px; background:linear-gradient(120deg,#a855f7,#6366f1,#ec4899,#a855f7); background-size:300% 300%; animation:daBorderFlow 6s ease infinite; }
   .assist-inner { background:linear-gradient(160deg,var(--surface2),var(--surface)); border-radius:16px; padding:22px 24px; animation:daGlowPulse 3.5s ease-in-out infinite; }
   .assist-head { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
   .bot-ic { font-size:38px; animation:daFloatBot 3s ease-in-out infinite; filter:drop-shadow(0 4px 10px rgba(168,85,247,.5)); flex-shrink:0; }
@@ -2265,6 +2274,10 @@ function msToggleAll(id) {
   if (allCb) allCb.checked = !allCb.checked;
   const newVal = allCb ? allCb.checked : true;
   document.querySelectorAll(`#${id} .ms-item input[type=checkbox]`).forEach(cb => { cb.checked = newVal; });
+  // se for o filtro de dias (hierárquico), sincroniza os checkboxes de mês
+  if (id === 'ms-pv-dias') {
+    document.querySelectorAll('#ms-pv-dias .pv-mes-cb').forEach(mcb=>{ mcb.checked = newVal; mcb.indeterminate = false; });
+  }
   msChange(id);
 }
 
@@ -5882,26 +5895,87 @@ function _pvPopularDias() {
   if (!listEl) return;
   const datas = [...new Set(DATA.pedidos.map(r=>r.dataEntStr).filter(Boolean))].sort();
   const hoje = new Date(); hoje.setHours(0,0,0,0);
-  // Manter seleções existentes
-  const jaChecked = getMsValues('ms-pv-dias');
-  const existingDatas = new Set([...listEl.querySelectorAll('.ms-item input')].map(i=>i.value));
-  if (existingDatas.size === datas.length) return; // já populado e igual
-  // Limpar e repopular (mantendo o botão "Todos")
+  const jaChecked = new Set(getMsValues('ms-pv-dias'));
+
+  // Agrupa datas por mês (AAAA-MM)
+  const porMes = {};
+  datas.forEach(d => { const mk = d.slice(0,7); (porMes[mk] = porMes[mk] || []).push(d); });
+  const meses = Object.keys(porMes).sort();
+
+  // Evita repopular se já está igual (mesmo conjunto de datas)
+  const existing = new Set([...listEl.querySelectorAll('.ms-item input')].map(i=>i.value));
+  if (existing.size === datas.length && datas.every(d=>existing.has(d))) return;
+
   const allBtn = listEl.querySelector('.ms-all');
   listEl.innerHTML = '';
-  listEl.appendChild(allBtn);
-  datas.forEach(d => {
-    const [a,m,dia] = d.split('-');
-    const dt = new Date(d+'T00:00:00');
-    const isHoje = dt.getTime() === hoje.getTime();
-    const isAt   = dt < hoje;
-    const label  = `${dia}/${m}/${a}${isHoje?' (HOJE)':''}${isAt?' ⚠':''}`;
-    const el = document.createElement('label');
-    el.className = 'ms-item';
-    const wasChecked = jaChecked.includes(d);
-    el.innerHTML = `<input type="checkbox" value="${d}" ${wasChecked?'checked':''} onchange="msChange('ms-pv-dias')"> ${label}`;
-    listEl.appendChild(el);
+  if (allBtn) listEl.appendChild(allBtn);
+
+  const NOMES_MES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  meses.forEach(mk => {
+    const [ano,mes] = mk.split('-');
+    const diasDoMes = porMes[mk];
+    const temAtraso = diasDoMes.some(d => new Date(d+'T00:00:00') < hoje);
+    // Cabeçalho do mês (controlador + seta de expandir)
+    const mesWrap = document.createElement('div');
+    mesWrap.className = 'pv-mes-grupo';
+    const head = document.createElement('div');
+    head.className = 'pv-mes-head';
+    head.innerHTML =
+      '<span class="pv-mes-toggle" onclick="_pvToggleMes(this)">▸</span>'
+      + '<label class="pv-mes-label"><input type="checkbox" class="pv-mes-cb" onchange="_pvMarcarMes(this, \''+mk+'\')"> '
+      + NOMES_MES[parseInt(mes,10)-1] + '/' + ano + (temAtraso?' <span style="color:var(--red)">⚠</span>':'')
+      + ' <span style="color:var(--text-muted);font-size:10px">('+diasDoMes.length+' dias)</span></label>';
+    mesWrap.appendChild(head);
+    // Container dos dias (colapsado por padrão)
+    const diasBox = document.createElement('div');
+    diasBox.className = 'pv-dias-box';
+    diasBox.style.display = 'none';
+    diasBox.setAttribute('data-mes', mk);
+    diasDoMes.forEach(d => {
+      const [a,m,dia] = d.split('-');
+      const dt = new Date(d+'T00:00:00');
+      const isHoje = dt.getTime() === hoje.getTime();
+      const isAt = dt < hoje;
+      const label = `${dia}/${m}${isHoje?' (HOJE)':''}${isAt?' ⚠':''}`;
+      const el = document.createElement('label');
+      el.className = 'ms-item pv-dia-item';
+      const wasChecked = jaChecked.has(d);
+      el.innerHTML = `<input type="checkbox" value="${d}" data-mes="${mk}" ${wasChecked?'checked':''} onchange="_pvDiaChange('${mk}')"> ${label}`;
+      diasBox.appendChild(el);
+    });
+    mesWrap.appendChild(diasBox);
+    listEl.appendChild(mesWrap);
+    // sincroniza estado do checkbox do mês
+    _pvSyncMesCb(mk);
   });
+}
+// Expande/colapsa os dias de um mês
+function _pvToggleMes(el){
+  const box = el.closest('.pv-mes-grupo').querySelector('.pv-dias-box');
+  const aberto = box.style.display !== 'none';
+  box.style.display = aberto ? 'none' : 'block';
+  el.textContent = aberto ? '▸' : '▾';
+}
+// Marca/desmarca todos os dias do mês
+function _pvMarcarMes(cb, mk){
+  const box = document.querySelector('.pv-dias-box[data-mes="'+mk+'"]');
+  if(box) box.querySelectorAll('input[type=checkbox]').forEach(i=>i.checked=cb.checked);
+  msChange('ms-pv-dias');
+}
+// Quando um dia muda, sincroniza o checkbox do mês (marcado se todos os dias marcados)
+function _pvDiaChange(mk){
+  _pvSyncMesCb(mk);
+  msChange('ms-pv-dias');
+}
+function _pvSyncMesCb(mk){
+  const box = document.querySelector('.pv-dias-box[data-mes="'+mk+'"]');
+  if(!box) return;
+  const dias = [...box.querySelectorAll('input[type=checkbox]')];
+  const head = box.closest('.pv-mes-grupo').querySelector('.pv-mes-cb');
+  if(!head || !dias.length) return;
+  const marcados = dias.filter(d=>d.checked).length;
+  head.checked = marcados===dias.length;
+  head.indeterminate = marcados>0 && marcados<dias.length;
 }
 
 // ── Família por classificação (sem pontos, ex: '300200001') ──────────────
@@ -10262,13 +10336,22 @@ function _dashFamPedido(p){
   try {
     if (typeof pvFamilia === 'function') {
       const f = pvFamilia(p.classificacao||'');
-      // pvFamilia retorna rótulos tipo 'TOMADA+MULT', 'BOMBA'... normaliza para chaves
-      const map={'TOMADA+MULT':'TOMADA_MULT','BOMBA':'BOMBA','CILINDRO':'CILINDRO','CONJ EIXO':'CONJ_EIXO','GUINCHO+ENROLADOR':'GUINCHO','GUINCHO':'GUINCHO','COMANDO':'COMANDO','VALVULA':'VALVULA','KIT HIDRAULICO':'KIT_HIDR'};
-      if (map[f]) return map[f];
+      // mapeia os rótulos do pvFamilia para as chaves do assistente.
+      // GUINCHO = SOMENTE 'GUINCHO+ENROLADOR' (não inclui 'GUINCHO - OUTROS').
+      const map={
+        'TOMADA+MULT':'TOMADA_MULT',
+        'BOMBA':'BOMBA',
+        'CILINDRO':'CILINDRO',
+        'CONJ EIXO':'CONJ_EIXO',
+        'GUINCHO+ENROLADOR':'GUINCHO',
+        'WALVOIL - COMANDO':'COMANDO',
+        'WALVOIL - VALVULA':'VALVULA',
+        'KIT HIDRAULICO':'KIT_HIDR'
+      };
+      return map[f] || null; // sem fallback: o que não casar exatamente não conta
     }
   } catch(e){}
-  // fallback: família simples dos pedidos (GUINCHO/WALVOIL/FORCA)
-  return p.familia || null;
+  return null;
 }
 async function dashPerguntar(){
   const inp=document.getElementById('dash-pergunta');
@@ -10531,10 +10614,20 @@ function _dashResponder(q){
     let tabela = '';
     if(itensFalta.length){
       tabela = '<div style="margin-top:12px;font-size:11px;color:var(--text-muted)">Detalhe por item (pendente − saldo):</div>'
-        +'<div style="margin-top:6px;max-height:200px;overflow:auto;border:1px solid var(--border);border-radius:8px">'
-        +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
-        +'<thead><tr style="background:var(--surface2)"><th style="text-align:left;padding:6px 8px">Item</th><th style="text-align:right;padding:6px 8px">Pend.</th><th style="text-align:right;padding:6px 8px">Saldo</th><th style="text-align:right;padding:6px 8px">Falta</th></tr></thead><tbody>'
-        +itensFalta.slice(0,15).map(it=>'<tr style="border-top:1px solid var(--border)"><td style="padding:5px 8px">'+(it.desc||it.cod).slice(0,28)+'</td><td style="text-align:right;padding:5px 8px">'+fmt(it.pend)+'</td><td style="text-align:right;padding:5px 8px">'+fmt(it.saldo)+'</td><td style="text-align:right;padding:5px 8px;color:var(--amber);font-weight:700">'+fmt(it.falta)+'</td></tr>').join('')
+        +'<div style="margin-top:6px;max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:8px">'
+        +'<table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed">'
+        +'<thead><tr style="background:var(--surface2)">'
+          +'<th style="text-align:left;padding:6px 8px;width:52%">Item</th>'
+          +'<th style="text-align:right;padding:6px 8px;width:16%">Pend.</th>'
+          +'<th style="text-align:right;padding:6px 8px;width:16%">Saldo</th>'
+          +'<th style="text-align:right;padding:6px 8px;width:16%">Falta</th>'
+        +'</tr></thead><tbody>'
+        +itensFalta.slice(0,15).map(it=>'<tr style="border-top:1px solid var(--border)">'
+          +'<td style="padding:5px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+_daEscapeHtml(it.desc||it.cod)+'">'+_daEscapeHtml((it.desc||it.cod))+'</td>'
+          +'<td style="text-align:right;padding:5px 8px">'+fmt(it.pend)+'</td>'
+          +'<td style="text-align:right;padding:5px 8px">'+fmt(it.saldo)+'</td>'
+          +'<td style="text-align:right;padding:5px 8px;color:var(--amber);font-weight:700">'+fmt(it.falta)+'</td>'
+        +'</tr>').join('')
         +'</tbody></table></div>'
         +(itensFalta.length>15?'<div style="font-size:10px;color:var(--text-muted);margin-top:4px">+'+(itensFalta.length-15)+' itens…</div>':'');
     }
