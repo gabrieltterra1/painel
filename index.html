@@ -820,6 +820,18 @@
   .darow .n { font-family: var(--font-display); font-size: 24px; font-weight: 900; color: var(--amber); }
   .darow.crit .n { color: var(--red); } .darow.ok .n { color: var(--green); }
 
+  /* assistente do painel */
+  .dash-assist { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 20px; }
+  .da-inputrow { display: flex; gap: 8px; margin-bottom: 12px; }
+  .da-inputrow input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 11px 14px; color: var(--text); font-size: 14px; font-family: var(--font-body); }
+  .da-inputrow input:focus { outline: none; border-color: #a855f7; }
+  .da-inputrow button { background: #a855f7; color: #fff; border: none; border-radius: 9px; padding: 0 18px; font-weight: 700; font-size: 14px; cursor: pointer; white-space: nowrap; }
+  .da-inputrow button:hover { background: #9333ea; }
+  .da-sugestoes { display: flex; gap: 7px; flex-wrap: wrap; }
+  .da-sug { background: var(--surface2); border: 1px solid var(--border); border-radius: 18px; padding: 6px 13px; font-size: 12px; color: var(--text-muted); cursor: pointer; transition: all .12s; font-family: var(--font-body); }
+  .da-sug:hover { border-color: #a855f7; color: #c084fc; }
+  .da-resposta { margin-top: 12px; }
+
 /* ═══════════ MOBILE RESPONSIVE ═══════════ */
 @media (max-width: 768px) {
   .diario-grid { grid-template-columns: 1fr !important; }
@@ -10064,10 +10076,10 @@ function renderDashboard(){
   // ── ALERTAS ──
   const alertas=[];
   try {
-    // Itens atrasados nos pedidos (substitui projetado negativo)
+    // Itens atrasados nos pedidos (soma das quantidades)
     if (DATA.pedidos && DATA.pedidos.length) {
-      const atrasados=DATA.pedidos.filter(r=>r.atrasado).length;
-      if(atrasados>0) alertas.push({sev:'crit',n:atrasados,lbl:'<b>Itens atrasados em pedidos</b> — data de entrega vencida',tab:'pedidos',filtro:'atrasado'});
+      const qtdAtrasada=DATA.pedidos.filter(r=>r.atrasado).reduce((s,r)=>s+(r.qtde||0),0);
+      if(qtdAtrasada>0) alertas.push({sev:'crit',n:Math.round(qtdAtrasada),lbl:'<b>Itens atrasados em pedidos</b> — soma das quantidades vencidas',tab:'pedidos',filtro:'atrasado'});
     }
     // OFs em atraso: 2 cards — Montagem (soma qtde) e Produção (contagem de ordens)
     if (DATA.ofItens && DATA.ofItens.length) {
@@ -10125,7 +10137,21 @@ function renderDashboard(){
       + '</div>';
   }
 
-  cont.innerHTML='<div class="dash-eyebrow"><span class="bar-accent"></span>Indicadores do mês</div>'+heroHtml+montHtml+alertasHtml;
+  // ── ASSISTENTE DO PAINEL (perguntas programadas) ──
+  const sugestoes = _dashSugestoes();
+  const assistHtml = '<div class="dash-eyebrow" style="margin-top:8px"><span class="bar-accent" style="background:#a855f7"></span>Assistente do Painel</div>'
+    + '<div class="dash-assist">'
+    + '<div class="da-inputrow">'
+      + '<input type="text" id="dash-pergunta" placeholder="Pergunte algo… ex: quantos guinchos montar este mês?" autocomplete="off" onkeydown="if(event.key===\'Enter\')dashPerguntar()">'
+      + '<button onclick="dashPerguntar()">Perguntar</button>'
+    + '</div>'
+    + '<div class="da-sugestoes" id="dash-sugestoes">'
+      + sugestoes.map(s=>'<button class="da-sug" onclick="dashPerguntarTexto(this.textContent)">'+s+'</button>').join('')
+    + '</div>'
+    + '<div id="dash-resposta" class="da-resposta" style="display:none"></div>'
+    + '</div>';
+
+  cont.innerHTML='<div class="dash-eyebrow"><span class="bar-accent"></span>Indicadores do mês</div>'+heroHtml+montHtml+alertasHtml+assistHtml;
 }
 
 // Navega para uma aba aplicando o filtro correspondente ao alerta clicado
@@ -10134,21 +10160,188 @@ function dashIrFiltrado(tab, filtro){
   setTimeout(()=>{
     try {
       if (tab==='of') {
-        if (filtro==='montagem'){ setOFEscopo('montagem'); setOFSituacao('atraso'); }
-        else if (filtro==='producao'){ setOFEscopo('producao'); setOFSituacao('atraso'); }
+        if (typeof setOFEscopo==='function' && typeof setOFSituacao==='function') {
+          if (filtro==='montagem'){ setOFEscopo('montagem'); setOFSituacao('atraso'); }
+          else if (filtro==='producao'){ setOFEscopo('producao'); setOFSituacao('atraso'); }
+        }
       } else if (tab==='pedidos' && filtro==='atrasado') {
         // marca só o status ATRASADO no multi-select de status
         const itens=document.querySelectorAll('#ms-pv-status .ms-item input[type=checkbox]');
-        itens.forEach(cb=>{ cb.checked = (cb.value==='ATRASADO'); });
-        const all=document.getElementById('ms-pv-status-all'); if(all) all.checked=false;
-        if (typeof msChange==='function') msChange('ms-pv-status');
+        if (itens.length) {
+          itens.forEach(cb=>{ cb.checked = (cb.value==='ATRASADO'); });
+          const all=document.getElementById('ms-pv-status-all'); if(all) all.checked=false;
+          if (typeof msChange==='function') msChange('ms-pv-status');
+          // rola até a lista principal (que foi filtrada) para o usuário ver o resultado
+          const anchor=document.getElementById('ms-pv-status');
+          if(anchor) setTimeout(()=>anchor.scrollIntoView({behavior:'smooth',block:'center'}), 120);
+        }
       } else if (tab==='disponibilidade' && filtro==='disponivel') {
-        const so=document.getElementById('disp-so-disponiveis'); if(so){ so.checked=true; }
-        if (typeof renderDisponibilidade==='function') renderDisponibilidade();
+        const so=document.getElementById('disp-so-disponiveis');
+        if(so){ so.checked=true; if (typeof renderDisponibilidade==='function') renderDisponibilidade(); }
       }
     } catch(e){ console.warn('dashIrFiltrado', e); }
-  }, 60);
+  }, 150);
 }
+
+// ═══════════ ASSISTENTE DO PAINEL (perguntas programadas) ═══════════
+// Histórico de perguntas (para sugestões dinâmicas), salvo no navegador
+function _dashHistorico(){ try { return JSON.parse(localStorage.getItem('dash_perguntas')||'[]'); } catch(e){ return []; } }
+function _dashSalvarHist(p){
+  try { let h=_dashHistorico(); h=h.filter(x=>x.toLowerCase()!==p.toLowerCase()); h.unshift(p); h=h.slice(0,8); localStorage.setItem('dash_perguntas',JSON.stringify(h)); } catch(e){}
+}
+// Sugestões: mistura perguntas recentes do usuário + sugestões padrão
+function _dashSugestoes(){
+  const padrao = [
+    'Quantos guinchos montar este mês?',
+    'Quanto falta montar de bomba?',
+    'Qual o ritmo/dia necessário para guincho?',
+    'O que está atrasado nos pedidos?'
+  ];
+  const hist = _dashHistorico();
+  const todas = [...hist, ...padrao];
+  // remove duplicatas mantendo ordem, limita a 6
+  const vistos=new Set(), out=[];
+  for(const s of todas){ const k=s.toLowerCase().trim(); if(!vistos.has(k)){ vistos.add(k); out.push(s); } if(out.length>=6) break; }
+  return out;
+}
+function dashPerguntarTexto(txt){
+  const inp=document.getElementById('dash-pergunta'); if(inp) inp.value=txt;
+  dashPerguntar();
+}
+// Reconhece a família citada na pergunta
+function _dashFamiliaPergunta(q){
+  const s=q.toLowerCase();
+  if(/guincho|enrolador/.test(s)) return {fam:'GUINCHO', label:'Guincho/Enrolador'};
+  if(/bomba/.test(s)) return {fam:'BOMBA', label:'Bomba'};
+  if(/cilindro/.test(s)) return {fam:'CILINDRO', label:'Cilindro'};
+  if(/tomada|mult/.test(s)) return {fam:'TOMADA_MULT', label:'Tomada+Mult'};
+  if(/eixo|conj/.test(s)) return {fam:'CONJ_EIXO', label:'Conj. Eixo'};
+  if(/comando/.test(s)) return {fam:'COMANDO', label:'Comando'};
+  if(/v[áa]lvula/.test(s)) return {fam:'VALVULA', label:'Válvula'};
+  if(/kit/.test(s)) return {fam:'KIT_HIDR', label:'Kit Hidráulico'};
+  return null;
+}
+// Determina o período pela pergunta
+function _dashPeriodoPergunta(q){
+  const s=q.toLowerCase();
+  if(/atrasad/.test(s)) return {tipo:'atrasados', label:'pedidos atrasados'};
+  if(/pr[óo]ximo m[êe]s|mes que vem/.test(s)) return {tipo:'proximo', label:'próximo mês'};
+  return {tipo:'mes', label:'este mês'};
+}
+// Classifica família do pedido (usa pvFamilia pelo código de classificação)
+function _dashFamPedido(p){
+  try {
+    if (typeof pvFamilia === 'function') {
+      const f = pvFamilia(p.classificacao||'');
+      // pvFamilia retorna rótulos tipo 'TOMADA+MULT', 'BOMBA'... normaliza para chaves
+      const map={'TOMADA+MULT':'TOMADA_MULT','BOMBA':'BOMBA','CILINDRO':'CILINDRO','CONJ EIXO':'CONJ_EIXO','GUINCHO+ENROLADOR':'GUINCHO','GUINCHO':'GUINCHO','COMANDO':'COMANDO','VALVULA':'VALVULA','KIT HIDRAULICO':'KIT_HIDR'};
+      if (map[f]) return map[f];
+    }
+  } catch(e){}
+  // fallback: família simples dos pedidos (GUINCHO/WALVOIL/FORCA)
+  return p.familia || null;
+}
+function dashPerguntar(){
+  const inp=document.getElementById('dash-pergunta');
+  const out=document.getElementById('dash-resposta');
+  if(!inp||!out) return;
+  const q=inp.value.trim();
+  if(!q){ return; }
+  _dashSalvarHist(q);
+  const resp = _dashResponder(q);
+  out.style.display='block';
+  out.innerHTML = resp;
+  // atualiza sugestões
+  const sugEl=document.getElementById('dash-sugestoes');
+  if(sugEl){ sugEl.innerHTML=_dashSugestoes().map(s=>'<button class="da-sug" onclick="dashPerguntarTexto(this.textContent)">'+s+'</button>').join(''); }
+}
+// Motor de resposta (cálculos programados)
+function _dashResponder(q){
+  const s=q.toLowerCase();
+  const fmt=n=>Math.round(n).toLocaleString('pt-BR');
+
+  // dias úteis restantes (com hoje)
+  let duRest=0;
+  try {
+    const hoje=new Date(); hoje.setHours(0,0,0,0);
+    const anoM=hoje.getFullYear(), mesM=hoje.getMonth();
+    const fer=new Set(getFeriados().map(f=>f.data));
+    const ultDia=new Date(anoM,mesM+1,0).getDate();
+    for(let d=hoje.getDate();d<=ultDia;d++){const dt=new Date(anoM,mesM,d);const dw=dt.getDay();const iso=anoM+'-'+String(mesM+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');if(dw!==0&&dw!==6&&!fer.has(iso))duRest++;}
+  } catch(e){}
+
+  // ── "O que está atrasado" ──
+  if(/o que est[áa] atrasad|quais.*atrasad|lista.*atrasad/.test(s) && !_dashFamiliaPergunta(q)){
+    const pedAtr = (DATA.pedidos||[]).filter(p=>p.atrasado).length;
+    const ofAtr = (DATA.ofItens||[]).filter(it=>it.DT_FINAL && isOverdue(it.DT_FINAL)).length;
+    return _daBox('O que está atrasado',
+      '<ul style="margin:6px 0 0 0;padding-left:18px;line-height:1.7">'
+      +'<li><b>'+fmt(pedAtr)+'</b> itens atrasados em pedidos '+_daLink('Ver pedidos','dashIrFiltrado(\'pedidos\',\'atrasado\')')+'</li>'
+      +'<li><b>'+fmt(ofAtr)+'</b> itens em OFs atrasadas '+_daLink('Ver OFs','dashIrFiltrado(\'of\',\'producao\')')+'</li>'
+      +'</ul>');
+  }
+
+  // ── Perguntas de família (montar / falta / ritmo) ──
+  const famInfo=_dashFamiliaPergunta(q);
+  if(famInfo){
+    const periodo=_dashPeriodoPergunta(q);
+    // filtra pedidos da família e período
+    const hoje=new Date(); hoje.setHours(0,0,0,0);
+    const fimMes=new Date(hoje.getFullYear(), hoje.getMonth()+1, 0);
+    const fimProx=new Date(hoje.getFullYear(), hoje.getMonth()+2, 0);
+    const iniProx=new Date(hoje.getFullYear(), hoje.getMonth()+1, 1);
+    let peds=(DATA.pedidos||[]).filter(p=>_dashFamPedido(p)===famInfo.fam);
+    if(periodo.tipo==='atrasados') peds=peds.filter(p=>p.atrasado);
+    else if(periodo.tipo==='proximo') peds=peds.filter(p=>p.dataEnt && p.dataEnt>=iniProx && p.dataEnt<=fimProx);
+    else peds=peds.filter(p=>p.dataEnt && p.dataEnt<=fimMes); // este mês (inclui atrasados até fim do mês)
+
+    // "quantos montar / quanto falta" = soma dos projetados negativos (já é estoque - pedidos)
+    const faltam = peds.reduce((acc,p)=> acc + (p.projetado<0 ? -p.projetado : 0), 0);
+    const ritmo = duRest>0 ? faltam/duRest : 0;
+
+    if(/ritmo|por dia|\/dia|media/.test(s)){
+      return _daBox('Ritmo necessário — '+famInfo.label+' ('+periodo.label+')',
+        '<div style="font-size:14px;line-height:1.8">'
+        +'Faltam montar <b style="color:var(--amber)">'+fmt(faltam)+'</b> '+famInfo.label.toLowerCase()+'.<br>'
+        +'Dividido por <b>'+duRest+'</b> dias úteis restantes:<br>'
+        +'<span style="font-size:22px;font-weight:900;color:var(--green)">'+fmt(ritmo)+'/dia</span>'
+        +'</div>'+_daLink('Ver pedidos desta família','dashAbrirPedidosFamilia(\''+famInfo.fam+'\')'));
+    }
+    // quantos montar / quanto falta
+    return _daBox((/falta/.test(s)?'Quanto falta montar':'Quantos montar')+' — '+famInfo.label+' ('+periodo.label+')',
+      '<div style="font-size:14px;line-height:1.8">'
+      +'Considerando os pedidos ('+periodo.label+') já descontando o estoque atual:<br>'
+      +'<span style="font-size:26px;font-weight:900;color:var(--amber)">'+fmt(faltam)+'</span> '+famInfo.label.toLowerCase()+' a montar<br>'
+      +(duRest>0?'Ritmo: <b style="color:var(--green)">'+fmt(ritmo)+'/dia</b> ('+duRest+' dias úteis restantes)':'')
+      +'</div>'+_daLink('Ver pedidos desta família','dashAbrirPedidosFamilia(\''+famInfo.fam+'\')'));
+  }
+
+  // não reconheceu
+  return _daBox('Não consegui calcular',
+    '<div style="font-size:13px;color:var(--text-muted);line-height:1.6">Ainda não sei responder essa. Tente algo como:<br>'
+    +'• "quantos guinchos montar este mês"<br>• "quanto falta montar de bomba"<br>• "ritmo/dia necessário para cilindro"<br>• "o que está atrasado"</div>');
+}
+function _daBox(titulo, corpo){
+  return '<div style="background:var(--surface2);border:1px solid #a855f755;border-radius:10px;padding:14px 16px;margin-top:4px">'
+    +'<div style="font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:.5px;color:#c084fc;margin-bottom:8px">'+titulo+'</div>'
+    +corpo+'</div>';
+}
+function _daLink(txt, onclick){
+  return '<div style="margin-top:10px"><button onclick="'+onclick+'" style="background:rgba(168,85,247,.15);color:#c084fc;border:1px solid #a855f755;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer">'+txt+' →</button></div>';
+}
+// abre a aba de pedidos filtrando pela família citada
+function dashAbrirPedidosFamilia(famKey){
+  showTab('pedidos');
+  setTimeout(()=>{
+    try {
+      const map={'TOMADA_MULT':'TOMADA+MULT','BOMBA':'BOMBA','CILINDRO':'CILINDRO','CONJ_EIXO':'CONJ EIXO','GUINCHO':'GUINCHO+ENROLADOR','COMANDO':'COMANDO','VALVULA':'VALVULA','KIT_HIDR':'KIT HIDRAULICO'};
+      const alvo=map[famKey]||famKey;
+      const itens=document.querySelectorAll('#ms-pv-familia .ms-item input[type=checkbox]');
+      if(itens.length){ itens.forEach(cb=>{ cb.checked=(cb.value===alvo); }); const all=document.getElementById('ms-pv-familia-all'); if(all)all.checked=false; if(typeof msChange==='function')msChange('ms-pv-familia'); }
+    } catch(e){ console.warn('dashAbrirPedidosFamilia',e); }
+  },60);
+}
+
 // helper: converte 'YYYY-MM-DD' para Date local (para isOverdue)
 function _dashParseISO(s){
   if (!s) return null;
