@@ -10543,7 +10543,7 @@ function _dashResponder(q){
         +'Ritmo atual (média/dia): <b>'+fmt(mediaAtual)+'/dia</b><br>'
         +'<b style="color:'+(ok?'var(--green)':'var(--red)')+';font-size:16px">'+(ok?'✓ No ritmo atual dá para atender':'✗ Ritmo insuficiente — precisa acelerar')+'</b>'
         +(ok?'':'<br><span style="font-size:12px;color:var(--text-muted)">Faltam '+fmt(ritmoNec-mediaAtual)+'/dia a mais</span>')
-        +'</div>'+_daLink('Ver pedidos desta família','dashAbrirPedidosFamilia(\''+famInfo.fam+'\')'));
+        +'</div>'+_daLink('Ver na tabela Prioridades (mesmo filtro)','dashAbrirPrioridades(\''+famInfo.fam+'\')'));
     } catch(e){ return _daBox('Erro','<div>Não consegui cruzar os dados.</div>'); }
   }
 
@@ -10899,6 +10899,9 @@ function _dashResponder(q){
     if(periodo.tipo==='atrasados') peds=peds.filter(p=>p.atrasado);
     else if(periodo.tipo==='proximo') peds=peds.filter(p=>p.dataEnt && p.dataEnt>=iniProx && p.dataEnt<=fimProx);
     else peds=peds.filter(p=>p.dataEnt && p.dataEnt<=fimMes); // este mês (inclui atrasados até fim do mês)
+    // datas do período (para aplicar o mesmo filtro ao clicar em "ver pedidos")
+    const _datasPeriodo=[...new Set(peds.map(p=>p.dataEntStr).filter(Boolean))];
+    window._daUltimoFiltro = { fam: famInfo.fam, datas: _datasPeriodo };
 
     // "quantos montar / quanto falta" — cálculo por ITEM:
     // soma as quantidades pendentes (qtde) dos pedidos do período por código,
@@ -10927,7 +10930,7 @@ function _dashResponder(q){
         +'Faltam montar <b style="color:var(--amber)">'+fmt(faltam)+'</b> '+famInfo.label.toLowerCase()+'.<br>'
         +'Dividido por <b>'+duRest+'</b> dias úteis restantes:<br>'
         +'<span style="font-size:22px;font-weight:900;color:var(--green)">'+fmt(ritmo)+'/dia</span>'
-        +'</div>'+_daLink('Ver pedidos desta família','dashAbrirPedidosFamilia(\''+famInfo.fam+'\')'));
+        +'</div>'+_daLink('Ver na tabela Prioridades (mesmo filtro)','dashAbrirPrioridades(\''+famInfo.fam+'\')'));
     }
     // quantos montar / quanto falta
     let tabela = '';
@@ -10955,7 +10958,7 @@ function _dashResponder(q){
       +'Por item: soma da quantidade pendente dos pedidos ('+periodo.label+') menos o saldo (estoque) de cada item, contando só onde falta:<br>'
       +'<span style="font-size:26px;font-weight:900;color:var(--amber)">'+fmt(faltam)+'</span> '+famInfo.label.toLowerCase()+' a montar<br>'
       +(duRest>0?'Ritmo: <b style="color:var(--green)">'+fmt(ritmo)+'/dia</b> ('+duRest+' dias úteis restantes)':'')
-      +'</div>'+tabela+_daLink('Ver pedidos desta família','dashAbrirPedidosFamilia(\''+famInfo.fam+'\')'));
+      +'</div>'+tabela+_daLink('Ver na tabela Prioridades (mesmo filtro)','dashAbrirPrioridades(\''+famInfo.fam+'\')'));
   }
 
   // não reconheceu — sinaliza para acionar IA (se ativa) ou mostra ajuda
@@ -10981,8 +10984,37 @@ function dashAbrirPedidosFamilia(famKey){
     } catch(e){ console.warn('dashAbrirPedidosFamilia',e); }
   },60);
 }
+// Abre a tabela Prioridades aplicando família + as datas do período da pergunta (mesmo filtro do cálculo)
+function dashAbrirPrioridades(famKey){
+  showTab('pedidos');
+  // mapeia a chave do assistente para o valor do filtro fam2 da tabela Prioridades
+  const map={'TOMADA_MULT':'TOMADA+MULT','BOMBA':'BOMBA','CILINDRO':'CILINDRO','CONJ_EIXO':'CONJ EIXO','GUINCHO':'GUINCHO','COMANDO':'WALVOIL','VALVULA':'WALVOIL','KIT_HIDR':'KIT HIDRAULICO'};
+  const alvoFam=map[famKey]||famKey;
+  const filtro=window._daUltimoFiltro||{};
+  const datas=(filtro.fam===famKey && filtro.datas)?filtro.datas:[];
+  setTimeout(()=>{
+    try {
+      // 1) Família (ms-pv-fam2)
+      const famCbs=document.querySelectorAll('#ms-pv-fam2 .ms-item input[type=checkbox]');
+      if(famCbs.length){ famCbs.forEach(cb=>{ cb.checked=(cb.value===alvoFam); }); const allF=document.getElementById('ms-pv-fam2-all'); if(allF)allF.checked=false; }
+      // 2) Datas (ms-pv-dias) — marca só as datas do período
+      if(datas.length){
+        const diaCbs=document.querySelectorAll('#ms-pv-dias .ms-item input[type=checkbox]');
+        const setDatas=new Set(datas);
+        diaCbs.forEach(cb=>{ cb.checked=setDatas.has(cb.value); });
+        const allD=document.getElementById('ms-pv-dias-all'); if(allD)allD.checked=false;
+        // sincroniza checkboxes de mês (estrutura hierárquica)
+        document.querySelectorAll('#ms-pv-dias .pv-dias-box').forEach(box=>{ const mk=box.getAttribute('data-mes'); if(typeof _pvSyncMesCb==='function'&&mk)_pvSyncMesCb(mk); });
+      }
+      // 3) Re-renderiza a tabela Prioridades
+      if(typeof renderPvPrioridades==='function') renderPvPrioridades();
+      // 4) Rola até a tabela Prioridades
+      const anchor=document.getElementById('ms-pv-fam2');
+      if(anchor) setTimeout(()=>anchor.scrollIntoView({behavior:'smooth',block:'center'}),120);
+    } catch(e){ console.warn('dashAbrirPrioridades',e); }
+  },80);
+}
 
-// ═══════════ MODO IA AVANÇADO (chave local, só no navegador do usuário) ═══════════
 function _daIAAtivo(){ try { return !!localStorage.getItem('dash_ia_key'); } catch(e){ return false; } }
 function _daIAKey(){ try { return localStorage.getItem('dash_ia_key')||''; } catch(e){ return ''; } }
 // Abre config da chave (ativar/desativar modo IA)
