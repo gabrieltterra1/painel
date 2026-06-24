@@ -3092,9 +3092,37 @@ function renderMontados() {
         :'<div style="margin-top:4px;font-size:10px;color:#2a6a4a;font-style:italic">sem meta definida</div>')
         +'</div>';
     }).join('');
-  }
 
-  // ── TABELA ESTILO EXECUTIVE GREEN ─────────────────────────────────────
+    // ── CARDS DE NECESSIDADE (a montar até fim do mês + ritmo/dia) ──
+    try {
+      const fimMes=new Date(hoje.getFullYear(),hoje.getMonth()+1,0); fimMes.setHours(0,0,0,0);
+      const baseNec=(DATA.pedidos||[]).filter(p=>p.dataEnt && p.dataEnt<=fimMes);
+      const gruposNec=(typeof _pvCalcularGrupos==='function')?_pvCalcularGrupos(baseNec):{};
+      // mapeia família detalhada (pvFamilia) -> coluna do card
+      const FAM2CARD={'TOMADA+MULT':'TOMADA_MULT','BOMBA':'BOMBA','CILINDRO':'CILINDRO','GUINCHO+ENROLADOR':'GUINCHO','GUINCHO - OUTROS':'GUINCHO','CONJ EIXO':'CONJ_EIXO','WALVOIL - COMANDO':'COMANDO','WALVOIL - VALVULA':'VALVULA','KIT HIDRAULICO':'KIT_HIDR'};
+      const amCard={};
+      Object.values(gruposNec).forEach(g=>{
+        const am=(typeof g.a_montar==='number'?g.a_montar:0);
+        if(am<=0) return;
+        const card=FAM2CARD[g.familia]; if(!card) return;
+        amCard[card]=(amCard[card]||0)+am;
+      });
+      const dur=duRestantes>0?duRestantes:1;
+      const necCards=cardProds.map(({col,label})=>{
+        const tot=amCard[col]||0;
+        const ritmo=tot>0?Math.ceil(tot/dur):0;
+        const cor=tot>0?'var(--amber)':'var(--green-soft)';
+        return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;flex:1;min-width:130px">'
+          +'<div style="font-size:9px;font-weight:700;color:var(--text-muted);letter-spacing:1px;margin-bottom:4px;white-space:nowrap">'+label+'</div>'
+          +'<div style="font-size:20px;font-weight:900;color:'+cor+'">'+Math.round(tot).toLocaleString('pt-BR')+'</div>'
+          +'<div style="font-size:9px;color:var(--text-muted)">a montar até fim do mês</div>'
+          +(tot>0?'<div style="margin-top:4px;font-size:11px">Ritmo: <b style="color:var(--amber)">'+ritmo+'/dia</b></div>':'<div style="margin-top:4px;font-size:10px;color:var(--green-soft)">nada pendente</div>')
+          +'</div>';
+      }).join('');
+      cardsEl.innerHTML += '<div style="width:100%;margin-top:14px;margin-bottom:4px;font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:1px">NECESSIDADE — A MONTAR ATÉ FIM DO MÊS ('+dur+' du restantes)</div>'
+        + '<div style="display:flex;gap:8px;flex-wrap:wrap;width:100%">'+necCards+'</div>';
+    } catch(e){ console.warn('cards necessidade',e); }
+  }
   const fmtN=v=>{const n=parseFloat(String(v||'').replace(',','.'));if(isNaN(n)||n===0)return '<span style="color:var(--muted-dim)">—</span>';return Math.round(n).toLocaleString('pt-BR');};
   const fmtM=v=>{const n=parseFloat(String(v||'').replace(',','.'));if(isNaN(n)||n===0)return '<span style="color:var(--muted-dim)">—</span>';return n.toFixed(2);};
 
