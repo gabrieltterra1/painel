@@ -11400,6 +11400,7 @@ function dashAbrirPrioridades(famKey){
         if(achou===0 && diaCbs.length){ diaCbs.forEach(cb=>cb.checked=true); if(allD)allD.checked=true; }
       }
       // Aplica
+      try { pvSortKey='familia'; pvSortAsc=true; } catch(_){} // agrupa por família
       if(typeof msChange==='function'){ msChange('ms-pv-fam2'); msChange('ms-pv-dias'); }
       else if(typeof renderPvPrioridades==='function'){ renderPvPrioridades(); }
       // Rola até a tabela "Agrupado por Produto"
@@ -11450,6 +11451,7 @@ function dashAbrirPrioridadesHoje(escopo){
         if(achou===0 && diaCbs.length){ diaCbs.forEach(cb=>cb.checked=true); if(allD)allD.checked=true; }
       }
       // aplica
+      try { pvSortKey='familia'; pvSortAsc=true; } catch(_){} // agrupa por família
       if(typeof msChange==='function'){ msChange('ms-pv-fam2'); msChange('ms-pv-dias'); }
       else if(typeof renderPvPrioridades==='function'){ renderPvPrioridades(); }
       // rola até a tabela "Agrupado por Produto"
