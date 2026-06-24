@@ -10179,19 +10179,9 @@ function renderDashboard(){
         duRest++;
       }
       const dur=duRest>0?duRest:1;
-      const baseNec=(DATA.pedidos||[]).filter(p=>p.dataEnt && p.dataEnt<=fimMes);
-      const gruposNec=(typeof _pvCalcularGrupos==='function')?_pvCalcularGrupos(baseNec):{};
-      const FAM2CARD={'TOMADA+MULT':'TOMADA_MULT','BOMBA':'BOMBA','CILINDRO':'CILINDRO','GUINCHO+ENROLADOR':'GUINCHO','GUINCHO - OUTROS':'GUINCHO','CONJ EIXO':'CONJ_EIXO','WALVOIL - COMANDO':'COMANDO','WALVOIL - VALVULA':'VALVULA','KIT HIDRAULICO':'KIT_HIDR'};
-      const amCard={};
-      Object.values(gruposNec).forEach(g=>{
-        const am=(typeof g.a_montar==='number'?g.a_montar:0);
-        if(am<=0) return;
-        const card=FAM2CARD[g.familia]; if(!card) return;
-        amCard[card]=(amCard[card]||0)+am;
-      });
       const necProds=[['TOMADA_MULT','TOMADA E MULT'],['BOMBA','BOMBA'],['CILINDRO','CILINDRO'],['GUINCHO','GUINCHO E ENROL.'],['CONJ_EIXO','CONJ. EIXO'],['COMANDO','COMANDO'],['VALVULA','VÁLVULA'],['KIT_HIDR','KIT HIDR.']];
       const necCards=necProds.map(([col,label])=>{
-        const tot=amCard[col]||0;
+        const tot=(typeof _dashFaltaMontarFamilia==='function')?_dashFaltaMontarFamilia(col, fimMes):0;
         const ritmo=tot>0?Math.ceil(tot/dur):0;
         const cor=tot>0?'var(--amber)':'var(--green-soft)';
         return '<div class="dmc" onclick="showTab(&quot;pedidos&quot;)" style="cursor:pointer">'
@@ -10493,6 +10483,24 @@ function _dashFamPedido(p){
     }
   } catch(e){}
   return null;
+}
+// Calcula quanto falta montar de uma família até dataLim (pendente − saldo por item, só o que falta).
+// Mesma lógica do assistente. famKey: TOMADA_MULT, BOMBA, CILINDRO, CONJ_EIXO, GUINCHO, COMANDO, VALVULA, KIT_HIDR.
+function _dashFaltaMontarFamilia(famKey, dataLim){
+  try {
+    let peds=(DATA.pedidos||[]).filter(p=>_dashFamPedido(p)===famKey);
+    if(dataLim) peds=peds.filter(p=>p.dataEnt && p.dataEnt<=dataLim);
+    const porItem={};
+    peds.forEach(p=>{
+      const cod=p.codigo||p.chave||'';
+      if(!porItem[cod]) porItem[cod]={pend:0, saldo:p.saldo||0};
+      porItem[cod].pend += (p.qtde||0);
+      porItem[cod].saldo = p.saldo||0;
+    });
+    let faltam=0;
+    Object.values(porItem).forEach(v=>{ const proj=v.pend-v.saldo; if(proj>0) faltam+=proj; });
+    return faltam;
+  } catch(e){ return 0; }
 }
 function _daEscapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 // Mostra um catálogo de ideias de perguntas, organizado por categoria
