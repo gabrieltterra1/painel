@@ -10686,19 +10686,24 @@ function _dashResponder(q){
       else if(per.tipo==='intervalo' && per.fim){ dataLim=per.fim; labelPer=per.label; }
       else if(per.tipo==='proximo'){ dataLim=new Date(hoje.getFullYear(),hoje.getMonth()+2,0); labelPer='próximo mês'; }
       else if(per.tipo==='mes' && /m[êe]s/.test(s)){ dataLim=new Date(hoje.getFullYear(),hoje.getMonth()+1,0); labelPer='este mês'; }
-      // detecta escopo já citado: "todas" / "força"
+      // detecta escopo já citado
       let escopo=null;
-      if(/\bfor[çc]a\b|so for[çc]a|apenas for[çc]a/.test(s)) escopo='forca';
+      if(/\bguincho/.test(s)) escopo='guincho';
+      else if(/\bwalvoil\b/.test(s)) escopo='walvoil';
+      else if(/\bfor[çc]a\b|so for[çc]a|apenas for[çc]a/.test(s)) escopo='forca';
       else if(/\btodas\b|tudo|todas as linhas|geral/.test(s)) escopo='todas';
       if(!escopo){
         // mantém o período na pergunta dos botões
         const sufPer = labelPer!=='hoje' ? (' '+(per.tipo==='intervalo'?per.label:('até '+labelPer))) : '';
         return _daBox('Prioridades'+(labelPer!=='hoje'?' — '+labelPer:' de hoje'),
-          '<div style="font-size:14px;line-height:1.6">Quer ver as prioridades de <b>todas as linhas</b> ou apenas <b>Força</b> (tudo menos guincho e walvoil)?</div>'
+          '<div style="font-size:14px;line-height:1.6">Quer ver as prioridades de qual escopo?</div>'
           +'<div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px">'
-          +'<button class="da-sug" onclick="dashPerguntarTexto(\'prioridades'+sufPer+' todas as linhas\')">📋 Todas as linhas</button>'
-          +'<button class="da-sug" onclick="dashPerguntarTexto(\'prioridades'+sufPer+' força\')">⚙️ Apenas Força</button>'
-          +'</div>');
+          +'<button class="da-sug" onclick="dashPerguntarTexto(\'prioridades'+sufPer+' todas as linhas\')">📋 Todas</button>'
+          +'<button class="da-sug" onclick="dashPerguntarTexto(\'prioridades'+sufPer+' força\')">⚙️ Força</button>'
+          +'<button class="da-sug" onclick="dashPerguntarTexto(\'prioridades'+sufPer+' walvoil\')">🟢 Walvoil</button>'
+          +'<button class="da-sug" onclick="dashPerguntarTexto(\'prioridades'+sufPer+' guincho\')">🏗️ Guinchos</button>'
+          +'</div>'
+          +'<div style="font-size:11px;color:var(--text-muted);margin-top:8px">Força = tudo menos guincho e walvoil · Walvoil = comando + válvula + outros</div>');
       }
       const base=(DATA.pedidos||[]).filter(p=>p.dataEnt && p.dataEnt<=dataLim);
       // guarda as datas (até a data limite) e o escopo para o botão aplicar o mesmo filtro na tabela
@@ -10710,10 +10715,24 @@ function _dashResponder(q){
         const am=(typeof g.a_montar==='number'?g.a_montar:0);
         if(am<=0) return;
         const f=g.familia||'OUTROS';
-        if(ehForca && (String(f).startsWith('GUINCHO')||String(f).startsWith('WALVOIL'))) return; // força = exclui guincho e walvoil
+        const fu=String(f).toUpperCase();
+        // filtro por escopo
+        if(escopo==='forca' && (fu.startsWith('GUINCHO')||fu.startsWith('WALVOIL'))) return;
+        if(escopo==='walvoil' && !fu.startsWith('WALVOIL')) return;
+        if(escopo==='guincho' && !fu.startsWith('GUINCHO')) return;
         porFam[f]=(porFam[f]||0)+am; total+=am;
         detalhe.push({cod:g.codigo||g.cod||'', desc:g.descricao||g.desc||'', fam:f, am});
       });
+      // Para Walvoil: separa comandos monobloco/componível pela descrição
+      let quebraWalvoil='';
+      if(escopo==='walvoil'){
+        let mono=0, compo=0;
+        detalhe.forEach(i=>{ const d=String(i.desc||'').toUpperCase(); if(/MONOBLOCO/.test(d))mono+=i.am; else if(/COMPON[ÍI]VEL/.test(d))compo+=i.am; });
+        if(mono>0||compo>0){
+          quebraWalvoil='<div style="margin-top:8px;font-size:12px;line-height:1.7;padding-top:6px;border-top:1px solid var(--border)">'
+            +'<b>Comandos:</b><br>• Monobloco: <b style="color:var(--amber)">'+fmt(mono)+'</b><br>• Componível: <b style="color:var(--amber)">'+fmt(compo)+'</b></div>';
+        }
+      }
       const ordem=Object.entries(porFam).sort((a,b)=>b[1]-a[1]);
       const tabFam=ordem.length?'<div style="margin-top:8px;font-size:13px;line-height:1.8">'+ordem.map(([f,v])=>'• '+f+': <b style="color:var(--amber)">'+fmt(v)+'</b>').join('<br>')+'</div>':'';
       // top itens
@@ -10724,9 +10743,10 @@ function _dashResponder(q){
         +'<thead><tr style="background:var(--surface2)"><th style="text-align:left;padding:5px 6px;width:18%">Código</th><th style="text-align:left;padding:5px 6px;width:52%">Descrição</th><th style="text-align:right;padding:5px 6px;width:30%">A montar</th></tr></thead><tbody>'
         +topItens.map(i=>'<tr style="border-top:1px solid var(--border)"><td style="padding:4px 6px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_daEscapeHtml(i.cod)+'</td><td style="padding:4px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+_daEscapeHtml(i.desc)+'">'+_daEscapeHtml(i.desc)+'</td><td style="text-align:right;padding:4px 6px;color:var(--amber);font-weight:700">'+fmt(i.am)+'</td></tr>').join('')
         +'</tbody></table></div>':'';
-      return _daBox('Prioridades'+(labelPer!=='hoje'?' até '+labelPer:' de hoje')+' — '+(ehForca?'Força (sem guincho/walvoil)':'Todas as linhas'),
+      const escopoLabel={'forca':'Força (sem guincho/walvoil)','walvoil':'Walvoil (comando + válvula + outros)','guincho':'Guinchos','todas':'Todas as linhas'}[escopo]||'Todas as linhas';
+      return _daBox('Prioridades'+(labelPer!=='hoje'?' até '+labelPer:' de hoje')+' — '+escopoLabel,
         '<div style="font-size:14px;line-height:1.8">A montar (atrasados + entrega até '+labelPer+'): <b style="color:var(--amber);font-size:22px">'+fmt(total)+'</b> peças</div>'
-        +tabFam+tabItens+_daLink('Ver na tabela Prioridades (mesmo filtro)','dashAbrirPrioridadesHoje(\''+escopo+'\')'));
+        +tabFam+quebraWalvoil+tabItens+_daLink('Ver na tabela Prioridades (mesmo filtro)','dashAbrirPrioridadesHoje(\''+escopo+'\')'));
     } catch(e){ return _daBox('Erro','<div>Não consegui calcular as prioridades.</div>'); }
   }
 
@@ -11427,15 +11447,22 @@ function dashAbrirPrioridadesHoje(escopo){
       // ── Tabela "Agrupado por Produto": filtros ms-pv-fam2 (família) e ms-pv-dias (datas) ──
       // Projetado < 0 (necessita montar)
       const projEl=document.getElementById('pv-proj-filt'); if(projEl) projEl.value='neg';
-      // Família (ms-pv-fam2): força = todas menos GUINCHO e WALVOIL; todas = marca tudo
+      // Família (ms-pv-fam2): força = todas menos GUINCHO/WALVOIL; walvoil = só WALVOIL; guincho = só GUINCHO; todas = tudo
       const famCbs=document.querySelectorAll('#ms-pv-fam2 .ms-item input[type=checkbox]');
       if(famCbs.length){
-        if(ehForca){
+        const allF=document.getElementById('ms-pv-fam2-all');
+        if(escopo==='forca'){
           famCbs.forEach(cb=>{ const v=String(cb.value).toUpperCase(); cb.checked = !(v==='GUINCHO'||v==='WALVOIL'); });
-          const allF=document.getElementById('ms-pv-fam2-all'); if(allF)allF.checked=false;
+          if(allF)allF.checked=false;
+        } else if(escopo==='walvoil'){
+          famCbs.forEach(cb=>{ cb.checked = (String(cb.value).toUpperCase()==='WALVOIL'); });
+          if(allF)allF.checked=false;
+        } else if(escopo==='guincho'){
+          famCbs.forEach(cb=>{ cb.checked = (String(cb.value).toUpperCase()==='GUINCHO'); });
+          if(allF)allF.checked=false;
         } else {
           famCbs.forEach(cb=>cb.checked=true);
-          const allF=document.getElementById('ms-pv-fam2-all'); if(allF)allF.checked=true;
+          if(allF)allF.checked=true;
         }
       }
       // Datas (ms-pv-dias): marca só as datas do período
