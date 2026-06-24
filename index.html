@@ -10183,11 +10183,13 @@ function renderDashboard(){
       const necCards=necProds.map(([col,label])=>{
         const tot=(typeof _dashFaltaMontarFamilia==='function')?_dashFaltaMontarFamilia(col, fimMes):0;
         const ritmo=tot>0?Math.ceil(tot/dur):0;
+        const metaDia=(typeof getMontadosMeta==='function')?(getMontadosMeta(col,mesAtual)||0):0;
+        const acimaMeta = metaDia>0 && ritmo>metaDia; // ritmo necessário ultrapassa a meta diária
         const cor=tot>0?'var(--amber)':'var(--green-soft)';
-        return '<div class="dmc" onclick="showTab(&quot;pedidos&quot;)" style="cursor:pointer">'
-          +'<div class="dmc-top"><span class="ml">'+label+'</span></div>'
-          +'<div class="mv" style="color:'+cor+'">'+Math.round(tot).toLocaleString('pt-BR')+'</div>'
-          +(tot>0?'<div class="ms" style="font-size:10px;color:var(--text-muted);margin-top:2px">ritmo <b style="color:var(--amber)">'+ritmo+'/dia</b></div>':'<div class="ms" style="font-size:10px;color:var(--green-soft);margin-top:2px">ok</div>')
+        return '<div class="dmc'+(acimaMeta?' crit':'')+'" onclick="showTab(&quot;pedidos&quot;)" style="cursor:pointer'+(acimaMeta?';background:rgba(255,80,80,.12);border:1px solid var(--red)':'')+'">'
+          +'<div class="dmc-top"><span class="ml">'+label+'</span>'+(acimaMeta?'<span class="badge" style="color:var(--red)">▲ acima da meta</span>':'')+'</div>'
+          +'<div class="mv" style="color:'+(acimaMeta?'#ff6b6b':cor)+'">'+Math.round(tot).toLocaleString('pt-BR')+'</div>'
+          +(tot>0?'<div class="ms" style="font-size:10px;color:var(--text-muted);margin-top:2px">ritmo <b style="color:'+(acimaMeta?'#ff6b6b':'var(--amber)')+'">'+ritmo+'/dia</b> · meta '+(metaDia>0?fmt1(metaDia):'—')+'/dia</div>':'<div class="ms" style="font-size:10px;color:var(--green-soft);margin-top:2px">ok</div>')
           +'</div>';
       }).join('');
       montHtml+='<div class="dash-eyebrow" style="margin-top:14px"><span class="bar-accent" style="background:var(--amber)"></span>Necessidade — a montar até fim do mês ('+dur+' du restantes)</div><div class="dash-mont">'+necCards+'</div>';
