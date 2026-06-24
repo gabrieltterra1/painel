@@ -11422,46 +11422,44 @@ function dashAbrirPrioridadesHoje(escopo){
   let filtro=window._daFiltroHoje||{};
   let datas=filtro.datas||[];
   // resiliência: se não há datas guardadas, recalcula (até hoje) na hora
-  if(!datas.length && typeof DATA!=='undefined' && DATA.pedidos){
-    const hoje=new Date(); hoje.setHours(0,0,0,0);
-    datas=[...new Set(DATA.pedidos.filter(p=>p.dataEnt && p.dataEnt<=hoje).map(p=>p.dataEntStr).filter(Boolean))];
+  if(!datas.length){
+    try {
+      const hoje=new Date(); hoje.setHours(0,0,0,0);
+      datas=[...new Set((DATA.pedidos||[]).filter(p=>p.dataEnt && p.dataEnt<=hoje).map(p=>p.dataEntStr).filter(Boolean))];
+    } catch(_){}
   }
   const ehForca=escopo==='forca';
   setTimeout(()=>{
     try {
-      // Família: força = todas menos guincho e walvoil; todas = marca tudo
-      const famCbs=document.querySelectorAll('#ms-pv-familia .ms-item input[type=checkbox]');
+      // ── Tabela "Agrupado por Produto": filtros ms-pv-fam2 (família) e ms-pv-dias (datas) ──
+      // Família (ms-pv-fam2): força = todas menos GUINCHO e WALVOIL; todas = marca tudo
+      const famCbs=document.querySelectorAll('#ms-pv-fam2 .ms-item input[type=checkbox]');
       if(famCbs.length){
         if(ehForca){
-          famCbs.forEach(cb=>{ const v=String(cb.value).toUpperCase(); cb.checked = !(v.startsWith('GUINCHO')||v.startsWith('WALVOIL')); });
-          const allF=document.getElementById('ms-pv-familia-all'); if(allF)allF.checked=false;
+          famCbs.forEach(cb=>{ const v=String(cb.value).toUpperCase(); cb.checked = !(v==='GUINCHO'||v==='WALVOIL'); });
+          const allF=document.getElementById('ms-pv-fam2-all'); if(allF)allF.checked=false;
         } else {
           famCbs.forEach(cb=>cb.checked=true);
-          const allF=document.getElementById('ms-pv-familia-all'); if(allF)allF.checked=true;
+          const allF=document.getElementById('ms-pv-fam2-all'); if(allF)allF.checked=true;
         }
       }
-      // Datas: marca só as datas até a data limite
+      // Datas (ms-pv-dias): marca só as datas do período
       if(datas.length){
-        const diaCbs=document.querySelectorAll('#ms-pv-data .ms-item input[type=checkbox]');
+        const diaCbs=document.querySelectorAll('#ms-pv-dias-list .pv-dias-box input[type=checkbox]');
         const setD=new Set(datas); let achou=0;
         diaCbs.forEach(cb=>{ const m=setD.has(cb.value); cb.checked=m; if(m)achou++; });
-        const allD=document.getElementById('ms-pv-data-all'); if(allD)allD.checked=false;
+        const allD=document.getElementById('ms-pv-dias-all'); if(allD)allD.checked=false;
+        // sincroniza os checkboxes de mês
+        document.querySelectorAll('#ms-pv-dias-list .pv-mes-cb').forEach(mcb=>{
+          const box=mcb.closest('.pv-mes-label')?.parentElement?.querySelector('.pv-dias-box');
+        });
         if(achou===0 && diaCbs.length){ diaCbs.forEach(cb=>cb.checked=true); if(allD)allD.checked=true; }
       }
-      if(typeof msChange==='function'){ msChange('ms-pv-familia'); msChange('ms-pv-data'); }
-      else if(typeof renderPedidos==='function'){ renderPedidos(); }
-      // DIAGNÓSTICO temporário on-screen
-      try {
-        const famN=document.querySelectorAll('#ms-pv-familia .ms-item input[type=checkbox]').length;
-        const famM=document.querySelectorAll('#ms-pv-familia .ms-item input:checked').length;
-        const datN=document.querySelectorAll('#ms-pv-data .ms-item input[type=checkbox]').length;
-        const datM=document.querySelectorAll('#ms-pv-data .ms-item input:checked').length;
-        let diag=document.getElementById('da-diag');
-        if(!diag){ diag=document.createElement('div'); diag.id='da-diag'; diag.style.cssText='position:fixed;top:6px;left:6px;right:6px;z-index:99999;background:#1a1a2e;border:1px solid #a855f7;border-radius:8px;padding:8px 12px;font-size:12px;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.5)'; document.body.appendChild(diag); }
-        diag.innerHTML='🔎 Diagnóstico filtro — Família: '+famM+'/'+famN+' marcadas · Datas: '+datM+'/'+datN+' marcadas · datas no filtro: '+datas.length+' <button onclick="this.parentElement.remove()" style="float:right;background:#a855f7;border:none;color:#fff;border-radius:4px;padding:2px 8px;cursor:pointer">OK</button>';
-        setTimeout(()=>{ const d=document.getElementById('da-diag'); if(d)d.remove(); },8000);
-      } catch(_){}
-      const alvo=[...document.querySelectorAll('.section-title')].find(e=>/Prioridades por Data/i.test(e.textContent));
+      // aplica
+      if(typeof msChange==='function'){ msChange('ms-pv-fam2'); msChange('ms-pv-dias'); }
+      else if(typeof renderPvPrioridades==='function'){ renderPvPrioridades(); }
+      // rola até a tabela "Agrupado por Produto"
+      const alvo=[...document.querySelectorAll('.section-title')].find(e=>/Agrupado por Produto/i.test(e.textContent));
       if(alvo) setTimeout(()=>alvo.scrollIntoView({behavior:'smooth',block:'start'}),180);
     } catch(e){ console.warn('dashAbrirPrioridadesHoje',e); }
   },250);
