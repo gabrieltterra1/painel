@@ -10675,25 +10675,33 @@ function _dashResponder(q){
   if(!_famPrior){
 
 
-  // ═══ "Prioridades de hoje" — a montar (atrasados até hoje), com escolha todas/força ═══
-  if(/prioridade.*hoje|hoje.*prioridade|o que priorizar|prioridade.*dia|priorizar hoje|foco de hoje|o que fazer hoje/.test(s)){
+  // ═══ "Prioridades" — a montar (atrasados + período), com escolha todas/força ═══
+  if(/prioridade|o que priorizar|priorizar|foco de hoje|o que fazer hoje/.test(s)){
     try {
       const hoje=new Date(); hoje.setHours(0,0,0,0);
+      // período (até hoje por padrão; aceita até amanhã, até dia X, essa semana, etc.)
+      const per=_dashPeriodoPergunta(q);
+      let dataLim=hoje, labelPer='hoje';
+      if(per.tipo==='ate' && per.dataLim){ dataLim=per.dataLim; labelPer=per.label.replace(/^até\s+/,''); }
+      else if(per.tipo==='intervalo' && per.fim){ dataLim=per.fim; labelPer=per.label; }
+      else if(per.tipo==='proximo'){ dataLim=new Date(hoje.getFullYear(),hoje.getMonth()+2,0); labelPer='próximo mês'; }
+      else if(per.tipo==='mes' && /m[êe]s/.test(s)){ dataLim=new Date(hoje.getFullYear(),hoje.getMonth()+1,0); labelPer='este mês'; }
       // detecta escopo já citado: "todas" / "força"
       let escopo=null;
       if(/\bfor[çc]a\b|so for[çc]a|apenas for[çc]a/.test(s)) escopo='forca';
       else if(/\btodas\b|tudo|todas as linhas|geral/.test(s)) escopo='todas';
       if(!escopo){
-        // pergunta o escopo com botões
-        return _daBox('Prioridades de hoje',
+        // mantém o período na pergunta dos botões
+        const sufPer = labelPer!=='hoje' ? (' '+(per.tipo==='intervalo'?per.label:('até '+labelPer))) : '';
+        return _daBox('Prioridades'+(labelPer!=='hoje'?' — '+labelPer:' de hoje'),
           '<div style="font-size:14px;line-height:1.6">Quer ver as prioridades de <b>todas as linhas</b> ou apenas <b>Força</b> (tudo menos guincho e walvoil)?</div>'
           +'<div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px">'
-          +'<button class="da-sug" onclick="dashPerguntarTexto(\'prioridades de hoje todas as linhas\')">📋 Todas as linhas</button>'
-          +'<button class="da-sug" onclick="dashPerguntarTexto(\'prioridades de hoje força\')">⚙️ Apenas Força</button>'
+          +'<button class="da-sug" onclick="dashPerguntarTexto(\'prioridades'+sufPer+' todas as linhas\')">📋 Todas as linhas</button>'
+          +'<button class="da-sug" onclick="dashPerguntarTexto(\'prioridades'+sufPer+' força\')">⚙️ Apenas Força</button>'
           +'</div>');
       }
-      const base=(DATA.pedidos||[]).filter(p=>p.dataEnt && p.dataEnt<=hoje);
-      // guarda as datas (até hoje) e o escopo para o botão aplicar o mesmo filtro na tabela
+      const base=(DATA.pedidos||[]).filter(p=>p.dataEnt && p.dataEnt<=dataLim);
+      // guarda as datas (até a data limite) e o escopo para o botão aplicar o mesmo filtro na tabela
       window._daFiltroHoje = { datas:[...new Set(base.map(p=>p.dataEntStr).filter(Boolean))], escopo };
       const grupos=_pvCalcularGrupos(base);
       const ehForca = escopo==='forca';
@@ -10716,10 +10724,10 @@ function _dashResponder(q){
         +'<thead><tr style="background:var(--surface2)"><th style="text-align:left;padding:5px 6px;width:18%">Código</th><th style="text-align:left;padding:5px 6px;width:52%">Descrição</th><th style="text-align:right;padding:5px 6px;width:30%">A montar</th></tr></thead><tbody>'
         +topItens.map(i=>'<tr style="border-top:1px solid var(--border)"><td style="padding:4px 6px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_daEscapeHtml(i.cod)+'</td><td style="padding:4px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+_daEscapeHtml(i.desc)+'">'+_daEscapeHtml(i.desc)+'</td><td style="text-align:right;padding:4px 6px;color:var(--amber);font-weight:700">'+fmt(i.am)+'</td></tr>').join('')
         +'</tbody></table></div>':'';
-      return _daBox('Prioridades de hoje — '+(ehForca?'Força (sem guincho/walvoil)':'Todas as linhas'),
-        '<div style="font-size:14px;line-height:1.8">A montar (atrasados + entrega até hoje): <b style="color:var(--amber);font-size:22px">'+fmt(total)+'</b> peças</div>'
+      return _daBox('Prioridades'+(labelPer!=='hoje'?' até '+labelPer:' de hoje')+' — '+(ehForca?'Força (sem guincho/walvoil)':'Todas as linhas'),
+        '<div style="font-size:14px;line-height:1.8">A montar (atrasados + entrega até '+labelPer+'): <b style="color:var(--amber);font-size:22px">'+fmt(total)+'</b> peças</div>'
         +tabFam+tabItens+_daLink('Ver na tabela Prioridades (mesmo filtro)','dashAbrirPrioridadesHoje(\''+escopo+'\')'));
-    } catch(e){ return _daBox('Erro','<div>Não consegui calcular as prioridades de hoje.</div>'); }
+    } catch(e){ return _daBox('Erro','<div>Não consegui calcular as prioridades.</div>'); }
   }
 
   if(/at[ée] hoje/.test(s) || /montar.*hoje|a montar.*hoje|preciso montar(?!.*m[êe]s)/.test(s)){
@@ -11411,8 +11419,13 @@ function dashAbrirPrioridades(famKey){
 // Abre a tabela Prioridades aplicando o filtro de "prioridades de hoje" (datas até hoje + escopo força/todas)
 function dashAbrirPrioridadesHoje(escopo){
   showTab('pedidos');
-  const filtro=window._daFiltroHoje||{};
-  const datas=filtro.datas||[];
+  let filtro=window._daFiltroHoje||{};
+  let datas=filtro.datas||[];
+  // resiliência: se não há datas guardadas, recalcula (até hoje) na hora
+  if(!datas.length && typeof DATA!=='undefined' && DATA.pedidos){
+    const hoje=new Date(); hoje.setHours(0,0,0,0);
+    datas=[...new Set(DATA.pedidos.filter(p=>p.dataEnt && p.dataEnt<=hoje).map(p=>p.dataEntStr).filter(Boolean))];
+  }
   const ehForca=escopo==='forca';
   setTimeout(()=>{
     try {
@@ -11427,21 +11440,31 @@ function dashAbrirPrioridadesHoje(escopo){
           const allF=document.getElementById('ms-pv-familia-all'); if(allF)allF.checked=true;
         }
       }
-      // Datas: marca só as datas até hoje
+      // Datas: marca só as datas até a data limite
       if(datas.length){
         const diaCbs=document.querySelectorAll('#ms-pv-data .ms-item input[type=checkbox]');
         const setD=new Set(datas); let achou=0;
         diaCbs.forEach(cb=>{ const m=setD.has(cb.value); cb.checked=m; if(m)achou++; });
         const allD=document.getElementById('ms-pv-data-all'); if(allD)allD.checked=false;
-        document.querySelectorAll('#ms-pv-data .pv-dias-box').forEach(box=>{ const mk=box.getAttribute('data-mes'); if(typeof _pvSyncMesCb==='function'&&mk)_pvSyncMesCb(mk); });
         if(achou===0 && diaCbs.length){ diaCbs.forEach(cb=>cb.checked=true); if(allD)allD.checked=true; }
       }
       if(typeof msChange==='function'){ msChange('ms-pv-familia'); msChange('ms-pv-data'); }
       else if(typeof renderPedidos==='function'){ renderPedidos(); }
+      // DIAGNÓSTICO temporário on-screen
+      try {
+        const famN=document.querySelectorAll('#ms-pv-familia .ms-item input[type=checkbox]').length;
+        const famM=document.querySelectorAll('#ms-pv-familia .ms-item input:checked').length;
+        const datN=document.querySelectorAll('#ms-pv-data .ms-item input[type=checkbox]').length;
+        const datM=document.querySelectorAll('#ms-pv-data .ms-item input:checked').length;
+        let diag=document.getElementById('da-diag');
+        if(!diag){ diag=document.createElement('div'); diag.id='da-diag'; diag.style.cssText='position:fixed;top:6px;left:6px;right:6px;z-index:99999;background:#1a1a2e;border:1px solid #a855f7;border-radius:8px;padding:8px 12px;font-size:12px;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.5)'; document.body.appendChild(diag); }
+        diag.innerHTML='🔎 Diagnóstico filtro — Família: '+famM+'/'+famN+' marcadas · Datas: '+datM+'/'+datN+' marcadas · datas no filtro: '+datas.length+' <button onclick="this.parentElement.remove()" style="float:right;background:#a855f7;border:none;color:#fff;border-radius:4px;padding:2px 8px;cursor:pointer">OK</button>';
+        setTimeout(()=>{ const d=document.getElementById('da-diag'); if(d)d.remove(); },8000);
+      } catch(_){}
       const alvo=[...document.querySelectorAll('.section-title')].find(e=>/Prioridades por Data/i.test(e.textContent));
-      if(alvo) setTimeout(()=>alvo.scrollIntoView({behavior:'smooth',block:'start'}),150);
+      if(alvo) setTimeout(()=>alvo.scrollIntoView({behavior:'smooth',block:'start'}),180);
     } catch(e){ console.warn('dashAbrirPrioridadesHoje',e); }
-  },120);
+  },250);
 }
 
 
