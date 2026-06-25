@@ -10200,10 +10200,10 @@ function renderDashboard(){
         return '<div class="dmc'+(acimaMeta?' crit':'')+'" onclick="showTab(&quot;pedidos&quot;)" style="cursor:pointer'+(acimaMeta?';background:rgba(255,80,80,.12);border:1px solid var(--red)':'')+'">'
           +'<div class="dmc-top"><span class="ml">'+label+'</span>'+(acimaMeta?'<span class="badge" style="color:var(--red)">▲ acima da meta</span>':'')+'</div>'
           +'<div class="mv" style="color:'+(acimaMeta?'#ff6b6b':cor)+'">'+Math.round(tot).toLocaleString('pt-BR')+'</div>'
-          +(tot>0?'<div class="ms" style="font-size:10px;color:var(--text-muted);margin-top:2px">ritmo <b style="color:'+(acimaMeta?'#ff6b6b':'var(--amber)')+'">'+fmt1(ritmo)+'/dia</b> · meta '+(metaDia>0?fmt1(metaDia):'—')+'/dia</div>':'<div class="ms" style="font-size:10px;color:var(--green-soft);margin-top:2px">ok</div>')
+          +(tot>0?'<div class="ms" style="font-size:10px;color:var(--text-muted);margin-top:2px">ritmo <b style="color:'+(acimaMeta?'#ff6b6b':'var(--amber)')+'">'+fmt1(ritmo)+'/dia</b> · meta '+(metaDia>0?fmt1(metaDia):'—')+'/dia<br><span style="font-size:9px">'+fmt1(duEff)+' du restantes</span></div>':'<div class="ms" style="font-size:10px;color:var(--green-soft);margin-top:2px">ok</div>')
           +'</div>';
       }).join('');
-      montHtml+='<div class="dash-eyebrow" style="margin-top:14px"><span class="bar-accent" style="background:var(--amber)"></span>Necessidade — a montar até fim do mês ('+(Math.round((duFuturos+(hojeUtil?1:0))*10)/10)+' du restantes)</div><div class="dash-mont">'+necCards+'</div>';
+      montHtml+='<div class="dash-eyebrow" style="margin-top:14px"><span class="bar-accent" style="background:var(--amber)"></span>Necessidade — a montar até fim do mês</div><div class="dash-mont">'+necCards+'</div>';
     } catch(e){ console.warn('dash mont nec',e); montHtml+='<div style="margin-top:10px;padding:8px;background:rgba(255,80,80,.15);border:1px solid var(--red);border-radius:8px;font-size:11px;color:#ff6b6b">⚠ Cards de necessidade: '+(e&&e.message?e.message:e)+'</div>'; }
   } catch(e){ console.warn('dash mont',e); }
 
@@ -11372,13 +11372,31 @@ function _dashResponder(q){
       }
     });
     itensFalta.sort((a,b)=>b.falta-a.falta);
-    const ritmo = duRest>0 ? faltam/duRest : 0;
+    // dias úteis restantes ATÉ a data limite do período (não sempre o fim do mês)
+    let duRestPer = duRest; // default: até fim do mês
+    try {
+      let limite=null;
+      if(periodo.tipo==='ate' && periodo.dataLim) limite=periodo.dataLim;
+      else if(periodo.tipo==='intervalo' && periodo.fim) limite=periodo.fim;
+      else if(periodo.tipo==='proximo') limite=fimProx;
+      if(limite){
+        const fer=new Set(getFeriados().map(f=>f.data));
+        let c=0;
+        for(let d=new Date(hoje); d<=limite; d.setDate(d.getDate()+1)){
+          const dw=d.getDay();
+          const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+          if(dw!==0&&dw!==6&&!fer.has(iso)) c++;
+        }
+        duRestPer=c;
+      }
+    } catch(e){}
+    const ritmo = duRestPer>0 ? faltam/duRestPer : 0;
 
     if(/ritmo|por dia|\/dia|media/.test(s)){
       return _daBox('Ritmo necessário — '+famInfo.label+' ('+periodo.label+')',
         '<div style="font-size:14px;line-height:1.8">'
         +'Faltam montar <b style="color:var(--amber)">'+fmt(faltam)+'</b> '+famInfo.label.toLowerCase()+'.<br>'
-        +'Dividido por <b>'+duRest+'</b> dias úteis restantes:<br>'
+        +'Dividido por <b>'+duRestPer+'</b> dias úteis restantes:<br>'
         +'<span style="font-size:22px;font-weight:900;color:var(--green)">'+fmt1(ritmo)+'/dia</span>'
         +'</div>'+_daLink('Ver na tabela Prioridades (mesmo filtro)','dashAbrirPrioridades(\''+famInfo.fam+'\')'));
     }
@@ -11429,7 +11447,7 @@ function _dashResponder(q){
       +'Por item: soma da quantidade pendente dos pedidos ('+periodo.label+') menos o saldo (estoque) de cada item, contando só onde falta:<br>'
       +'<span style="font-size:26px;font-weight:900;color:var(--amber)">'+fmt(faltam)+'</span> '+famInfo.label.toLowerCase()+' a montar<br>'
       +'Valor a montar: <b style="color:var(--amber)">R$ '+Math.round(valorFaltaTot).toLocaleString('pt-BR')+'</b> · Valor pendente: <b>R$ '+Math.round(valorPendTot).toLocaleString('pt-BR')+'</b><br>'
-      +(duRest>0?'Ritmo: <b style="color:var(--green)">'+fmt1(ritmo)+'/dia</b> ('+duRest+' dias úteis restantes)':'')
+      +(duRestPer>0?'Ritmo: <b style="color:var(--green)">'+fmt1(ritmo)+'/dia</b> ('+duRestPer+' dias úteis restantes)':'')
       +'</div>'+quebraComando+tabela+_daLink('Ver na tabela Prioridades (mesmo filtro)','dashAbrirPrioridades(\''+famInfo.fam+'\')'));
   }
 
