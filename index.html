@@ -5031,6 +5031,17 @@ function renderIFE() {
   };
 
   const ifeVals = meses.map(m=>ifeByMes[m]?.ife!=null?+ifeByMes[m].ife.toFixed(2):null);
+  // Eixo Y dinâmico: ~15% de margem (do range) acima do maior e abaixo do menor valor
+  let yMinIFE=70, yMaxIFE=100;
+  (function(){
+    const vs=ifeVals.filter(v=>v!=null);
+    if(!vs.length) return;
+    const mn=Math.min(...vs, 95), mx=Math.max(...vs, 95); // inclui a meta 95 no range
+    const span=Math.max(mx-mn, 2);
+    // folga: embaixo ~15% do span; em cima um pouco mais para caber os rótulos (anchor top)
+    yMinIFE=Math.max(0, Math.floor(mn - span*0.15));
+    yMaxIFE=Math.min(102, Math.ceil(mx + span*0.30)); // permite passar de 100 para o label não cortar
+  })();
   ifeChart = new Chart(ctx, {
     type:'line',
     data:{
@@ -5045,15 +5056,11 @@ function renderIFE() {
     },
     options:{
       responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ top: 24, right: 12, left: 4 } },
       plugins:{
         legend:{display:false},
         datalabels:{
-          display: ctx => {
-            if(ctx.dataset.data[ctx.dataIndex]==null) return false;
-            // no mobile, mostra só 1 a cada 2 pontos para não sobrepor
-            if(window.innerWidth<700) return ctx.dataIndex % 2 === 0;
-            return true;
-          },
+          display: ctx => ctx.dataset.data[ctx.dataIndex] != null,
           color: ctx => _ifeHex(ctx.dataset.data[ctx.dataIndex]||0),
           anchor:'end', align:'top', offset: window.innerWidth<700?3:6,
           font: ()=>({size: window.innerWidth<700?9:11, weight:'bold'}),
@@ -5070,7 +5077,7 @@ function renderIFE() {
         }
       },
       scales:{
-        y:{ min:70, max:100, ticks:{callback:v=>v+'%',color:cssVar('--text-muted')},
+        y:{ min: yMinIFE, max: yMaxIFE, ticks:{callback:v=>v+'%',color:cssVar('--text-muted')},
             grid:{color:cssVar('--grid')} },
         x:{ ticks:{color:cssVar('--text-muted'),maxRotation:45}, grid:{display:false} }
       }
