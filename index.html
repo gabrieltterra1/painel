@@ -6875,6 +6875,23 @@ function _pvGerarRelatorio() {
   const rows  = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
 
   // Montar linhas manualmente — sem template literal aninhado
+  // Formata o texto "DETALHE OF" com cores por status (iguais aos cards) e ✓ verde para Separado
+  function _fmtDetalheOF(txt){
+    if(!txt) return '';
+    // remove símbolos antigos e normaliza espaços
+    let out=String(txt).replace(/[▣◙◑⚙✗✓]/g,'').replace(/\s+/g,' ').trim();
+    // ordem importa: trata os compostos antes de "SEPARADO"
+    out=out.replace(/SEP\.?\s*PARCIAL/gi, '\u0001PARC\u0001');
+    out=out.replace(/FALTA\s*SEPARAR/gi,  '\u0001FALTA\u0001');
+    out=out.replace(/ABRIR\s*OF/gi,       '\u0001ABRIR\u0001');
+    out=out.replace(/SEPARADO/gi,         '\u0001SEP\u0001');
+    // substitui placeholders por spans coloridos (com símbolo)
+    out=out.replace(/\u0001SEP\u0001/g,   '<span style="color:#007700;font-weight:700">✓ SEPARADO</span>');
+    out=out.replace(/\u0001PARC\u0001/g,  '<span style="color:#0a9396;font-weight:700">◐ SEP. PARCIAL</span>');
+    out=out.replace(/\u0001FALTA\u0001/g, '<span style="color:#b8860b;font-weight:700">⚙ FALTA SEPARAR</span>');
+    out=out.replace(/\u0001ABRIR\u0001/g, '<span style="color:#cc2200;font-weight:700">✗ ABRIR OF</span>');
+    return out;
+  }
   let tbodyHtml = '';
   rows.forEach(function(tr) {
     const tds = tr.querySelectorAll('td');
@@ -6896,7 +6913,7 @@ function _pvGerarRelatorio() {
     tbodyHtml += '<td style="font-size:9px;padding:3px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1a1a2e;text-align:left" title="' + desc.replace(/"/g,"'") + '">' + desc + '</td>';
     tbodyHtml += '<td style="font-size:9px;font-weight:700;white-space:nowrap;padding:3px 4px;color:#333">' + familia + '</td>';
     tbodyHtml += '<td style="text-align:right;font-size:10px;font-weight:700;padding:3px 4px;color:' + projColor + '">' + proj + '</td>';
-    tbodyHtml += '<td style="font-size:9px;color:#222;padding:3px 4px;white-space:normal;word-break:break-word;text-align:left;vertical-align:top">' + detalhe + '</td>';
+    tbodyHtml += '<td style="font-size:9px;color:#222;padding:3px 4px;white-space:normal;word-break:break-word;text-align:left;vertical-align:top">' + _fmtDetalheOF(detalhe) + '</td>';
     tbodyHtml += '</tr>';
   });
 
