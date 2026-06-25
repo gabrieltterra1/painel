@@ -10181,7 +10181,6 @@ function renderDashboard(){
       }
       // hoje é dia útil? (para saber se aplica a fração)
       const hojeUtil = !(hoje.getDay()===0||hoje.getDay()===6) && !feriados.includes(hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0')+'-'+String(hoje.getDate()).padStart(2,'0'));
-      const dur=duRest>0?duRest:1;
       const necProds=[['TOMADA_MULT','TOMADA E MULT'],['BOMBA','BOMBA'],['CILINDRO','CILINDRO'],['GUINCHO','GUINCHO E ENROL.'],['CONJ_EIXO','CONJ. EIXO'],['COMANDO','COMANDO'],['VALVULA','VÁLVULA'],['KIT_HIDR','KIT HIDR.']];
       const necCards=necProds.map(([col,label])=>{
         const tot=(typeof _dashFaltaMontarFamilia==='function')?_dashFaltaMontarFamilia(col, fimMes):0;
@@ -10205,7 +10204,7 @@ function renderDashboard(){
           +'</div>';
       }).join('');
       montHtml+='<div class="dash-eyebrow" style="margin-top:14px"><span class="bar-accent" style="background:var(--amber)"></span>Necessidade — a montar até fim do mês ('+(Math.round((duFuturos+(hojeUtil?1:0))*10)/10)+' du restantes)</div><div class="dash-mont">'+necCards+'</div>';
-    } catch(e){ console.warn('dash mont nec',e); }
+    } catch(e){ console.warn('dash mont nec',e); montHtml+='<div style="margin-top:10px;padding:8px;background:rgba(255,80,80,.15);border:1px solid var(--red);border-radius:8px;font-size:11px;color:#ff6b6b">⚠ Cards de necessidade: '+(e&&e.message?e.message:e)+'</div>'; }
   } catch(e){ console.warn('dash mont',e); }
 
   // ── ALERTAS ──
