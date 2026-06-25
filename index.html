@@ -10170,20 +10170,32 @@ function renderDashboard(){
     // ── Cards de NECESSIDADE — a montar até fim do mês + ritmo/dia (8 famílias) ──
     try {
       const fimMes=new Date(anoAtual,mesAtual+1,0); fimMes.setHours(0,0,0,0);
-      // dias úteis restantes (de hoje, inclusive, até fim do mês)
-      let duRest=0;
-      for(let d=new Date(hoje); d<=fimMes; d.setDate(d.getDate()+1)){
+      // dias úteis FUTUROS (a partir de amanhã até fim do mês) — hoje entra como fração por família
+      let duFuturos=0;
+      const amanha=new Date(hoje); amanha.setDate(hoje.getDate()+1);
+      for(let d=new Date(amanha); d<=fimMes; d.setDate(d.getDate()+1)){
         if(d.getDay()===0||d.getDay()===6) continue;
         const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
         if(feriados.includes(iso)) continue;
-        duRest++;
+        duFuturos++;
       }
+      // hoje é dia útil? (para saber se aplica a fração)
+      const hojeUtil = !(hoje.getDay()===0||hoje.getDay()===6) && !feriados.includes(hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0')+'-'+String(hoje.getDate()).padStart(2,'0'));
       const dur=duRest>0?duRest:1;
       const necProds=[['TOMADA_MULT','TOMADA E MULT'],['BOMBA','BOMBA'],['CILINDRO','CILINDRO'],['GUINCHO','GUINCHO E ENROL.'],['CONJ_EIXO','CONJ. EIXO'],['COMANDO','COMANDO'],['VALVULA','VÁLVULA'],['KIT_HIDR','KIT HIDR.']];
       const necCards=necProds.map(([col,label])=>{
         const tot=(typeof _dashFaltaMontarFamilia==='function')?_dashFaltaMontarFamilia(col, fimMes):0;
-        const ritmo=tot>0?Math.ceil(tot/dur):0;
+        const montHoje=(typeof _montadoHojeFamilia==='function')?_montadoHojeFamilia(col):0;
         const metaDia=(typeof getMontadosMeta==='function')?(getMontadosMeta(col,mesAtual)||0):0;
+        // Fração de hoje (por família): quanto da meta de hoje ainda falta cumprir (0 a 1).
+        // Sem meta cadastrada, hoje conta cheio (fração 1) se for dia útil.
+        let fracHoje=0;
+        if(hojeUtil){
+          fracHoje = (metaDia>0) ? Math.min(1, Math.max(0, (metaDia-montHoje)/metaDia)) : 1;
+        }
+        const duEff = duFuturos + fracHoje; // denominador efetivo
+        // ritmo necessário = a montar agora / dias úteis efetivos restantes
+        const ritmo = (tot>0 && duEff>0) ? Math.ceil(tot/duEff) : 0;
         const acimaMeta = metaDia>0 && ritmo>metaDia; // ritmo necessário ultrapassa a meta diária
         const cor=tot>0?'var(--amber)':'var(--green-soft)';
         return '<div class="dmc'+(acimaMeta?' crit':'')+'" onclick="showTab(&quot;pedidos&quot;)" style="cursor:pointer'+(acimaMeta?';background:rgba(255,80,80,.12);border:1px solid var(--red)':'')+'">'
@@ -10192,7 +10204,7 @@ function renderDashboard(){
           +(tot>0?'<div class="ms" style="font-size:10px;color:var(--text-muted);margin-top:2px">ritmo <b style="color:'+(acimaMeta?'#ff6b6b':'var(--amber)')+'">'+ritmo+'/dia</b> · meta '+(metaDia>0?fmt1(metaDia):'—')+'/dia</div>':'<div class="ms" style="font-size:10px;color:var(--green-soft);margin-top:2px">ok</div>')
           +'</div>';
       }).join('');
-      montHtml+='<div class="dash-eyebrow" style="margin-top:14px"><span class="bar-accent" style="background:var(--amber)"></span>Necessidade — a montar até fim do mês ('+dur+' du restantes)</div><div class="dash-mont">'+necCards+'</div>';
+      montHtml+='<div class="dash-eyebrow" style="margin-top:14px"><span class="bar-accent" style="background:var(--amber)"></span>Necessidade — a montar até fim do mês ('+(Math.round((duFuturos+(hojeUtil?1:0))*10)/10)+' du restantes)</div><div class="dash-mont">'+necCards+'</div>';
     } catch(e){ console.warn('dash mont nec',e); }
   } catch(e){ console.warn('dash mont',e); }
 
@@ -10488,6 +10500,15 @@ function _dashFamPedido(p){
 }
 // Calcula quanto falta montar de uma família até dataLim (pendente − saldo por item, só o que falta).
 // Mesma lógica do assistente. famKey: TOMADA_MULT, BOMBA, CILINDRO, CONJ_EIXO, GUINCHO, COMANDO, VALVULA, KIT_HIDR.
+// Quantidade montada HOJE de uma família (lê a linha de hoje em DATA.montados).
+function _montadoHojeFamilia(col){
+  try {
+    const hoje=new Date(); hoje.setHours(0,0,0,0);
+    const num=v=>{const n=parseFloat(String(v||'').replace('.','').replace(',','.'));return isNaN(n)?0:n;};
+    const row=(DATA.montados||[]).find(r=>{ const d=parseDate(r.DATA||''); if(!d) return false; d.setHours(0,0,0,0); return d.getTime()===hoje.getTime(); });
+    return row?num(row[col]):0;
+  } catch(e){ return 0; }
+}
 function _dashFaltaMontarFamilia(famKey, dataLim){
   try {
     let peds=(DATA.pedidos||[]).filter(p=>_dashFamPedido(p)===famKey);
