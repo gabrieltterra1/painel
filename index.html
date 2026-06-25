@@ -6469,7 +6469,7 @@ function renderPvPrioridades() {
         });
       });
       let breakdown = '';
-      if (sep   > 0) breakdown += `<div style="font-size:11px;color:var(--serie-azul);line-height:1.8">▣ ${sep} sep.</div>`;
+      if (sep   > 0) breakdown += `<div style="font-size:11px;color:#1faa59;line-height:1.8">✓ ${sep} sep.</div>`;
       if (parc  > 0) breakdown += `<div style="font-size:11px;color:#06b6d4;line-height:1.8">◑ ${parc} parc.</div>`;
       if (falta > 0) breakdown += `<div style="font-size:11px;color:#f59e0b;line-height:1.8">⚙ ${falta} falta sep.</div>`;
       if (abrir > 0) breakdown += `<div style="font-size:11px;color:#ff3b3b;line-height:1.8">✗ ${abrir} abrir OF</div>`;
@@ -6717,7 +6717,7 @@ function _pvStatusBadge(statusOf, faturar) {
   if (sof.includes('◑ SEP. PARCIAL'))
     return badge('rgba(6,182,212,0.18)','#06b6d4','◑ SEP. PARCIAL');
   if (sof.includes('▣ SEPARADO'))
-    return badge('rgba(61,139,255,0.18)','var(--blue)','▣ SEPARADO');
+    return badge('rgba(31,170,89,0.18)','#1faa59','✓ SEPARADO');
   return badge('rgba(255,59,59,0.18)','var(--red)','✗ ABRIR OF');
 }
 
@@ -6926,7 +6926,7 @@ function _pvGerarRelatorio() {
     cardsHtml += '<div style="font-size:10px;font-weight:900;color:' + c.color + ';margin-bottom:4px">' + c.label + '</div>';
     cardsHtml += '<div style="font-size:20px;font-weight:900;color:' + c.color + ';margin-bottom:5px">' + c.tot + ' <span style="font-size:10px">itens</span></div>';
     cardsHtml += '<div style="font-size:11px;line-height:2;color:#333">';
-    if (c.sep   > 0) cardsHtml += '<span style="color:var(--serie-azul)">\u25a3 ' + c.sep   + ' sep.</span><br>';
+    if (c.sep   > 0) cardsHtml += '<span style="color:#007700">\u2713 ' + c.sep   + ' sep.</span><br>';
     if (c.parc  > 0) cardsHtml += '<span style="color:#06b6d4">\u25d1 ' + c.parc  + ' parc.</span><br>';
     if (c.falta > 0) cardsHtml += '<span style="color:#f59e0b">\u2699 ' + c.falta + ' falta sep.</span><br>';
     if (c.abrir > 0) cardsHtml += '<span style="color:#ff3b3b">\u2717 ' + c.abrir + ' abrir OF</span>';
