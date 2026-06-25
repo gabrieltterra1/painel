@@ -1371,6 +1371,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   <!-- LINHA DO TEMPO MATRIZ vs FILIAL -->
   <div class="section-title">Linha do Tempo — Matriz vs Filial SP por Mês</div>
+  <div style="margin-bottom:8px"><button class="upload-btn" style="background:rgba(0,201,122,.15);color:var(--green);border:1px solid var(--green);font-size:12px;padding:6px 12px" onclick="exportarTabelaDOM('#timeline-table','linha_do_tempo_servicos')">⤓ Gerar Excel</button></div>
   <div style="overflow-x:auto;margin-bottom:8px;-webkit-overflow-scrolling:touch">
     <table id="timeline-table" style="border-collapse:collapse;white-space:nowrap;font-size:12px;width:max-content;min-width:100%">
       <thead class="blue"><tr id="timeline-thead"></tr></thead>
@@ -1613,16 +1614,18 @@ document.addEventListener('DOMContentLoaded', () => {
       <option value="">Todos os dias</option>
     </select>
     <input class="search-input" type="text" id="ult10-search" placeholder="Buscar código ou descrição..." oninput="renderUlt10()">
+    <button class="upload-btn" style="background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);font-size:12px;padding:6px 12px" onclick="ult10LimparFiltros()">✕ Limpar filtros</button>
+    <button class="upload-btn" style="background:rgba(0,201,122,.15);color:var(--green);border:1px solid var(--green);font-size:12px;padding:6px 12px" onclick="exportarUlt10Excel()">⤓ Gerar Excel</button>
   </div>
   <div class="table-wrap"><div class="scrollable">
     <table style="min-width:650px">
       <thead class="blue"><tr>
         <th style="width:70px">DATA</th>
-        <th style="width:45px">TIPO</th>
-        <th style="width:75px">CÓDIGO</th>
-        <th style="text-align:left">DESCRIÇÃO</th>
-        <th style="width:130px;text-align:left">FORNECEDOR</th>
-        <th style="text-align:right;width:65px">QTDE</th>
+        <th style="width:45px;cursor:pointer" onclick="ult10Ordenar('tipo')">TIPO <span id="ult10-seta-tipo"></span></th>
+        <th style="width:75px;cursor:pointer" onclick="ult10Ordenar('cod')">CÓDIGO <span id="ult10-seta-cod"></span></th>
+        <th style="text-align:left;cursor:pointer" onclick="ult10Ordenar('desc')">DESCRIÇÃO <span id="ult10-seta-desc"></span></th>
+        <th style="width:130px;text-align:left;cursor:pointer" onclick="ult10Ordenar('forn')">FORNECEDOR <span id="ult10-seta-forn"></span></th>
+        <th style="text-align:right;width:65px;cursor:pointer" onclick="ult10Ordenar('qtde')">QTDE <span id="ult10-seta-qtde"></span></th>
       </tr></thead>
       <tbody id="ult10-body"></tbody>
       <tfoot id="ult10-foot"></tfoot>
@@ -1785,7 +1788,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 <div id="tab-ife" class="tab-content">
-  <div class="section-title" style="display:flex;align-items:center;gap:12px">Indicador IFE — Índice de Fornecimento no Prazo<span class="email-badge" data-sheet="IFE"></span><button id="ife-refresh-btn" class="upload-btn" style="background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);font-size:11px;padding:5px 12px;white-space:nowrap" onclick="atualizarIFE()">↻ Atualizar IFE</button></div>
+  <div class="section-title" style="display:flex;align-items:center;gap:12px">Indicador IFE — Índice de Fornecimento no Prazo<span class="email-badge" data-sheet="IFE"></span><button id="ife-refresh-btn" class="upload-btn" style="background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);font-size:11px;padding:5px 12px;white-space:nowrap" onclick="atualizarIFE()">↻ Atualizar IFE</button><button class="upload-btn" style="background:rgba(0,201,122,.15);color:var(--green);border:1px solid var(--green);font-size:11px;padding:5px 12px;white-space:nowrap" onclick="exportarTabelaDOM('#ife-table','indicador_ife')">⤓ Gerar Excel</button></div>
 
   <!-- Quadro resumo mês atual -->
   <div id="ife-resumo" style="margin-bottom:28px"></div>
@@ -1828,7 +1831,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <!-- Tabela -->
   <div class="table-wrap">
     <div class="scrollable">
-      <table style="min-width:600px">
+      <table id="ife-table" style="min-width:600px">
         <thead class="blue" style="position:sticky;top:0;z-index:2"><tr id="ife-thead"></tr></thead>
         <tfoot id="ife-foot"></tfoot>
         <tbody id="ife-tbody"></tbody>
@@ -2168,6 +2171,33 @@ const DATA = {
 
 // estado de ordenação da tabela Estoque em Trânsito (Detalhe por Item)
 var trSortCol=null, trSortAsc=true;
+// estado de ordenação da tabela Últimos 10 dias (NFs)
+var ult10SortCol=null, ult10SortAsc=true;
+// Exporta uma tabela HTML (pelo seletor) para Excel, lendo o DOM renderizado.
+function exportarTabelaDOM(seletor, nomeArq){
+  try {
+    const tbl=document.querySelector(seletor);
+    if(!tbl){ alert('Tabela não encontrada.'); return; }
+    const linhas=[];
+    // cabeçalhos (thead)
+    const heads=[...tbl.querySelectorAll('thead th')].map(th=>th.textContent.replace(/[↑↓⇅▾★]/g,'').trim());
+    // linhas do corpo + rodapé
+    tbl.querySelectorAll('tbody tr, tfoot tr').forEach(tr=>{
+      const cells=[...tr.querySelectorAll('td,th')].map(td=>{
+        let t=td.textContent.replace(/\s+/g,' ').trim();
+        const n=parseFloat(t.replace(/\./g,'').replace(',','.'));
+        return (t!=='' && !isNaN(n) && /^[\d.,\-%]+$/.test(t)) ? n : t;
+      });
+      if(cells.some(c=>String(c).trim()!=='')) linhas.push(cells);
+    });
+    if(!linhas.length){ alert('Não há dados para exportar.'); return; }
+    const aoa=[heads, ...linhas];
+    const ws=XLSX.utils.aoa_to_sheet(aoa);
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Dados');
+    XLSX.writeFile(wb, nomeArq+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  } catch(e){ alert('Erro ao exportar: '+e.message); }
+}
 
 function normDate(s) {
   if (!s && s !== 0) return '';
@@ -4454,6 +4484,40 @@ function renderDiario(ttPorMes, pmPorMes, ano, mesAtual, metas) {
   });
 }
 
+function ult10Ordenar(col){
+  if(ult10SortCol===col) ult10SortAsc=!ult10SortAsc;
+  else { ult10SortCol=col; ult10SortAsc=true; }
+  renderUlt10();
+}
+function ult10LimparFiltros(){
+  const t=document.getElementById('ult10-tipo'); if(t) t.value='';
+  const d=document.getElementById('ult10-dia'); if(d) d.value='';
+  const s=document.getElementById('ult10-search'); if(s) s.value='';
+  ult10SortCol=null; ult10SortAsc=true;
+  renderUlt10();
+}
+function exportarUlt10Excel(){
+  try {
+    const t=DATA.termico; if(!t){ alert('Sem dados.'); return; }
+    const tipo=document.getElementById('ult10-tipo')?.value||'';
+    const diaFilt=document.getElementById('ult10-dia')?.value||'';
+    const search=(document.getElementById('ult10-search')?.value||'').trim().toUpperCase();
+    const dias10=t.ult10dias||[];
+    let itens=[
+      ...(t.diarioTT||[]).filter(r=>dias10.includes(r.dt)).map(r=>({...r,tipo:'TT'})),
+      ...(t.diarioPM||[]).filter(r=>dias10.includes(r.dt)).map(r=>({...r,tipo:'PM'}))
+    ];
+    if(tipo) itens=itens.filter(r=>r.tipo===tipo);
+    if(diaFilt) itens=itens.filter(r=>r.dt===diaFilt);
+    if(search) itens=itens.filter(r=>r.cod.toUpperCase().includes(search)||r.desc.toUpperCase().includes(search)||r.forn.toUpperCase().includes(search));
+    if(!itens.length){ alert('Não há registros para exportar com os filtros atuais.'); return; }
+    const dados=itens.map(r=>({'Data':r.dt.split('-').reverse().join('/'),'Tipo':r.tipo,'Código':r.cod,'Descrição':r.desc,'Fornecedor':r.forn,'Quantidade':r.qtde}));
+    const ws=XLSX.utils.json_to_sheet(dados);
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'NFs 10 dias');
+    XLSX.writeFile(wb,'nfs_ultimos10dias_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  } catch(e){ alert('Erro ao exportar: '+e.message); }
+}
 function renderUlt10() {
   const t = DATA.termico;
   if (!t) return;
@@ -4485,7 +4549,17 @@ function renderUlt10() {
   if (search) itens = itens.filter(r =>
     r.cod.toUpperCase().includes(search) || r.desc.toUpperCase().includes(search) || r.forn.toUpperCase().includes(search));
 
-  itens.sort((a,b) => b.dt.localeCompare(a.dt) || a.tipo.localeCompare(b.tipo));
+  if (ult10SortCol){
+    const dir=ult10SortAsc?1:-1;
+    const keyMap={tipo:'tipo',cod:'cod',desc:'desc',forn:'forn',qtde:'qtdeFmt'};
+    const k=keyMap[ult10SortCol]||ult10SortCol;
+    itens.sort((a,b)=>{
+      if(k==='qtdeFmt') return ((a[k]||0)-(b[k]||0))*dir;
+      return String(a[k]||'').localeCompare(String(b[k]||''),'pt-BR',{numeric:true})*dir;
+    });
+  } else {
+    itens.sort((a,b) => b.dt.localeCompare(a.dt) || a.tipo.localeCompare(b.tipo));
+  }
 
   const tbody = document.getElementById('ult10-body');
   const tfoot = document.getElementById('ult10-foot');
@@ -4520,6 +4594,11 @@ function renderUlt10() {
       ${totPM>0?`<span style="color:#a855f7">${totPM.toLocaleString('pt-BR')} par</span>`:''}
     </td>
   </tr>`;
+  // atualiza setas de ordenação
+  ['tipo','cod','desc','forn','qtde'].forEach(c=>{
+    const el=document.getElementById('ult10-seta-'+c);
+    if(el) el.textContent=(ult10SortCol===c)?(ult10SortAsc?'↑':'↓'):'';
+  });
 }
 
 function _termMeses(arr) {
