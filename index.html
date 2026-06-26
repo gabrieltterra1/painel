@@ -9661,7 +9661,7 @@ function renderDisponibilidade() {
   // aplica filtros por coluna (estilo Excel)
   Object.keys(_dispColFiltros).forEach(col => {
     const set = _dispColFiltros[col];
-    if (set && set.size) listaRaw = listaRaw.filter(d => set.has(String(d[col]==null?'':d[col])));
+    if (set) listaRaw = listaRaw.filter(d => set.has(String(d[col]==null?'':d[col])));
   });
   // ordenação por coluna
   if (_dispSort.col) {
@@ -9816,18 +9816,35 @@ function _dispDataIso(s){
   m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return m[1]+'-'+m[2]+'-'+m[3];
   return '-';
 }
-// busca dentro do dropdown (filtra os labels visíveis)
+// busca dentro do dropdown: filtra os labels visíveis E aplica na tabela
 function dispColBuscar(termo){
   termo=(termo||'').toLowerCase();
+  const dd=document.getElementById('disp-col-dd');
+  const col=dd?dd.dataset.col:null;
   document.querySelectorAll('#disp-col-lista .disp-col-item').forEach(l=>{
     const v=l.getAttribute('data-val')||'';
-    l.style.display = v.includes(termo) ? '' : 'none';
+    const visivel = v.includes(termo);
+    l.style.display = visivel ? '' : 'none';
+    // marca os que casam, desmarca os que não casam
+    const cb=l.querySelector('input[type=checkbox]'); if(cb) cb.checked=visivel;
   });
   // some grupos de mês sem itens visíveis
   document.querySelectorAll('#disp-col-lista .disp-mes-grp').forEach(g=>{
     const algum=[...g.querySelectorAll('.disp-col-item')].some(l=>l.style.display!=='none');
     g.style.display = algum ? '' : 'none';
+    const cbMes=g.querySelector('.disp-mes-cb'); if(cbMes) cbMes.checked=algum;
   });
+  // aplica na tabela: filtro = só os valores que casam com o termo
+  if(col){
+    const raw=DATA.disponibilidadeRaw||[];
+    if(termo===''){ delete _dispColFiltros[col]; }
+    else {
+      _dispColFiltros[col]=new Set(
+        [...new Set(raw.map(d=>String(d[col]==null?'':d[col])))].filter(v=>v.toLowerCase().includes(termo))
+      );
+    }
+    renderDisponibilidade();
+  }
 }
 // ordena a tabela a partir do menu da coluna
 function dispSortFromMenu(col, asc){
@@ -9842,7 +9859,7 @@ function dispColMarcarMes(col, mk, marcar){
   // valores desse mês
   raw.forEach(d=>{ const v=String(d[col]==null?'':d[col]); if(_dispDataIso(v).slice(0,7)===mk){ if(marcar)_dispColFiltros[col].add(v); else _dispColFiltros[col].delete(v); } });
   const totalVals = new Set(raw.map(d=>String(d[col]==null?'':d[col]))).size;
-  if (_dispColFiltros[col].size === 0 || _dispColFiltros[col].size === totalVals) delete _dispColFiltros[col];
+  if (_dispColFiltros[col].size === totalVals) delete _dispColFiltros[col];
   // atualiza os checkboxes dos dias no DOM sem fechar o menu
   document.querySelectorAll('#disp-col-lista .disp-mes-grp').forEach(g=>{
     const cbMes=g.querySelector('.disp-mes-cb');
@@ -9858,18 +9875,18 @@ function dispColCheck(col, cb) {
     _dispColFiltros[col] = new Set([...new Set(raw.map(d=>String(d[col]==null?'':d[col])))]);
   }
   if (cb.checked) _dispColFiltros[col].add(cb.value); else _dispColFiltros[col].delete(cb.value);
-  // se todos marcados, remove o filtro
+  // se todos marcados, remove o filtro (= mostra tudo). Vazio mantém (= tabela vazia)
   const raw = DATA.disponibilidadeRaw || [];
   const totalVals = new Set(raw.map(d=>String(d[col]==null?'':d[col]))).size;
-  if (_dispColFiltros[col].size === 0 || _dispColFiltros[col].size === totalVals) delete _dispColFiltros[col];
+  if (_dispColFiltros[col].size === totalVals) delete _dispColFiltros[col];
   renderDisponibilidade();
 }
 function dispColMarcar(col, marcar) {
-  const raw = DATA.disponibilidadeRaw || [];
-  if (marcar) { delete _dispColFiltros[col]; }
-  else { _dispColFiltros[col] = new Set(); }
+  if (marcar) { delete _dispColFiltros[col]; }   // Todos = sem filtro (mostra tudo)
+  else { _dispColFiltros[col] = new Set(); }      // Limpar = vazio (esconde tudo)
+  // atualiza os checkboxes visíveis no popup sem fechar
+  document.querySelectorAll('#disp-col-lista input[type=checkbox]').forEach(cb=>{ cb.checked=marcar; });
   renderDisponibilidade();
-  const dd=document.getElementById('disp-col-dd'); if(dd) dd.remove();
 }
 // Clicar num produto do card → aplica filtro de empresa + família na tabela
 function dispFiltrarProduto(empresa, familia) {
