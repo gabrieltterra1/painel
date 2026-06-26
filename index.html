@@ -6306,7 +6306,7 @@ function _pvCalcularGrupos(base) {
     if (!grupos[cod]) grupos[cod] = {
       codigo: cod, descricao: r.descricao, familia: pvFamilia(r.classificacao),
       qtde_pv:0, proj:0, saldo:0,
-      of_sem:0, of_comp:0, of_parc:0,
+      of_sem:0, of_comp:0, of_parc:0, total_of:0,
       of_sem_str:'', of_comp_str:'', of_parc_str:'',
       of_sem_raw:'', of_comp_raw:'', of_parc_raw:'', // texto bruto para popup
       _ofsSemVistas: new Set(), _ofsCompVistas: new Set(), _ofsParcVistas: new Set(),
@@ -6323,6 +6323,7 @@ function _pvCalcularGrupos(base) {
     if (g.qtde_pv === r.qtde) { g.proj = r.projetado; } // primeira linha
     else { g.proj = Math.min(g.proj, r.projetado); }
     g.saldo        = g.proj;
+    g.total_of     = Math.max(g.total_of||0, r.total_of||0);
 
     const _cleanOf = v => String(v||'').replace(/^'/, '').trim();
     const _ofSem  = _cleanOf(r.of_sem);
@@ -6368,6 +6369,34 @@ function _pvCalcularGrupos(base) {
     g.of_sem  = _pvParseOfQtde(g.of_sem_str);
     g.of_comp = _pvParseOfQtde(g.of_comp_str);
     g.of_parc = _pvParseOfQtde(g.of_parc_str);
+
+    // CORREÇÃO DE BANCO: se TOTAL OF PENDENTE não bate com a soma das 3 colunas estratificadas,
+    // há OF aberta não detalhada. Busca o status real na base OF_ABERTAS (DATA.ofItens).
+    const somaEstrat = g.of_sem + g.of_comp + g.of_parc;
+    const naoEstrat = Math.round((g.total_of||0) - somaEstrat);
+    if (naoEstrat > 0) {
+      const ofsCod = (DATA.ofItens||[]).filter(it => String(it.COD_ITEM).trim() === String(g.codigo).trim());
+      if (ofsCod.length) {
+        // soma quantidades pendentes por situação de movimento
+        let qSep=0, qParc=0, qNada=0;
+        ofsCod.forEach(it => {
+          const mov = it.MOVIMENTO; const q = it.QTDE_PEND||0;
+          if (mov==='REP') qSep += q;            // separada
+          else if (mov==='EPP') qParc += q;      // entregue parcial
+          else qNada += q;                       // não separada (NADA/vazio)
+        });
+        // distribui o "não estratificado" conforme o status real, limitando ao que falta estratificar
+        let resto = naoEstrat;
+        const usar = (qtd) => { const u=Math.min(resto, qtd); resto-=u; return u>0?u:0; };
+        // separada/parcial → conta como OF COMPLETA (já tem ordem, separada); não separada → OF SEM REQ
+        const addComp = usar(qSep) + usar(qParc);
+        const addSem  = usar(qNada);
+        if (addComp>0){ g.of_comp += addComp; g.of_comp_str = (g.of_comp_str?g.of_comp_str+'|':'') + addComp+' (OFAB='+addComp+')'; }
+        if (addSem>0){ g.of_sem += addSem; g.of_sem_str = (g.of_sem_str?g.of_sem_str+'|':'') + addSem+' (OFAB='+addSem+')'; }
+        g._corrigidoOf = true;
+      }
+    }
+
     const rv = _pvCalcMontarCompleto(g.proj, g.of_sem_str, g.of_comp_str, g.of_parc_str);
     g.a_montar = rv.montar === 'FATURAR' ? 0 : rv.montar;
     g.statusOf = rv.statusOf;
