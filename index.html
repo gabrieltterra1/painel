@@ -742,8 +742,10 @@
     #ife-table th:first-child, #ife-table td:first-child { min-width:80px; padding-right:12px; font-size:11px; }
     #ife-table td:first-child { box-shadow:2px 0 4px rgba(0,0,0,.3); }
   }
-  #disp-table th .col-filter-btn { cursor: pointer; opacity: .6; font-size: 9px; margin-left: 3px; }
-  #disp-table th .col-filter-btn.active { opacity: 1; color: var(--green); }
+  #disp-table th .col-filter-btn { cursor: pointer; opacity: .85; font-size: 12px; margin-left: 4px; padding: 2px 4px; border-radius: 3px; }
+  #disp-table th .col-filter-btn:hover { background: rgba(255,255,255,.12); }
+  #disp-table th .col-filter-btn.active { opacity: 1; color: var(--green); background: rgba(0,201,122,.18); }
+  @media (max-width:700px){ #disp-table th .col-filter-btn { font-size: 14px; padding: 3px 5px; } }
   /* números à direita */
   #disp-table .c-saldo, #disp-table .c-qtd, #disp-table .c-proj { text-align: right; }
   #disp-table .c-emp, #disp-table .c-ped, #disp-table .c-fat { text-align: center; }
@@ -769,8 +771,16 @@
   /* barra de rolagem horizontal SUPERIOR (espelho) */
   .disp-scroll-top { overflow-x: auto; overflow-y: hidden; }
   .disp-scroll-top > div { height: 1px; }
-  .disp-col-dropdown { position: absolute; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px; z-index: 1000; max-height: 260px; overflow-y: auto; min-width: 160px; box-shadow: 0 4px 16px rgba(0,0,0,.3); }
-  .disp-col-dropdown label { display: block; font-size: 11px; padding: 2px 4px; cursor: pointer; white-space: nowrap; }
+  .disp-col-dropdown { position: absolute; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px; z-index: 1000; min-width: 200px; max-width: 280px; box-shadow: 0 4px 16px rgba(0,0,0,.3); }
+  .disp-col-dropdown #disp-col-lista { max-height: 260px; overflow-y: auto; }
+  .disp-col-dropdown label { display: block; font-size: 12px; padding: 4px 4px; cursor: pointer; white-space: nowrap; }
+  .disp-col-dropdown .disp-mes-grp { border-top: 1px solid var(--border); margin-top: 2px; padding-top: 2px; }
+  @media (max-width:700px){
+    .disp-col-dropdown { min-width: 240px; max-width: 88vw; padding: 8px; }
+    .disp-col-dropdown #disp-col-lista { max-height: 50vh; }
+    .disp-col-dropdown label { font-size: 13px; padding: 6px 4px; }
+    .disp-col-dropdown input[type=checkbox] { width: 16px; height: 16px; }
+  }
 
   /* ── DASHBOARD (tela inicial de indicadores + alertas) ── */
   .dash-eyebrow { font-family: var(--font-display); font-size: 14px; font-weight: 700; letter-spacing: 2px; color: var(--text); text-transform: uppercase; margin: 0 0 14px; display: flex; align-items: center; gap: 12px; }
@@ -9739,25 +9749,106 @@ let _dispColFiltros = {}; // { coluna: Set(valores) }
 let _dispListaBase = [];
 function dispToggleColFiltro(ev, col) {
   ev.stopPropagation();
-  // fecha qualquer dropdown aberto
   const existente = document.getElementById('disp-col-dd');
   if (existente) { existente.remove(); if (existente.dataset.col === col) return; }
-  // valores únicos da coluna (a partir do raw filtrado pelos filtros do topo, ignorando o filtro desta coluna)
   const raw = DATA.disponibilidadeRaw || [];
-  const valores = [...new Set(raw.map(d => String(d[col]==null?'':d[col])))].sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
+  const ehData = (col==='dtEmis' || col==='dtEntrega');
+  const ehNum = (col==='saldo' || col==='qtdPdv' || col==='projetado');
+  let valores = [...new Set(raw.map(d => String(d[col]==null?'':d[col])))];
+  // ordena os valores na lista
+  valores.sort((a,b)=>{
+    if(ehNum) return (parseFloat(a.replace(',','.'))||0)-(parseFloat(b.replace(',','.'))||0);
+    if(ehData) return _dispDataIso(a).localeCompare(_dispDataIso(b));
+    return a.localeCompare(b,'pt-BR',{numeric:true});
+  });
   const sel = _dispColFiltros[col] || new Set();
   const dd = document.createElement('div');
   dd.className = 'disp-col-dropdown'; dd.id = 'disp-col-dd'; dd.dataset.col = col;
-  dd.innerHTML = '<div style="display:flex;gap:6px;margin-bottom:4px">'
+
+  // cabeçalho: ordenação
+  let html = '<div style="display:flex;gap:4px;margin-bottom:5px;border-bottom:1px solid var(--border);padding-bottom:5px">'
+    +'<button onclick="dispSortFromMenu(\''+col+'\',true)" style="font-size:10px;padding:3px 6px;cursor:pointer;flex:1">'+(ehNum?'↑ Menor→Maior':(ehData?'↑ Antigo→Novo':'↑ A→Z'))+'</button>'
+    +'<button onclick="dispSortFromMenu(\''+col+'\',false)" style="font-size:10px;padding:3px 6px;cursor:pointer;flex:1">'+(ehNum?'↓ Maior→Menor':(ehData?'↓ Novo→Antigo':'↓ Z→A'))+'</button>'
+    +'</div>';
+  // busca
+  html += '<input type="text" id="disp-col-busca" placeholder="Buscar..." oninput="dispColBuscar(this.value)" style="width:100%;box-sizing:border-box;font-size:11px;padding:4px 6px;margin-bottom:5px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)">';
+  // todos/limpar
+  html += '<div style="display:flex;gap:6px;margin-bottom:4px">'
     +'<button onclick="dispColMarcar(\''+col+'\',true)" style="font-size:10px;padding:2px 6px;cursor:pointer">Todos</button>'
-    +'<button onclick="dispColMarcar(\''+col+'\',false)" style="font-size:10px;padding:2px 6px;cursor:pointer">Limpar</button></div>'
-    + valores.map(v => '<label><input type="checkbox" value="'+String(v).replace(/"/g,'&quot;')+'" '
+    +'<button onclick="dispColMarcar(\''+col+'\',false)" style="font-size:10px;padding:2px 6px;cursor:pointer">Limpar</button></div>';
+  html += '<div id="disp-col-lista">';
+
+  if (ehData) {
+    // agrupa por mês (AAAA-MM), com checkbox de mês e dias dentro
+    const porMes = {};
+    valores.forEach(v=>{ const iso=_dispDataIso(v); const mk=iso.slice(0,7); (porMes[mk]=porMes[mk]||[]).push(v); });
+    Object.keys(porMes).sort().forEach(mk=>{
+      const [a,m]=mk.split('-');
+      const nomeMes = (mk==='-' || !m) ? '(sem data)' : ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(m)]+'/'+a;
+      const todosMarc = porMes[mk].every(v=>sel.size===0||sel.has(v));
+      html += '<div class="disp-mes-grp"><label style="font-weight:700"><input type="checkbox" class="disp-mes-cb" data-mes="'+mk+'" '+(todosMarc?'checked':'')+' onchange="dispColMarcarMes(\''+col+'\',\''+mk+'\',this.checked)"> '+nomeMes+'</label>';
+      porMes[mk].forEach(v=>{
+        html += '<label class="disp-col-item" style="padding-left:16px" data-val="'+String(v).toLowerCase().replace(/"/g,'&quot;')+'"><input type="checkbox" value="'+String(v).replace(/"/g,'&quot;')+'" '+((sel.size===0||sel.has(v))?'checked':'')+' onchange="dispColCheck(\''+col+'\',this)"> '+(v||'(vazio)')+'</label>';
+      });
+      html += '</div>';
+    });
+  } else {
+    html += valores.map(v => '<label class="disp-col-item" data-val="'+String(v).toLowerCase().replace(/"/g,'&quot;')+'"><input type="checkbox" value="'+String(v).replace(/"/g,'&quot;')+'" '
         +((sel.size===0||sel.has(v))?'checked':'')+' onchange="dispColCheck(\''+col+'\',this)"> '+(v||'(vazio)')+'</label>').join('');
+  }
+  html += '</div>';
+  dd.innerHTML = html;
   document.body.appendChild(dd);
   const r = ev.target.getBoundingClientRect();
-  dd.style.left = Math.min(r.left, window.innerWidth-180)+'px';
-  dd.style.top = (r.bottom+window.scrollY+2)+'px';
+  const ddW = dd.offsetWidth || 240;
+  let left = r.left;
+  if (left + ddW > window.innerWidth - 8) left = Math.max(8, window.innerWidth - ddW - 8);
+  dd.style.left = left + 'px';
+  dd.style.top = (r.bottom + window.scrollY + 2) + 'px';
+  // foca a busca para já poder digitar
+  setTimeout(()=>{ const b=document.getElementById('disp-col-busca'); if(b) b.focus(); }, 30);
   setTimeout(()=>{ document.addEventListener('click', _dispFecharDD, {once:true}); }, 0);
+}
+// converte string de data (DD/MM/AAAA ou AAAA-MM-DD) para ISO AAAA-MM-DD para ordenar/agrupar
+function _dispDataIso(s){
+  s=String(s||'').trim(); if(!s) return '-';
+  let m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})/); if(m) return m[3]+'-'+m[2]+'-'+m[1];
+  m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return m[1]+'-'+m[2]+'-'+m[3];
+  return '-';
+}
+// busca dentro do dropdown (filtra os labels visíveis)
+function dispColBuscar(termo){
+  termo=(termo||'').toLowerCase();
+  document.querySelectorAll('#disp-col-lista .disp-col-item').forEach(l=>{
+    const v=l.getAttribute('data-val')||'';
+    l.style.display = v.includes(termo) ? '' : 'none';
+  });
+  // some grupos de mês sem itens visíveis
+  document.querySelectorAll('#disp-col-lista .disp-mes-grp').forEach(g=>{
+    const algum=[...g.querySelectorAll('.disp-col-item')].some(l=>l.style.display!=='none');
+    g.style.display = algum ? '' : 'none';
+  });
+}
+// ordena a tabela a partir do menu da coluna
+function dispSortFromMenu(col, asc){
+  _dispSort.col=col; _dispSort.asc=asc;
+  renderDisponibilidade();
+  const dd=document.getElementById('disp-col-dd'); if(dd) dd.remove();
+}
+// marca/desmarca todos os dias de um mês
+function dispColMarcarMes(col, mk, marcar){
+  const raw = DATA.disponibilidadeRaw || [];
+  if (!_dispColFiltros[col]) _dispColFiltros[col] = new Set([...new Set(raw.map(d=>String(d[col]==null?'':d[col])))]);
+  // valores desse mês
+  raw.forEach(d=>{ const v=String(d[col]==null?'':d[col]); if(_dispDataIso(v).slice(0,7)===mk){ if(marcar)_dispColFiltros[col].add(v); else _dispColFiltros[col].delete(v); } });
+  const totalVals = new Set(raw.map(d=>String(d[col]==null?'':d[col]))).size;
+  if (_dispColFiltros[col].size === 0 || _dispColFiltros[col].size === totalVals) delete _dispColFiltros[col];
+  // atualiza os checkboxes dos dias no DOM sem fechar o menu
+  document.querySelectorAll('#disp-col-lista .disp-mes-grp').forEach(g=>{
+    const cbMes=g.querySelector('.disp-mes-cb');
+    if(cbMes && cbMes.dataset.mes===mk){ g.querySelectorAll('.disp-col-item input').forEach(cb=>cb.checked=marcar); }
+  });
+  renderDisponibilidade();
 }
 function _dispFecharDD(e){ const dd=document.getElementById('disp-col-dd'); if(dd && !dd.contains(e.target)) dd.remove(); }
 function dispColCheck(col, cb) {
