@@ -10309,7 +10309,7 @@ function renderDashboard(){
   const fmt1 = n => (Math.round(n*10)/10).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
 
   // ───── IFE: % consolidado, Matriz e Filial SP (mês atual) ─────
-  let ifeCons='—', ifeMatr='—', ifeFil='—';
+  let ifeCons='—', ifeMatr='—', ifeFil='—', ifeConsSimStr='';
   try {
     if (DATA.ife && DATA.ife.length) {
       const meses=[...new Set(DATA.ife.map(r=>r.mesKey))].sort();
@@ -10317,6 +10317,26 @@ function renderDashboard(){
       const calc=emp=>{ const d=DATA.ife.filter(_ifeFiltrar(emp)).filter(r=>r.mesKey===mesAt); return _ifeCalc(d).ife; };
       const fp=v=> v==null?'—':(Math.round(v*10)/10).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
       ifeCons=fp(calc('CONSOLIDADO')); ifeMatr=fp(calc('1')); ifeFil=fp(calc('2'));
+
+      // ── IFE simulado (se faturar todos os pendentes do mês) ──
+      try {
+        const hojeI=new Date(); hojeI.setHours(0,0,0,0);
+        const cMat=_ifeCalc(DATA.ife.filter(_ifeFiltrar('1')).filter(r=>r.mesKey===mesAt));
+        const cFil=_ifeCalc(DATA.ife.filter(_ifeFiltrar('2')).filter(r=>r.mesKey===mesAt));
+        const fimMesI=new Date(hojeI.getFullYear(),hojeI.getMonth()+1,0); fimMesI.setHours(0,0,0,0);
+        const ferI=new Set(getFeriados().map(f=>f.data));
+        const utilI=d=>{const dw=d.getDay();const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');return dw!==0&&dw!==6&&!ferI.has(iso);};
+        let duP=0,duT=0;
+        for(let d=new Date(hojeI.getFullYear(),hojeI.getMonth(),1); d<=fimMesI; d.setDate(d.getDate()+1)){ if(utilI(d)){ duT++; if(d<=hojeI) duP++; } }
+        const fatI=duP>0?duT/duP:1;
+        const pendI=(DATA.pedidos||[]).filter(p=>p.dataEnt && p.dataEnt<=fimMesI);
+        let pTot=0,pAtr=0; pendI.forEach(p=>{const q=p.qtde||0;pTot+=q;if(p.atrasado)pAtr+=q;});
+        const tMatS=cMat.total+pTot, aMatS=cMat.atrasado+pAtr;
+        const tFilS=Math.round(cFil.total*fatI), aFilS=Math.round(cFil.atrasado*fatI);
+        const tConsS=tMatS+tFilS, aConsS=aMatS+aFilS;
+        const ifeConsS=tConsS>0?(1-aConsS/tConsS)*100:null;
+        if(ifeConsS!=null) ifeConsSimStr=fp(ifeConsS);
+      } catch(e){}
     }
   } catch(e){ console.warn('dash ife',e); }
 
@@ -10416,6 +10436,7 @@ function renderDashboard(){
     + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📈</span>IFE — mês atual</div>'+ifeSelo+'</div>'
     + '<div class="dh-big">'+ifeCons+'</div>'
     + '<div class="dh-meta">consolidado · Matriz '+ifeMatr+' · Filial SP '+ifeFil+'</div>'
+    + (ifeConsSimStr?'<div class="dh-meta" style="color:var(--amber)">se faturar tudo: <b>'+ifeConsSimStr+'</b></div>':'')
     + _spark(ifeSerie, '#3d8bff') + '</div>';
   // Terceiros — valor + meta + % + previsão + barra com marcador
   const tercPct = tercMeta>0 ? Math.round(tercReal/tercMeta*100) : 0;
