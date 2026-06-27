@@ -10841,7 +10841,7 @@ function dashMostrarIdeias(){
     ['🔧 Montagem & Pedidos', ['Quantos guinchos montar este mês?','Prioridades de hoje','Quantos cilindros montar essa semana?','Quantos comandos montar até sexta?','Consigo atender os guinchos no ritmo atual?','Quanto montei este mês?']],
     ['📦 Estoque & Trânsito', ['O trânsito enche o estoque de segurança de SP?','O que falta enviar para GO?','Qual filial está mais crítica?','O que está abaixo do estoque de segurança?','Quantos itens disponíveis para venda?']],
     ['📋 Pedidos & OFs', ['Como estão os pedidos atrasados?','Tenho estoque pra faturar os pedidos prontos?','Quantas OFs em atraso?','Quais OFs travam pedidos atrasados?','Top clientes da carteira']],
-    ['📊 Indicadores', ['Como está o IFE?','Qual a tendência do IFE?','Como está o térmico e polimento?','Quanto gastei com terceiros?','Os terceiros vão estourar a meta?']]
+    ['📊 Indicadores', ['Como está o IFE?','Qual a tendência do IFE?','Simular IFE faturando tudo','Como está o térmico e polimento?','Quanto gastei com terceiros?','Os terceiros vão estourar a meta?']]
   ];
   out.style.display='block';
   out.dataset.tipo='ideias';
@@ -11016,7 +11016,7 @@ function _dashResponder(q){
       ['🔧 Montagem & Pedidos', ['Quantos guinchos montar este mês?','Prioridades de hoje','Quantos cilindros montar essa semana?','Quantos comandos montar até sexta?','Consigo atender os guinchos no ritmo atual?','Quanto montei este mês?']],
       ['📦 Estoque & Trânsito', ['O trânsito enche o estoque de segurança de SP?','O que falta enviar para GO?','Qual filial está mais crítica?','O que está abaixo do estoque de segurança?','Quantos itens disponíveis para venda?']],
       ['📋 Pedidos & OFs', ['Como estão os pedidos atrasados?','Tenho estoque pra faturar os pedidos prontos?','Quantas OFs em atraso?','Quais OFs travam pedidos atrasados?','OFs que vencem esta semana','Top clientes da carteira']],
-      ['📊 Indicadores', ['Como está o IFE?','Qual a tendência do IFE?','Como está o térmico e polimento?','Melhor dia de térmico','Quanto gastei com terceiros?','Os terceiros vão estourar a meta?']]
+      ['📊 Indicadores', ['Como está o IFE?','Qual a tendência do IFE?','Simular IFE faturando tudo','Como está o térmico e polimento?','Melhor dia de térmico','Quanto gastei com terceiros?','Os terceiros vão estourar a meta?']]
     ];
     const corpo='<div style="font-size:14px;line-height:1.6;margin-bottom:10px">Eu analiso os dados de todas as abas do painel e respondo perguntas com cálculos prontos. Posso somar, comparar com metas, projetar fechamento de mês e cruzar informações entre abas. É só clicar num exemplo ou escrever com suas palavras:</div>'
       +cats.map(([titulo,perguntas])=>'<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:5px">'+titulo+'</div>'
@@ -11366,45 +11366,55 @@ function _dashResponder(q){
     try {
       const hoje=new Date(); hoje.setHours(0,0,0,0);
       const mesAtualKey = hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0');
-      // IFE atual do mês (entregas já realizadas) por empresa
-      const ifeMatrizMes = DATA.ife.filter(r=>r.emp==='1' && r.mesKey===mesAtualKey);
-      const ifeFilialMes = DATA.ife.filter(r=>r.emp==='2' && r.mesKey===mesAtualKey);
-      const atMatrizAtual = ifeMatrizMes.reduce((s,r)=>s+r.atrasado,0);
-      const totMatrizAtual = ifeMatrizMes.reduce((s,r)=>s+r.total,0);
-      const atFilialAtual = ifeFilialMes.reduce((s,r)=>s+r.atrasado,0);
-      const totFilialAtual = ifeFilialMes.reduce((s,r)=>s+r.total,0);
 
-      // Pendentes da Matriz do mês atual (entrega dentro do mês), a faturar
+      // ── IFE ATUAL (mesmas funções do painel: _ifeFiltrar + _ifeCalc) ──
+      const linMatriz = DATA.ife.filter(_ifeFiltrar('1')).filter(r=>r.mesKey===mesAtualKey);
+      const linFilial = DATA.ife.filter(_ifeFiltrar('2')).filter(r=>r.mesKey===mesAtualKey);
+      const cMatriz = _ifeCalc(linMatriz);   // {atrasado,total,ife}
+      const cFilial = _ifeCalc(linFilial);
+      const cCons   = _ifeCalc(DATA.ife.filter(_ifeFiltrar('CONSOLIDADO')).filter(r=>r.mesKey===mesAtualKey));
+      const ifeMatrizAtual = cMatriz.ife, ifeFilialAtual = cFilial.ife, ifeConsAtual = cCons.ife;
+
+      // ── Dias úteis do mês (para projetar a filial) ──
       const fimMes=new Date(hoje.getFullYear(),hoje.getMonth()+1,0); fimMes.setHours(0,0,0,0);
+      const fer=new Set(getFeriados().map(f=>f.data));
+      const ehUtil=d=>{ const dw=d.getDay(); const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); return dw!==0&&dw!==6&&!fer.has(iso); };
+      let duPassados=0, duTotais=0;
+      for(let d=new Date(hoje.getFullYear(),hoje.getMonth(),1); d<=fimMes; d.setDate(d.getDate()+1)){
+        if(ehUtil(d)){ duTotais++; if(d<=hoje) duPassados++; }
+      }
+      const fatorMes = duPassados>0 ? duTotais/duPassados : 1; // projeta o mês cheio
+
+      // ── MATRIZ simulada: entregas atuais + pendentes do mês a faturar ──
       const pend=(DATA.pedidos||[]).filter(p=>p.dataEnt && p.dataEnt<=fimMes);
       let pendTot=0, pendAtr=0;
       pend.forEach(p=>{ const q=p.qtde||0; pendTot+=q; if(p.atrasado) pendAtr+=q; });
-
-      // IFE simulado Matriz = entregas atuais + pendentes (atrasado conta como fora do prazo)
-      const totMatrizSim = totMatrizAtual + pendTot;
-      const atMatrizSim  = atMatrizAtual + pendAtr;
+      const totMatrizSim = cMatriz.total + pendTot;
+      const atMatrizSim  = cMatriz.atrasado + pendAtr;
       const ifeMatrizSim = totMatrizSim>0 ? (1-atMatrizSim/totMatrizSim)*100 : null;
-      const ifeMatrizAtual = totMatrizAtual>0 ? (1-atMatrizAtual/totMatrizAtual)*100 : null;
-      // Filial: mantém a mesma média (não temos base de pendentes das filiais)
-      const ifeFilialAtual = totFilialAtual>0 ? (1-atFilialAtual/totFilialAtual)*100 : null;
-      // Consolidado simulado = Matriz simulada + Filial atual, ponderado por quantidade
-      const totConsSim = totMatrizSim + totFilialAtual;
-      const atConsSim  = atMatrizSim + atFilialAtual;
+
+      // ── FILIAL simulada: projeta a QUANTIDADE do mês inteiro, mantendo a mesma proporção de atraso ──
+      const totFilialSim = Math.round(cFilial.total * fatorMes);
+      const atFilialSim   = Math.round(cFilial.atrasado * fatorMes); // mesma % de atraso
+      const ifeFilialSim = totFilialSim>0 ? (1-atFilialSim/totFilialSim)*100 : ifeFilialAtual;
+
+      // ── CONSOLIDADO simulado: soma ponderada por QUANTIDADE (Matriz sim + Filial sim) ──
+      const totConsSim = totMatrizSim + totFilialSim;
+      const atConsSim  = atMatrizSim + atFilialSim;
       const ifeConsSim = totConsSim>0 ? (1-atConsSim/totConsSim)*100 : null;
-      const ifeConsAtual = (totMatrizAtual+totFilialAtual)>0 ? (1-(atMatrizAtual+atFilialAtual)/(totMatrizAtual+totFilialAtual))*100 : null;
 
       const fp=v=> v==null?'—':fmt1(v)+'%';
       const seta=(de,para)=>{ if(de==null||para==null) return ''; const d=para-de; return d>0.05?' <span style="color:var(--green)">▲'+fmt1(d)+'</span>':d<-0.05?' <span style="color:var(--red)">▼'+fmt1(Math.abs(d))+'</span>':''; };
 
       return _daBox('Simulação de IFE — se faturar todos os pendentes do mês',
-        '<div style="font-size:13px;line-height:1.5;color:var(--text-muted);margin-bottom:10px">Cenário: faturar todos os pendentes da Matriz com entrega até o fim do mês. Pendente <b>em atraso</b> conta como fora do prazo; <b>em dia</b>, no prazo. Filial mantém a média atual (sem base de pendentes das filiais).</div>'
-        +'<table style="width:100%;border-collapse:collapse;font-size:13px">'
-        +'<tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:4px">Visão</th><th style="text-align:right;padding:4px">Atual</th><th style="text-align:right;padding:4px">Simulado</th></tr>'
-        +'<tr><td style="padding:4px">Matriz</td><td style="text-align:right;padding:4px">'+fp(ifeMatrizAtual)+'</td><td style="text-align:right;padding:4px"><b>'+fp(ifeMatrizSim)+'</b>'+seta(ifeMatrizAtual,ifeMatrizSim)+'</td></tr>'
-        +'<tr><td style="padding:4px">Filial</td><td style="text-align:right;padding:4px">'+fp(ifeFilialAtual)+'</td><td style="text-align:right;padding:4px">'+fp(ifeFilialAtual)+' <span style="color:var(--text-muted);font-size:11px">(mantida)</span></td></tr>'
-        +'<tr style="border-top:1px solid var(--border)"><td style="padding:4px"><b>Consolidado</b></td><td style="text-align:right;padding:4px">'+fp(ifeConsAtual)+'</td><td style="text-align:right;padding:4px"><b style="color:var(--amber);font-size:16px">'+fp(ifeConsSim)+'</b>'+seta(ifeConsAtual,ifeConsSim)+'</td></tr>'
+        '<div style="font-size:13px;line-height:1.5;color:var(--text-muted);margin-bottom:10px">Cenário: faturar todos os pendentes da Matriz com entrega até o fim do mês (em atraso = fora do prazo; em dia = no prazo). A Filial mantém a mesma média %, mas com a quantidade projetada para o mês inteiro ('+fmt1(fatorMes)+'× o realizado até hoje), para o peso no consolidado ficar realista.</div>'
+        +'<table style="border-collapse:collapse;font-size:13px;margin:0 auto">'
+        +'<tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:3px 10px 3px 4px">Visão</th><th style="text-align:right;padding:3px 10px">Atual</th><th style="text-align:right;padding:3px 4px">Simulado</th></tr>'
+        +'<tr><td style="padding:3px 10px 3px 4px">Matriz</td><td style="text-align:right;padding:3px 10px">'+fp(ifeMatrizAtual)+'</td><td style="text-align:right;padding:3px 4px"><b>'+fp(ifeMatrizSim)+'</b>'+seta(ifeMatrizAtual,ifeMatrizSim)+'</td></tr>'
+        +'<tr><td style="padding:3px 10px 3px 4px">Filial</td><td style="text-align:right;padding:3px 10px">'+fp(ifeFilialAtual)+'</td><td style="text-align:right;padding:3px 4px">'+fp(ifeFilialSim)+'</td></tr>'
+        +'<tr style="border-top:1px solid var(--border)"><td style="padding:3px 10px 3px 4px"><b>Consolidado</b></td><td style="text-align:right;padding:3px 10px">'+fp(ifeConsAtual)+'</td><td style="text-align:right;padding:3px 4px"><b style="color:var(--amber);font-size:16px">'+fp(ifeConsSim)+'</b>'+seta(ifeConsAtual,ifeConsSim)+'</td></tr>'
         +'</table>'
-        +'<div style="font-size:12px;color:var(--text-muted);margin-top:10px">Pendentes Matriz somados: <b>'+fmt(pendTot)+'</b> peças (sendo <b style="color:var(--red)">'+fmt(pendAtr)+'</b> em atraso). Entregas Matriz no mês até agora: '+fmt(totMatrizAtual)+' peças.</div>'
+        +'<div style="font-size:12px;color:var(--text-muted);margin-top:10px">Pendentes Matriz somados: <b>'+fmt(pendTot)+'</b> pç (sendo <b style="color:var(--red)">'+fmt(pendAtr)+'</b> em atraso). Entregas Matriz no mês: '+fmt(cMatriz.total)+' pç · Filial projetada: '+fmt(totFilialSim)+' pç ('+duPassados+'/'+duTotais+' du).</div>'
         +_daLink('Ver IFE','showTab(\'ife\')'));
     } catch(e){ return _daBox('Erro','<div>Não consegui simular o IFE. Verifique se os dados de IFE e pedidos estão carregados.</div>'); }
   }
