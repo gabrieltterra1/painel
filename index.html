@@ -1045,6 +1045,7 @@ if (sessionStorage.getItem('auth') === '1') {
 
 // Allow Enter key
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('%cPainel Industrial — build 2026-06-29 (filtro data por mês)', 'color:#3ee89a;font-weight:bold');
   const inp = document.getElementById('login-input');
   if (inp) inp.focus();
 });
@@ -2517,7 +2518,7 @@ let ofFiltroValores = [];     // valores únicos da coluna do dropdown aberto
 
 // Detecta se a coluna é de data (dd/mm/aaaa) e ordena os valores adequadamente
 function ofOrdenarValores(valores, col, asc) {
-  const isData = col==='DT_FINAL' || col==='DT_EMISSAO';
+  const isData = col==='DT_FINAL' || col==='DT_EMISSAO' || col==='dataEntStr' || col==='dataEmisStr';
   const dParse = s => { const p=String(s).split('/'); return (p.length===3)?(new Date(+p[2],+p[1]-1,+p[0])).getTime():NaN; };
   const arr = valores.slice().sort((a,b)=>{
     if (isData) {
@@ -5613,13 +5614,7 @@ function togglePVColFiltro(ev, col){
     +'<button onclick="pvColFiltroTodos(false)" style="flex:1;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:4px;border-radius:6px;font-size:11px;cursor:pointer">Nenhum</button>'
     +'</div>'
     +'<div id="pvcol-filtro-lista" style="overflow-y:auto;flex:1;font-size:12px;min-height:80px">'
-    + valores.map(v=>{
-        const checked = pvColFiltroSelTemp.has(v);
-        const vEsc = v.replace(/"/g,'&quot;');
-        return '<label class="pvcol-filtro-item" data-val="'+vEsc.toLowerCase()+'" style="display:flex;gap:6px;align-items:center;padding:3px 2px;cursor:pointer">'
-          +'<input type="checkbox" '+(checked?'checked':'')+' data-rawval="'+vEsc+'" onchange="pvColFiltroMarcar(this)">'
-          +'<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(v===''?'(vazio)':v)+'</span></label>';
-      }).join('')
+    + _pvMontarListaFiltro(valores, tipo)
     +'</div>'
     +'<div style="display:flex;gap:6px;margin-top:8px">'
     +'<button onclick="aplicarPVColFiltro(\''+col+'\')" style="flex:1;background:var(--serie-azul);border:none;color:#fff;padding:6px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">Aplicar</button>'
@@ -5630,8 +5625,50 @@ function togglePVColFiltro(ev, col){
   pop.style.left = Math.max(8, Math.min(ev.clientX, window.innerWidth - w - 8))+'px';
   pop.style.top  = Math.max(8, Math.min(ev.clientY+12, window.innerHeight - hh - 8))+'px';
 }
+// Monta a lista do filtro. Para colunas de data, agrupa por mês (estilo Excel).
+function _pvMontarListaFiltro(valores, tipo){
+  const item = v => {
+    const checked = pvColFiltroSelTemp.has(v);
+    const vEsc = v.replace(/"/g,'&quot;');
+    return '<label class="pvcol-filtro-item" data-val="'+vEsc.toLowerCase()+'" data-mes="'+_pvMesDeData(v)+'" style="display:flex;gap:6px;align-items:center;padding:3px 2px 3px 18px;cursor:pointer">'
+      +'<input type="checkbox" '+(checked?'checked':'')+' data-rawval="'+vEsc+'" onchange="pvColFiltroMarcar(this)">'
+      +'<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(v===''?'(vazio)':v)+'</span></label>';
+  };
+  if (tipo !== 'date') return valores.map(item).join('');
+  // agrupa por mês (MM/AAAA) preservando a ordem recebida
+  const grupos = {}; const ordem = [];
+  valores.forEach(v=>{ const mk=_pvMesDeData(v); if(!grupos[mk]){ grupos[mk]=[]; ordem.push(mk); } grupos[mk].push(v); });
+  return ordem.map(mk=>{
+    const dias = grupos[mk];
+    const todosМarc = dias.every(v=>pvColFiltroSelTemp.has(v));
+    const nomeMes = _pvNomeMes(mk);
+    return '<div class="pvcol-mes-grp" data-mes="'+mk+'">'
+      +'<label style="display:flex;gap:6px;align-items:center;padding:4px 2px;cursor:pointer;font-weight:700;border-top:1px solid var(--border)">'
+      +'<input type="checkbox" class="pvcol-mes-cb" '+(todosМarc?'checked':'')+' onchange="pvColFiltroMarcarMes(this,\''+mk+'\')">'
+      +'<span>'+nomeMes+'</span></label>'
+      + dias.map(item).join('')
+      +'</div>';
+  }).join('');
+}
+function _pvMesDeData(v){ // v = "DD/MM/AAAA" -> "AAAA-MM"
+  const m = String(v||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return m ? m[3]+'-'+m[2] : '_';
+}
+function _pvNomeMes(mk){ // "AAAA-MM" -> "Mês/AAAA"
+  const nomes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const p=mk.split('-'); if(p.length!==2) return mk;
+  return nomes[parseInt(p[1])-1]+'/'+p[0];
+}
+function pvColFiltroMarcarMes(cb, mk){
+  const grp = cb.closest('.pvcol-mes-grp'); if(!grp) return;
+  grp.querySelectorAll('.pvcol-filtro-item input[type=checkbox]').forEach(c=>{
+    c.checked = cb.checked;
+    const v=c.getAttribute('data-rawval');
+    if(cb.checked) pvColFiltroSelTemp.add(v); else pvColFiltroSelTemp.delete(v);
+  });
+}
 function pvColFiltroMarcar(cb){ const v=cb.getAttribute('data-rawval'); if(cb.checked) pvColFiltroSelTemp.add(v); else pvColFiltroSelTemp.delete(v); }
-function pvColFiltroBuscaValor(q){ const ql=(q||'').toLowerCase(); document.querySelectorAll('#pvcol-filtro-lista .pvcol-filtro-item').forEach(el=>{ el.style.display = el.getAttribute('data-val').includes(ql)?'flex':'none'; }); }
+function pvColFiltroBuscaValor(q){ const ql=(q||'').toLowerCase(); document.querySelectorAll('#pvcol-filtro-lista .pvcol-filtro-item').forEach(el=>{ el.style.display = el.getAttribute('data-val').includes(ql)?'flex':'none'; }); document.querySelectorAll('#pvcol-filtro-lista .pvcol-mes-grp').forEach(g=>{ const algum=[...g.querySelectorAll('.pvcol-filtro-item')].some(el=>el.style.display!=='none'); g.style.display=algum?'':'none'; }); }
 function pvColFiltroTodos(marcar){ document.querySelectorAll('#pvcol-filtro-lista .pvcol-filtro-item').forEach(el=>{ if(el.style.display==='none')return; const cb=el.querySelector('input'); if(!cb)return; cb.checked=marcar; const v=cb.getAttribute('data-rawval'); if(marcar)pvColFiltroSelTemp.add(v); else pvColFiltroSelTemp.delete(v); }); }
 function aplicarPVColFiltro(col){
   const total=pvColFiltroValores.length, n=pvColFiltroSelTemp.size;
@@ -5647,7 +5684,7 @@ function pvColFiltroInverter(col){
   const def=PVD_COLS.find(c=>c[0]===col); const tipo=def?def[3]:'text';
   const valores=ofOrdenarValores(pvColFiltroValores.slice(),(tipo==='num'||tipo==='money')?'__num':col,pvColFiltroAsc);
   const lista=document.getElementById('pvcol-filtro-lista');
-  if(lista){ lista.innerHTML=valores.map(v=>{const checked=pvColFiltroSelTemp.has(v);const vEsc=v.replace(/"/g,'&quot;');return '<label class="pvcol-filtro-item" data-val="'+vEsc.toLowerCase()+'" style="display:flex;gap:6px;align-items:center;padding:3px 2px;cursor:pointer"><input type="checkbox" '+(checked?'checked':'')+' data-rawval="'+vEsc+'" onchange="pvColFiltroMarcar(this)"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(v===''?'(vazio)':v)+'</span></label>';}).join(''); }
+  if(lista){ lista.innerHTML=_pvMontarListaFiltro(valores, tipo); }
   const btn=document.querySelector('#pvcol-filtro-pop button[onclick^="pvColFiltroInverter"]'); if(btn)btn.textContent=pvColFiltroAsc?'↑ A-Z':'↓ Z-A';
 }
 function atualizarBotaoLimparPV(){
