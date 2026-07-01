@@ -998,15 +998,18 @@
   </div>
 </div>
 
-<!-- Modal Meta Competitividade -->
+<!-- Modal Metas Terceiros (Budget + Competitividade) -->
 <div id="modal-meta-comp" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;min-width:380px;max-width:95vw;max-height:90vh;overflow-y:auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:#00c97a;letter-spacing:1px">✏ META COMPETITIVIDADE — SERVIÇOS TERCEIROS</div>
+      <div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:#00c97a;letter-spacing:1px">✏ METAS — SERVIÇOS TERCEIROS</div>
       <button onclick="fecharModalMetaComp()" style="background:none;border:none;color:#666;font-size:18px;cursor:pointer">✕</button>
     </div>
-    <div style="font-size:11px;color:var(--text-muted);margin-bottom:16px">Edite os valores e clique em Salvar. Os dados ficam no Google Sheets.</div>
-    <div id="meta-comp-form" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:16px">Edite os valores de Budget (meta de gasto) e Competitividade. Os dados ficam no Google Sheets.</div>
+    <div style="display:grid;grid-template-columns:70px 1fr 1fr;gap:8px;font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;margin-bottom:6px;padding:0 2px">
+      <div>MÊS</div><div style="color:#f59e0b">BUDGET (GASTO)</div><div style="color:#00c97a">COMPETITIVIDADE</div>
+    </div>
+    <div id="meta-comp-form" style="display:grid;grid-template-columns:70px 1fr 1fr;gap:8px;align-items:center"></div>
     <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
       <button onclick="fecharModalMetaComp()" style="background:#334;color:var(--text-muted);border:1px solid #556;padding:6px 16px;border-radius:6px;cursor:pointer">Cancelar</button>
       <button onclick="salvarMetaComp()" style="background:#00c97a;color:#000;border:none;padding:6px 16px;border-radius:6px;font-weight:700;cursor:pointer">💾 Salvar no Sheets</button>
@@ -1442,7 +1445,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="chart-card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
         <div class="chart-title" style="margin:0">Meta x Realizado — Mensal (R$)</div>
-        <button onclick="pedirSenha(abrirModalMetaComp)" style="background:rgba(0,201,122,.15);border:1px solid #00c97a;color:#00c97a;padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer">✏ Meta Competitividade</button>
+        <button onclick="pedirSenha(abrirModalMetaComp)" style="background:rgba(0,201,122,.15);border:1px solid #00c97a;color:#00c97a;padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer">✏ Metas (Budget/Compet.)</button>
       </div>
       <div style="overflow-x:auto"><div style="position:relative;height:280px;min-width:400px"><canvas id="servico-meta-mes-chart"></canvas></div></div>
       <div id="servico-meta-mes-tabela" style="margin-top:12px;overflow-x:auto"></div>
@@ -2737,14 +2740,7 @@ function toggleOFFiltro(ev, col) {
     +'<button onclick="ofFiltroTodos(false)" style="flex:1;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:4px;border-radius:6px;font-size:11px;cursor:pointer">Nenhum</button>'
     +'</div>'
     +'<div id="of-filtro-lista" style="overflow-y:auto;flex:1;font-size:12px;min-height:80px">'
-    + valores.map(v=>{
-        const checked = ofFiltroSelTemp.has(v);
-        const lbl = isMov ? ofMovLabel(v) : (v===''?'(vazio)':v);
-        const vEsc = v.replace(/"/g,'&quot;');
-        return '<label class="of-filtro-item" data-val="'+vEsc.toLowerCase()+'" style="display:flex;gap:6px;align-items:center;padding:3px 2px;cursor:pointer">'
-          +'<input type="checkbox" '+(checked?'checked':'')+' data-rawval="'+vEsc+'" onchange="ofFiltroMarcar(this)">'
-          +'<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+lbl+'</span></label>';
-      }).join('')
+    + _ofMontarListaFiltro(valores, col, isMov)
     +'</div>'
     +'<div style="display:flex;gap:6px;margin-top:8px">'
     +'<button onclick="aplicarOFFiltro(&#39;'+col+'&#39;)" style="flex:1;background:var(--serie-azul);border:none;color:#fff;padding:6px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">Aplicar</button>'
@@ -2764,19 +2760,45 @@ function ofFiltroInverter(col){
   const isMov = col==='MOVIMENTO';
   const lista = document.getElementById('of-filtro-lista');
   if (lista) {
-    lista.innerHTML = valores.map(v=>{
-      const checked = ofFiltroSelTemp.has(v);
-      const lbl = isMov ? ofMovLabel(v) : (v===''?'(vazio)':v);
-      const vEsc = v.replace(/"/g,'&quot;');
-      return '<label class="of-filtro-item" data-val="'+vEsc.toLowerCase()+'" style="display:flex;gap:6px;align-items:center;padding:3px 2px;cursor:pointer">'
-        +'<input type="checkbox" '+(checked?'checked':'')+' data-rawval="'+vEsc+'" onchange="ofFiltroMarcar(this)">'
-        +'<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+lbl+'</span></label>';
-    }).join('');
+    lista.innerHTML = _ofMontarListaFiltro(valores, col, isMov);
   }
   const btn = document.querySelector('#of-filtro-pop button[onclick^="ofFiltroInverter"]');
   if (btn) btn.textContent = ofFiltroAsc?'↑ A-Z':'↓ Z-A';
 }
 // Marca/desmarca um valor no estado em memória
+// Monta a lista do filtro OF. Para colunas de data (DT_FINAL/DT_EMISSAO), agrupa por mês.
+function _ofMontarListaFiltro(valores, col, isMov){
+  const ehData = (col==='DT_FINAL' || col==='DT_EMISSAO');
+  const item = v => {
+    const checked = ofFiltroSelTemp.has(v);
+    const lbl = isMov ? ofMovLabel(v) : (v===''?'(vazio)':v);
+    const vEsc = v.replace(/"/g,'&quot;');
+    return '<label class="of-filtro-item" data-val="'+vEsc.toLowerCase()+'" style="display:flex;gap:6px;align-items:center;padding:3px 2px'+(ehData?' 3px 18px':'')+';cursor:pointer">'
+      +'<input type="checkbox" '+(checked?'checked':'')+' data-rawval="'+vEsc+'" onchange="ofFiltroMarcar(this)">'
+      +'<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+lbl+'</span></label>';
+  };
+  if (!ehData) return valores.map(item).join('');
+  const grupos = {}; const ordem = [];
+  valores.forEach(v=>{ const mk=_pvMesDeData(v); if(!grupos[mk]){ grupos[mk]=[]; ordem.push(mk); } grupos[mk].push(v); });
+  return ordem.map(mk=>{
+    const dias = grupos[mk];
+    const todos = dias.every(v=>ofFiltroSelTemp.has(v));
+    return '<div class="of-mes-grp">'
+      +'<label style="display:flex;gap:6px;align-items:center;padding:4px 2px;cursor:pointer;font-weight:700;border-top:1px solid var(--border)">'
+      +'<input type="checkbox" class="of-mes-cb" '+(todos?'checked':'')+' onchange="ofFiltroMarcarMes(this)">'
+      +'<span>'+_pvNomeMes(mk)+'</span></label>'
+      + dias.map(item).join('')
+      +'</div>';
+  }).join('');
+}
+function ofFiltroMarcarMes(cb){
+  const grp = cb.closest('.of-mes-grp'); if(!grp) return;
+  grp.querySelectorAll('.of-filtro-item input[type=checkbox]').forEach(c=>{
+    c.checked = cb.checked;
+    const v=c.getAttribute('data-rawval');
+    if(cb.checked) ofFiltroSelTemp.add(v); else ofFiltroSelTemp.delete(v);
+  });
+}
 function ofFiltroMarcar(cb){
   const v = cb.getAttribute('data-rawval');
   if (cb.checked) ofFiltroSelTemp.add(v); else ofFiltroSelTemp.delete(v);
@@ -2785,6 +2807,10 @@ function ofFiltroBuscaValor(q){
   const ql=(q||'').toLowerCase();
   document.querySelectorAll('#of-filtro-lista .of-filtro-item').forEach(el=>{
     el.style.display = el.getAttribute('data-val').includes(ql) ? 'flex' : 'none';
+  });
+  document.querySelectorAll('#of-filtro-lista .of-mes-grp').forEach(g=>{
+    const algum=[...g.querySelectorAll('.of-filtro-item')].some(el=>el.style.display!=='none');
+    g.style.display = algum ? '' : 'none';
   });
 }
 // "Todos"/"Nenhum": agem sobre os itens VISÍVEIS, atualizando estado + checkbox
@@ -10265,22 +10291,30 @@ function abrirModalMetaComp() {
   const anos = ['2025','2026','2027'];
   const mesesNome = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const tercComp = DATA.tercComp || {};
+  const tercMeta = DATA.tercMeta || {};
   const TERC_COMP_FB = {
     '2025':{'01':504289.33,'02':610858.35,'03':588773.20,'04':591810.25,'05':620558.09,'06':564775.15,'07':659224.61,'08':580306.66,'09':617224.52,'10':625889.87,'11':568397.89,'12':433950.39},
     '2026':{'01':588944.94,'02':574970.71,'03':665368.37,'04':579243.51,'05':0,'06':0,'07':0,'08':0,'09':0,'10':0,'11':0,'12':0},
     '2027':{}
   };
+  const TERC_META_FB = {
+    '2025':{'01':515165.59,'02':602939.61,'03':627959.22,'04':626854.41,'05':627450.83,'06':603448.00,'07':693083.81,'08':627450.83,'09':663156.79,'10':693058.90,'11':567742.04,'12':471689.98},
+    '2026':{'01':554871.00,'02':652688.00,'03':717942.00,'04':652687.00,'05':620060.00,'06':685257.00,'07':750570.00,'08':685314.00,'09':685314.00,'10':685314.00,'11':620060.00,'12':456922.00},
+    '2027':{}
+  };
+  const inp = (id,val,cor)=>'<input id="'+id+'" type="number" value="'+parseFloat(val||0).toFixed(2)+'" '
+    +'style="width:100%;background:var(--panel2);border:1px solid '+cor+';color:var(--text);padding:4px 8px;border-radius:4px;font-size:12px">';
   let html = '';
   anos.forEach(ano => {
     html += '<div style="grid-column:1/-1;margin-top:8px;font-size:10px;font-weight:700;color:#00c97a;letter-spacing:1px;border-bottom:1px solid var(--border);padding-bottom:4px">'+ano+'</div>';
     mesesNome.forEach((mes,i) => {
       const mm = String(i+1).padStart(2,'0');
       const key = ano+'-'+mm;
-      const kFb = mm;
-      const val = (tercComp[key]!==undefined&&tercComp[key]!=='') ? tercComp[key] : (TERC_COMP_FB[ano]?.[kFb]||0);
-      html += '<div><label style="font-size:10px;color:var(--text-muted)">'+mes+'/'+ano+'</label>'
-        +'<input id="mcomp-'+ano+'-'+mm+'" type="number" value="'+parseFloat(val).toFixed(2)+'" '
-        +'style="width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:12px"></div>';
+      const vComp = (tercComp[key]!==undefined&&tercComp[key]!=='') ? tercComp[key] : (TERC_COMP_FB[ano]?.[mm]||0);
+      const vMeta = (tercMeta[key]!==undefined&&tercMeta[key]!=='') ? tercMeta[key] : (TERC_META_FB[ano]?.[mm]||0);
+      html += '<label style="font-size:10px;color:var(--text-muted)">'+mes+'/'+ano+'</label>'
+        + inp('mmeta-'+ano+'-'+mm, vMeta, 'rgba(245,158,11,.4)')
+        + inp('mcomp-'+ano+'-'+mm, vComp, 'rgba(0,201,122,.4)');
     });
   });
   form.innerHTML = html;
@@ -10299,33 +10333,33 @@ async function salvarMetaComp() {
   anos.forEach(ano => {
     for (let m=1;m<=12;m++) {
       const mm = String(m).padStart(2,'0');
-      const el = document.getElementById('mcomp-'+ano+'-'+mm);
-      if (el) updates['TERC_COMP_'+ano+'_'+mm] = parseFloat(el.value)||0;
+      const elC = document.getElementById('mcomp-'+ano+'-'+mm);
+      const elM = document.getElementById('mmeta-'+ano+'-'+mm);
+      if (elC) updates['TERC_COMP_'+ano+'_'+mm] = parseFloat(elC.value)||0;
+      if (elM) updates['TERC_META_'+ano+'_'+mm] = parseFloat(elM.value)||0;
     }
   });
+  const aplicarLocal = () => {
+    if (!DATA.tercComp) DATA.tercComp = {};
+    if (!DATA.tercMeta) DATA.tercMeta = {};
+    Object.entries(updates).forEach(([k,v]) => {
+      if (k.indexOf('TERC_COMP_')===0){ const p=k.replace('TERC_COMP_','').split('_'); DATA.tercComp[p[0]+'-'+p[1]]=v; }
+      else if (k.indexOf('TERC_META_')===0){ const p=k.replace('TERC_META_','').split('_'); DATA.tercMeta[p[0]+'-'+p[1]]=v; }
+      if (DATA.config) DATA.config[k]=v;
+    });
+  };
   try {
     const txt = await _saveConfig(updates);
     if (txt.includes('ok')) {
       status.textContent = '✅ Salvo com sucesso!';
       status.style.color = '#00c97a';
-      // Update local DATA.tercComp
-      if (!DATA.tercComp) DATA.tercComp = {};
-      Object.entries(updates).forEach(([k,v]) => {
-        const parts = k.replace('TERC_COMP_','').split('_');
-        DATA.tercComp[parts[0]+'-'+parts[1]] = v;
-      });
+      aplicarLocal();
       setTimeout(() => { fecharModalMetaComp(); renderServico(); }, 1200);
     } else {
       throw new Error(txt);
     }
   } catch(e) {
-    // Save locally anyway
-    if (!DATA.tercComp) DATA.tercComp = {};
-    Object.entries(updates).forEach(([k,v]) => {
-      const parts = k.replace('TERC_COMP_','').split('_');
-      DATA.tercComp[parts[0]+'-'+parts[1]] = v;
-      if (DATA.config) DATA.config[k] = v;
-    });
+    aplicarLocal();
     status.textContent = '⚠ Salvo localmente. Para salvar no Sheets, reimplante o Apps Script.';
     status.style.color = '#f59e0b';
     setTimeout(() => { fecharModalMetaComp(); renderServico(); }, 2500);
