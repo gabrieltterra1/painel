@@ -737,6 +737,12 @@
   #plano91-table th, #plano91-table td { padding:5px 8px; border-bottom:1px solid var(--border); }
   #plano91-table thead th { position:sticky; top:0; background:var(--header-table-bg,#0d1b3e); color:#fff; z-index:2; }
   #plano91-table tbody tr:hover td { background:rgba(61,139,255,.06); }
+  #plano91-full-table { border-collapse:collapse; width:max-content; font-size:11px; }
+  #plano91-full-table th, #plano91-full-table td { padding:4px 8px; border-bottom:1px solid var(--border); }
+  #plano91-full-table thead th { position:sticky; top:0; background:var(--header-table-bg,#0d1b3e); color:#fff; z-index:2; }
+  #plano91-full-table th .col-filter-btn { cursor:pointer; opacity:.85; font-size:11px; margin-left:3px; }
+  #plano91-full-table th .col-filter-btn.active { opacity:1; color:var(--green); }
+  #plano91-full-table tbody tr:hover td { background:rgba(61,139,255,.06); }
   /* Tabela IFE — responsiva */
   #ife-table { border-collapse:collapse; width:max-content; min-width:100%; }
   #ife-table th, #ife-table td { padding:8px 12px; white-space:nowrap; }
@@ -2139,6 +2145,16 @@ document.addEventListener('DOMContentLoaded', () => {
   <div id="plano91-resumo" style="font-size:12px;color:var(--text-muted);margin-bottom:8px"></div>
   <div class="table-wrap"><div class="scrollable">
     <table id="plano91-table"><thead id="plano91-thead"></thead><tbody id="plano91-tbody"></tbody><tfoot id="plano91-tfoot"></tfoot></table>
+  </div></div>
+
+  <div class="section-title" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:28px">Tabela Completa — Plano 91
+    <button class="upload-btn" style="background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);font-size:11px;padding:5px 12px" onclick="plano91LimparFiltros()">✕ Limpar filtros</button>
+    <button class="upload-btn" style="background:rgba(0,201,122,.15);color:var(--green);border:1px solid var(--green);font-size:11px;padding:5px 12px" onclick="exportarTabelaDOM('#plano91-full-table','plano_91_completo')">⤓ Gerar Excel</button>
+  </div>
+  <div style="margin:8px 0"><input class="filter-select" id="plano91-full-search" oninput="renderPlano91Full()" placeholder="Buscar em qualquer coluna" style="min-width:240px"></div>
+  <div id="plano91-full-resumo" style="font-size:12px;color:var(--text-muted);margin-bottom:8px"></div>
+  <div class="table-wrap"><div class="scrollable">
+    <table id="plano91-full-table"><thead id="plano91-full-thead"></thead><tbody id="plano91-full-tbody"></tbody></table>
   </div></div>
 </div>
 
@@ -9565,20 +9581,27 @@ function _dispFamiliaCard(codGrp, descGrp) {
 const _DISP_FAM_ORDEM = ['TOMADA E MULT','BOMBA','CILINDRO','CONJ. EIXO','GUINCHO E ENROL.','COMANDO','VÁLVULA','KIT HIDR.','IMPORTADOS','OUTROS'];
 
 function parsePlano91(text) {
-  if (!text || !text.trim()) { DATA.plano91 = []; return []; }
+  if (!text || !text.trim()) { DATA.plano91 = []; DATA.plano91Raw = []; DATA.plano91Header = []; return []; }
   const rows = parseCSV(text, ';');
   const FAMILIAS_MONT = ['TOMADA+MULT','BOMBA','CILINDRO','CONJ EIXO',
                          'GUINCHO+ENROLADOR','WALVOIL - COMANDO','WALVOIL - VALVULA','KIT HIDRAULICO'];
   const itens = [];
+  const raw = [];
+  let header = [];
+  const ehHeader = r => { const j=r.map(c=>String(c||'').toUpperCase()).join('|'); return j.indexOf('CÓDIGO ITEM')>=0 || j.indexOf('CODIGO ITEM')>=0 || j.indexOf('DESCRIÇÃO ITEM')>=0; };
   rows.forEach(r => {
     if (r.length < 28) return;
+    if (ehHeader(r)) { if(!header.length) header = r.map(c=>String(c||'').trim()); return; }
     const cod = String(r[2]||'').trim();
-    if (!cod || cod.toUpperCase().indexOf('CÓDIGO') >= 0 || cod.toUpperCase().indexOf('CODIGO') >= 0) return;
+    if (!cod) return;
     const tipoOrd = String(r[4]||'').trim().toUpperCase();
-    if (['OFA','OFM','OFP'].indexOf(tipoOrd) < 0) return; // só ordens de fabricação
     const classCod = String(r[27]||'').trim();
     const familia = pvFamilia(classCod);
-    if (FAMILIAS_MONT.indexOf(familia) < 0) return; // mantém só as 8 famílias montadas
+    // guarda TODA linha (todas as colunas) para a tabela completa, com a família derivada
+    raw.push({ _cols: r.map(c=>String(c==null?'':c).trim()), familia });
+    // linha do tempo: só OFA/OFM/OFP e as 8 famílias montadas
+    if (['OFA','OFM','OFP'].indexOf(tipoOrd) < 0) return;
+    if (FAMILIAS_MONT.indexOf(familia) < 0) return;
     const dataFimStr = normDate(r[7]);
     const dataFimIso = /^\d{2}\/\d{2}\/\d{4}$/.test(dataFimStr) ? dataFimStr.split('/').reverse().join('-') : '';
     const qtde = parseFloat(String(r[11]||'0').replace(/\./g,'').replace(',','.'))||0;
@@ -9592,7 +9615,11 @@ function parsePlano91(text) {
       familia
     });
   });
+  // cabeçalho padrão se o email não trouxe linha de título
+  if(!header.length) header = ['EMPRESA','REF ENG','CÓDIGO ITEM','DESCRIÇÃO ITEM','TIPO ORDEM','REFERENCIA','DATA INÍCIO','DATA FIM','VLR REPOS 1','PRECO TERC','VALOR TOTAL COMPRA','QTDE','SALDO','VALOR TOTAL SERVIÇO','QUANTIDADE LIBERADA','DD','DE','DP','TIPO PLANEJAMENTO','TIPO ITEM','MENSAGEM','TEMPO REPOSIÇÃO','LOTE MULTIPLO','CONSUMO MÉDIO','ESTOQUE SEGURANÇA','COD PLANEJADOR','DESC PLANEJADOR','COD CLASSIFICAÇÃO','DESC CLASSIFICAÇÃO','DESC TP ORD','FORN PREFERENCIAL','FORNECEDOR TERC','COD MATERIA PRIMA','DESC MATERIA PRIMA','QTDE MATERIA PRIMA','QUANTIDADE NECESSARI','SALDO MATERIA PRIMA','QTDE LIBERADA OF MAT','ESTQ AX 30','ESTQ TERCEIROS','DDS PLANO 99','DISPONÍVEL'];
   DATA.plano91 = itens;
+  DATA.plano91Raw = raw;
+  DATA.plano91Header = header;
   return itens;
 }
 
@@ -9673,7 +9700,117 @@ function renderPlano91() {
   tfoot.innerHTML=foot;
 
   if(resumo) resumo.textContent=linhas.length+' itens · '+datas.length+' datas · total '+fmtN(totGeral)+' peças a montar';
+  if(typeof renderPlano91Full==='function') renderPlano91Full();
 }
+
+// ===== Plano 91 — Tabela Completa (todas as colunas, filtros estilo Excel) =====
+let _p91Filtros = {};       // { colIndex: Set(valores) }
+let _p91SortCol = null, _p91SortAsc = true;
+const _P91_DATE_COLS = [6,7]; // DATA INÍCIO, DATA FIM (índices) tratadas como data
+function plano91LimparFiltros(){ _p91Filtros={}; _p91SortCol=null; _p91SortAsc=true; const s=document.getElementById('plano91-full-search'); if(s)s.value=''; renderPlano91Full(); }
+
+function renderPlano91Full(){
+  const thead=document.getElementById('plano91-full-thead');
+  const tbody=document.getElementById('plano91-full-tbody');
+  const resumo=document.getElementById('plano91-full-resumo');
+  if(!thead||!tbody) return;
+  const header=DATA.plano91Header||[];
+  let raw=DATA.plano91Raw||[];
+  if(!raw.length){ thead.innerHTML=''; tbody.innerHTML='<tr><td style="padding:16px;color:var(--text-muted)">Sem dados do Plano 91.</td></tr>'; if(resumo)resumo.textContent=''; return; }
+
+  const busca=((document.getElementById('plano91-full-search')||{}).value||'').trim().toUpperCase();
+  // aplica filtros de coluna
+  let linhas=raw.filter(row=>{
+    for(const ci in _p91Filtros){ const set=_p91Filtros[ci]; if(set){ const v=String(row._cols[ci]==null?'':row._cols[ci]); if(!set.has(v)) return false; } }
+    if(busca){ if(!row._cols.join(' ').toUpperCase().includes(busca)) return false; }
+    return true;
+  });
+  // ordenação
+  if(_p91SortCol!==null){
+    const ci=_p91SortCol, dir=_p91SortAsc?1:-1;
+    const isData=_P91_DATE_COLS.indexOf(ci)>=0;
+    const num=v=>{ const n=parseFloat(String(v||'').replace(/\./g,'').replace(',','.')); return isNaN(n)?null:n; };
+    linhas=linhas.slice().sort((a,a2)=>{
+      let x=a._cols[ci]||'', y=a2._cols[ci]||'';
+      if(isData){ x=_p91MesDia(x); y=_p91MesDia(y); return x.localeCompare(y)*dir; }
+      const nx=num(x), ny=num(y);
+      if(nx!==null&&ny!==null) return (nx-ny)*dir;
+      return String(x).localeCompare(String(y),'pt-BR',{numeric:true})*dir;
+    });
+  }
+
+  // cabeçalho com ▼ filtro e ordenação por clique
+  let h='<tr>';
+  header.forEach((lbl,ci)=>{
+    const ativo=_p91Filtros[ci]&&_p91Filtros[ci].size?' style="color:var(--green)"':'';
+    const seta=_p91SortCol===ci?(_p91SortAsc?' ↑':' ↓'):'';
+    h+='<th style="white-space:nowrap;cursor:pointer" onclick="plano91Ordenar('+ci+')">'+lbl+seta
+      +' <span class="col-filter-btn'+(_p91Filtros[ci]&&_p91Filtros[ci].size?' active':'')+'" onclick="event.stopPropagation();plano91AbrirFiltro(event,'+ci+')"'+ativo+'>▼</span></th>';
+  });
+  h+='</tr>';
+  thead.innerHTML=h;
+
+  // corpo (limite de segurança para não travar com muitas linhas)
+  const MAXV=3000;
+  let body='';
+  linhas.slice(0,MAXV).forEach(row=>{
+    body+='<tr>'+header.map((_,ci)=>'<td style="white-space:nowrap">'+(row._cols[ci]||'')+'</td>').join('')+'</tr>';
+  });
+  tbody.innerHTML=body;
+  if(resumo) resumo.textContent=linhas.length+' linhas'+(linhas.length>MAXV?' (mostrando '+MAXV+')':'')+' · '+header.length+' colunas';
+}
+function _p91MesDia(v){ const m=String(v||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/); return m?m[3]+'-'+m[2]+'-'+m[1]:String(v||''); }
+function plano91Ordenar(ci){ if(_p91SortCol===ci){ _p91SortAsc=!_p91SortAsc; } else { _p91SortCol=ci; _p91SortAsc=true; } renderPlano91Full(); }
+
+function plano91AbrirFiltro(ev, ci){
+  const exist=document.getElementById('p91-filtro-pop'); if(exist) exist.remove();
+  const raw=DATA.plano91Raw||[];
+  const header=DATA.plano91Header||[];
+  const isData=_P91_DATE_COLS.indexOf(ci)>=0;
+  // valores considerando os outros filtros já aplicados (exceto o desta coluna)
+  const base=raw.filter(row=>{ for(const k in _p91Filtros){ if(+k===ci) continue; const set=_p91Filtros[k]; if(set){ const v=String(row._cols[k]==null?'':row._cols[k]); if(!set.has(v)) return false; } } return true; });
+  let valores=[...new Set(base.map(r=>String(r._cols[ci]==null?'':r._cols[ci])))];
+  valores.sort((a,b)=>{ if(isData) return _p91MesDia(a).localeCompare(_p91MesDia(b)); const na=parseFloat(String(a).replace(/\./g,'').replace(',','.')),nb=parseFloat(String(b).replace(/\./g,'').replace(',','.')); if(!isNaN(na)&&!isNaN(nb)) return na-nb; return String(a).localeCompare(String(b),'pt-BR',{numeric:true}); });
+  const sel=_p91Filtros[ci]||new Set(valores);
+  _p91SelTemp=new Set(_p91Filtros[ci]?valores.filter(v=>_p91Filtros[ci].has(v)):valores);
+
+  const pop=document.createElement('div');
+  pop.id='p91-filtro-pop'; pop.className='disp-col-dropdown';
+  pop.style.cssText='position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px;z-index:2000;min-width:220px;max-width:300px;box-shadow:0 4px 16px rgba(0,0,0,.4);display:flex;flex-direction:column;max-height:60vh';
+  pop.innerHTML='<div style="font-size:11px;font-weight:700;color:var(--serie-azul);margin-bottom:6px">FILTRAR: '+(header[ci]||'')+'</div>'
+    +'<div style="display:flex;gap:4px;margin-bottom:6px"><button onclick="plano91FiltroTodos(true)" style="flex:1;font-size:11px;padding:3px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:4px;cursor:pointer">Todos</button><button onclick="plano91FiltroTodos(false)" style="flex:1;font-size:11px;padding:3px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:4px;cursor:pointer">Nenhum</button></div>'
+    +'<input id="p91-filtro-busca" oninput="plano91FiltroBusca(this.value)" placeholder="Buscar..." style="margin-bottom:6px;padding:4px 8px;background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:4px;font-size:12px">'
+    +'<div id="p91-filtro-lista" style="overflow-y:auto;flex:1;font-size:12px;min-height:60px">'+_p91MontarLista(valores,isData)+'</div>'
+    +'<div style="display:flex;gap:6px;margin-top:8px"><button onclick="plano91FiltroAplicar('+ci+')" style="flex:1;background:var(--serie-azul);color:#fff;border:none;padding:6px;border-radius:5px;font-weight:700;cursor:pointer">Aplicar</button><button onclick="document.getElementById(\'p91-filtro-pop\').remove()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);padding:6px 10px;border-radius:5px;cursor:pointer">✕</button></div>';
+  document.body.appendChild(pop);
+  const r=ev.target.getBoundingClientRect();
+  let left=r.left; if(left+pop.offsetWidth>window.innerWidth-8) left=Math.max(8,window.innerWidth-pop.offsetWidth-8);
+  pop.style.left=left+'px'; pop.style.top=(r.bottom+window.scrollY+2)+'px';
+  setTimeout(()=>{ const b=document.getElementById('p91-filtro-busca'); if(b)b.focus(); },30);
+}
+let _p91SelTemp=new Set();
+function _p91MontarLista(valores,isData){
+  const item=v=>{ const c=_p91SelTemp.has(v); const e=v.replace(/"/g,'&quot;'); return '<label class="p91-item" data-val="'+e.toLowerCase()+'" style="display:flex;gap:6px;align-items:center;padding:3px 2px 3px 18px;cursor:pointer"><input type="checkbox" '+(c?'checked':'')+' data-rawval="'+e+'" onchange="_p91Check(this)"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(v===''?'(vazio)':v)+'</span></label>'; };
+  if(!isData) return valores.map(item).join('');
+  const grupos={},ordem=[];
+  valores.forEach(v=>{ const m=String(v).match(/^(\d{2})\/(\d{2})\/(\d{4})$/); const mk=m?m[3]+'-'+m[2]:'_'; if(!grupos[mk]){grupos[mk]=[];ordem.push(mk);} grupos[mk].push(v); });
+  const nomes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  return ordem.map(mk=>{ const dias=grupos[mk]; const td=dias.every(v=>_p91SelTemp.has(v)); const nm=mk==='_'?'(sem data)':(nomes[+mk.split('-')[1]-1]+'/'+mk.split('-')[0]); return '<div class="p91-mes-grp"><label style="display:flex;gap:6px;align-items:center;padding:4px 2px;cursor:pointer;font-weight:700;border-top:1px solid var(--border)"><input type="checkbox" class="p91-mes-cb" '+(td?'checked':'')+' onchange="_p91CheckMes(this)"><span>'+nm+'</span></label>'+dias.map(item).join('')+'</div>'; }).join('');
+}
+function _p91Check(cb){ const v=cb.getAttribute('data-rawval'); if(cb.checked)_p91SelTemp.add(v); else _p91SelTemp.delete(v); }
+function _p91CheckMes(cb){ const g=cb.closest('.p91-mes-grp'); g.querySelectorAll('.p91-item input[type=checkbox]').forEach(c=>{ c.checked=cb.checked; const v=c.getAttribute('data-rawval'); if(cb.checked)_p91SelTemp.add(v); else _p91SelTemp.delete(v); }); }
+function plano91FiltroTodos(marcar){ document.querySelectorAll('#p91-filtro-lista input[type=checkbox]').forEach(c=>{ c.checked=marcar; const v=c.getAttribute('data-rawval'); if(v!==null){ if(marcar)_p91SelTemp.add(v); else _p91SelTemp.delete(v); } }); }
+function plano91FiltroBusca(q){ const ql=(q||'').toLowerCase(); document.querySelectorAll('#p91-filtro-lista .p91-item').forEach(el=>{ el.style.display=el.getAttribute('data-val').includes(ql)?'flex':'none'; }); document.querySelectorAll('#p91-filtro-lista .p91-mes-grp').forEach(g=>{ const alg=[...g.querySelectorAll('.p91-item')].some(el=>el.style.display!=='none'); g.style.display=alg?'':'none'; }); }
+function plano91FiltroAplicar(ci){
+  const raw=DATA.plano91Raw||[];
+  const totalVals=new Set(raw.map(r=>String(r._cols[ci]==null?'':r._cols[ci]))).size;
+  if(_p91SelTemp.size===0){ _p91Filtros[ci]=new Set(); }        // nada marcado = esconde tudo
+  else if(_p91SelTemp.size>=totalVals){ delete _p91Filtros[ci]; } // todos = sem filtro
+  else { _p91Filtros[ci]=new Set(_p91SelTemp); }
+  const pop=document.getElementById('p91-filtro-pop'); if(pop)pop.remove();
+  renderPlano91Full();
+}
+
 function parseDisponibilidade(text) {
   const rows = parseCSV(text, ';');
   const itens = {}; // chave empresa|item -> agrupado (para os cards)
