@@ -252,7 +252,7 @@
   /* TABS */
   .tabs {
     display: flex;
-    justify-content: center;
+    justify-content: safe center;
     gap: 0;
     padding: 0 32px;
     background: var(--surface);
@@ -276,6 +276,9 @@
   }
   .tab:hover { color: var(--text); }
   .tab.active { color: var(--blue-light); border-bottom-color: var(--blue-light); }
+  /* centraliza o grupo de abas quando cabe; permite rolar quando transborda */
+  .tab:first-child { margin-left: auto; }
+  .tab:last-child { margin-right: auto; }
 
   /* CONTENT */
   .tab-content { display: none; padding: 28px 32px; }
@@ -903,8 +906,10 @@
   .upload-btn { padding: 6px 10px; font-size: 11px; }
 
   /* Tabs — colam no topo (header não é mais sticky no mobile) */
-  .tabs { padding: 0 8px; gap: 0; top: 0; }
+  .tabs { padding: 0 8px; gap: 0; top: 0; justify-content: flex-start; }
   .tab { padding: 10px 10px; font-size: 10px; letter-spacing: 0; }
+  .tab:first-child { margin-left: 0; }
+  .tab:last-child { margin-right: 0; }
 
   /* Conteúdo */
   .content { padding: 12px; }
