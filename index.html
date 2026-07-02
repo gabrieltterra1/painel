@@ -733,6 +733,10 @@
   #disp-table tr.disp-row-ok:hover td { background: rgba(0, 201, 122, 0.42); }
   #disp-table thead th { position: sticky; top: 0; background: var(--header-table-bg, #0d1b3e); color: #fff; z-index: 2; }
   #disp-table th.sortable { cursor: pointer; user-select: none; }
+  #plano91-table { border-collapse:collapse; width:max-content; font-size:12px; }
+  #plano91-table th, #plano91-table td { padding:5px 8px; border-bottom:1px solid var(--border); }
+  #plano91-table thead th { position:sticky; top:0; background:var(--header-table-bg,#0d1b3e); color:#fff; z-index:2; }
+  #plano91-table tbody tr:hover td { background:rgba(61,139,255,.06); }
   /* Tabela IFE — responsiva */
   #ife-table { border-collapse:collapse; width:max-content; min-width:100%; }
   #ife-table th, #ife-table td { padding:8px 12px; white-space:nowrap; }
@@ -1082,6 +1086,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="tab" onclick="showTab('ife')">IFE</div>
   <div class="tab" onclick="showTab('pedidos')">Pedidos de Venda</div>
   <div class="tab" onclick="showTab('disponibilidade')">Disponibilidade</div>
+  <div class="tab" onclick="showTab('plano91')">Plano 91</div>
 </nav>
 
 <!-- ======= OF ABERTAS ======= -->
@@ -2113,6 +2118,30 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 
+<div id="tab-plano91" class="tab-content">
+  <div class="section-title" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">Plano 91 — Linha do Tempo de Montagem<span class="email-badge" data-sheet="PLANO_91"></span>
+    <button class="upload-btn" style="background:rgba(0,201,122,.15);color:var(--green);border:1px solid var(--green);font-size:11px;padding:5px 12px;white-space:nowrap" onclick="exportarTabelaDOM('#plano91-table','plano_91')">⤓ Gerar Excel</button>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0">
+    <select class="filter-select" id="plano91-familia" onchange="renderPlano91()">
+      <option value="">Todas as famílias</option>
+      <option value="TOMADA+MULT">Tomada + Mult</option>
+      <option value="BOMBA">Bomba</option>
+      <option value="CILINDRO">Cilindro</option>
+      <option value="CONJ EIXO">Conj. Eixo</option>
+      <option value="GUINCHO+ENROLADOR">Guincho + Enrolador</option>
+      <option value="WALVOIL - COMANDO">Walvoil - Comando</option>
+      <option value="WALVOIL - VALVULA">Walvoil - Válvula</option>
+      <option value="KIT HIDRAULICO">Kit Hidráulico</option>
+    </select>
+    <input class="filter-select" id="plano91-search" oninput="renderPlano91()" placeholder="Buscar código ou descrição" style="min-width:200px">
+  </div>
+  <div id="plano91-resumo" style="font-size:12px;color:var(--text-muted);margin-bottom:8px"></div>
+  <div class="table-wrap"><div class="scrollable">
+    <table id="plano91-table"><thead id="plano91-thead"></thead><tbody id="plano91-tbody"></tbody><tfoot id="plano91-tfoot"></tfoot></table>
+  </div></div>
+</div>
+
 <script>
 // ===== TEMA (claro/escuro) =====
 function aplicarTema(tema){
@@ -2346,11 +2375,12 @@ function msToggleAll(id) {
 
 function showTab(id) {
   document.querySelectorAll('.tab').forEach((t,i) => {
-    const ids = ['dashboard','montados','of','estoque','servicos','termico','ife','pedidos','disponibilidade'];
+    const ids = ['dashboard','montados','of','estoque','servicos','termico','ife','pedidos','disponibilidade','plano91'];
     t.classList.toggle('active', ids[i] === id);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-'+id).classList.add('active');
+  if (id === 'plano91' && typeof renderPlano91 === 'function') renderPlano91();
 }
 
 // ===== OF ABERTAS =====
@@ -9534,6 +9564,116 @@ function _dispFamiliaCard(codGrp, descGrp) {
 // Ordem fixa das famílias nos cards (OUTROS por último)
 const _DISP_FAM_ORDEM = ['TOMADA E MULT','BOMBA','CILINDRO','CONJ. EIXO','GUINCHO E ENROL.','COMANDO','VÁLVULA','KIT HIDR.','IMPORTADOS','OUTROS'];
 
+function parsePlano91(text) {
+  if (!text || !text.trim()) { DATA.plano91 = []; return []; }
+  const rows = parseCSV(text, ';');
+  const FAMILIAS_MONT = ['TOMADA+MULT','BOMBA','CILINDRO','CONJ EIXO',
+                         'GUINCHO+ENROLADOR','WALVOIL - COMANDO','WALVOIL - VALVULA','KIT HIDRAULICO'];
+  const itens = [];
+  rows.forEach(r => {
+    if (r.length < 28) return;
+    const cod = String(r[2]||'').trim();
+    if (!cod || cod.toUpperCase().indexOf('CÓDIGO') >= 0 || cod.toUpperCase().indexOf('CODIGO') >= 0) return;
+    const tipoOrd = String(r[4]||'').trim().toUpperCase();
+    if (['OFA','OFM','OFP'].indexOf(tipoOrd) < 0) return; // só ordens de fabricação
+    const classCod = String(r[27]||'').trim();
+    const familia = pvFamilia(classCod);
+    if (FAMILIAS_MONT.indexOf(familia) < 0) return; // mantém só as 8 famílias montadas
+    const dataFimStr = normDate(r[7]);
+    const dataFimIso = /^\d{2}\/\d{2}\/\d{4}$/.test(dataFimStr) ? dataFimStr.split('/').reverse().join('-') : '';
+    const qtde = parseFloat(String(r[11]||'0').replace(/\./g,'').replace(',','.'))||0;
+    itens.push({
+      codigo: cod,
+      descricao: String(r[3]||'').trim(),
+      tipoOrdem: String(r[4]||'').trim(),
+      dataFimStr, dataFimIso, qtde,
+      classCod,
+      classDesc: String(r[28]||'').trim(),
+      familia
+    });
+  });
+  DATA.plano91 = itens;
+  return itens;
+}
+
+function renderPlano91() {
+  const thead=document.getElementById('plano91-thead');
+  const tbody=document.getElementById('plano91-tbody');
+  const tfoot=document.getElementById('plano91-tfoot');
+  const resumo=document.getElementById('plano91-resumo');
+  if(!thead||!tbody) return;
+  let itens = DATA.plano91 || [];
+  if(!itens.length){ thead.innerHTML=''; tbody.innerHTML='<tr><td style="padding:16px;color:var(--text-muted)">Sem dados do Plano 91. Aguarde a atualização.</td></tr>'; tfoot.innerHTML=''; if(resumo)resumo.textContent=''; return; }
+
+  // filtros
+  const fam=(document.getElementById('plano91-familia')||{}).value||'';
+  const busca=((document.getElementById('plano91-search')||{}).value||'').trim().toUpperCase();
+  if(fam) itens=itens.filter(i=>i.familia===fam);
+  if(busca) itens=itens.filter(i=>(i.codigo+' '+i.descricao).toUpperCase().includes(busca));
+
+  // datas distintas (colunas) ordenadas
+  const datas=[...new Set(itens.filter(i=>i.dataFimIso).map(i=>i.dataFimIso))].sort();
+  // agrupa datas por mês para subtotais
+  const meses=[]; const mesMap={};
+  datas.forEach(d=>{ const mk=d.slice(0,7); if(!mesMap[mk]){ mesMap[mk]=[]; meses.push(mk); } mesMap[mk].push(d); });
+
+  // agrupa por item (codigo+descricao), soma qtde por data
+  const itemMap={};
+  itens.forEach(i=>{
+    const key=i.codigo;
+    if(!itemMap[key]) itemMap[key]={codigo:i.codigo,descricao:i.descricao,familia:i.familia,porData:{},total:0};
+    if(i.dataFimIso){ itemMap[key].porData[i.dataFimIso]=(itemMap[key].porData[i.dataFimIso]||0)+i.qtde; itemMap[key].total+=i.qtde; }
+  });
+  const linhas=Object.values(itemMap).sort((a,b)=>a.familia.localeCompare(b.familia)||a.descricao.localeCompare(b.descricao));
+
+  const fmtN=n=>n?Math.round(n).toLocaleString('pt-BR'):'';
+  const dLabel=iso=>iso.slice(8,10)+'/'+iso.slice(5,7);
+  const mLabel=mk=>{ const nomes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']; const p=mk.split('-'); return nomes[+p[1]-1]+'/'+p[0]; };
+
+  // cabeçalho: 2 linhas (mês agrupado + dias), com coluna de subtotal por mês
+  let h1='<tr><th rowspan="2" style="position:sticky;left:0;background:var(--header-table-bg,#0d1b3e);z-index:3;text-align:left;min-width:220px">ITEM</th>';
+  let h2='<tr>';
+  meses.forEach(mk=>{
+    const dias=mesMap[mk];
+    h1+='<th colspan="'+(dias.length+1)+'" style="text-align:center;border-left:2px solid var(--border)">'+mLabel(mk)+'</th>';
+    dias.forEach(d=>{ h2+='<th style="text-align:center;min-width:44px;font-size:10px">'+dLabel(d)+'</th>'; });
+    h2+='<th style="text-align:center;min-width:52px;font-weight:700;color:var(--serie-azul);border-right:2px solid var(--border)">Tot</th>';
+  });
+  h1+='<th rowspan="2" style="text-align:center;min-width:60px;color:var(--green)">TOTAL</th></tr>';
+  h2+='</tr>';
+  thead.innerHTML=h1+h2;
+
+  // linhas
+  const totCol={}; let totGeral=0; const totMes={};
+  let body='';
+  linhas.forEach(l=>{
+    body+='<tr><td style="position:sticky;left:0;background:var(--surface);z-index:1;text-align:left;white-space:nowrap"><span style="font-family:monospace;font-size:11px;color:var(--text-muted)">'+l.codigo+'</span> '+l.descricao+'</td>';
+    meses.forEach(mk=>{
+      let subMes=0;
+      mesMap[mk].forEach(d=>{
+        const v=l.porData[d]||0; subMes+=v;
+        totCol[d]=(totCol[d]||0)+v;
+        body+='<td style="text-align:center">'+fmtN(v)+'</td>';
+      });
+      totMes[mk]=(totMes[mk]||0)+subMes;
+      body+='<td style="text-align:center;font-weight:700;color:var(--serie-azul);border-right:2px solid var(--border)">'+fmtN(subMes)+'</td>';
+    });
+    body+='<td style="text-align:center;font-weight:700;color:var(--green)">'+fmtN(l.total)+'</td></tr>';
+    totGeral+=l.total;
+  });
+  tbody.innerHTML=body;
+
+  // rodapé: total geral
+  let foot='<tr style="border-top:2px solid var(--border);font-weight:700"><td style="position:sticky;left:0;background:var(--header-table-bg,#0d1b3e);z-index:1;text-align:left">TOTAL GERAL</td>';
+  meses.forEach(mk=>{
+    mesMap[mk].forEach(d=>{ foot+='<td style="text-align:center">'+fmtN(totCol[d]||0)+'</td>'; });
+    foot+='<td style="text-align:center;color:var(--serie-azul);border-right:2px solid var(--border)">'+fmtN(totMes[mk]||0)+'</td>';
+  });
+  foot+='<td style="text-align:center;color:var(--green)">'+fmtN(totGeral)+'</td></tr>';
+  tfoot.innerHTML=foot;
+
+  if(resumo) resumo.textContent=linhas.length+' itens · '+datas.length+' datas · total '+fmtN(totGeral)+' peças a montar';
+}
 function parseDisponibilidade(text) {
   const rows = parseCSV(text, ';');
   const itens = {}; // chave empresa|item -> agrupado (para os cards)
@@ -12385,7 +12525,8 @@ async function readSheets() {
     'TERMICO_POLIMENTO': parseTermico,
     'IFE':               parseIFE,
     'PEDIDOS_DE_VENDA':  parsePedidos,
-    'DISPONIBILIDADE':   parseDisponibilidade
+    'DISPONIBILIDADE':   parseDisponibilidade,
+    'PLANO_91':          parsePlano91
   };
 
   // Fetch CONFIG primeiro (metas, feriados, etc.)
