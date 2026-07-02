@@ -12600,11 +12600,13 @@ const WEBAPP = 'https://script.google.com/macros/s/AKfycbyFeoCDp-ROgWP_n8xImPFeh
 const READ_INTERVAL_MS = 15 * 60 * 1000;
 let monitorTimer = null, countdownTimer = null, nextRead = null, isMonitoring = false;
 
-function setStatus(state, msg) {
+function setStatus(state, msg, tooltip) {
   const dot = document.getElementById('status-dot');
   const txt = document.getElementById('update-time');
   dot.className = 'status-dot'+(state==='active'?' active':state==='error'?' error':'');
   txt.textContent = msg;
+  txt.title = tooltip || '';
+  txt.style.cursor = tooltip ? 'help' : '';
 }
 
 async function forcarAtualizacao(forceProcess=false) {
@@ -12711,16 +12713,37 @@ async function readSheets() {
 
 
   // Fetch paralelo — todas as abas ao mesmo tempo
-  const fetchAba = async (aba) => {
-    const res = await fetch(WEBAPP+'?aba='+encodeURIComponent(aba)+'&t='+Date.now());
-    if (!res.ok) throw new Error('HTTP '+res.status);
-    const text = await res.text();
-    if (!text.trim()) throw new Error('vazio');
-    return text;
+  const _sleep = ms => new Promise(r=>setTimeout(r,ms));
+  const fetchAba = async (aba, tentativas=3) => {
+    let ultErro;
+    for (let t=1; t<=tentativas; t++) {
+      try {
+        const res = await fetch(WEBAPP+'?aba='+encodeURIComponent(aba)+'&t='+Date.now());
+        if (!res.ok) throw new Error('HTTP '+res.status);
+        const text = await res.text();
+        if (!text.trim()) throw new Error('vazio');
+        return text;
+      } catch(e) {
+        ultErro = e;
+        if (t < tentativas) await _sleep(500*t); // espera crescente antes de tentar de novo
+      }
+    }
+    throw ultErro;
+  };
+
+  // chama em lotes pequenos (3 por vez) para não sobrecarregar o Web App e evitar 404 por concorrência
+  const _emLotes = async (chaves, tam) => {
+    const out = [];
+    for (let i=0; i<chaves.length; i+=tam) {
+      const lote = chaves.slice(i, i+tam);
+      const res = await Promise.allSettled(lote.map(aba => fetchAba(aba)));
+      out.push(...res);
+    }
+    return out;
   };
 
   const abaKeys = Object.keys(abas);
-  const results = await Promise.allSettled(abaKeys.map(aba => fetchAba(aba)));
+  const results = await _emLotes(abaKeys, 3);
 
   let found = 0, errors = [];
 
@@ -12744,7 +12767,8 @@ async function readSheets() {
     const t = new Date().toLocaleTimeString('pt-BR');
     setStatus('active', errors.length
       ? 'Atualizado '+t+' ('+errors.length+' erros)'
-      : 'Atualizado as '+t+' - prox. '+(READ_INTERVAL_MS/60000)+'min');
+      : 'Atualizado as '+t+' - prox. '+(READ_INTERVAL_MS/60000)+'min',
+      errors.length ? 'Abas que falharam: '+errors.join(', ') : '');
     startCountdown();
   } else {
     setStatus('error', 'Erro ao ler planilha');
