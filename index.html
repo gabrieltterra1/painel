@@ -252,6 +252,7 @@
   /* TABS */
   .tabs {
     display: flex;
+    justify-content: center;
     gap: 0;
     padding: 0 32px;
     background: var(--surface);
@@ -12871,8 +12872,17 @@ async function readSheets() {
     return out;
   };
 
-  const abaKeys = Object.keys(abas);
-  const results = await _emLotes(abaKeys, 3);
+  // ordena intercalando as abas pesadas com as leves, para nenhum lote ficar preso nas grandes
+  const PESADAS = ['SERVICO_TERCEIROS','DISPONIBILIDADE','PLANO_91','ESTOQUE_SEG_DETALHE'];
+  const todasKeys = Object.keys(abas);
+  const leves = todasKeys.filter(k=>PESADAS.indexOf(k)<0);
+  const pesadas = todasKeys.filter(k=>PESADAS.indexOf(k)>=0);
+  const abaKeys = [];
+  const maxLen = Math.max(leves.length, pesadas.length);
+  for (let i=0;i<maxLen;i++){ if(pesadas[i]) abaKeys.push(pesadas[i]); if(leves[i]) abaKeys.push(leves[i]); if(leves[i+maxLen]) abaKeys.push(leves[i+maxLen]); }
+  // garante que nenhuma aba fique de fora
+  todasKeys.forEach(k=>{ if(abaKeys.indexOf(k)<0) abaKeys.push(k); });
+  const results = await _emLotes(abaKeys, 6);
 
   let found = 0, errors = [];
 
