@@ -740,12 +740,9 @@
   #disp-table th.sortable { cursor: pointer; user-select: none; }
   #plano91-table { border-collapse:collapse; width:max-content; font-size:12px; }
   #plano91-table th, #plano91-table td { padding:5px 8px; border-bottom:1px solid var(--border); }
-  #plano91-table thead tr:first-child th { position:sticky; top:0; background:#0d1b3e; color:#fff; z-index:3; }
-  #plano91-table thead tr:nth-child(2) th { position:sticky; top:30px; background:#0d1b3e; color:#fff; z-index:2; }
-  #plano91-table thead th:first-child { left:0; z-index:5 !important; background:#0d1b3e !important; }
-  [data-theme="light"] #plano91-table thead tr:first-child th,
-  [data-theme="light"] #plano91-table thead tr:nth-child(2) th,
-  [data-theme="light"] #plano91-table thead th:first-child { background:#1e3a5f !important; }
+  #plano91-table thead th { position:sticky; top:0; background:#0d1b3e; color:#fff; z-index:3; }
+  #plano91-table thead th:first-child { left:0; z-index:5; background:#0d1b3e; }
+  [data-theme="light"] #plano91-table thead th { background:#1e3a5f !important; }
   #plano91-table tbody tr:hover td { background:rgba(61,139,255,.06); }
   #plano91-full-table { border-collapse:collapse; width:max-content; font-size:11px; }
   #plano91-full-table th, #plano91-full-table td { padding:4px 8px; border-bottom:1px solid var(--border); }
@@ -9710,7 +9707,7 @@ function renderPlano91() {
 
   const fmtN=n=>n?Math.round(n).toLocaleString('pt-BR'):'';
   const _mob = window.innerWidth <= 768;
-  const cortaDesc = d => (_mob && d && d.length>18) ? d.slice(0,18)+'…' : d;
+  const cortaDesc = d => (_mob && d && d.length>10) ? d.slice(0,10)+'…' : d;
   const DOW=['dom','seg','ter','qua','qui','sex','sáb'];
   const dowLabel=iso=>{ const d=new Date(iso+'T00:00:00'); return DOW[d.getDay()]; };
   const dLabel=iso=>iso.slice(8,10)+'/'+iso.slice(5,7);
@@ -9734,20 +9731,26 @@ function renderPlano91() {
   });
 
   // cabeçalho: linha 1 = mês; linha 2 = dia-da-semana + data (ou "sem"/"mês")
-  let h1='<tr><th rowspan="2" style="position:sticky;left:0;background:var(--header-table-bg,#0d1b3e);z-index:3;text-align:left;min-width:220px">ITEM</th>';
-  let h2='<tr>';
-  meses.forEach(mk=>{
+  let h1='<tr><th style="position:sticky;left:0;background:#0d1b3e;z-index:5;text-align:left;min-width:'+(_mob?'120px':'220px')+'">ITEM</th>';
+  meses.forEach((mk,mi)=>{
     const seq=colsPorMes[mk];
-    h1+='<th colspan="'+seq.length+'" style="text-align:center;border-left:2px solid var(--border)">'+mLabel(mk)+'</th>';
+    let primeiroDia=true;
     seq.forEach(c=>{
-      if(c.t==='dia') h2+='<th style="text-align:center;min-width:40px;font-size:9px;line-height:1.2"><span style="color:var(--text-muted)">'+dowLabel(c.d)+'</span><br>'+dLabel(c.d)+'</th>';
-      else if(c.t==='sem') h2+='<th style="text-align:center;min-width:38px;font-size:9px;color:var(--text-muted);background:rgba(255,255,255,.03)" title="Soma da semana">sem</th>';
-      else h2+='<th style="text-align:center;min-width:50px;font-weight:700;color:var(--serie-azul);border-right:2px solid var(--border)">Mês</th>';
+      if(c.t==='dia'){
+        // primeira coluna de dia do mês mostra o mês em cima; demais só o dia
+        const borda = primeiroDia ? 'border-left:2px solid var(--serie-azul);' : '';
+        const mesTop = primeiroDia ? '<span style="color:var(--serie-azul);font-weight:700">'+mLabel(mk)+'</span>' : '<span style="color:var(--text-muted)">'+dowLabel(c.d)+'</span>';
+        h1+='<th style="text-align:center;min-width:38px;font-size:9px;line-height:1.3;'+borda+'">'+mesTop+'<br>'+dLabel(c.d)+'</th>';
+        primeiroDia=false;
+      } else if(c.t==='sem'){
+        h1+='<th style="text-align:center;min-width:34px;font-size:9px;color:var(--text-muted);background:rgba(255,255,255,.04)" title="Soma da semana">sem</th>';
+      } else {
+        h1+='<th style="text-align:center;min-width:46px;font-size:9px;font-weight:700;color:var(--serie-azul);border-right:2px solid var(--border)">Mês</th>';
+      }
     });
   });
-  h1+='<th rowspan="2" style="text-align:center;min-width:60px;color:var(--green)">TOTAL</th></tr>';
-  h2+='</tr>';
-  thead.innerHTML=h1+h2;
+  h1+='<th style="text-align:center;min-width:52px;color:var(--green);font-size:9px">TOTAL</th></tr>';
+  thead.innerHTML=h1;
 
   // linhas
   const totCol={}; let totGeral=0; const totMes={};
