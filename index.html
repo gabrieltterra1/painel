@@ -740,9 +740,12 @@
   #disp-table th.sortable { cursor: pointer; user-select: none; }
   #plano91-table { border-collapse:collapse; width:max-content; font-size:12px; }
   #plano91-table th, #plano91-table td { padding:5px 8px; border-bottom:1px solid var(--border); }
-  #plano91-table thead tr:first-child th { position:sticky; top:0; background:var(--header-table-bg,#0d1b3e); color:#fff; z-index:3; }
-  #plano91-table thead tr:nth-child(2) th { position:sticky; top:34px; background:var(--header-table-bg,#0d1b3e); color:#fff; z-index:2; }
-  #plano91-table thead th:first-child { z-index:4 !important; }
+  #plano91-table thead tr:first-child th { position:sticky; top:0; background:#0d1b3e; color:#fff; z-index:3; }
+  #plano91-table thead tr:nth-child(2) th { position:sticky; top:30px; background:#0d1b3e; color:#fff; z-index:2; }
+  #plano91-table thead th:first-child { left:0; z-index:5 !important; background:#0d1b3e !important; }
+  [data-theme="light"] #plano91-table thead tr:first-child th,
+  [data-theme="light"] #plano91-table thead tr:nth-child(2) th,
+  [data-theme="light"] #plano91-table thead th:first-child { background:#1e3a5f !important; }
   #plano91-table tbody tr:hover td { background:rgba(61,139,255,.06); }
   #plano91-full-table { border-collapse:collapse; width:max-content; font-size:11px; }
   #plano91-full-table th, #plano91-full-table td { padding:4px 8px; border-bottom:1px solid var(--border); }
@@ -9707,7 +9710,7 @@ function renderPlano91() {
 
   const fmtN=n=>n?Math.round(n).toLocaleString('pt-BR'):'';
   const _mob = window.innerWidth <= 768;
-  const cortaDesc = d => (_mob && d && d.length>25) ? d.slice(0,25)+'…' : d;
+  const cortaDesc = d => (_mob && d && d.length>18) ? d.slice(0,18)+'…' : d;
   const DOW=['dom','seg','ter','qua','qui','sex','sáb'];
   const dowLabel=iso=>{ const d=new Date(iso+'T00:00:00'); return DOW[d.getDay()]; };
   const dLabel=iso=>iso.slice(8,10)+'/'+iso.slice(5,7);
