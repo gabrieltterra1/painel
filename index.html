@@ -12755,7 +12755,7 @@ document.addEventListener('click', function(ev){
 });
 
 // ===== GOOGLE SHEETS MONITOR =====
-const WEBAPP = 'https://script.google.com/macros/s/AKfycbyFeoCDp-ROgWP_n8xImPFehmPbHlg0pjf5TiC7tW4O6BUAewqh9We0v6ROAiC0rnSn/exec';
+const WEBAPP = 'https://script.google.com/macros/s/AKfycbz4lhLthaG3rzwPApdmE92boRih7vt6qI0MrOWbospJPP0aaeqrUe0XMEnaEkPHowrK/exec';
 const READ_INTERVAL_MS = 15 * 60 * 1000;
 let monitorTimer = null, countdownTimer = null, nextRead = null, isMonitoring = false;
 
@@ -12890,7 +12890,7 @@ async function readSheets() {
     throw ultErro;
   };
 
-  // chama em lotes pequenos (fallback, caso o endpoint único falhe)
+  // busca em lotes pequenos sequenciais (respeita concorrência e tempo do Apps Script)
   const _emLotes = async (chaves, tam) => {
     const out = [];
     for (let i=0; i<chaves.length; i+=tam) {
@@ -12904,45 +12904,25 @@ async function readSheets() {
   const abaKeys = Object.keys(abas);
   let found = 0, errors = [];
 
-  // ── TENTA O ENDPOINT ÚNICO (1 requisição para todas as abas) ──
-  let pacote = null;
-  try {
-    const resTudo = await fetch(WEBAPP+'?acao=tudo&t='+Date.now());
-    if (resTudo.ok) {
-      const txt = await resTudo.text();
-      const obj = JSON.parse(txt);
-      if (obj && typeof obj === 'object' && Object.keys(obj).length) pacote = obj;
-    }
-  } catch(e) { console.warn('endpoint único falhou, usando fallback', e); pacote = null; }
+  // ── Busca em LOTES PEQUENOS SEQUENCIAIS (2 por vez) ──
+  // Comprovado: o Apps Script trava se receber muitas requisições ao mesmo tempo,
+  // e o endpoint único (?acao=tudo) estoura o limite de 60s. Lotes de 2 respeitam
+  // a concorrência e o tempo. O cache por aba no Apps Script acelera as repetições.
+  const PESADAS = ['SERVICO_TERCEIROS','DISPONIBILIDADE','PLANO_91','ESTOQUE_SEG_DETALHE'];
+  const leves = abaKeys.filter(k=>PESADAS.indexOf(k)<0);
+  const pesadas = abaKeys.filter(k=>PESADAS.indexOf(k)>=0);
+  const ordem = [];
+  const maxLen = Math.max(leves.length, pesadas.length);
+  for (let i=0;i<maxLen;i++){ if(pesadas[i]) ordem.push(pesadas[i]); if(leves[i]) ordem.push(leves[i]); if(leves[i+maxLen]) ordem.push(leves[i+maxLen]); }
+  abaKeys.forEach(k=>{ if(ordem.indexOf(k)<0) ordem.push(k); });
 
-  if (pacote) {
-    // processa cada aba a partir do pacote único
-    abaKeys.forEach(aba => {
-      const texto = pacote[aba];
-      if (texto && String(texto).trim()) {
-        try { abas[aba](texto); found++; }
-        catch(e) { errors.push(aba); console.error(aba, e); }
-      } else {
-        errors.push(aba); console.error(aba, 'vazio no pacote');
-      }
-    });
-  } else {
-    // ── FALLBACK: método antigo (lotes de 6, pesadas intercaladas) ──
-    const PESADAS = ['SERVICO_TERCEIROS','DISPONIBILIDADE','PLANO_91','ESTOQUE_SEG_DETALHE'];
-    const leves = abaKeys.filter(k=>PESADAS.indexOf(k)<0);
-    const pesadas = abaKeys.filter(k=>PESADAS.indexOf(k)>=0);
-    const ordem = [];
-    const maxLen = Math.max(leves.length, pesadas.length);
-    for (let i=0;i<maxLen;i++){ if(pesadas[i]) ordem.push(pesadas[i]); if(leves[i]) ordem.push(leves[i]); if(leves[i+maxLen]) ordem.push(leves[i+maxLen]); }
-    abaKeys.forEach(k=>{ if(ordem.indexOf(k)<0) ordem.push(k); });
-    const results = await _emLotes(ordem, 6);
-    for (let i = 0; i < ordem.length; i++) {
-      const aba = ordem[i]; const result = results[i];
-      if (result.status === 'fulfilled' && result.value) {
-        try { abas[aba](result.value); found++; }
-        catch(e) { errors.push(aba); console.error(aba, e); }
-      } else { errors.push(aba); console.error(aba, result.reason); }
-    }
+  const results = await _emLotes(ordem, 2);
+  for (let i = 0; i < ordem.length; i++) {
+    const aba = ordem[i]; const result = results[i];
+    if (result.status === 'fulfilled' && result.value) {
+      try { abas[aba](result.value); found++; }
+      catch(e) { errors.push(aba); console.error(aba, e); }
+    } else { errors.push(aba); console.error(aba, result.reason); }
   }
 
   if (found > 0) {
