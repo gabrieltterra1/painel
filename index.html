@@ -740,7 +740,9 @@
   #disp-table th.sortable { cursor: pointer; user-select: none; }
   #plano91-table { border-collapse:collapse; width:max-content; font-size:12px; }
   #plano91-table th, #plano91-table td { padding:5px 8px; border-bottom:1px solid var(--border); }
-  #plano91-table thead th { position:sticky; top:0; background:var(--header-table-bg,#0d1b3e); color:#fff; z-index:2; }
+  #plano91-table thead tr:first-child th { position:sticky; top:0; background:var(--header-table-bg,#0d1b3e); color:#fff; z-index:3; }
+  #plano91-table thead tr:nth-child(2) th { position:sticky; top:34px; background:var(--header-table-bg,#0d1b3e); color:#fff; z-index:2; }
+  #plano91-table thead th:first-child { z-index:4 !important; }
   #plano91-table tbody tr:hover td { background:rgba(61,139,255,.06); }
   #plano91-full-table { border-collapse:collapse; width:max-content; font-size:11px; }
   #plano91-full-table th, #plano91-full-table td { padding:4px 8px; border-bottom:1px solid var(--border); }
@@ -9704,6 +9706,8 @@ function renderPlano91() {
   const linhas=Object.values(itemMap).sort((a,b)=>a.familia.localeCompare(b.familia)||a.descricao.localeCompare(b.descricao));
 
   const fmtN=n=>n?Math.round(n).toLocaleString('pt-BR'):'';
+  const _mob = window.innerWidth <= 768;
+  const cortaDesc = d => (_mob && d && d.length>25) ? d.slice(0,25)+'…' : d;
   const DOW=['dom','seg','ter','qua','qui','sex','sáb'];
   const dowLabel=iso=>{ const d=new Date(iso+'T00:00:00'); return DOW[d.getDay()]; };
   const dLabel=iso=>iso.slice(8,10)+'/'+iso.slice(5,7);
@@ -9746,7 +9750,7 @@ function renderPlano91() {
   const totCol={}; let totGeral=0; const totMes={};
   let body='';
   linhas.forEach(l=>{
-    body+='<tr><td style="position:sticky;left:0;background:var(--surface);z-index:1;text-align:left;white-space:nowrap"><span style="font-family:monospace;font-size:11px;color:var(--text-muted)">'+l.codigo+'</span> '+l.descricao+'</td>';
+    body+='<tr><td style="position:sticky;left:0;background:var(--surface);z-index:1;text-align:left;white-space:nowrap"><span style="font-family:monospace;font-size:11px;color:var(--text-muted)">'+l.codigo+'</span> '+cortaDesc(l.descricao)+'</td>';
     meses.forEach(mk=>{
       let subMes=0, subSem=0;
       colsPorMes[mk].forEach(c=>{
@@ -9760,18 +9764,24 @@ function renderPlano91() {
   });
   tbody.innerHTML=body;
 
-  // rodapé: total geral (repete a estrutura de colunas, somando semanas/meses)
-  let foot='<tr style="border-top:2px solid var(--border);font-weight:700"><td style="position:sticky;left:0;background:var(--header-table-bg,#0d1b3e);z-index:1;text-align:left">TOTAL GERAL</td>';
+  // linha de total geral (usada no TOPO e no rodapé)
+  let totCells='';
   meses.forEach(mk=>{
     let subSem=0;
     colsPorMes[mk].forEach(c=>{
-      if(c.t==='dia'){ const v=totCol[c.d]||0; subSem+=v; foot+='<td style="text-align:center">'+fmtN(v)+'</td>'; }
-      else if(c.t==='sem'){ foot+='<td style="text-align:center;font-size:10px;color:var(--text-muted);background:rgba(255,255,255,.03)">'+fmtN(subSem)+'</td>'; subSem=0; }
-      else foot+='<td style="text-align:center;color:var(--serie-azul);border-right:2px solid var(--border)">'+fmtN(totMes[mk]||0)+'</td>';
+      if(c.t==='dia'){ const v=totCol[c.d]||0; subSem+=v; totCells+='<td style="text-align:center">'+fmtN(v)+'</td>'; }
+      else if(c.t==='sem'){ totCells+='<td style="text-align:center;font-size:10px;color:var(--text-muted);background:rgba(255,255,255,.03)">'+fmtN(subSem)+'</td>'; subSem=0; }
+      else totCells+='<td style="text-align:center;color:var(--serie-azul);border-right:2px solid var(--border)">'+fmtN(totMes[mk]||0)+'</td>';
     });
   });
-  foot+='<td style="text-align:center;color:var(--green)">'+fmtN(totGeral)+'</td></tr>';
-  tfoot.innerHTML=foot;
+  totCells+='<td style="text-align:center;color:var(--green)">'+fmtN(totGeral)+'</td>';
+  const linhaTotal = lbl => '<tr style="border-top:2px solid var(--border);border-bottom:2px solid var(--border);font-weight:700;background:rgba(61,139,255,.06)"><td style="position:sticky;left:0;background:#12233f;z-index:1;text-align:left">'+lbl+'</td>'+totCells+'</tr>';
+
+  // insere o total no TOPO do corpo (logo abaixo do cabeçalho)
+  tbody.innerHTML = linhaTotal('TOTAL ▲') + tbody.innerHTML;
+
+  // rodapé: mesmo total
+  tfoot.innerHTML = linhaTotal('TOTAL GERAL');
 
   if(resumo) resumo.textContent=linhas.length+' itens · '+datas.length+' datas · total '+fmtN(totGeral)+' peças a montar';
   if(typeof renderPlano91Full==='function') renderPlano91Full();
