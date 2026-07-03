@@ -1092,7 +1092,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <button id="theme-toggle" onclick="toggleTema()" title="Alternar tema claro/escuro" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:14px;cursor:pointer">🌙</button>
       <button onclick="pedirSenha(abrirModalFeriados)" style="background:rgba(245,158,11,.15);border:1px solid #f59e0b;color:#f59e0b;padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">📅 Feriados</button>
       <button class="upload-btn" id="refresh-btn" onclick="forcarAtualizacao(false)" title="Atualizar dados do painel">↻ Atualizar</button>
-      <button class="upload-btn" id="process-btn" onclick="forcarAtualizacao(true)" title="Ler novos emails e atualizar (~1 min)" style="padding:7px 10px;font-size:14px">⚡</button>
+      <button class="upload-btn" id="process-btn" onclick="pedirSenha(function(){ forcarAtualizacao(true); })" title="Ler novos emails e atualizar (~1 min) — protegido por senha" style="padding:7px 10px;font-size:14px">⚡</button>
     </div>
     <input type="file" id="file-input" multiple accept=".csv,.CSV" onchange="handleFiles(this.files)">
   </div>
@@ -12831,7 +12831,7 @@ async function readSheets() {
   try {
     const cfgRes = await fetch(WEBAPP+'?aba=CONFIG&t='+Date.now());
     const cfgText = await cfgRes.text();
-    if (cfgText && cfgText.startsWith('{')) {
+    if (cfgText && cfgText.trim().startsWith('{')) {
       DATA.config = JSON.parse(cfgText);
       // Processos excluídos (persistidos): chave PROC_EXCLUIDOS = lista separada por "|"
       DATA.procExcluidos = (DATA.config.PROC_EXCLUIDOS || '').split('|').map(s=>s.trim()).filter(Boolean);
@@ -12849,6 +12849,9 @@ async function readSheets() {
           if (cv !== undefined && cv !== '') DATA.tercComp[key] = parseFloat(cv)||0;
         }
       }
+    } else {
+      // CONFIG veio inválido (erro/cota): preserva o config anterior se existir, não zera os badges/metas
+      console.warn('CONFIG inválido nesta leitura; mantendo config anterior.');
     }
   } catch(e) { console.warn('CONFIG não disponível:', e); }
 
