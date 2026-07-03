@@ -842,6 +842,8 @@
   .dprog.terc i { background: linear-gradient(90deg, #b87410, var(--amber)); }
   .dprog.tt i { background: linear-gradient(90deg, #b32020, #ff6b6b); }
   .dprog.pm i { background: linear-gradient(90deg, #00794a, var(--green)); }
+  .dprog.meta-ok i { background: linear-gradient(90deg, #00794a, var(--green)); }
+  .dprog.meta-baixo i { background: linear-gradient(90deg, #b32020, #ff6b6b); }
   .dprog .mark { position: absolute; top: -3px; width: 2px; height: 14px; background: #fff; border-radius: 1px; opacity: .6; }
   .dspark { margin-top: 10px; height: 30px; width: 100%; }
   /* montagem */
@@ -10960,8 +10962,8 @@ function renderDashboard(){
       + '<div class="dh-selo '+(ttOk?'up':'down')+'">'+(ttOk?'▲ na meta':'▼ abaixo')+'</div></div>'
     + '<div class="dh-big">'+_dfmt(ttUltDia)+'</div>'
     + '<div class="dh-meta">média '+_dfmt(ttMed)+'/dia · meta '+_dfmt(ttMetaDia)+'/dia</div>'
-    + '<div class="dprog tt"><i style="width:'+pctBar(ttMed,ttMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div>'
-    + _spark(ttSerie, '#ff6b6b') + '</div>';
+    + '<div class="dprog '+(ttOk?'meta-ok':'meta-baixo')+'"><i style="width:'+pctBar(ttMed,ttMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div>'
+    + _spark(ttSerie, ttOk?'#00c97a':'#ff6b6b') + '</div>';
   // PM — último dia + média + meta + selo + barra + sparkline
   const pmOk=pmMed>=pmMetaDia;
   heroHtml += '<div class="dh pm '+(pmOk?'meta-ok':'meta-baixo')+'" onclick="showTab(\'termico\')">'
@@ -10969,8 +10971,8 @@ function renderDashboard(){
       + '<div class="dh-selo '+(pmOk?'up':'down')+'">'+(pmOk?'▲ na meta':'▼ abaixo')+'</div></div>'
     + '<div class="dh-big">'+_dfmt(pmUltDia)+'</div>'
     + '<div class="dh-meta">média '+_dfmt(pmMed)+'/dia · meta '+_dfmt(pmMetaDia)+'/dia</div>'
-    + '<div class="dprog pm"><i style="width:'+pctBar(pmMed,pmMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div>'
-    + _spark(pmSerie, '#00c97a') + '</div>';
+    + '<div class="dprog '+(pmOk?'meta-ok':'meta-baixo')+'"><i style="width:'+pctBar(pmMed,pmMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div>'
+    + _spark(pmSerie, pmOk?'#00c97a':'#ff6b6b') + '</div>';
   heroHtml += '</div>';
 
   // ── MONTAGEM (só famílias com meta, 1 casa decimal) ──
