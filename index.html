@@ -828,6 +828,13 @@
   .dh-big { font-family: var(--font-display); font-size: 42px; font-weight: 900; line-height: .95; margin-bottom: 3px; }
   .dh.ife .dh-big { color: var(--blue-light); } .dh.terc .dh-big { color: var(--amber); }
   .dh.tt .dh-big { color: #ff6b6b; } .dh.pm .dh-big { color: var(--green); }
+  /* cor do card conforme a meta (sobrepõe a cor fixa) — verde na meta, vermelho abaixo */
+  .dh.meta-ok::before { background: var(--green) !important; }
+  .dh.meta-ok .dh-big { color: var(--green) !important; }
+  .dh.meta-ok { box-shadow: 0 0 0 1px rgba(0,201,122,.12), 0 8px 30px rgba(0,201,122,.08) !important; }
+  .dh.meta-baixo::before { background: var(--red) !important; }
+  .dh.meta-baixo .dh-big { color: #ff6b6b !important; }
+  .dh.meta-baixo { box-shadow: 0 0 0 1px rgba(255,59,59,.12), 0 8px 30px rgba(255,59,59,.08) !important; }
   .dh-big small { font-size: 17px; color: var(--text-muted); font-weight: 600; }
   .dh-meta { font-size: 11px; color: var(--text-muted); margin-bottom: 12px; }
   .dprog { position: relative; height: 8px; background: rgba(255,255,255,.06); border-radius: 5px; margin-top: 4px; }
@@ -10948,7 +10955,7 @@ function renderDashboard(){
     + (tercMeta>0?'<div class="dprog terc"><i style="width:'+pctBar(tercReal,tercMeta)+'%"></i><span class="mark" style="left:100%"></span></div>':'')+'</div>';
   // TT — último dia + média + meta + selo + barra + sparkline
   const ttOk=ttMed>=ttMetaDia;
-  heroHtml += '<div class="dh tt" onclick="showTab(\'termico\')">'
+  heroHtml += '<div class="dh tt '+(ttOk?'meta-ok':'meta-baixo')+'" onclick="showTab(\'termico\')">'
     + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">🌡️</span>TT — último dia</div>'
       + '<div class="dh-selo '+(ttOk?'up':'down')+'">'+(ttOk?'▲ na meta':'▼ abaixo')+'</div></div>'
     + '<div class="dh-big">'+_dfmt(ttUltDia)+'</div>'
@@ -10957,7 +10964,7 @@ function renderDashboard(){
     + _spark(ttSerie, '#ff6b6b') + '</div>';
   // PM — último dia + média + meta + selo + barra + sparkline
   const pmOk=pmMed>=pmMetaDia;
-  heroHtml += '<div class="dh pm" onclick="showTab(\'termico\')">'
+  heroHtml += '<div class="dh pm '+(pmOk?'meta-ok':'meta-baixo')+'" onclick="showTab(\'termico\')">'
     + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">✨</span>PM — último dia</div>'
       + '<div class="dh-selo '+(pmOk?'up':'down')+'">'+(pmOk?'▲ na meta':'▼ abaixo')+'</div></div>'
     + '<div class="dh-big">'+_dfmt(pmUltDia)+'</div>'
