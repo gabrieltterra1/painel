@@ -12662,7 +12662,7 @@ async function _daChamarIA(pergunta){
   const ticket='tk'+Date.now()+'_'+Math.floor(Math.random()*1000000);
   // etapa 1: envia pergunta+resumo por POST (sem limite de tamanho de URL)
   try {
-    await fetch(WEBAPP, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ action:'iaPergunta', ticket:ticket, q:pergunta, resumo:resumo }) });
+    await fetch(WEBAPP, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ action:'iaPergunta', ticket:ticket, q:pergunta, resumo:resumo, hist:(window._daHistIA||[]) }) });
   } catch(e){ return {erro:'Falha ao enviar a pergunta (rede).'}; }
   // etapa 2: JSONP só com o ticket (URL curta, imune ao limite)
   return new Promise(function(resolve){
@@ -12679,7 +12679,11 @@ async function _daChamarIA(pergunta){
     window[cbName]=function(data){
       if(done) return; done=true; clearTimeout(timer); limpar();
       if(data&&data.erro) resolve({erro:data.erro});
-      else resolve({texto:(data&&data.texto)||''});
+      else {
+        const tx=(data&&data.texto)||'';
+        try{ window._daHistIA=(window._daHistIA||[]); window._daHistIA.push({q:pergunta,r:tx.slice(0,1500)}); if(window._daHistIA.length>5) window._daHistIA=window._daHistIA.slice(-5); }catch(e){}
+        resolve({texto:tx});
+      }
     };
     const url=WEBAPP+'?acao=perguntarIA&ticket='+ticket+'&callback='+cbName+'&t='+Date.now();
     const s=document.createElement('script');
