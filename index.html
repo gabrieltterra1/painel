@@ -12843,7 +12843,17 @@ document.addEventListener('click', function(ev){
 });
 
 // ===== GOOGLE SHEETS MONITOR =====
-const WEBAPP = 'https://script.google.com/macros/s/AKfycbwv9LdTc0E0nZxyfZHkTbDTLBgTEYzCeThN4xFmFEXgkREt2HTIluN2Bhms07dh1vmb/exec';
+// URL do WebApp: lida do arquivo webapp.txt no repositório (edite SÓ o webapp.txt quando a implantação mudar)
+let WEBAPP = 'https://script.google.com/macros/s/AKfycbzxzslHt8EGUl9YwlEb_UIWg4Do9EVLUladck4b2qE5KkcmvcsweZ8WwrjQW7TCTtQO/exec'; // reserva
+try {
+  var _wx = new XMLHttpRequest();
+  _wx.open('GET', 'webapp.txt?t=' + Date.now(), false); // síncrono: mesma origem, arquivo de 1 linha
+  _wx.send(null);
+  if (_wx.status === 200) {
+    var _wu = (_wx.responseText || '').trim();
+    if (_wu.indexOf('https://script.google.com/macros/s/') === 0) WEBAPP = _wu;
+  }
+} catch(e) { console.warn('webapp.txt não encontrado; usando URL reserva.'); }
 const READ_INTERVAL_MS = 15 * 60 * 1000;
 let monitorTimer = null, countdownTimer = null, nextRead = null, isMonitoring = false;
 
