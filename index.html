@@ -912,6 +912,12 @@
   /* botão "Assistente" no título do dashboard */
   .assist-abrir-btn { margin-left:auto; background:linear-gradient(135deg,#a855f7,#7c3aed); color:#fff; border:none; border-radius:10px; padding:7px 15px; font-size:13px; font-weight:800; letter-spacing:.3px; cursor:pointer; box-shadow:0 3px 12px rgba(168,85,247,.4); transition:transform .12s; font-family:var(--font-body); }
   .assist-abrir-btn:hover { transform:translateY(-2px); }
+  /* barra do assistente no topo (visível em todas as abas) */
+  .assist-topbar { display:flex; justify-content:center; padding:12px 16px 4px; }
+  .assist-topbtn { background:linear-gradient(135deg,#a855f7,#6366f1,#ec4899); background-size:200% 200%; animation:daBorderFlow 5s ease infinite; color:#fff; border:none; border-radius:14px; padding:12px 28px; font-size:16px; font-weight:900; letter-spacing:.3px; cursor:pointer; box-shadow:0 6px 22px rgba(168,85,247,.45); transition:transform .12s; font-family:var(--font-body); }
+  .assist-topbtn:hover { transform:translateY(-2px); }
+  .assist-topbtn-sub { font-size:12px; font-weight:500; opacity:.85; }
+  @media(max-width:600px){ .assist-topbtn{ padding:11px 18px; font-size:14px } .assist-topbtn-sub{ display:none } }
   .dash-eyebrow::after { order:99; }
   /* modal do assistente */
   .assist-modal-ov { display:none; position:fixed; inset:0; z-index:5000; background:rgba(4,8,18,.72); backdrop-filter:blur(3px); align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; }
@@ -1131,6 +1137,10 @@ document.addEventListener('DOMContentLoaded', () => {
     <input type="file" id="file-input" multiple accept=".csv,.CSV" onchange="handleFiles(this.files)">
   </div>
 </header>
+
+<div class="assist-topbar">
+  <button class="assist-topbtn" onclick="abrirModalAssistente()">🤖 Assistente do Painel <span class="assist-topbtn-sub">· pergunte sobre montagem, pedidos, estoque</span></button>
+</div>
 
 <nav class="tabs">
   <div class="tab active" onclick="showTab('dashboard')">📊 Dashboard</div>
@@ -11167,9 +11177,7 @@ function renderDashboard(){
     + '</div>'
     + '</div>';
 
-  const eyebrowHtml='<div class="dash-eyebrow"><span class="bar-accent"></span>Indicadores do mês'
-    +'<button class="assist-abrir-btn" onclick="abrirModalAssistente()" title="Abrir o assistente">🤖 Assistente</button>'
-    +'</div>';
+  const eyebrowHtml='<div class="dash-eyebrow"><span class="bar-accent"></span>Indicadores do mês</div>';
   cont.innerHTML=eyebrowHtml+heroHtml+montHtml+alertasHtml+'<div id="assist-host">'+assistHtml+'</div>';
   // se o modal estava aberto, garante que o assistente volte pro host ao re-renderizar
   const _slot=document.getElementById('assist-modal-slot');
@@ -11496,18 +11504,16 @@ async function dashPerguntar(){
     }
   } else {
     out.innerHTML = resp;
-    window._daUltimaPergunta = q; // guarda para o botão "Complementar com IA"
+    window._daUltimaPergunta = q;
     // anexa follow-ups (próximas perguntas) se a resposta não for de erro
     try {
       if(!/Não consegui|Não sei|Erro|Qual filial|💡|❓/.test(resp)){
         const fu=_daFollowups(q);
         if(fu) out.innerHTML += fu;
-        // botão "Complementar com IA" (sempre visível; pede chave se não tiver)
-        out.innerHTML += '<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">'
-          +'<button onclick="dashComplementarIA()" style="background:rgba(168,85,247,.12);border:1px solid #a855f755;color:#c084fc;border-radius:16px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font-body)">🤖 Complementar com IA</button>'
-          +'<span style="font-size:11px;color:var(--text-muted);margin-left:8px">análise adicional do Gemini sobre os mesmos dados</span>'
-          +'<div id="da-complemento" style="margin-top:10px"></div>'
-          +'</div>';
+        // complemento automático do Gemini sobre os mesmos dados
+        out.innerHTML += '<div id="da-complemento" style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">'
+          +'<div style="font-size:12px;color:var(--text-muted)">🤖 Consultando o Gemini para complementar…</div></div>';
+        dashComplementarIA(); // dispara em seguida, sem precisar clicar
       }
     } catch(e){}
   }
@@ -12513,8 +12519,8 @@ function dashAbrirPrioridadesHoje(escopo){
 
 
 
-function _daIAAtivo(){ try { return !!localStorage.getItem('dash_ia_key'); } catch(e){ return false; } }
-function _daIAKey(){ try { return localStorage.getItem('dash_ia_key')||''; } catch(e){ return ''; } }
+function _daIAAtivo(){ return true; } // chave protegida no Apps Script; IA sempre disponível
+function _daIAKey(){ return ''; } // não usado mais (chave fica no backend)
 // Abre config da chave (ativar/desativar modo IA)
 function dashConfigIA(){
   const ativo=_daIAAtivo();
@@ -12619,12 +12625,6 @@ async function dashComplementarIA(){
   const alvo=document.getElementById('da-complemento');
   const q=window._daUltimaPergunta||'';
   if(!alvo||!q) return;
-  if(!_daIAAtivo()){
-    alvo.innerHTML='<div style="font-size:12px;color:var(--text-muted);line-height:1.6">Para usar a IA, ative o <b>🤖 Modo IA</b> e cole sua chave gratuita do Gemini.</div>'
-      +'<div style="margin-top:8px"><button onclick="dashConfigIA()" style="background:#a855f7;color:#fff;border:none;border-radius:7px;padding:8px 14px;font-weight:700;font-size:12px;cursor:pointer">Configurar Modo IA</button></div>';
-    return;
-  }
-  alvo.innerHTML='<div style="font-size:12px;color:var(--text-muted)">🤖 Consultando o Gemini…</div>';
   const r=await _daChamarIA(q);
   if(r&&r.texto){
     alvo.innerHTML='<div style="background:rgba(168,85,247,.06);border:1px solid #a855f733;border-radius:10px;padding:12px 14px">'
@@ -12639,10 +12639,13 @@ async function dashComplementarIA(){
 function abrirModalAssistente(){
   const modal=document.getElementById('assist-modal');
   const slot=document.getElementById('assist-modal-slot');
-  const host=document.getElementById('assist-host');
-  if(!modal||!slot||!host) return;
+  if(!modal||!slot) return;
+  let host=document.getElementById('assist-host');
+  // se o Dashboard ainda não foi renderizado (estou noutra aba), renderiza agora
+  if(!host){ try{ renderDashboard(); }catch(e){} host=document.getElementById('assist-host'); }
+  if(!host) return;
   const card=host.querySelector('.assist-card');
-  if(card){ slot.appendChild(card); }        // move o assistente pro modal
+  if(card){ slot.appendChild(card); }
   modal.classList.add('open');
   const inp=document.getElementById('dash-pergunta');
   if(inp){ setTimeout(function(){ try{ inp.focus(); }catch(e){} }, 60); }
@@ -12658,29 +12661,17 @@ function fecharModalAssistente(){
 document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ const m=document.getElementById('assist-modal'); if(m&&m.classList.contains('open')) fecharModalAssistente(); } });
 
 async function _daChamarIA(pergunta){
-  const key=_daIAKey();
-  if(!key) return null;
   const resumo=_daResumoPainel();
-  const sysPrompt='Você é um assistente de PCP/Almoxarifado de uma indústria (Interpump). Responda em português brasileiro, de forma objetiva e direta, com os cálculos quando fizer sentido. Use SOMENTE os dados fornecidos abaixo do painel industrial. Se faltar dado, diga o que falta. Famílias de montagem: Tomada+Mult, Bomba, Cilindro, Conj.Eixo, Guincho+Enrolador, Comando, Válvula, Kit Hidráulico.\n\nDADOS ATUAIS DO PAINEL:\n'+resumo;
   try {
-    const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-goog-api-key':key
-      },
-      body:JSON.stringify({
-        systemInstruction:{ parts:[{ text:sysPrompt }] },
-        contents:[{ role:'user', parts:[{ text:pergunta }] }],
-        generationConfig:{ maxOutputTokens:1024, temperature:0.2 }
-      })
-    });
-    if(!resp.ok){ const t=await resp.text(); return {erro:'Erro da API ('+resp.status+'): '+t.slice(0,200)}; }
-    const data=await resp.json();
-    const cand=(data.candidates&&data.candidates[0])||null;
-    const txt=cand&&cand.content&&cand.content.parts?cand.content.parts.map(p=>p.text||'').join('\n'):'';
-    if(!txt){ return {erro:'Resposta vazia da IA'+(cand&&cand.finishReason?' ('+cand.finishReason+')':'')+'.'}; }
-    return {texto:txt};
+    const url=WEBAPP+'?acao=perguntarIA&q='+encodeURIComponent(pergunta)+'&resumo='+encodeURIComponent(resumo)+'&t='+Date.now();
+    const resp=await fetch(url);
+    if(!resp.ok){ const t=await resp.text(); return {erro:'Erro ('+resp.status+'): '+t.slice(0,200)}; }
+    const t=await resp.text();
+    const ini=t.slice(0,60).toLowerCase();
+    if(ini.indexOf('<!doctype')>=0||ini.indexOf('<html')>=0) return {erro:'Backend indisponível (verifique login na conta indicadoresinterpump).'};
+    const data=JSON.parse(t);
+    if(data.erro) return {erro:data.erro};
+    return {texto:data.texto||''};
   } catch(e){ return {erro:'Falha ao chamar a IA: '+e.message}; }
 }
 
