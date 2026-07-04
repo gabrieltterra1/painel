@@ -12927,7 +12927,7 @@ async function readSheets() {
 
   // Fetch paralelo — todas as abas ao mesmo tempo
   const _sleep = ms => new Promise(r=>setTimeout(r,ms));
-  const fetchAba = async (aba, tentativas=3) => {
+  const fetchAba = async (aba, tentativas=4) => {
     let ultErro;
     for (let t=1; t<=tentativas; t++) {
       try {
@@ -12935,10 +12935,14 @@ async function readSheets() {
         if (!res.ok) throw new Error('HTTP '+res.status);
         const text = await res.text();
         if (!text.trim()) throw new Error('vazio');
+        // O Apps Script às vezes responde 200 com uma PÁGINA HTML de erro (latência/cold start).
+        // Detecta isso e tenta de novo, em vez de passar lixo ao parser.
+        const ini = text.slice(0, 60).toLowerCase();
+        if (ini.indexOf('<!doctype') >= 0 || ini.indexOf('<html') >= 0) throw new Error('html-erro');
         return text;
       } catch(e) {
         ultErro = e;
-        if (t < tentativas) await _sleep(500*t); // espera crescente antes de tentar de novo
+        if (t < tentativas) await _sleep(800*t); // espera crescente (0,8s, 1,6s, 2,4s)
       }
     }
     throw ultErro;
