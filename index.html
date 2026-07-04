@@ -11179,9 +11179,11 @@ function renderDashboard(){
 
   const eyebrowHtml='<div class="dash-eyebrow"><span class="bar-accent"></span>Indicadores do mês</div>';
   cont.innerHTML=eyebrowHtml+heroHtml+montHtml+alertasHtml+'<div id="assist-host">'+assistHtml+'</div>';
-  // se o modal estava aberto, garante que o assistente volte pro host ao re-renderizar
+  // se o modal estava aberto, descarta o assistente órfão que ficou no slot (evita duplicação)
   const _slot=document.getElementById('assist-modal-slot');
-  if(_slot && _slot.firstElementChild){ fecharModalAssistente(); }
+  if(_slot){ _slot.innerHTML=''; }
+  const _modal=document.getElementById('assist-modal');
+  if(_modal){ _modal.classList.remove('open'); }
 }
 
 // Navega para uma aba aplicando o filtro correspondente ao alerta clicado
