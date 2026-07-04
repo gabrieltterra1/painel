@@ -12664,17 +12664,28 @@ document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ const m=
 
 async function _daChamarIA(pergunta){
   const resumo=_daResumoPainel();
-  try {
-    const url=WEBAPP+'?acao=perguntarIA&q='+encodeURIComponent(pergunta)+'&resumo='+encodeURIComponent(resumo)+'&t='+Date.now();
-    const resp=await fetch(url);
-    if(!resp.ok){ const t=await resp.text(); return {erro:'Erro ('+resp.status+'): '+t.slice(0,200)}; }
-    const t=await resp.text();
-    const ini=t.slice(0,60).toLowerCase();
-    if(ini.indexOf('<!doctype')>=0||ini.indexOf('<html')>=0) return {erro:'Backend indisponível (verifique login na conta indicadoresinterpump).'};
-    const data=JSON.parse(t);
-    if(data.erro) return {erro:data.erro};
-    return {texto:data.texto||''};
-  } catch(e){ return {erro:'Falha ao chamar a IA: '+e.message}; }
+  return new Promise(function(resolve){
+    const cbName='_iaCB_'+Date.now()+'_'+Math.floor(Math.random()*100000);
+    let done=false;
+    const limpar=function(){
+      try{ delete window[cbName]; }catch(e){ window[cbName]=undefined; }
+      const s=document.getElementById(cbName); if(s) s.remove();
+    };
+    const timer=setTimeout(function(){
+      if(done) return; done=true; limpar();
+      resolve({erro:'Tempo esgotado ao consultar a IA.'});
+    }, 30000);
+    window[cbName]=function(data){
+      if(done) return; done=true; clearTimeout(timer); limpar();
+      if(data&&data.erro) resolve({erro:data.erro});
+      else resolve({texto:(data&&data.texto)||''});
+    };
+    const url=WEBAPP+'?acao=perguntarIA&q='+encodeURIComponent(pergunta)+'&resumo='+encodeURIComponent(resumo)+'&callback='+cbName+'&t='+Date.now();
+    const s=document.createElement('script');
+    s.id=cbName; s.src=url;
+    s.onerror=function(){ if(done) return; done=true; clearTimeout(timer); limpar(); resolve({erro:'Falha ao chamar a IA (rede).'}); };
+    document.body.appendChild(s);
+  });
 }
 
 // Copia a pergunta + resumo dos dados do painel para colar no app do Claude ou na extensão
