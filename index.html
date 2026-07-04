@@ -12659,6 +12659,12 @@ document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ const m=
 
 async function _daChamarIA(pergunta){
   const resumo=_daResumoPainel();
+  const ticket='tk'+Date.now()+'_'+Math.floor(Math.random()*1000000);
+  // etapa 1: envia pergunta+resumo por POST (sem limite de tamanho de URL)
+  try {
+    await fetch(WEBAPP, { method:'POST', mode:'no-cors', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ action:'iaPergunta', ticket:ticket, q:pergunta, resumo:resumo }) });
+  } catch(e){ return {erro:'Falha ao enviar a pergunta (rede).'}; }
+  // etapa 2: JSONP só com o ticket (URL curta, imune ao limite)
   return new Promise(function(resolve){
     const cbName='_iaCB_'+Date.now()+'_'+Math.floor(Math.random()*100000);
     let done=false;
@@ -12675,7 +12681,7 @@ async function _daChamarIA(pergunta){
       if(data&&data.erro) resolve({erro:data.erro});
       else resolve({texto:(data&&data.texto)||''});
     };
-    const url=WEBAPP+'?acao=perguntarIA&q='+encodeURIComponent(pergunta)+'&resumo='+encodeURIComponent(resumo)+'&callback='+cbName+'&t='+Date.now();
+    const url=WEBAPP+'?acao=perguntarIA&ticket='+ticket+'&callback='+cbName+'&t='+Date.now();
     const s=document.createElement('script');
     s.id=cbName; s.src=url;
     s.onerror=function(){ if(done) return; done=true; clearTimeout(timer); limpar(); resolve({erro:'Falha ao chamar a IA (rede).'}); };
