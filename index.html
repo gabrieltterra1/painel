@@ -212,6 +212,11 @@
     font-family: var(--font-display);
     letter-spacing: 1px;
   }
+  .menu-at-item {
+    display: block; width: 100%; text-align: left; background: none; border: none;
+    color: var(--text); padding: 7px 8px; border-radius: 5px; font-size: 12px; cursor: pointer;
+  }
+  .menu-at-item:hover { background: rgba(61,139,255,.12); }
   .upload-btn {
     background: var(--blue);
     color: #fff;
@@ -1093,8 +1098,24 @@ document.addEventListener('DOMContentLoaded', () => {
     <div style="display:flex;gap:5px;align-items:center">
       <button id="theme-toggle" onclick="toggleTema()" title="Alternar tema claro/escuro" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:14px;cursor:pointer">🌙</button>
       <button onclick="pedirSenha(abrirModalFeriados)" style="background:rgba(245,158,11,.15);border:1px solid #f59e0b;color:#f59e0b;padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">📅 Feriados</button>
-      <button class="upload-btn" id="refresh-btn" onclick="forcarAtualizacao(false)" title="Atualizar dados do painel">↻ Atualizar</button>
-      <button class="upload-btn" id="process-btn" onclick="pedirSenha(function(){ forcarAtualizacao(true); })" title="Ler novos emails e atualizar (~1 min) — protegido por senha" style="padding:7px 10px;font-size:14px">⚡</button>
+      <button class="upload-btn" id="refresh-btn" onclick="forcarAtualizacao(false)" title="Atualizar dados do painel (sem processar emails)">↻ Atualizar</button>
+      <div style="position:relative;display:inline-block">
+        <button class="upload-btn" id="process-btn" onclick="abrirMenuAtualizar(event)" title="Forçar atualização de dados (protegido por senha)" style="padding:7px 10px;font-size:14px">⚡ ▾</button>
+        <div id="menu-atualizar" style="display:none;position:absolute;right:0;top:110%;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.4);z-index:3000;min-width:230px;padding:6px">
+          <div style="font-size:10px;color:var(--text-muted);padding:4px 8px;letter-spacing:.5px">FORÇAR ATUALIZAÇÃO</div>
+          <button class="menu-at-item" onclick="pedirSenha(function(){forcarAba('PEDIDOS_DE_VENDA','Pedidos de Venda');})">📦 Pedidos de Venda</button>
+          <button class="menu-at-item" onclick="pedirSenha(function(){forcarAba('OF_ABERTAS','OF Abertas');})">🗂 OF Abertas</button>
+          <button class="menu-at-item" onclick="pedirSenha(function(){forcarAba('ITENS_MONTADOS','Itens Montados');})">🔩 Itens Montados</button>
+          <button class="menu-at-item" onclick="pedirSenha(function(){forcarAba('TRANSITO','Trânsito');})">🚚 Trânsito</button>
+          <button class="menu-at-item" onclick="pedirSenha(function(){forcarAba('SERVICO_TERCEIROS','Serviço Terceiros');})">🏭 Serviço Terceiros</button>
+          <button class="menu-at-item" onclick="pedirSenha(function(){forcarAba(['ESTOQUE_SEGURANCA','ESTOQUE_SEG_DETALHE','DISPONIBILIDADE'],'Estoque e Disponibilidade');})">📊 Estoque + Disponibilidade</button>
+          <button class="menu-at-item" onclick="pedirSenha(function(){forcarAba('TERMICO_POLIMENTO','Térmico e Polimento');})">🌡️ Térmico & Polimento</button>
+          <button class="menu-at-item" onclick="pedirSenha(function(){forcarAba('PLANO_91','Plano 91');})">📅 Plano 91</button>
+          <button class="menu-at-item" onclick="pedirSenha(function(){fecharMenuAtualizar();atualizarIFE();})">📈 IFE</button>
+          <div style="border-top:1px solid var(--border);margin:4px 0"></div>
+          <button class="menu-at-item" style="color:var(--amber);font-weight:700" onclick="pedirSenha(function(){fecharMenuAtualizar();forcarAtualizacao(true);})">⚡ Atualizar TUDO</button>
+        </div>
+      </div>
     </div>
     <input type="file" id="file-input" multiple accept=".csv,.CSV" onchange="handleFiles(this.files)">
   </div>
@@ -12787,6 +12808,34 @@ async function forcarAtualizacao(forceProcess=false) {
   if (btn) { btn.disabled = false; btn.textContent = '↻ Atualizar'; }
   if (btn) btn.disabled = false;
 }
+
+// Força a atualização de UMA aba (ou grupo de abas) sem processar as demais
+async function forcarAba(sheets, label) {
+  fecharMenuAtualizar();
+  const lista = Array.isArray(sheets) ? sheets : [sheets];
+  setStatus('active', '⚡ Atualizando ' + label + '...');
+  try {
+    for (const s of lista) {
+      await fetch(WEBAPP+'?acao=processarUma&sheet='+encodeURIComponent(s)+'&t='+Date.now());
+    }
+  } catch(e) { console.warn('forcarAba:', e); }
+  await readSheets();
+}
+function abrirMenuAtualizar(ev) {
+  ev && ev.stopPropagation();
+  const m = document.getElementById('menu-atualizar');
+  if (!m) return;
+  m.style.display = (m.style.display === 'block') ? 'none' : 'block';
+}
+function fecharMenuAtualizar() {
+  const m = document.getElementById('menu-atualizar');
+  if (m) m.style.display = 'none';
+}
+document.addEventListener('click', function(e){
+  const m = document.getElementById('menu-atualizar');
+  const b = document.getElementById('process-btn');
+  if (m && m.style.display === 'block' && !m.contains(e.target) && e.target !== b) fecharMenuAtualizar();
+});
 
 async function startMonitor() {
   if (isMonitoring) return;
