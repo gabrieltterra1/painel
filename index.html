@@ -1101,8 +1101,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <button class="upload-btn" id="refresh-btn" onclick="forcarAtualizacao(false)" title="Atualizar dados do painel (sem processar emails)">↻ Atualizar</button>
       <div style="position:relative;display:inline-block">
         <button class="upload-btn" id="process-btn" onclick="abrirMenuAtualizar(event)" title="Forçar atualização de dados (protegido por senha)" style="padding:7px 10px;font-size:14px">⚡ ▾</button>
-        <div id="menu-atualizar" style="display:none;position:absolute;right:0;top:110%;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.4);z-index:3000;min-width:230px;padding:6px">
-          <div style="font-size:10px;color:var(--text-muted);padding:4px 8px;letter-spacing:.5px">FORÇAR ATUALIZAÇÃO</div>
+<div id="menu-atualizar" style="display:none;position:absolute;right:0;top:110%;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.4);z-index:3000;min-width:230px;padding:6px;max-height:70vh;overflow-y:auto">          <div style="font-size:10px;color:var(--text-muted);padding:4px 8px;letter-spacing:.5px">FORÇAR ATUALIZAÇÃO</div>
           <button class="menu-at-item" onclick="pedirSenha(function(){forcarAba('PEDIDOS_DE_VENDA','Pedidos de Venda');})">📦 Pedidos de Venda</button>
           <button class="menu-at-item" onclick="pedirSenha(function(){forcarAba('OF_ABERTAS','OF Abertas');})">🗂 OF Abertas</button>
           <button class="menu-at-item" onclick="pedirSenha(function(){forcarAba('ITENS_MONTADOS','Itens Montados');})">🔩 Itens Montados</button>
