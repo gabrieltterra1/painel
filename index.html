@@ -12556,55 +12556,36 @@ function dashDesativarIA(){
   if(out) out.innerHTML=_daBox('Modo IA desativado','<div style="font-size:13px;color:var(--text-muted)">Voltou ao modo programado (grátis).</div>');
 }
 // Monta um resumo compacto dos dados do painel para enviar à IA
-function _daResumoPainel(){
+function _daResumoPainel(pergunta){
   const fmt=n=>Math.round(n).toLocaleString('pt-BR');
+  const fmt2=n=>(Math.round(n*100)/100).toLocaleString('pt-BR');
   const linhas=[];
+  const qn=(pergunta||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const tem=(...ks)=>ks.some(k=>k instanceof RegExp?k.test(qn):qn.indexOf(k)>=0);
+  // seções ativadas por palavra-chave; sem match => TODAS (análise completa)
+  const S={
+    pedidos: tem('pedido','prioridade','entrega','atras','cliente','fatur','venda'),
+    of:      tem(/\bofs?\b/,'ordem','ordens','fabrica'),
+    mont:    tem('mont','produc','media','ritmo'),
+    estoque: tem('estoque','transito','falta','abastec','seguranca'),
+    serv:    tem('terceiro','forca','servic','fornecedor','gasto'),
+    p91:     tem('plano','necessidade'),
+    ife:     tem(/\bife\b/,'indice','prazo','pontualidade'),
+    disp:    tem('dispon','faturavel')
+  };
+  if(!Object.values(S).some(v=>v)) Object.keys(S).forEach(k=>S[k]=true);
   try {
-    // Pedidos por família (qtde e atrasados)
+    // ── PANORAMA GERAL (sempre) ──
     if(DATA.pedidos&&DATA.pedidos.length){
       const porFam={};
       DATA.pedidos.forEach(p=>{ const f=_dashFamPedido(p)||'OUTROS'; if(!porFam[f])porFam[f]={qtde:0,atras:0,projNeg:0}; porFam[f].qtde+=p.qtde||0; if(p.atrasado)porFam[f].atras+=p.qtde||0; if(p.projetado<0)porFam[f].projNeg+=-p.projetado; });
       linhas.push('PEDIDOS por família (qtde total | qtde atrasada | falta montar=projetado negativo):');
       Object.entries(porFam).forEach(([f,v])=>linhas.push('  '+f+': '+fmt(v.qtde)+' | '+fmt(v.atras)+' | '+fmt(v.projNeg)));
     }
-    // Montagem média/dia por família com meta
-    if(DATA.montados&&DATA.montados.length){
-      linhas.push('MONTAGEM (médias do mês já calculadas estão nos cards do painel).');
-    }
-    // Estoque resumo
     if(DATA.estoque&&DATA.estoque.length){
       const abaixo=DATA.estoque.filter(r=>r.qtde_param_es>0&&r.estoque_total<r.qtde_param_es).length;
       const falta=DATA.estoque.filter(r=>r.tot_falta>0).length;
       linhas.push('ESTOQUE: '+abaixo+' itens abaixo do estoque de segurança, '+falta+' com falta a abastecer.');
-    }
-    // Disponibilidade
-    if(DATA.disponibilidade&&DATA.disponibilidade.length){
-      const disp=DATA.disponibilidade.filter(d=>d.disponivel>0).length;
-      linhas.push('DISPONIBILIDADE: '+disp+' itens disponíveis para venda.');
-    }
-    // ESTOQUE DE SEGURANÇA — DETALHADO POR CÓDIGO (por filial), para análise trânsito × ES
-    if(DATA.estoqueDet&&DATA.estoqueDet.length){
-      const FILIAIS=['SP','MG','GO','PE'];
-      FILIAIS.forEach(uf=>{
-        const comFalta=(DATA.estoqueDet||[])
-          .filter(it=>it.EMPRESA===uf)
-          .map(it=>{
-            const estoqueAtual=it.EST_ATUAL||0, paramES=it.PARAM_ES||0, estqTransito=it.EST_TRANSITO||0;
-            const faltaES=Math.max(0, paramES-estoqueAtual);
-            return { codigo:it.COD_ITEM, descricao:it.DESC, estoqueAtual, paramES, estqTransito, difTransito:it.DIF_TRANSITO, faltaES, descoberto:Math.max(0,faltaES-estqTransito) };
-          })
-          .filter(i=>i.faltaES>0);
-        if(!comFalta.length) return;
-        const descobertos=comFalta.filter(i=>i.descoberto>0);
-        linhas.push('');
-        linhas.push('ESTOQUE SEGURANÇA — '+uf+' (código | descr | estoqueAtual | paramES | estqTransito | difTransito):');
-        linhas.push('  Resumo: '+comFalta.length+' códigos com falta de ES, '+descobertos.length+' ainda descobertos após trânsito.');
-        // lista os códigos (limita a 40 por filial para o payload não explodir)
-        comFalta.slice(0,40).forEach(i=>{
-          linhas.push('  '+i.codigo+' | '+(i.descricao||'').slice(0,40)+' | '+fmt(i.estoqueAtual)+' | '+fmt(i.paramES)+' | '+fmt(i.estqTransito)+' | '+fmt(i.difTransito));
-        });
-        if(comFalta.length>40) linhas.push('  (+'+(comFalta.length-40)+' códigos omitidos)');
-      });
     }
     // dias úteis restantes
     let duRest=0;
@@ -12613,6 +12594,94 @@ function _daResumoPainel(){
     const ultDia=new Date(hoje.getFullYear(),hoje.getMonth()+1,0).getDate();
     for(let d=hoje.getDate();d<=ultDia;d++){const dt=new Date(hoje.getFullYear(),hoje.getMonth(),d);const dw=dt.getDay();const iso=hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');if(dw!==0&&dw!==6&&!fer.has(iso))duRest++;}
     linhas.push('DIAS ÚTEIS restantes no mês (com hoje): '+duRest+'.');
+
+    // ── PEDIDOS DE VENDA — LINHA A LINHA ──
+    if(S.pedidos&&DATA.pedidos&&DATA.pedidos.length){
+      const ps=DATA.pedidos.slice().sort((a,b)=>(a.dataEnt||new Date(9e12))-(b.dataEnt||new Date(9e12)));
+      linhas.push('');
+      linhas.push('PEDIDOS DE VENDA — por data de entrega (código | descrição | qtde | entrega | status | atrasado? | cliente | projetado | valor R$):');
+      ps.slice(0,120).forEach(p=>linhas.push('  '+p.codigo+' | '+(p.descricao||'').slice(0,32)+' | '+fmt(p.qtde)+' | '+(p.dataEntStr||'?')+' | '+p.status+' | '+(p.atrasado?'ATRASADO':'no prazo')+' | '+(p.cliente||'').slice(0,22)+' | '+fmt(p.projetado)+' | '+fmt(p.valor)));
+      if(ps.length>120) linhas.push('  (+'+(ps.length-120)+' linhas omitidas)');
+    }
+    // ── OF ABERTAS ──
+    if(S.of&&DATA.ofItens&&DATA.ofItens.length){
+      const os=DATA.ofItens.slice().sort((a,b)=>String(a.DT_FINAL).localeCompare(String(b.DT_FINAL)));
+      linhas.push('');
+      linhas.push('OF ABERTAS (nº ordem | código | descrição | qtde pendente | data final | situação | família):');
+      os.slice(0,100).forEach(o=>linhas.push('  '+o.NUM_ORDEM+' | '+o.COD_ITEM+' | '+(o.DESC||'').slice(0,30)+' | '+fmt(o.QTDE_PEND)+' | '+(o.DT_FINAL||'?')+' | '+(o.SITUACAO||'')+' | '+(o.FAMILIA||o.CLAS||'')));
+      if(os.length>100) linhas.push('  (+'+(os.length-100)+' linhas omitidas)');
+    }
+    // ── MONTAGEM DIÁRIA ──
+    if(S.mont&&DATA.montados&&DATA.montados.length){
+      linhas.push('');
+      linhas.push('MONTAGEM DIÁRIA do mês (data | Tomada+Mult | Bomba | Cilindro | Conj.Eixo | Guincho+Enrol | Comando | Válvula | Kit Hidr):');
+      DATA.montados.forEach(m=>linhas.push('  '+m.DATA+' | '+m.TOMADA_MULT+' | '+m.BOMBA+' | '+m.CILINDRO+' | '+m.CONJ_EIXO+' | '+m.GUINCHO+' | '+m.COMANDO+' | '+m.VALVULA+' | '+m.KIT_HIDR));
+    }
+    // ── ESTOQUE DE SEGURANÇA DETALHADO + TRÂNSITO ──
+    if(S.estoque){
+      if(DATA.estoqueDet&&DATA.estoqueDet.length){
+        const FILIAIS=['SP','MG','GO','PE'];
+        FILIAIS.forEach(uf=>{
+          const comFalta=(DATA.estoqueDet||[])
+            .filter(it=>it.EMPRESA===uf)
+            .map(it=>{
+              const estoqueAtual=it.EST_ATUAL||0, paramES=it.PARAM_ES||0, estqTransito=it.EST_TRANSITO||0;
+              const faltaES=Math.max(0, paramES-estoqueAtual);
+              return { codigo:it.COD_ITEM, descricao:it.DESC, estoqueAtual, paramES, estqTransito, difTransito:it.DIF_TRANSITO, faltaES, descoberto:Math.max(0,faltaES-estqTransito) };
+            })
+            .filter(i=>i.faltaES>0);
+          if(!comFalta.length) return;
+          const descobertos=comFalta.filter(i=>i.descoberto>0);
+          linhas.push('');
+          linhas.push('ESTOQUE SEGURANÇA — '+uf+' (código | descr | estoqueAtual | paramES | estqTransito | difTransito):');
+          linhas.push('  Resumo: '+comFalta.length+' códigos com falta de ES, '+descobertos.length+' ainda descobertos após trânsito.');
+          comFalta.slice(0,50).forEach(i=>{
+            linhas.push('  '+i.codigo+' | '+(i.descricao||'').slice(0,40)+' | '+fmt(i.estoqueAtual)+' | '+fmt(i.paramES)+' | '+fmt(i.estqTransito)+' | '+fmt(i.difTransito));
+          });
+          if(comFalta.length>50) linhas.push('  (+'+(comFalta.length-50)+' códigos omitidos)');
+        });
+      }
+      if(DATA.transito&&DATA.transito.length){
+        linhas.push('');
+        linhas.push('TRÂNSITO por filial (colunas = famílias, qtde em trânsito):');
+        DATA.transito.forEach(t=>{
+          const cols=Object.entries(t).filter(([k])=>k!=='EMPRESA').map(([k,v])=>k+'='+fmt(v||0)).join(' | ');
+          linhas.push('  '+t.EMPRESA+': '+cols);
+        });
+      }
+    }
+    // ── SERVIÇOS TERCEIROS ──
+    if(S.serv&&DATA.servico&&DATA.servico.length){
+      linhas.push('');
+      linhas.push('SERVIÇOS TERCEIROS (fornecedor | mês | valor R$ | valor até ontem R$ | processo):');
+      DATA.servico.slice(0,80).forEach(s=>linhas.push('  '+s.empresa+' | '+s.mes+' | '+fmt2(s.valor)+' | '+fmt2(s.valorAteOntem)+' | '+(s.processo||'')));
+      if(DATA.servico.length>80) linhas.push('  (+'+(DATA.servico.length-80)+' linhas omitidas)');
+    }
+    // ── PLANO 91 ──
+    if(S.p91&&DATA.plano91&&DATA.plano91.length){
+      const porFamP={};
+      DATA.plano91.forEach(i=>{ porFamP[i.familia]=(porFamP[i.familia]||0)+i.qtde; });
+      linhas.push('');
+      linhas.push('PLANO 91 — total por família: '+Object.entries(porFamP).map(([f,v])=>f+'='+fmt(v)).join(' | '));
+      linhas.push('PLANO 91 — ordens OF (código | descrição | qtde | data fim | família):');
+      DATA.plano91.slice(0,80).forEach(i=>linhas.push('  '+i.codigo+' | '+(i.descricao||'').slice(0,28)+' | '+fmt(i.qtde)+' | '+(i.dataFimStr||'?')+' | '+(i.familia||'')));
+      if(DATA.plano91.length>80) linhas.push('  (+'+(DATA.plano91.length-80)+' linhas omitidas)');
+    }
+    // ── IFE ──
+    if(S.ife&&DATA.ife&&DATA.ife.length){
+      const is=DATA.ife.slice().sort((a,b)=>String(b.mesKey).localeCompare(String(a.mesKey))).slice(0,60);
+      linhas.push('');
+      linhas.push('IFE — Índice de Fornecimento (mês | empresa 1=Matriz 2=SP | classificação | qtde atrasada | qtde total | % no prazo):');
+      is.forEach(i=>{ const pct=i.total>0?Math.round((1-i.atrasado/i.total)*1000)/10:0; linhas.push('  '+i.ref+' | emp '+i.emp+' | '+i.clas+' | '+fmt(i.atrasado)+' | '+fmt(i.total)+' | '+pct+'%'); });
+    }
+    // ── DISPONIBILIDADE ──
+    if(S.disp&&DATA.disponibilidade&&DATA.disponibilidade.length){
+      const ds=DATA.disponibilidade.filter(d=>d.disponivel>0).sort((a,b)=>b.disponivel-a.disponivel);
+      linhas.push('');
+      linhas.push('DISPONIBILIDADE para venda ('+ds.length+' itens com saldo livre) (empresa | item | descrição | disponível | família):');
+      ds.slice(0,80).forEach(d=>linhas.push('  '+(d.empresa||'')+' | '+(d.item||'')+' | '+(d.desc||'').slice(0,28)+' | '+fmt(d.disponivel)+' | '+(d.familia||'')));
+      if(ds.length>80) linhas.push('  (+'+(ds.length-80)+' itens omitidos)');
+    }
   } catch(e){ console.warn('resumo painel',e); }
   return linhas.join('\n');
 }
@@ -12658,7 +12727,7 @@ function fecharModalAssistente(){
 document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ const m=document.getElementById('assist-modal'); if(m&&m.classList.contains('open')) fecharModalAssistente(); } });
 
 async function _daChamarIA(pergunta){
-  const resumo=_daResumoPainel();
+  const resumo=_daResumoPainel(pergunta);
   const ticket='tk'+Date.now()+'_'+Math.floor(Math.random()*1000000);
   // etapa 1: envia pergunta+resumo por POST (sem limite de tamanho de URL)
   try {
@@ -12751,7 +12820,7 @@ function dashCopiarPergunta(){
     const sugEl=document.getElementById('dash-sugestoes');
     if(sugEl){ sugEl.innerHTML=_dashSugestoes().map(x=>'<button class="da-sug" onclick="dashPerguntarTexto(this.textContent)">'+x+'</button>').join(''); }
   }
-  const resumo=_daResumoPainel();
+  const resumo=_daResumoPainel(pergunta);
   const texto='Você é um assistente de PCP/Almoxarifado da indústria Interpump. Responda em português, com cálculos quando fizer sentido, usando os dados do painel abaixo.\n\n'
     +'PERGUNTA: '+pergunta+'\n\n'
     +'DADOS ATUAIS DO PAINEL:\n'+resumo;
