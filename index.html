@@ -7247,6 +7247,9 @@ function _pvRelatorioParaImagem(estilo, corpo, tipo) {
           a.download = 'Prioridades_Venda_'+dataStr+'.png';
           document.body.appendChild(a); a.click(); document.body.removeChild(a);
           URL.revokeObjectURL(a.href);
+          if (navigator.clipboard && window.ClipboardItem) {
+            navigator.clipboard.write([new ClipboardItem({'image/png':blob})]).then(()=>{},()=>{});
+          }
           document.body.removeChild(overlay);
         }, 'image/png');
       })
@@ -11635,28 +11638,38 @@ function imprimirResumoAtrasos(){
 function pngResumoAtrasos(){
   const D = window._raDados || _raBuild();
   if (!D.linhasFlat.length) { alert('Nenhum pedido em atraso.'); return; }
-  if (typeof html2canvas === 'undefined') { alert('html2canvas não disponível.'); return; }
+  if (typeof html2canvas === 'undefined') { alert('Biblioteca de imagem ainda carregando, tente de novo.'); return; }
   const {estilo, corpo} = _raRelatorioHTML();
-  const holder = document.createElement('div');
-  holder.style.cssText = 'position:fixed;left:-99999px;top:0;width:1100px;background:#fff';
-  holder.innerHTML = '<style>'+estilo+'</style><div style="padding:14px">'+corpo+'</div>';
-  document.body.appendChild(holder);
-  html2canvas(holder.firstElementChild.nextElementSibling || holder, {scale:2, backgroundColor:'#fff'}).then(canvas=>{
-    holder.remove();
-    // baixar
-    const link = document.createElement('a');
-    link.download = 'pedidos_em_atraso_'+new Date().toISOString().slice(0,10)+'.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    // tentar copiar p/ clipboard
-    canvas.toBlob(blob=>{
-      if (blob && navigator.clipboard && window.ClipboardItem) {
-        navigator.clipboard.write([new ClipboardItem({'image/png':blob})]).then(
-          ()=>{}, ()=>{}
-        );
-      }
-    });
-  }).catch(e=>{ holder.remove(); alert('Erro ao gerar PNG: '+e.message); });
+  // overlay VISÍVEL (fora da tela deixa a imagem apagada) + duplo rAF p/ o CSS pintar
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100000;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = '<div style="color:#fff;font-size:14px;font-weight:700">Gerando imagem...</div>';
+  document.body.appendChild(overlay);
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:fixed;left:0;top:0;width:1120px;background:#fff;padding:18px;z-index:1;overflow:visible';
+  wrap.innerHTML = '<style>'+estilo+'</style>'+corpo;
+  overlay.appendChild(wrap);
+  const dataStr = new Date().toISOString().slice(0,10);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const w = 1120, h = wrap.scrollHeight;
+    html2canvas(wrap, { scale:2.5, backgroundColor:'#ffffff', useCORS:true, logging:false,
+      width:w, height:h, windowWidth:w, windowHeight:h, scrollX:0, scrollY:0 })
+      .then(canvas => {
+        canvas.toBlob(blob => {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'Pedidos_em_Atraso_'+dataStr+'.png';
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          URL.revokeObjectURL(a.href);
+          // copiar automático p/ clipboard (se suportado)
+          if (navigator.clipboard && window.ClipboardItem) {
+            navigator.clipboard.write([new ClipboardItem({'image/png':blob})]).then(()=>{},()=>{});
+          }
+          if(overlay.parentNode) document.body.removeChild(overlay);
+        }, 'image/png');
+      })
+      .catch(err => { console.error(err); alert('Erro ao gerar imagem: '+err.message); if(overlay.parentNode) document.body.removeChild(overlay); });
+  }));
 }
 // Mostra um catálogo de ideias de perguntas, organizado por categoria
 function dashMostrarIdeias(){
