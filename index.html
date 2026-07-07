@@ -11608,7 +11608,7 @@ function _raRelatorioHTML(){
     +'table{width:100%;border-collapse:collapse;font-size:10px;table-layout:fixed}'
     +'thead tr{background:#0d1b3e}'
     +'th{color:#fff;padding:6px 5px;text-align:left;font-size:9px;font-weight:700}'
-    +'td{padding:4px 5px;border-bottom:1px solid #edf1f9;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}'
+    +'td{padding:4px 5px;border-bottom:1px solid #edf1f9;vertical-align:middle;overflow:hidden;text-align:left;color:#1a1a2e}'
     +'tr:nth-child(even) td{background:#f5f8ff}'
     +'tr.comp td{background:#d6f5e3 !important;font-weight:600}'
     +'@media print{body{margin:6px}}';
@@ -11652,7 +11652,7 @@ function pngResumoAtrasos(){
   const dataStr = new Date().toISOString().slice(0,10);
   requestAnimationFrame(() => requestAnimationFrame(() => {
     const w = 1120, h = wrap.scrollHeight;
-    html2canvas(wrap, { scale:2.5, backgroundColor:'#ffffff', useCORS:true, logging:false,
+    html2canvas(wrap, { scale:2, backgroundColor:'#ffffff', useCORS:true, logging:false,
       width:w, height:h, windowWidth:w, windowHeight:h, scrollX:0, scrollY:0 })
       .then(canvas => {
         canvas.toBlob(blob => {
