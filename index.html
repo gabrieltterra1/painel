@@ -810,6 +810,13 @@
   .dash-eyebrow .bar-accent { width: 4px; height: 16px; border-radius: 2px; background: var(--blue); }
   .dash-eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--border); }
   .dash-hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .ra-cards { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
+  .ra-card { flex:1; min-width:150px; max-width:230px; background:var(--border); border:1px solid var(--border); border-radius:8px; padding:10px 12px; }
+  .ra-card-t { font-size:9px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px; }
+  .ra-card-n { font-size:22px; font-weight:900; color:var(--text); }
+  .ra-card-s { font-size:10px; color:var(--text-muted); margin-top:3px; }
+  .ra-card-tot { border-color:var(--blue); }
+  .ra-card-comp { border-color:var(--green); max-width:280px; }
   .dh { background: linear-gradient(155deg, var(--surface2), var(--surface)); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; cursor: pointer; transition: transform .15s; position: relative; overflow: hidden; }
   .dh:hover { transform: translateY(-4px); }
   .dh::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
@@ -11011,6 +11018,20 @@ function renderDashboard(){
     + '<div class="dh-meta">média '+_dfmt(pmMed)+'/dia · meta '+_dfmt(pmMetaDia)+'/dia</div>'
     + '<div class="dprog '+(pmOk?'meta-ok':'meta-baixo')+'"><i style="width:'+pctBar(pmMed,pmMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div>'
     + _spark(pmSerie, pmOk?'#00c97a':'#ff6b6b') + '</div>';
+  // Pedidos em atraso — clicável, abre o Resumo de Atrasos
+  try {
+    const _atr = (DATA.pedidos||[]).filter(p=>p.atrasado);
+    const _grp = {}; _atr.forEach(p=>{ (_grp[p.pedido]=_grp[p.pedido]||[]).push(p); });
+    const _peds = Object.keys(_grp);
+    let _comp = 0;
+    _peds.forEach(n=>{ if(_grp[n].every(p=>_pvStatusOfLinha(p).statusOf==='FATURAR')) _comp++; });
+    const _qtdItens = _atr.length;
+    heroHtml += '<div class="dh terc" style="cursor:pointer" onclick="abrirResumoAtrasos()">'
+      + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📋</span>Pedidos em atraso</div>'
+        + (_peds.length?'<div class="dh-selo '+(_comp>0?'up':'down')+'">'+_comp+' p/ faturar</div>':'')+'</div>'
+      + '<div class="dh-big">'+_peds.length+'</div>'
+      + '<div class="dh-meta">'+_qtdItens+' itens · '+_comp+' pedidos completos · clique p/ resumo</div></div>';
+  } catch(e){ console.warn('card atraso', e); }
   heroHtml += '</div>';
 
   // ── MONTAGEM (só famílias com meta, 1 casa decimal) ──
@@ -11407,107 +11428,135 @@ function _dashFaltaMontarFamilia(famKey, dataLim){
 function _daEscapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // ===== RESUMO DE ATRASOS (agrupado por pedido) =====
-function abrirResumoAtrasos(){
-  const esc = _daEscapeHtml;
+// Monta a estrutura de dados compartilhada por modal/whatsapp/impressão
+function _raBuild(){
   const atrasados = (DATA.pedidos||[]).filter(p => p.atrasado);
   const grupos = {};
   atrasados.forEach(p => { (grupos[p.pedido] = grupos[p.pedido] || []).push(p); });
   const pedidosOrd = Object.keys(grupos).sort((a,b)=>String(a).localeCompare(String(b),'pt-BR',{numeric:true}));
-
-  // monta linhas achatadas (uma por item) + flag completo do pedido
   const linhasFlat = [];
   let completos = 0, parciais = 0;
+  const pedsCompletos = []; // {pedido, cliente}
+  const fam = {}; // familia -> {itens, qtde, qtdeFaturar}
   pedidosOrd.forEach(numPed => {
     const itens = grupos[numPed];
     const comSt = itens.map(p => ({ p, st: _pvStatusOfLinha(p).statusOf }));
     const todoFaturar = comSt.every(l => l.st === 'FATURAR');
-    if (todoFaturar) completos++; else parciais++;
-    comSt.forEach(({p,st}) => linhasFlat.push({
-      pedido:numPed, codigo:p.codigo, desc:p.descricao, qtde:Math.round(p.qtde),
-      familia:p.familia, status:st, cliente:p.cliente, rep:p.repDesc, completo:todoFaturar
-    }));
+    if (todoFaturar){ completos++; pedsCompletos.push({pedido:numPed, cliente:itens[0].cliente||''}); } else parciais++;
+    comSt.forEach(({p,st}) => {
+      linhasFlat.push({ pedido:numPed, codigo:p.codigo, desc:p.descricao, qtde:Math.round(p.qtde),
+        familia:p.familia, status:st, cliente:p.cliente, rep:p.repDesc, completo:todoFaturar });
+      const f = p.familia||'OUTROS';
+      if(!fam[f]) fam[f] = {itens:0, qtde:0, qtdeFaturar:0};
+      fam[f].itens++; fam[f].qtde += Math.round(p.qtde);
+      if(todoFaturar) fam[f].qtdeFaturar += Math.round(p.qtde);
+    });
   });
+  const qtdeTotal = linhasFlat.reduce((s,l)=>s+l.qtde,0);
+  const qtdeFaturar = linhasFlat.filter(l=>l.completo).reduce((s,l)=>s+l.qtde,0);
+  return { linhasFlat, pedidosOrd, completos, parciais, pedsCompletos, fam, qtdeTotal, qtdeFaturar };
+}
 
-  const resumoTopo = pedidosOrd.length
-    ? `<div style="display:flex;gap:16px;margin-bottom:12px;font-size:13px;flex-wrap:wrap">
-        <span><b>${pedidosOrd.length}</b> pedidos em atraso</span>
-        <span style="color:var(--green)"><b>${completos}</b> completos (faturar)</span>
-        <span style="color:#ffaa00"><b>${parciais}</b> parciais</span>
-      </div>` : '';
+function abrirResumoAtrasos(){
+  const esc = _daEscapeHtml;
+  const D = _raBuild();
+  window._raDados = D;
 
-  // tabela única
+  // ── Cards ──
+  let cardsHtml = '<div class="ra-cards">';
+  // Card 1: total em atraso + prontos
+  cardsHtml += '<div class="ra-card ra-card-tot">'
+    + '<div class="ra-card-t">TOTAL EM ATRASO</div>'
+    + '<div class="ra-card-n">'+D.qtdeTotal.toLocaleString('pt-BR')+'</div>'
+    + '<div class="ra-card-s">'+D.linhasFlat.length+' itens · <b style="color:#00c97a">'+D.qtdeFaturar.toLocaleString('pt-BR')+' prontos p/ faturar</b></div></div>';
+  // Card 2: pedidos 100% completos
+  let listaComp = D.pedsCompletos.slice(0,6).map(p=>esc(p.pedido)+' <span style="opacity:.7">'+esc((p.cliente||'').slice(0,18))+'</span>').join('<br>');
+  if(D.pedsCompletos.length>6) listaComp += '<br>+'+(D.pedsCompletos.length-6)+' pedidos';
+  if(!D.pedsCompletos.length) listaComp = '<span style="opacity:.6">nenhum</span>';
+  cardsHtml += '<div class="ra-card ra-card-comp">'
+    + '<div class="ra-card-t">✅ PEDIDOS 100% P/ FATURAR</div>'
+    + '<div class="ra-card-n" style="color:#00c97a">'+D.completos+'</div>'
+    + '<div class="ra-card-s" style="line-height:1.5">'+listaComp+'</div></div>';
+  // Cards por família
+  Object.keys(D.fam).sort().forEach(f=>{
+    const c = D.fam[f];
+    cardsHtml += '<div class="ra-card">'
+      + '<div class="ra-card-t">'+esc(f)+'</div>'
+      + '<div class="ra-card-n">'+c.qtde.toLocaleString('pt-BR')+'</div>'
+      + '<div class="ra-card-s">'+c.itens+' itens · '+(c.qtdeFaturar>0?'<b style="color:#00c97a">'+c.qtdeFaturar.toLocaleString('pt-BR')+' p/ faturar</b>':'0 p/ faturar')+'</div></div>';
+  });
+  cardsHtml += '</div>';
+
+  // ── Tabela ──
   let tbody = '';
-  if (!linhasFlat.length) {
+  if (!D.linhasFlat.length) {
     tbody = '<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--text-muted)">Nenhum pedido em atraso. \u{1F389}</td></tr>';
   } else {
-    linhasFlat.forEach(l => {
+    D.linhasFlat.forEach(l => {
       const corSt = l.status === 'FATURAR' ? 'var(--green)' : (l.status.includes('ABRIR') ? '#ff8888' : '#ffaa00');
-      const corComp = l.completo ? 'var(--green)' : '#ffaa00';
-      tbody += `<tr style="border-bottom:1px solid var(--border)">
-        <td style="padding:5px 8px;font-weight:700">${esc(l.pedido)}</td>
-        <td style="padding:5px 8px;font-weight:700">${esc(l.codigo)}</td>
-        <td style="padding:5px 8px">${esc(l.desc)}</td>
-        <td style="padding:5px 8px;text-align:right">${l.qtde.toLocaleString('pt-BR')}</td>
-        <td style="padding:5px 8px">${esc(l.familia)}</td>
-        <td style="padding:5px 8px;color:${corSt};font-weight:700">${esc(l.status)}</td>
-        <td style="padding:5px 8px">${esc(l.cliente)}</td>
-        <td style="padding:5px 8px">${esc(l.rep)}</td>
-        <td style="padding:5px 8px;color:${corComp};font-weight:800;text-align:center">${l.completo?'SIM':'N\u00c3O'}</td>
-      </tr>`;
+      const trBg = l.completo ? 'background:rgba(0,201,122,.12)' : '';
+      tbody += '<tr style="border-bottom:1px solid var(--border);'+trBg+'">'
+        + '<td style="padding:5px 8px;font-weight:700">'+esc(l.pedido)+'</td>'
+        + '<td style="padding:5px 8px;font-weight:700">'+esc(l.codigo)+'</td>'
+        + '<td style="padding:5px 8px">'+esc(l.desc)+'</td>'
+        + '<td style="padding:5px 8px;text-align:right">'+l.qtde.toLocaleString('pt-BR')+'</td>'
+        + '<td style="padding:5px 8px">'+esc(l.familia)+'</td>'
+        + '<td style="padding:5px 8px;color:'+(l.completo?'var(--green)':corSt)+';font-weight:700">'+esc(l.status)+'</td>'
+        + '<td style="padding:5px 8px">'+esc((l.cliente||'').slice(0,26))+'</td>'
+        + '<td style="padding:5px 8px">'+esc((l.rep||'').slice(0,22))+'</td>'
+        + '<td style="padding:5px 8px;text-align:center;font-weight:800;color:'+(l.completo?'var(--green)':'#ffaa00')+'">'+(l.completo?'SIM':'N\u00c3O')+'</td>'
+        + '</tr>';
     });
   }
-
-  const tabelaHtml = `
-    <table id="ra-tabela" style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead><tr style="background:var(--border);color:var(--text-muted);text-align:left">
-        <th style="padding:6px 8px">PEDIDO</th><th style="padding:6px 8px">CÓDIGO</th>
-        <th style="padding:6px 8px">DESCRIÇÃO</th><th style="padding:6px 8px;text-align:right">QTDE</th>
-        <th style="padding:6px 8px">FAMÍLIA</th><th style="padding:6px 8px">STATUS</th>
-        <th style="padding:6px 8px">CLIENTE</th><th style="padding:6px 8px">REPRESENTANTE</th>
-        <th style="padding:6px 8px;text-align:center">COMPLETO?</th>
-      </tr></thead>
-      <tbody>${tbody}</tbody>
-    </table>`;
-
-  // guarda dados p/ os botões
-  window._raLinhas = linhasFlat;
-  window._raResumo = { pedidos: pedidosOrd.length, completos, parciais };
+  const tabelaHtml =
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;min-width:900px">'
+    + '<colgroup>'
+    + '<col style="width:70px"><col style="width:70px"><col style="width:230px"><col style="width:55px">'
+    + '<col style="width:80px"><col style="width:110px"><col style="width:150px"><col style="width:140px"><col style="width:75px">'
+    + '</colgroup>'
+    + '<thead><tr style="background:var(--border);color:var(--text-muted);text-align:left">'
+    + '<th style="padding:6px 8px">PEDIDO</th><th style="padding:6px 8px">CÓDIGO</th>'
+    + '<th style="padding:6px 8px">DESCRIÇÃO</th><th style="padding:6px 8px;text-align:right">QTDE</th>'
+    + '<th style="padding:6px 8px">FAMÍLIA</th><th style="padding:6px 8px">STATUS</th>'
+    + '<th style="padding:6px 8px">CLIENTE</th><th style="padding:6px 8px">REPRES.</th>'
+    + '<th style="padding:6px 8px;text-align:center">COMPL.?</th>'
+    + '</tr></thead><tbody style="word-wrap:break-word;overflow-wrap:break-word">'+tbody+'</tbody></table></div>';
 
   let modal = document.getElementById('resumo-atrasos-modal');
   if (!modal) {
     modal = document.createElement('div');
     modal.id = 'resumo-atrasos-modal';
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
     modal.onclick = e => { if (e.target === modal) modal.remove(); };
     document.body.appendChild(modal);
   }
-  const bg = getComputedStyle(document.body).getPropertyValue('--card') || '#151a2e';
-  modal.innerHTML = `
-    <div style="background:var(--card,#151a2e);border:1px solid var(--border);border-radius:14px;max-width:1000px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.6)">
-      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-        <h2 style="margin:0;font-size:17px">\u{1F4CB} Resumo de Pedidos em Atraso</h2>
-        <div style="display:flex;gap:8px">
-          <button onclick="copiarResumoAtrasosWhatsApp()" style="background:rgba(37,211,102,.15);border:1px solid #25d366;color:#25d366;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700">\u{1F4F1} Copiar p/ WhatsApp</button>
-          <button onclick="imprimirResumoAtrasos()" style="background:rgba(26,111,204,.15);border:1px solid var(--blue);color:var(--blue);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700">\u{1F5A8}\uFE0F Imprimir</button>
-          <button onclick="document.getElementById('resumo-atrasos-modal').remove()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">\u2715</button>
-        </div>
-      </div>
-      <div style="padding:16px 20px;overflow:auto;background:var(--card,#151a2e)">${resumoTopo}${tabelaHtml}</div>
-    </div>`;
+  modal.innerHTML =
+    '<div style="background:var(--card,#151a2e);border:1px solid var(--border);border-radius:14px;max-width:1040px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.6)">'
+    + '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">'
+    + '<h2 style="margin:0;font-size:17px">\u{1F4CB} Resumo de Pedidos em Atraso</h2>'
+    + '<div style="display:flex;gap:8px">'
+    + '<button onclick="copiarResumoAtrasosWhatsApp()" style="background:rgba(37,211,102,.15);border:1px solid #25d366;color:#25d366;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700">\u{1F4F1} WhatsApp</button>'
+    + '<button onclick="imprimirResumoAtrasos()" style="background:rgba(26,111,204,.15);border:1px solid var(--blue);color:var(--blue);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700">\u{1F5A8}\uFE0F Imprimir</button>'
+    + '<button onclick="document.getElementById(\'resumo-atrasos-modal\').remove()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">\u2715</button>'
+    + '</div></div>'
+    + '<div style="padding:16px 20px;overflow:auto;background:var(--card,#151a2e)">'+cardsHtml+tabelaHtml+'</div></div>';
 }
 
 // Copia o resumo em texto formatado para WhatsApp
 function copiarResumoAtrasosWhatsApp(){
-  const L = window._raLinhas || [], R = window._raResumo || {};
-  if (!L.length) { alert('Nenhum pedido em atraso para copiar.'); return; }
+  const D = window._raDados || _raBuild();
+  if (!D.linhasFlat.length) { alert('Nenhum pedido em atraso para copiar.'); return; }
   let txt = '*RESUMO DE PEDIDOS EM ATRASO*\n';
-  txt += R.pedidos+' pedidos | '+R.completos+' completos | '+R.parciais+' parciais\n';
+  txt += D.pedidosOrd.length+' pedidos | '+D.completos+' completos | '+D.parciais+' parciais\n';
+  txt += 'Total: '+D.qtdeTotal+' un ('+D.qtdeFaturar+' prontos p/ faturar)\n';
+  // resumo por família
+  txt += '\n*Por família:*\n';
+  Object.keys(D.fam).sort().forEach(f=>{ const c=D.fam[f]; txt += '\u2022 '+f+': '+c.qtde+' un ('+c.qtdeFaturar+' p/ faturar)\n'; });
   let pedAtual = '';
-  L.forEach(l => {
+  D.linhasFlat.forEach(l => {
     if (l.pedido !== pedAtual) {
       pedAtual = l.pedido;
-      txt += '\n*Pedido '+l.pedido+'*'+(l.completo?' \u2705 COMPLETO':' \u26A0\uFE0F PARCIAL')+'\n';
-      txt += '_'+l.cliente+' | '+l.rep+'_\n';
+      txt += '\n*Pedido '+l.pedido+'*'+(l.completo?' \u2705 COMPLETO':' \u26A0\uFE0F PARCIAL')+'\n_'+l.cliente+' | '+l.rep+'_\n';
     }
     txt += '\u2022 '+l.codigo+' '+l.desc+' | '+l.qtde+'un | '+l.familia+' | '+l.status+'\n';
   });
@@ -11517,24 +11566,31 @@ function copiarResumoAtrasosWhatsApp(){
   );
 }
 
-// Abre janela de impressão com a tabela (padrão A Montar)
+// Abre janela de impressão (padrão A Montar) — com cards e linha verde nos completos
 function imprimirResumoAtrasos(){
-  const L = window._raLinhas || [], R = window._raResumo || {};
-  if (!L.length) { alert('Nenhum pedido em atraso para imprimir.'); return; }
+  const D = window._raDados || _raBuild();
+  if (!D.linhasFlat.length) { alert('Nenhum pedido em atraso para imprimir.'); return; }
   const esc = _daEscapeHtml;
   const hoje = new Date().toLocaleString('pt-BR');
+  // cards
+  let cards = '<div class="card ra-c1"><div class="ct">TOTAL EM ATRASO</div><div class="cn">'+D.qtdeTotal.toLocaleString('pt-BR')+'</div><div class="cs">'+D.linhasFlat.length+' itens · '+D.qtdeFaturar.toLocaleString('pt-BR')+' p/ faturar</div></div>';
+  let listaComp = D.pedsCompletos.map(p=>esc(p.pedido)+' '+esc((p.cliente||'').slice(0,16))).join(' · ') || 'nenhum';
+  cards += '<div class="card ra-c2"><div class="ct">\u2705 100% P/ FATURAR ('+D.completos+')</div><div class="cs2">'+listaComp+'</div></div>';
+  Object.keys(D.fam).sort().forEach(f=>{ const c=D.fam[f]; cards += '<div class="card"><div class="ct">'+esc(f)+'</div><div class="cn">'+c.qtde.toLocaleString('pt-BR')+'</div><div class="cs">'+c.itens+' itens · '+c.qtdeFaturar.toLocaleString('pt-BR')+' p/ faturar</div></div>'; });
+  // linhas
   let rows = '';
-  L.forEach(l => {
+  D.linhasFlat.forEach(l => {
     const corSt = l.status==='FATURAR' ? '#0a8f4d' : (l.status.includes('ABRIR')?'#c00':'#b8860b');
-    rows += '<tr>'
+    const cls = l.completo ? ' class="comp"' : '';
+    rows += '<tr'+cls+'>'
       +'<td style="font-weight:700">'+esc(l.pedido)+'</td>'
       +'<td style="font-weight:700">'+esc(l.codigo)+'</td>'
       +'<td>'+esc(l.desc)+'</td>'
       +'<td style="text-align:right">'+l.qtde.toLocaleString('pt-BR')+'</td>'
       +'<td>'+esc(l.familia)+'</td>'
-      +'<td style="color:'+corSt+';font-weight:700">'+esc(l.status)+'</td>'
-      +'<td>'+esc(l.cliente)+'</td>'
-      +'<td>'+esc(l.rep)+'</td>'
+      +'<td style="color:'+(l.completo?'#0a8f4d':corSt)+';font-weight:700">'+esc(l.status)+'</td>'
+      +'<td>'+esc((l.cliente||'').slice(0,28))+'</td>'
+      +'<td>'+esc((l.rep||'').slice(0,22))+'</td>'
       +'<td style="text-align:center;font-weight:800;color:'+(l.completo?'#0a8f4d':'#b8860b')+'">'+(l.completo?'SIM':'N\u00c3O')+'</td>'
       +'</tr>';
   });
@@ -11542,21 +11598,29 @@ function imprimirResumoAtrasos(){
      '*{box-sizing:border-box;margin:0;padding:0}'
     +'body{font-family:"Segoe UI",Arial,sans-serif;font-size:11px;color:#1a1a2e;margin:14px;background:#fff}'
     +'.header{border-bottom:3px solid #1a6fcc;padding-bottom:8px;margin-bottom:10px}'
-    +'.header h2{font-size:18px;font-weight:900;color:#0d1b3e}'
-    +'.header h2 span{color:#1a6fcc}'
+    +'.header h2{font-size:18px;font-weight:900;color:#0d1b3e}.header h2 span{color:#1a6fcc}'
     +'.head-info{font-size:9px;color:#555;font-weight:600;margin-top:4px}'
-    +'table{width:100%;border-collapse:collapse;font-size:10px}'
+    +'.cards{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}'
+    +'.card{border:1px solid #dde6f5;border-radius:6px;padding:7px 10px;min-width:120px;flex:1;max-width:200px}'
+    +'.card.ra-c1{background:#eef4ff;border-color:#1a6fcc}.card.ra-c2{background:#eafaf1;border-color:#0a8f4d;max-width:280px}'
+    +'.ct{font-size:8px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}'
+    +'.cn{font-size:20px;font-weight:900;color:#0d1b3e}'
+    +'.cs{font-size:8px;color:#555;margin-top:2px}.cs2{font-size:8px;color:#333;line-height:1.5;margin-top:2px}'
+    +'table{width:100%;border-collapse:collapse;font-size:10px;table-layout:fixed}'
     +'thead tr{background:#0d1b3e}'
-    +'th{color:#fff;padding:6px 5px;text-align:left;font-size:9px;font-weight:700;white-space:nowrap}'
-    +'td{padding:4px 5px;border-bottom:1px solid #edf1f9;vertical-align:middle}'
+    +'th{color:#fff;padding:6px 5px;text-align:left;font-size:9px;font-weight:700}'
+    +'td{padding:4px 5px;border-bottom:1px solid #edf1f9;vertical-align:middle;overflow:hidden;text-overflow:ellipsis}'
     +'tr:nth-child(even) td{background:#f5f8ff}'
+    +'tr.comp td{background:#e3f7ec !important}'
     +'@media print{body{margin:6px}}';
   const corpo =
      '<div class="header"><h2>\u{1F4CB} PAINEL <span>INDUSTRIAL</span> \u2014 Pedidos em Atraso</h2>'
-    +'<div class="head-info">Impresso em '+hoje+' &nbsp;|&nbsp; '+R.pedidos+' pedidos ('+R.completos+' completos, '+R.parciais+' parciais)</div></div>'
-    +'<table><thead><tr>'
+    +'<div class="head-info">Impresso em '+hoje+' &nbsp;|&nbsp; '+D.pedidosOrd.length+' pedidos ('+D.completos+' completos, '+D.parciais+' parciais) &nbsp;|&nbsp; '+D.qtdeTotal+' un em atraso, '+D.qtdeFaturar+' p/ faturar</div></div>'
+    +'<div class="cards">'+cards+'</div>'
+    +'<table><colgroup><col style="width:8%"><col style="width:8%"><col style="width:26%"><col style="width:6%"><col style="width:9%"><col style="width:12%"><col style="width:16%"><col style="width:15%"><col style="width:6%"></colgroup>'
+    +'<thead><tr>'
     +'<th>PEDIDO</th><th>C\u00d3DIGO</th><th>DESCRI\u00c7\u00c3O</th><th style="text-align:right">QTDE</th>'
-    +'<th>FAM\u00cdLIA</th><th>STATUS</th><th>CLIENTE</th><th>REPRES.</th><th style="text-align:center">COMPLETO?</th>'
+    +'<th>FAM\u00cdLIA</th><th>STATUS</th><th>CLIENTE</th><th>REPRES.</th><th style="text-align:center">COMPL.?</th>'
     +'</tr></thead><tbody>'+rows+'</tbody></table>';
   const win = window.open('','_blank');
   const doc = win.document; doc.open();
