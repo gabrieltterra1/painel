@@ -817,6 +817,7 @@
   .ra-card-s { font-size:10px; color:var(--text-muted); margin-top:3px; }
   .ra-card-tot { border-color:var(--blue); }
   .ra-card-comp { border-color:var(--green); max-width:280px; }
+  .ra-tbl td, .ra-tbl th { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .dh { background: linear-gradient(155deg, var(--surface2), var(--surface)); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; cursor: pointer; transition: transform .15s; position: relative; overflow: hidden; }
   .dh:hover { transform: translateY(-4px); }
   .dh::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
@@ -10992,6 +10993,20 @@ function renderDashboard(){
     + '<div class="dh-meta">consolidado · Matriz '+ifeMatr+' · Filial SP '+ifeFil+'</div>'
     + (ifeConsSimStr?'<div class="dh-meta" style="color:var(--amber)">se faturar tudo: <b>'+ifeConsSimStr+'</b></div>':'')
     + _spark(ifeSerie, '#3d8bff') + '</div>';
+  // Pedidos em atraso — ao lado do IFE, clicável, abre o Resumo de Atrasos
+  try {
+    const _atr = (DATA.pedidos||[]).filter(p=>p.atrasado);
+    const _grp = {}; _atr.forEach(p=>{ (_grp[p.pedido]=_grp[p.pedido]||[]).push(p); });
+    const _peds = Object.keys(_grp);
+    let _comp = 0, _qtdFat = 0;
+    _peds.forEach(n=>{ const todo=_grp[n].every(p=>_pvStatusOfLinha(p).statusOf==='FATURAR'); if(todo){ _comp++; _qtdFat += _grp[n].reduce((s,p)=>s+Math.round(p.qtde),0); } });
+    const _qtdTotal = _atr.reduce((s,p)=>s+Math.round(p.qtde),0);
+    heroHtml += '<div class="dh terc" style="cursor:pointer" onclick="abrirResumoAtrasos()">'
+      + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📋</span>Pedidos em atraso</div>'
+        + (_qtdFat>0?'<div class="dh-selo up">'+_qtdFat.toLocaleString('pt-BR')+' un p/ faturar</div>':'')+'</div>'
+      + '<div class="dh-big">'+_qtdTotal.toLocaleString('pt-BR')+'</div>'
+      + '<div class="dh-meta">'+_peds.length+' pedidos · '+_comp+' completos p/ faturar · clique p/ resumo</div></div>';
+  } catch(e){ console.warn('card atraso', e); }
   // Terceiros — valor + meta + % + previsão + barra com marcador
   const tercPct = tercMeta>0 ? Math.round(tercReal/tercMeta*100) : 0;
   heroHtml += '<div class="dh terc" onclick="showTab(\'servicos\')">'
@@ -11018,20 +11033,6 @@ function renderDashboard(){
     + '<div class="dh-meta">média '+_dfmt(pmMed)+'/dia · meta '+_dfmt(pmMetaDia)+'/dia</div>'
     + '<div class="dprog '+(pmOk?'meta-ok':'meta-baixo')+'"><i style="width:'+pctBar(pmMed,pmMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div>'
     + _spark(pmSerie, pmOk?'#00c97a':'#ff6b6b') + '</div>';
-  // Pedidos em atraso — clicável, abre o Resumo de Atrasos
-  try {
-    const _atr = (DATA.pedidos||[]).filter(p=>p.atrasado);
-    const _grp = {}; _atr.forEach(p=>{ (_grp[p.pedido]=_grp[p.pedido]||[]).push(p); });
-    const _peds = Object.keys(_grp);
-    let _comp = 0;
-    _peds.forEach(n=>{ if(_grp[n].every(p=>_pvStatusOfLinha(p).statusOf==='FATURAR')) _comp++; });
-    const _qtdItens = _atr.length;
-    heroHtml += '<div class="dh terc" style="cursor:pointer" onclick="abrirResumoAtrasos()">'
-      + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📋</span>Pedidos em atraso</div>'
-        + (_peds.length?'<div class="dh-selo '+(_comp>0?'up':'down')+'">'+_comp+' p/ faturar</div>':'')+'</div>'
-      + '<div class="dh-big">'+_peds.length+'</div>'
-      + '<div class="dh-meta">'+_qtdItens+' itens · '+_comp+' pedidos completos · clique p/ resumo</div></div>';
-  } catch(e){ console.warn('card atraso', e); }
   heroHtml += '</div>';
 
   // ── MONTAGEM (só famílias com meta, 1 casa decimal) ──
@@ -11483,7 +11484,7 @@ function abrirResumoAtrasos(){
     cardsHtml += '<div class="ra-card">'
       + '<div class="ra-card-t">'+esc(f)+'</div>'
       + '<div class="ra-card-n">'+c.qtde.toLocaleString('pt-BR')+'</div>'
-      + '<div class="ra-card-s">'+c.itens+' itens · '+(c.qtdeFaturar>0?'<b style="color:#00c97a">'+c.qtdeFaturar.toLocaleString('pt-BR')+' p/ faturar</b>':'0 p/ faturar')+'</div></div>';
+      + '<div class="ra-card-s">'+c.qtde.toLocaleString('pt-BR')+' un em atraso · '+(c.qtdeFaturar>0?'<b style="color:#00c97a">'+c.qtdeFaturar.toLocaleString('pt-BR')+' un p/ faturar</b>':'0 p/ faturar')+'</div></div>';
   });
   cardsHtml += '</div>';
 
@@ -11509,7 +11510,7 @@ function abrirResumoAtrasos(){
     });
   }
   const tabelaHtml =
-    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;min-width:900px">'
+    '<div style="overflow-x:auto"><table class="ra-tbl" style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;min-width:900px">'
     + '<colgroup>'
     + '<col style="width:70px"><col style="width:70px"><col style="width:230px"><col style="width:55px">'
     + '<col style="width:80px"><col style="width:110px"><col style="width:150px"><col style="width:140px"><col style="width:75px">'
@@ -11576,7 +11577,7 @@ function imprimirResumoAtrasos(){
   let cards = '<div class="card ra-c1"><div class="ct">TOTAL EM ATRASO</div><div class="cn">'+D.qtdeTotal.toLocaleString('pt-BR')+'</div><div class="cs">'+D.linhasFlat.length+' itens · '+D.qtdeFaturar.toLocaleString('pt-BR')+' p/ faturar</div></div>';
   let listaComp = D.pedsCompletos.map(p=>esc(p.pedido)+' '+esc((p.cliente||'').slice(0,16))).join(' · ') || 'nenhum';
   cards += '<div class="card ra-c2"><div class="ct">\u2705 100% P/ FATURAR ('+D.completos+')</div><div class="cs2">'+listaComp+'</div></div>';
-  Object.keys(D.fam).sort().forEach(f=>{ const c=D.fam[f]; cards += '<div class="card"><div class="ct">'+esc(f)+'</div><div class="cn">'+c.qtde.toLocaleString('pt-BR')+'</div><div class="cs">'+c.itens+' itens · '+c.qtdeFaturar.toLocaleString('pt-BR')+' p/ faturar</div></div>'; });
+  Object.keys(D.fam).sort().forEach(f=>{ const c=D.fam[f]; cards += '<div class="card"><div class="ct">'+esc(f)+'</div><div class="cn">'+c.qtde.toLocaleString('pt-BR')+'</div><div class="cs">'+c.qtde.toLocaleString('pt-BR')+' un · '+c.qtdeFaturar.toLocaleString('pt-BR')+' p/ faturar</div></div>'; });
   // linhas
   let rows = '';
   D.linhasFlat.forEach(l => {
