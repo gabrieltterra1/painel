@@ -2121,6 +2121,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <input class="search-input" type="text" id="pv-search" placeholder="Buscar código, descrição ou pedido..." oninput="renderPedidos()" style="width:240px">
     <button id="pv-col-clear" onclick="pvLimparTudo()" style="margin-left:auto;background:rgba(255,59,59,.08);border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✕ Limpar filtros</button>
     <button onclick="exportarPedidosExcel()" style="background:rgba(0,201,122,.15);border:1px solid var(--green);color:var(--green);padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700">⤓ Gerar Excel</button>
+    <button onclick="abrirResumoAtrasos()" style="background:rgba(255,59,59,.15);border:1px solid #ff5555;color:#ff8888;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700">📋 Resumo de Atrasos</button>
   </div>
 
   <!-- Resumo do dia selecionado -->
@@ -11404,6 +11405,90 @@ function _dashFaltaMontarFamilia(famKey, dataLim){
   } catch(e){ return 0; }
 }
 function _daEscapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ===== RESUMO DE ATRASOS (agrupado por pedido) =====
+function abrirResumoAtrasos(){
+  const esc = _daEscapeHtml;
+  const atrasados = (DATA.pedidos||[]).filter(p => p.atrasado);
+  // agrupa por número de pedido
+  const grupos = {};
+  atrasados.forEach(p => { (grupos[p.pedido] = grupos[p.pedido] || []).push(p); });
+  const pedidosOrd = Object.keys(grupos).sort((a,b)=>String(a).localeCompare(String(b),'pt-BR',{numeric:true}));
+
+  let completos = 0, parciais = 0;
+  let corpo = '';
+  if (!pedidosOrd.length) {
+    corpo = '<div style="padding:30px;text-align:center;color:var(--text-muted)">Nenhum pedido em atraso. 🎉</div>';
+  } else {
+    pedidosOrd.forEach(numPed => {
+      const itens = grupos[numPed];
+      // status por item
+      const linhas = itens.map(p => ({ p, st: _pvStatusOfLinha(p).statusOf }));
+      const todoFaturar = linhas.every(l => l.st === 'FATURAR');
+      if (todoFaturar) completos++; else parciais++;
+      // dados do cabeçalho (pega do 1º item; cliente/rep são do pedido)
+      const primeiro = itens[0];
+      const familias = [...new Set(itens.map(p=>p.familia).filter(Boolean))].join(', ');
+      const selo = todoFaturar
+        ? '<span style="background:rgba(0,201,122,.2);color:var(--green);border:1px solid var(--green);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800">✅ COMPLETO — PRONTO P/ FATURAR</span>'
+        : '<span style="background:rgba(255,170,0,.15);color:#ffaa00;border:1px solid #ffaa00;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800">⚠️ PARCIAL</span>';
+
+      const linhasHtml = linhas.map(({p,st}) => {
+        const corSt = st === 'FATURAR' ? 'var(--green)' : (st.includes('ABRIR') ? '#ff8888' : '#ffaa00');
+        return `<tr>
+          <td style="padding:5px 8px;font-weight:700">${esc(p.codigo)}</td>
+          <td style="padding:5px 8px">${esc(p.descricao)}</td>
+          <td style="padding:5px 8px;text-align:right">${Math.round(p.qtde).toLocaleString('pt-BR')}</td>
+          <td style="padding:5px 8px">${esc(p.familia)}</td>
+          <td style="padding:5px 8px;color:${corSt};font-weight:700">${esc(st)}</td>
+        </tr>`;
+      }).join('');
+
+      corpo += `
+        <div style="border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden;${todoFaturar?'border-color:var(--green)':''}">
+          <div style="background:var(--border);padding:10px 14px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center">
+            <span style="font-size:15px;font-weight:800;color:var(--blue)">Pedido ${esc(numPed)}</span>
+            ${selo}
+            <span style="font-size:12px;color:var(--text-muted)">👤 ${esc(primeiro.cliente)||'—'}</span>
+            <span style="font-size:12px;color:var(--text-muted)">🧑‍💼 ${esc(primeiro.repDesc)||'—'}</span>
+            <span style="font-size:12px;color:var(--text-muted)">🏷️ ${esc(familias)||'—'}</span>
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="color:var(--text-muted);text-align:left;border-bottom:1px solid var(--border)">
+              <th style="padding:5px 8px">CÓDIGO</th><th style="padding:5px 8px">DESCRIÇÃO</th>
+              <th style="padding:5px 8px;text-align:right">QTDE</th><th style="padding:5px 8px">FAMÍLIA</th>
+              <th style="padding:5px 8px">STATUS</th>
+            </tr></thead>
+            <tbody>${linhasHtml}</tbody>
+          </table>
+        </div>`;
+    });
+  }
+
+  const resumoTopo = pedidosOrd.length
+    ? `<div style="display:flex;gap:16px;margin-bottom:14px;font-size:13px">
+        <span><b>${pedidosOrd.length}</b> pedidos em atraso</span>
+        <span style="color:var(--green)"><b>${completos}</b> completos (faturar)</span>
+        <span style="color:#ffaa00"><b>${parciais}</b> parciais</span>
+      </div>` : '';
+
+  let modal = document.getElementById('resumo-atrasos-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'resumo-atrasos-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;max-width:900px;width:100%;max-height:85vh;display:flex;flex-direction:column">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <h2 style="margin:0;font-size:17px">📋 Resumo de Pedidos em Atraso</h2>
+        <button onclick="document.getElementById('resumo-atrasos-modal').remove()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">✕</button>
+      </div>
+      <div style="padding:16px 20px;overflow-y:auto">${resumoTopo}${corpo}</div>
+    </div>`;
+}
 // Mostra um catálogo de ideias de perguntas, organizado por categoria
 function dashMostrarIdeias(){
   const out=document.getElementById('dash-resposta');
