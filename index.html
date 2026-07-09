@@ -11006,11 +11006,16 @@ function renderDashboard(){
     let _comp = 0, _qtdFat = 0;
     _peds.forEach(n=>{ const todo=_grp[n].every(p=>_pvStatusOfLinha(p).statusOf==='FATURAR'); if(todo){ _comp++; _qtdFat += _grp[n].reduce((s,p)=>s+Math.round(p.qtde),0); } });
     const _qtdTotal = _atr.reduce((s,p)=>s+Math.round(p.qtde),0);
+    // breakdown por família (soma de quantidades)
+    const _fam = {};
+    _atr.forEach(p=>{ const f=p.familia||'OUTROS'; _fam[f]=(_fam[f]||0)+Math.round(p.qtde); });
+    const _famStr = Object.keys(_fam).sort().map(f=>f+': <b>'+_fam[f].toLocaleString('pt-BR')+'</b>').join(' · ');
     heroHtml += '<div class="dh terc" style="cursor:pointer" onclick="abrirResumoAtrasos()">'
       + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📋</span>Pedidos em atraso</div>'
         + (_qtdFat>0?'<div class="dh-selo up">'+_qtdFat.toLocaleString('pt-BR')+' un p/ faturar</div>':'')+'</div>'
       + '<div class="dh-big">'+_qtdTotal.toLocaleString('pt-BR')+'</div>'
-      + '<div class="dh-meta">'+_peds.length+' pedidos · '+_comp+' completos p/ faturar · clique p/ resumo</div></div>';
+      + '<div class="dh-meta" style="margin-bottom:6px">'+_famStr+'</div>'
+      + '<div class="dh-meta">'+_peds.length+' pedidos · '+(_comp>0?'<b style="color:var(--green)">'+_comp+' completos p/ faturar</b>':'0 completos')+' · clique p/ resumo</div></div>';
   } catch(e){ console.warn('card atraso', e); }
   // Terceiros — valor + meta + % + previsão + barra com marcador
   const tercPct = tercMeta>0 ? Math.round(tercReal/tercMeta*100) : 0;
@@ -11495,7 +11500,14 @@ function abrirResumoAtrasos(){
     tbody = '<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--text-muted)">Nenhum pedido em atraso. \u{1F389}</td></tr>';
   } else {
     D.linhasFlat.forEach(l => {
-      const corSt = l.status === 'FATURAR' ? '#0fe08a' : (l.status.includes('ABRIR') ? '#ff8888' : '#ffaa00');
+      const _mst = (l.status||'').toUpperCase();
+      let corSt = '#ffaa00';
+      if (l.status==='FATURAR' || _mst.includes('FATURAR')) corSt = '#0fe08a';
+      else if (_mst.includes('ABRIR')) corSt = '#ff6b6b';
+      else if (_mst.includes('FALTA')) corSt = '#f59e0b';
+      else if (_mst.includes('PARCIAL')) corSt = '#22d3ee';
+      else if (_mst.includes('SEPARADO')) corSt = '#3ee89a';
+      else if (_mst.includes('MISTO')) corSt = '#c084fc';
       const trCls = l.completo ? ' class="ra-comp"' : '';
       tbody += '<tr'+trCls+' style="border-bottom:1px solid var(--border)">'
         + '<td style="padding:6px 8px;font-weight:700">'+esc(l.pedido)+'</td>'
@@ -11513,8 +11525,8 @@ function abrirResumoAtrasos(){
   const tabelaHtml =
     '<div style="overflow-x:auto"><table class="ra-tbl" style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;min-width:920px">'
     + '<colgroup>'
-    + '<col style="width:70px"><col style="width:55px"><col style="width:70px"><col style="width:220px">'
-    + '<col style="width:80px"><col style="width:150px"><col style="width:140px"><col style="width:110px"><col style="width:65px">'
+    + '<col style="width:70px"><col style="width:55px"><col style="width:70px"><col style="width:200px">'
+    + '<col style="width:80px"><col style="width:140px"><col style="width:130px"><col style="width:130px"><col style="width:65px">'
     + '</colgroup>'
     + '<thead><tr style="background:var(--border);color:var(--text-muted);text-align:left">'
     + '<th style="padding:6px 8px">PEDIDO</th><th style="padding:6px 8px">QTDE</th>'
@@ -11572,13 +11584,43 @@ function _raRelatorioHTML(){
   const D = window._raDados || _raBuild();
   const esc = _daEscapeHtml;
   const hoje = new Date().toLocaleString('pt-BR');
-  let cards = '<div class="card ra-c1"><div class="ct">TOTAL EM ATRASO</div><div class="cn">'+D.qtdeTotal.toLocaleString('pt-BR')+'</div><div class="cs">'+D.pedidosOrd.length+' pedidos · '+D.qtdeFaturar.toLocaleString('pt-BR')+' un p/ faturar</div></div>';
-  let listaComp = D.pedsCompletos.map(p=>esc(p.pedido)+' '+esc((p.cliente||'').slice(0,16))).join(' · ') || 'nenhum';
-  cards += '<div class="card ra-c2"><div class="ct">\u2705 100% P/ FATURAR ('+D.completos+' pedidos)</div><div class="cs2">'+listaComp+'</div></div>';
-  Object.keys(D.fam).sort().forEach(f=>{ const c=D.fam[f]; cards += '<div class="card"><div class="ct">'+esc(f)+'</div><div class="cn">'+c.qtde.toLocaleString('pt-BR')+'</div><div class="cs">'+c.pedidos.size+' pedidos · '+c.qtdeFaturar.toLocaleString('pt-BR')+' p/ faturar</div></div>'; });
+  // cores por família (mesmo esquema do A Montar)
+  const _raFamCor = f => {
+    const u = String(f||'').toUpperCase();
+    if (u.includes('TOMADA')||u.includes('MULT')) return '#1a6fcc';
+    if (u.includes('BOMBA')) return '#e07b00';
+    if (u.includes('GUINCHO')||u.includes('ENROL')) return '#c0392b';
+    if (u.includes('WALVOIL')||u.includes('COMANDO')||u.includes('VALVULA')) return '#8e44ad';
+    if (u.includes('CILINDRO')) return '#0a9396';
+    if (u.includes('FORCA')||u.includes('FORÇA')) return '#00796b';
+    if (u.includes('CONJ')||u.includes('EIXO')) return '#5d4037';
+    if (u.includes('KIT')) return '#00838f';
+    return '#555';
+  };
+  const _raCard = (cor, titulo, num, sub) =>
+    '<div style="background:'+cor+'18;border:2px solid '+cor+';border-radius:8px;padding:9px 13px;min-width:130px;flex:1;max-width:210px">'
+    +'<div style="font-size:9px;font-weight:900;color:'+cor+';text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">'+titulo+'</div>'
+    +(num!=null?'<div style="font-size:22px;font-weight:900;color:'+cor+';line-height:1;margin-bottom:4px">'+num+'</div>':'')
+    +'<div style="font-size:9px;color:#333;line-height:1.6">'+sub+'</div></div>';
+  let cards = _raCard('#1a6fcc','TOTAL EM ATRASO', D.qtdeTotal.toLocaleString('pt-BR'),
+     D.pedidosOrd.length+' pedidos · <span style="color:#007700">'+D.qtdeFaturar.toLocaleString('pt-BR')+' un p/ faturar</span>');
+  let listaComp = D.pedsCompletos.map(p=>esc(p.pedido)+' '+esc((p.cliente||'').slice(0,16))).join(' · ') || '<span style="color:#999">nenhum</span>';
+  cards += _raCard('#007700','✅ 100% P/ FATURAR ('+D.completos+')', null, listaComp);
+  Object.keys(D.fam).sort().forEach(f=>{
+    const c=D.fam[f]; const cor=_raFamCor(f);
+    cards += _raCard(cor, esc(f), c.qtde.toLocaleString('pt-BR')+' <span style="font-size:9px">un</span>',
+      c.pedidos.size+' pedidos'+(c.qtdeFaturar>0?'<br><span style="color:#007700">✓ '+c.qtdeFaturar.toLocaleString('pt-BR')+' un p/ faturar</span>':''));
+  });
   let rows = '';
   D.linhasFlat.forEach(l => {
-    const corSt = l.status==='FATURAR' ? '#0a8f4d' : (l.status.includes('ABRIR')?'#c00':'#b8860b');
+    const _st = (l.status||'').toUpperCase();
+    let corSt = '#333';
+    if (l.status==='FATURAR' || _st.includes('FATURAR')) corSt = '#007700';
+    else if (_st.includes('ABRIR')) corSt = '#cc2200';
+    else if (_st.includes('FALTA')) corSt = '#b8860b';
+    else if (_st.includes('PARCIAL')) corSt = '#0a9396';
+    else if (_st.includes('SEPARADO')) corSt = '#007700';
+    else if (_st.includes('MISTO')) corSt = '#8e44ad';
     const cls = l.completo ? ' class="comp"' : '';
     const cBase = l.completo ? '#0a6b3a' : '#1a1a2e';
     rows += '<tr'+cls+'>'
@@ -11589,7 +11631,7 @@ function _raRelatorioHTML(){
       +'<td style="color:'+cBase+'">'+esc(l.familia)+'</td>'
       +'<td style="color:'+cBase+'">'+esc((l.cliente||'').slice(0,28))+'</td>'
       +'<td style="color:'+cBase+'">'+esc((l.rep||'').slice(0,22))+'</td>'
-      +'<td style="color:'+(l.completo?'#0a8f4d':corSt)+';font-weight:700">'+esc(l.status)+'</td>'
+      +'<td style="color:'+corSt+';font-weight:700">'+esc(l.status)+'</td>'
       +'<td style="font-weight:800;color:'+(l.completo?'#0a8f4d':'#b8860b')+'">'+(l.completo?'SIM':'N\u00c3O')+'</td>'
       +'</tr>';
   });
@@ -11600,12 +11642,13 @@ function _raRelatorioHTML(){
     +'.header h2{font-size:18px;font-weight:900;color:#0d1b3e}.header h2 span{color:#1a6fcc}'
     +'.head-info{font-size:9px;color:#555;font-weight:600;margin-top:4px}'
     +'.cards{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}'
-    +'.card{border:1px solid #dde6f5;border-radius:8px;padding:9px 12px;min-width:130px;flex:1;max-width:200px;background:#f4f8ff}'
-    +'.card.ra-c1{border-color:#1a6fcc;background:#e4eeff}'
-    +'.card.ra-c2{border-color:#0a8f4d;max-width:300px;background:#e0f5ea}'
-    +'.ct{font-size:8px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;text-align:left}'
-    +'.cn{font-size:22px;font-weight:900;color:#0d1b3e;text-align:left}'
-    +'.cs{font-size:8px;color:#555;margin-top:2px;text-align:left}.cs2{font-size:8px;color:#333;line-height:1.6;margin-top:2px;text-align:left}'
+    +'.card{border:1px solid #dde6f5;border-top:3px solid #1a6fcc;border-radius:8px;padding:10px 13px;min-width:130px;flex:1;max-width:200px;background:#fff;box-shadow:0 1px 4px rgba(20,40,80,.08)}'
+    +'.card.ra-c1{border-top-color:#1a6fcc;background:#f4f8ff}'
+    +'.card.ra-c2{border-top-color:#0a8f4d;max-width:300px;background:#f2fbf6}'
+    +'.ct{font-size:8px;font-weight:800;color:#1a6fcc;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;text-align:left}'
+    +'.card.ra-c2 .ct{color:#0a8f4d}'
+    +'.cn{font-size:24px;font-weight:900;color:#0d1b3e;line-height:1;text-align:left}'
+    +'.cs{font-size:8px;color:#555;margin-top:4px;text-align:left}.cs2{font-size:8px;color:#333;line-height:1.6;margin-top:3px;text-align:left}'
     +'table{width:900px;border-collapse:collapse;font-size:10px;table-layout:fixed}'
     +'thead tr{background:#0d1b3e}'
     +'th{color:#fff;padding:4px 5px;text-align:left;font-size:9px;font-weight:700}'
@@ -11617,7 +11660,7 @@ function _raRelatorioHTML(){
      '<div class="header"><h2>\u{1F4CB} PAINEL <span>INDUSTRIAL</span> \u2014 Pedidos em Atraso</h2>'
     +'<div class="head-info">Impresso em '+hoje+' &nbsp;|&nbsp; '+D.pedidosOrd.length+' pedidos ('+D.completos+' completos, '+D.parciais+' parciais) &nbsp;|&nbsp; '+D.qtdeTotal+' un em atraso, '+D.qtdeFaturar+' p/ faturar</div></div>'
     +'<div class="cards">'+cards+'</div>'
-    +'<table><colgroup><col style="width:72px"><col style="width:54px"><col style="width:72px"><col style="width:216px"><col style="width:81px"><col style="width:153px"><col style="width:135px"><col style="width:63px"><col style="width:54px"></colgroup>'
+    +'<table><colgroup><col style="width:70px"><col style="width:50px"><col style="width:66px"><col style="width:190px"><col style="width:78px"><col style="width:140px"><col style="width:120px"><col style="width:120px"><col style="width:66px"></colgroup>'
     +'<thead><tr>'
     +'<th>PEDIDO</th><th>QTDE</th><th>C\u00d3DIGO</th><th>DESCRI\u00c7\u00c3O</th>'
     +'<th>FAM\u00cdLIA</th><th>CLIENTE</th><th>REPRES.</th><th>STATUS</th><th>COMPL.?</th>'
