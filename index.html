@@ -811,6 +811,13 @@
   .dash-eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--border); }
   .dash-hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 32px; }
   .ra-cards { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
+  /* Cards de Montados/OF: grade alinhada à tabela no desktop, empilhados no mobile */
+  .cards-grid-mont { display:grid; grid-template-columns:88px repeat(8,1fr); gap:10px; margin-bottom:20px; }
+  .cards-grid-of { display:grid; grid-template-columns:110px repeat(8,1fr); gap:10px; margin-bottom:20px; }
+  @media (max-width:900px){
+    .cards-grid-mont, .cards-grid-of { display:flex; flex-wrap:wrap; grid-template-columns:none; }
+    .cards-grid-mont > div, .cards-grid-of > div { grid-column:auto !important; flex:1 1 150px; min-width:150px; }
+  }
   .ra-card { flex:1; min-width:150px; max-width:230px; background:linear-gradient(160deg,var(--card),var(--border)); border:1px solid var(--border); border-radius:10px; padding:12px 14px; text-align:left; box-shadow:0 2px 8px rgba(0,0,0,.15); }
   .ra-card-t { font-size:9px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; text-align:left; }
   .ra-card-n { font-size:26px; font-weight:900; color:var(--text); line-height:1; text-align:left; }
@@ -1165,7 +1172,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
     <span class="section-title" style="margin:0">OF Abertas — Sem Roteiro<span class="email-badge" data-sheet="OF_ABERTAS"></span></span>
   </div>
-  <div id="of-cards" style="display:grid;grid-template-columns:110px repeat(8,1fr);gap:10px;margin-bottom:20px"></div>
+  <div id="of-cards" class="cards-grid-of"></div>
   <div id="of-table-wrap"></div>
 
   <!-- ======= DETALHAMENTO DAS OFs (tabela crua do email) ======= -->
@@ -1248,7 +1255,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <span class="section-title" style="margin:0">Itens Montados — EPP<span class="email-badge" data-sheet="ITENS_MONTADOS"></span></span>
     <button onclick="pedirSenha(abrirModalMetasMontados)" style="background:rgba(0,201,122,.15);border:1px solid #00c97a;color:#00c97a;padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✏ Definir Metas</button>
   </div>
-  <div id="montados-cards" style="display:grid;grid-template-columns:88px repeat(8,1fr);gap:10px;margin-bottom:20px"></div>
+  <div id="montados-cards" class="cards-grid-mont"></div>
   <div id="montados-content"></div>
 
   <!-- HISTÓRICO ANUAL + COMPARAÇÃO MONTADO × VENDIDO -->
