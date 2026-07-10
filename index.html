@@ -3259,7 +3259,7 @@ function renderMontados() {
       {col:'VALVULA',label:'VÁLVULA'},
       {col:'KIT_HIDR',label:'KIT HIDR.'}
     ];
-    cardsEl.innerHTML=cardProds.map(({col,label})=>{
+    cardsEl.innerHTML=cardProds.map(({col,label},ci)=>{
       const hasMeta=HAS_META.includes(col);
       const metaDia=getMontadosMeta(col,mesAtual);
       const metaAcum=metaDia*duAteMes;
