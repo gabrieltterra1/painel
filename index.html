@@ -1165,7 +1165,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
     <span class="section-title" style="margin:0">OF Abertas — Sem Roteiro<span class="email-badge" data-sheet="OF_ABERTAS"></span></span>
   </div>
-  <div id="of-cards" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px"></div>
+  <div id="of-cards" style="display:grid;grid-template-columns:110px repeat(8,1fr);gap:10px;margin-bottom:20px"></div>
   <div id="of-table-wrap"></div>
 
   <!-- ======= DETALHAMENTO DAS OFs (tabela crua do email) ======= -->
@@ -1248,7 +1248,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <span class="section-title" style="margin:0">Itens Montados — EPP<span class="email-badge" data-sheet="ITENS_MONTADOS"></span></span>
     <button onclick="pedirSenha(abrirModalMetasMontados)" style="background:rgba(0,201,122,.15);border:1px solid #00c97a;color:#00c97a;padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">✏ Definir Metas</button>
   </div>
-  <div id="montados-cards" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px"></div>
+  <div id="montados-cards" style="display:grid;grid-template-columns:88px repeat(8,1fr);gap:10px;margin-bottom:20px"></div>
   <div id="montados-content"></div>
 
   <!-- HISTÓRICO ANUAL + COMPARAÇÃO MONTADO × VENDIDO -->
@@ -2533,8 +2533,8 @@ function renderOF() {
       const diasCobre = metaDia > 0 ? (total / metaDia) : null;
       const hasMeta = !!metaProd && metaDia > 0;
 
-      return '<div style="background:var(--surface);border:'+(hasMeta?'2px':'1px')+' solid '+(hasMeta?'#3d8bff':'var(--border)')+';border-radius:10px;padding:12px 14px;flex:1;min-width:'+(hasMeta?'175':'140')+'px;box-shadow:var(--card-shadow,none)">'
-        +'<div style="font-size:9px;font-weight:700;color:var(--serie-azul);letter-spacing:1px;margin-bottom:6px;white-space:nowrap">'+label+'</div>'
+      return '<div style="grid-column:'+(ci===0?'2':'auto')+';background:var(--surface);border:'+(hasMeta?'2px':'1px')+' solid '+(hasMeta?'#3d8bff':'var(--border)')+';border-radius:10px;padding:12px 14px;min-width:0;box-shadow:var(--card-shadow,none)">'
+        +'<div style="font-size:9px;font-weight:700;color:var(--serie-azul);letter-spacing:1px;margin-bottom:6px;white-space:normal;line-height:1.15">'+label+'</div>'
         +'<div style="font-size:'+(hasMeta?'26':'20')+'px;font-weight:900;color:var(--serie-azul)">'+Math.round(total).toLocaleString('pt-BR')+'</div>'
         +'<div style="font-size:9px;color:var(--text-muted);margin-top:2px">Total em OF</div>'
         +(hasMeta?
@@ -2548,8 +2548,8 @@ function renderOF() {
 
   // ── TABELA EXECUTIVE BLUE ──────────────────────────────────────────────
   const fmtN = v => { const n=parseFloat(String(v||'').replace(',','.')); if(isNaN(n)||n===0) return '<span style="color:var(--th-bg)">—</span>'; return Math.round(n).toLocaleString('pt-BR'); };
-  const thBase = 'padding:11px 14px;text-align:right;font-size:12px;font-weight:800;white-space:nowrap;';
-  const tdBase = 'padding:9px 14px;text-align:right;font-size:15px;';
+  const thBase = 'padding:11px 8px;text-align:right;font-size:12px;font-weight:800;overflow:hidden;text-overflow:ellipsis;';
+  const tdBase = 'padding:9px 8px;text-align:right;font-size:15px;overflow:hidden;text-overflow:ellipsis;';
   const stickyTh = thBase+'text-align:left;position:sticky;left:0;z-index:3;';
   const stickyTd = tdBase+'text-align:left;position:sticky;left:0;z-index:1;font-size:14px;';
 
@@ -2558,7 +2558,8 @@ function renderOF() {
 
   wrap.innerHTML = '<div style="border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--card-shadow,0 4px 24px rgba(0,0,0,0.4))">'
   +'<div style="max-height:520px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch">'
-  +'<table style="border-collapse:collapse;white-space:nowrap;width:max-content;min-width:100%">'
+  +'<table style="border-collapse:collapse;width:100%;table-layout:fixed">'
+  +'<colgroup><col style="width:110px">'+cols.map(()=>'<col>').join('')+'</colgroup>'
   +'<thead style="position:sticky;top:0;z-index:5">'
   +'<tr style="background:var(--header-table-bg)">'
   +'<th style="'+stickyTh+'background:var(--header-table-bg);color:#fff">DT FIM OF</th>'
@@ -3252,8 +3253,8 @@ function renderMontados() {
       {col:'TOMADA_MULT',label:'TOMADA E MULT'},
       {col:'BOMBA',label:'BOMBA'},
       {col:'CILINDRO',label:'CILINDRO'},
-      {col:'GUINCHO',label:'GUINCHO E ENROL.'},
       {col:'CONJ_EIXO',label:'CONJ. EIXO'},
+      {col:'GUINCHO',label:'GUINCHO E ENROL.'},
       {col:'COMANDO',label:'COMANDO'},
       {col:'VALVULA',label:'VÁLVULA'},
       {col:'KIT_HIDR',label:'KIT HIDR.'}
@@ -3282,8 +3283,8 @@ function renderMontados() {
         : 0;
       const isAbove=hasMeta&&metaDia>0&&mediaDia>=metaDia;
 
-      return '<div style="background:var(--surface);border:'+(hasMeta?'2':'1')+'px solid '+(hasMeta?cor:'var(--border)')+';border-radius:10px;padding:12px 14px;flex:1;min-width:'+(hasMeta?'195':'140')+'px;box-shadow:var(--card-shadow,none)">'
-        +'<div style="font-size:9px;font-weight:700;color:'+cor+';letter-spacing:1px;margin-bottom:6px;white-space:nowrap">'+label+'</div>'
+      return '<div style="grid-column:'+(ci===0?'2':'auto')+';background:var(--surface);border:'+(hasMeta?'2':'1')+'px solid '+(hasMeta?cor:'var(--border)')+';border-radius:10px;padding:12px 14px;min-width:0;box-shadow:var(--card-shadow,none)">'
+        +'<div style="font-size:9px;font-weight:700;color:'+cor+';letter-spacing:1px;margin-bottom:6px;white-space:normal;line-height:1.15">'+label+'</div>'
         +'<div style="display:flex;align-items:baseline;gap:10px;white-space:nowrap">'
         +'<div style="font-size:'+(hasMeta?'23':'20')+'px;font-weight:900;color:'+cor+'">'+Math.round(totalMes).toLocaleString('pt-BR')+'</div>'
         +(hojeQtd!==null?'<div style="font-size:13px;font-weight:700;color:var(--text-muted);border-left:2px solid var(--border);padding-left:8px">hoje: <span style="color:'+cor+';font-size:15px;font-weight:900">'+Math.round(hojeQtd).toLocaleString('pt-BR')+'</span></div>':'')
@@ -3305,15 +3306,19 @@ function renderMontados() {
   const fmtN=v=>{const n=parseFloat(String(v||'').replace(',','.'));if(isNaN(n)||n===0)return '<span style="color:var(--muted-dim)">—</span>';return Math.round(n).toLocaleString('pt-BR');};
   const fmtM=v=>{const n=parseFloat(String(v||'').replace(',','.'));if(isNaN(n)||n===0)return '<span style="color:var(--muted-dim)">—</span>';return n.toFixed(2);};
 
-  const thBase='padding:11px 14px;text-align:right;font-size:10px;letter-spacing:1px;white-space:nowrap;';
-  const tdBase='padding:9px 14px;text-align:right;font-size:13px;';
+  const thBase='padding:11px 8px;text-align:right;font-size:10px;letter-spacing:.5px;overflow:hidden;text-overflow:ellipsis;';
+  const tdBase='padding:9px 8px;text-align:right;font-size:13px;overflow:hidden;text-overflow:ellipsis;';
   const stickyTh=thBase+'text-align:left;position:sticky;left:0;z-index:3;';
   const stickyTd=tdBase+'text-align:left;position:sticky;left:0;z-index:1;font-size:13px;';
 
   el.innerHTML=`
   <div style="border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:0 4px 24px rgba(0,0,0,0.4)">
     <div style="max-height:480px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch">
-      <table style="border-collapse:collapse;white-space:nowrap;width:max-content;min-width:100%">
+      <table style="border-collapse:collapse;width:100%;table-layout:fixed">
+        <colgroup>
+          <col style="width:88px">
+          ${cols.map(()=>'<col>').join('')}
+        </colgroup>
         <thead style="position:sticky;top:0;z-index:5">
           <!-- Cabeçalho das colunas -->
           <tr style="background:var(--green-head)">
