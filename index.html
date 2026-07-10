@@ -817,6 +817,7 @@
   @media (max-width:900px){
     .cards-grid-mont, .cards-grid-of { display:flex; flex-wrap:wrap; grid-template-columns:none; }
     .cards-grid-mont > div, .cards-grid-of > div { grid-column:auto !important; flex:1 1 150px; min-width:150px; }
+    .tbl-grade { width:auto !important; min-width:820px; table-layout:auto !important; }
   }
   .ra-card { flex:1; min-width:150px; max-width:230px; background:linear-gradient(160deg,var(--card),var(--border)); border:1px solid var(--border); border-radius:10px; padding:12px 14px; text-align:left; box-shadow:0 2px 8px rgba(0,0,0,.15); }
   .ra-card-t { font-size:9px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; text-align:left; }
@@ -2565,7 +2566,7 @@ function renderOF() {
 
   wrap.innerHTML = '<div style="border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--card-shadow,0 4px 24px rgba(0,0,0,0.4))">'
   +'<div style="max-height:520px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch">'
-  +'<table style="border-collapse:collapse;width:100%;table-layout:fixed">'
+  +'<table class="tbl-grade" style="border-collapse:collapse;width:100%;table-layout:fixed">'
   +'<colgroup><col style="width:110px">'+cols.map(()=>'<col>').join('')+'</colgroup>'
   +'<thead style="position:sticky;top:0;z-index:5">'
   +'<tr style="background:var(--header-table-bg)">'
@@ -3321,7 +3322,7 @@ function renderMontados() {
   el.innerHTML=`
   <div style="border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:0 4px 24px rgba(0,0,0,0.4)">
     <div style="max-height:480px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch">
-      <table style="border-collapse:collapse;width:100%;table-layout:fixed">
+      <table class="tbl-grade" style="border-collapse:collapse;width:100%;table-layout:fixed">
         <colgroup>
           <col style="width:88px">
           ${cols.map(()=>'<col>').join('')}
