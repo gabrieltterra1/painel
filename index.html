@@ -869,7 +869,7 @@
   .dh-selo.up { background: rgba(0,201,122,.18); color: var(--green); }
   .dh-selo.down { background: rgba(255,59,59,.18); color: var(--red); }
   .dh-selo.neutral { background: rgba(61,139,255,.18); color: var(--blue-light); }
-  .dh-big { font-family: var(--font-display); font-size: 42px; font-weight: 900; line-height: .95; margin-bottom: 3px; }
+  .dh-big { font-family: var(--font-display); font-size: 42px; font-weight: 900; line-height: .95; margin-bottom: 10px; }
   .dh.ife .dh-big { color: var(--blue-light); } .dh.terc .dh-big { color: var(--amber); }
   .dh.tt .dh-big { color: #ff6b6b; } .dh.pm .dh-big { color: var(--green); }
   /* cor do card conforme a meta (sobrepõe a cor fixa) — verde na meta, vermelho abaixo */
@@ -1154,7 +1154,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <button id="theme-toggle" onclick="toggleTema()" title="Alternar tema claro/escuro" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:14px;cursor:pointer">🌙</button>
       <button onclick="pedirSenha(abrirModalFeriados)" style="background:rgba(245,158,11,.15);border:1px solid #f59e0b;color:#f59e0b;padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">📅 Feriados</button>
       <button id="saude-btn" onclick="abrirPainelSaude()" title="Status das fontes de dados" style="background:rgba(0,201,122,.12);border:1px solid var(--green);color:var(--green);padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600"><span id="saude-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:5px;vertical-align:1px"></span><span id="saude-resumo">Status</span></button>
-      <button onclick="exportarAbaPDF()" title="Exportar a aba atual como PDF" style="background:rgba(61,139,255,.12);border:1px solid var(--blue);color:var(--blue);padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">📄 PDF</button>
+      <button onclick="exportarAbaPDF()" title="Exportar a aba atual como imagem" style="background:rgba(61,139,255,.12);border:1px solid var(--blue);color:var(--blue);padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">📷 Imagem</button>
       <div style="position:relative;display:inline-block">
         <button class="upload-btn" id="process-btn" onclick="abrirMenuAtualizar(event)" title="Forçar atualização de dados (protegido por senha)" style="padding:7px 10px;font-size:14px">⚡ ▾</button>
         <div id="menu-atualizar" style="display:none;position:absolute;right:0;top:110%;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.4);z-index:3000;min-width:230px;padding:6px;max-height:70vh;overflow-y:auto">
@@ -11822,13 +11822,13 @@ function exportarAbaPDF(){
   menu.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';
   menu.onclick=e=>{ if(e.target===menu) menu.remove(); };
   menu.innerHTML='<div style="background:var(--card,#151a2e);border:1px solid var(--border);border-radius:14px;max-width:380px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.6)">'
-    +'<h2 style="margin:0 0 4px;font-size:16px">\ud83d\udcc4 Exportar PDF \u2014 '+tabNome+'</h2>'
+    +'<h2 style="margin:0 0 4px;font-size:16px">\ud83d\udcf7 Exportar imagem \u2014 '+tabNome+'</h2>'
     +'<p style="margin:0 0 14px;font-size:12px;color:var(--text-muted)">O que deseja incluir?</p>'
     +'<label style="display:flex;align-items:center;gap:8px;padding:8px 0;font-size:13px;cursor:pointer"><input type="checkbox" id="pdf-cards" checked> Cards / indicadores</label>'
     +'<label style="display:flex;align-items:center;gap:8px;padding:8px 0;font-size:13px;cursor:pointer"><input type="checkbox" id="pdf-tabela" checked> Tabelas</label>'
     +'<label style="display:flex;align-items:center;gap:8px;padding:8px 0;font-size:13px;cursor:pointer"><input type="checkbox" id="pdf-graficos"> Gr\u00e1ficos</label>'
     +'<div style="display:flex;gap:8px;margin-top:16px">'
-    +'<button onclick="_executarPDF()" style="flex:1;background:var(--blue);border:none;color:#fff;padding:9px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:700">Gerar PDF</button>'
+    +'<button onclick="_executarPDF()" style="flex:1;background:var(--blue);border:none;color:#fff;padding:9px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:700">Gerar imagem</button>'
     +'<button onclick="document.getElementById(\'pdf-menu-modal\').remove()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 14px;border-radius:6px;font-size:13px;cursor:pointer">Cancelar</button>'
     +'</div></div>';
   document.body.appendChild(menu);
@@ -11838,28 +11838,53 @@ function _executarPDF(){
   const tabela=document.getElementById('pdf-tabela').checked;
   const graficos=document.getElementById('pdf-graficos').checked;
   const menu=document.getElementById('pdf-menu-modal'); if(menu) menu.remove();
-  const b=document.body.classList;
-  b.add('modo-print-aba');
-  b.toggle('print-sem-cards', !cards);
-  b.toggle('print-sem-tabela', !tabela);
-  b.toggle('print-sem-graficos', !graficos);
-  const antes=document.title;
-  const tabNome=((document.querySelector('.tab.active')||{}).textContent||'Painel').trim();
-  document.title='Painel Industrial \u2014 '+tabNome;
-  setTimeout(()=>{ window.print(); document.title=antes;
-    b.remove('modo-print-aba','print-sem-cards','print-sem-tabela','print-sem-graficos'); }, 200);
+  if(typeof html2canvas==='undefined'){ alert('Biblioteca de imagem carregando, tente de novo.'); return; }
+  const ativa=document.querySelector('.tab-content.active');
+  if(!ativa){ alert('Nenhuma aba ativa.'); return; }
+  const tabNome=((document.querySelector('.tab.active')||{}).textContent||'Painel').trim().replace(/\\s+/g,'_');
+  // oculta temporariamente o que nao foi escolhido
+  const esconder=[];
+  const marcar=(sel)=>{ ativa.querySelectorAll(sel).forEach(e=>{ if(e.style.display!=='none'){ esconder.push([e,e.style.display]); e.style.display='none'; } }); };
+  if(!cards) marcar('.dash-hero, [id$="-cards"]');
+  if(!tabela) marcar('table');
+  if(!graficos) marcar('canvas, .dspark, svg.dspark');
+  const restaurar=()=>esconder.forEach(([e,d])=>e.style.display=d);
+  setTimeout(()=>{
+    _capturaPNGElemento(ativa, 'Painel_'+tabNome+'_'+new Date().toISOString().slice(0,10)+'.png', false);
+    setTimeout(restaurar, 400);
+  }, 150);
 }
 
 // ===== BOLETIM MATINAL DO PCP (PNG) =====
 function gerarBoletimPCP(){
-  // Garante que estamos no dashboard (onde os cards existem)
   if(typeof showTab==='function') showTab('dashboard');
-  const hero = document.getElementById('dash-hero-cards');
-  if(!hero){ alert('Cards do dashboard n\u00e3o encontrados.'); return; }
-  document.body.classList.add('modo-print-boletim');
-  const antes = document.title;
-  document.title = 'Boletim PCP \u2014 '+new Date().toLocaleDateString('pt-BR');
-  setTimeout(()=>{ window.print(); document.title=antes; document.body.classList.remove('modo-print-boletim'); }, 250);
+  if(typeof html2canvas==='undefined'){ alert('Biblioteca de imagem carregando, tente de novo.'); return; }
+  setTimeout(()=>{
+    const hero=document.getElementById('dash-hero-cards');
+    if(!hero){ alert('Cards do dashboard n\u00e3o encontrados.'); return; }
+    _capturaPNGElemento(hero, 'Boletim_PCP_'+new Date().toISOString().slice(0,10)+'.png', true);
+  }, 150);
+}
+// Captura um elemento da tela como PNG (fundo do tema), baixa e copia
+function _capturaPNGElemento(el, filename, comCabecalho){
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100000;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML='<div style="color:#fff;font-size:14px;font-weight:700">Gerando imagem...</div>';
+  document.body.appendChild(overlay);
+  const bg = getComputedStyle(document.body).backgroundColor || '#0d1117';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    html2canvas(el, {scale:2, backgroundColor:bg, useCORS:true, logging:false,
+      windowWidth:document.documentElement.scrollWidth})
+      .then(canvas=>{
+        canvas.toBlob(blob=>{
+          const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename;
+          document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
+          if(navigator.clipboard && window.ClipboardItem){ navigator.clipboard.write([new ClipboardItem({'image/png':blob})]).then(()=>{},()=>{}); }
+          if(overlay.parentNode) document.body.removeChild(overlay);
+        },'image/png');
+      })
+      .catch(err=>{ if(overlay.parentNode) document.body.removeChild(overlay); alert('Erro ao gerar imagem: '+err.message); });
+  }));
 }
 // Mostra um catálogo de ideias de perguntas, organizado por categoria
 function dashMostrarIdeias(){
