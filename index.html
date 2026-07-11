@@ -829,13 +829,12 @@
   .ra-tbl tr.ra-comp td { background:rgba(15,224,138,.16) !important; }
   .ra-tbl tr.ra-comp td:first-child { box-shadow:inset 3px 0 0 #0fe08a; }
   @media print {
-    body.modo-print-aba > *:not(.tab-content-wrap):not(#tabs-host) { display:none !important; }
-    body.modo-print-aba .tab-content:not(.active) { display:none !important; }
+    body.modo-print-aba header, body.modo-print-aba nav.tabs { display:none !important; }
+    body.modo-print-aba .tab-content { display:none !important; }
     body.modo-print-aba .tab-content.active { display:block !important; }
-    body.modo-print-aba header, body.modo-print-aba .tabs, body.modo-print-aba nav { display:none !important; }
-    body.modo-print-aba { background:#fff !important; color:#000 !important; }
+    body.modo-print-aba { background:#fff !important; }
     body.modo-print-aba .dh, body.modo-print-aba .ra-card, body.modo-print-aba table { break-inside:avoid; }
-    @page { size:landscape; margin:10mm; }
+    @page { size:landscape; margin:8mm; }
   }
   .dh { background: linear-gradient(155deg, var(--surface2), var(--surface)); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; cursor: pointer; transition: transform .15s; position: relative; overflow: hidden; }
   .dh:hover { transform: translateY(-4px); }
@@ -1141,7 +1140,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <button class="assist-headbtn" onclick="abrirModalAssistente()" title="Abrir o assistente do painel">🤖 Assistente</button>
       <button id="theme-toggle" onclick="toggleTema()" title="Alternar tema claro/escuro" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:14px;cursor:pointer">🌙</button>
       <button onclick="pedirSenha(abrirModalFeriados)" style="background:rgba(245,158,11,.15);border:1px solid #f59e0b;color:#f59e0b;padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">📅 Feriados</button>
-      <button id="saude-btn" onclick="abrirPainelSaude()" title="Status das fontes de dados" style="background:rgba(0,201,122,.12);border:1px solid var(--green);color:var(--green);padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">🩺 <span id="saude-resumo">Status</span></button>
+      <button id="saude-btn" onclick="abrirPainelSaude()" title="Status das fontes de dados" style="background:rgba(0,201,122,.12);border:1px solid var(--green);color:var(--green);padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600"><span id="saude-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:5px;vertical-align:1px"></span><span id="saude-resumo">Status</span></button>
       <button onclick="exportarAbaPDF()" title="Exportar a aba atual como PDF" style="background:rgba(61,139,255,.12);border:1px solid var(--blue);color:var(--blue);padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">📄 PDF</button>
       <div style="position:relative;display:inline-block">
         <button class="upload-btn" id="process-btn" onclick="abrirMenuAtualizar(event)" title="Forçar atualização de dados (protegido por senha)" style="padding:7px 10px;font-size:14px">⚡ ▾</button>
@@ -3330,7 +3329,12 @@ function renderMontados() {
             return '<div style="margin-top:3px;padding-top:3px;border-top:1px dashed var(--border);font-size:10px">Projeção mês: <b style="color:'+(projOk?'var(--green)':'var(--red)')+'">'+proj.toLocaleString('pt-BR')+'</b> '
               +'<span style="color:'+(projOk?'var(--green)':'var(--red)')+'">'+(projOk?'▲':'▼')+' meta '+Math.round(metaMes).toLocaleString('pt-BR')+'</span></div>';
           })()
-        :'<div style="margin-top:4px;font-size:10px;color:#2a6a4a;font-style:italic">sem meta definida</div>')
+        :'<div style="margin-top:4px;font-size:10px;color:#2a6a4a;font-style:italic">sem meta definida</div>'
+          +(function(){
+            const duTotalMes=duEmail+duRestantes;
+            const proj=Math.round(mediaDia*duTotalMes);
+            return '<div style="margin-top:3px;padding-top:3px;border-top:1px dashed var(--border);font-size:10px;color:var(--text-muted)">Projeção mês: <b style="color:var(--text)">'+proj.toLocaleString('pt-BR')+'</b></div>';
+          })())
         +(totalMesAnt>0?(function(){
             const dif=totalMes-totalMesAnt; const pct=Math.round(dif/totalMesAnt*100);
             const cor=dif>=0?'var(--green)':'var(--red)'; const seta=dif>=0?'▲':'▼';
@@ -11025,9 +11029,9 @@ function renderDashboard(){
   } catch(e){ console.warn('dash du', e); }
 
   let heroHtml='<div class="dash-hero">';
-  // Card de DIAS ÚTEIS do mês
-  heroHtml += '<div class="dh du">'
-    + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📅</span>Dias úteis do mês</div></div>'
+  // Card de DIAS ÚTEIS do mês (clicável → gera boletim do dia)
+  heroHtml += '<div class="dh du" style="cursor:pointer" onclick="gerarBoletimPCP()" title="Clique para gerar o boletim do dia (PNG)">'
+    + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📅</span>Dias úteis do mês</div><div class="dh-selo" style="background:rgba(168,85,247,.2);color:#c084fc">📰 Boletim</div></div>'
     + '<div class="dh-big">'+duPassados+'<small> / '+duTotal+'</small></div>'
     + '<div class="dh-meta">'+duPassados+' passados · '+duRestantes+' restantes (com hoje)</div>'
     + '<div class="dprog du"><i style="width:'+(duTotal>0?Math.round(duPassados/duTotal*100):0)+'%"></i></div></div>';
@@ -11067,18 +11071,26 @@ function renderDashboard(){
       + '<div class="dh-meta" style="margin-bottom:6px">'+_famStr+'</div>'
       + '<div class="dh-meta">'+_peds.length+' pedidos · '+(_comp>0?'<b style="color:var(--green)">'+_comp+' completos p/ faturar</b>':'0 completos')+' · clique p/ resumo</div></div>';
     // guarda dados para o boletim matinal
+    let ifeLinhas = [];
+    try {
+      if(DATA.ife && DATA.ife.length){
+        const mk = [...new Set(DATA.ife.map(r=>r.mesKey))].sort().pop();
+        const calcL = (filt)=>{ const c=_ifeCalc(DATA.ife.filter(_ifeFiltrar(filt)).filter(r=>r.mesKey===mk)); return c.ife||0; };
+        ifeLinhas = [
+          {lbl:'Consolidado', val:calcL('CONSOLIDADO')},
+          {lbl:'Matriz', val:calcL('1')},
+          {lbl:'Filial SP', val:calcL('2')}
+        ];
+      }
+    } catch(e){}
     window._boletimDados = {
-      ife: ifeCons, ifeOk: ifeNum>=95,
+      ife: ifeCons, ifeOk: ifeNum>=95, ifeLinhas,
       atrasoQtd: _qtdTotal, atrasoPeds: _peds.length, atrasoComp: _comp,
       ttUlt: ttUltDia, ttMed: ttMed, ttMeta: ttMetaDia,
-      pmUlt: pmUltDia, pmMed: pmMed, pmMeta: pmMetaDia
+      pmUlt: pmUltDia, pmMed: pmMed, pmMeta: pmMetaDia,
+      tercReal: tercReal, tercMeta: tercMeta, tercPrev: tercPrev
     };
   } catch(e){ console.warn('card atraso', e); }
-  // Card BOLETIM MATINAL — gera PNG do resumo do dia
-  heroHtml += '<div class="dh" style="cursor:pointer;border-color:#a855f7" onclick="gerarBoletimPCP()">'
-    + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📰</span>Boletim do dia</div><div class="dh-selo" style="background:rgba(168,85,247,.2);color:#c084fc">PNG</div></div>'
-    + '<div class="dh-big" style="font-size:22px">Gerar resumo</div>'
-    + '<div class="dh-meta">IFE · atrasos · TT/PM do dia · clique p/ imagem</div></div>';
   // Terceiros — valor + meta + % + previsão + barra com marcador
   const tercPct = tercMeta>0 ? Math.round(tercReal/tercMeta*100) : 0;
   heroHtml += '<div class="dh terc" onclick="showTab(\'servicos\')">'
@@ -11809,13 +11821,31 @@ function gerarBoletimPCP(){
       +'<div style="font-size:20px;font-weight:900;color:#0d1b3e">📰 BOLETIM PCP <span style="color:#1a6fcc">— INTERPUMP</span></div>'
       +'<div style="font-size:11px;color:#666;font-weight:600;margin-top:3px;text-transform:capitalize">'+hoje+'</div></div>'
     +'<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px">'
-      +card('#1a6fcc','IFE mês', B.ife, B.ifeOk?'✓ na meta (≥95%)':'✗ abaixo da meta')
+      +(function(){
+        const linhas = (B.ifeLinhas&&B.ifeLinhas.length)
+          ? B.ifeLinhas.map(l=>'<div style="display:flex;justify-content:space-between;gap:16px;font-size:12px;padding:3px 0;border-bottom:1px solid #eef2f9"><span style="color:#333">'+l.lbl+'</span><b style="color:#0d1b3e">'+l.val+'%</b></div>').join('')
+          : '<div style="font-size:12px;color:#999">IFE: '+B.ife+'</div>';
+        return '<div style="background:#1a6fcc14;border:1px solid #1a6fcc;border-radius:10px;padding:14px 16px;flex:1;min-width:200px">'
+          +'<div style="font-size:11px;font-weight:800;color:#1a6fcc;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">IFE — mês atual</div>'
+          +linhas+'</div>';
+      })()
       +card('#c0392b','Pedidos em atraso', B.atrasoQtd.toLocaleString('pt-BR')+' un', B.atrasoPeds+' pedidos · '+B.atrasoComp+' p/ faturar')
     +'</div>'
     +'<div style="display:flex;flex-wrap:wrap;gap:10px">'
       +card(ttCor,'TT — último dia', B.ttUlt.toLocaleString('pt-BR'), 'média '+B.ttMed+'/dia · meta '+B.ttMeta)
       +card(pmCor,'PM — último dia', B.pmUlt.toLocaleString('pt-BR'), 'média '+B.pmMed+'/dia · meta '+B.pmMeta)
     +'</div>'
+    +(function(){
+      if(!B.tercReal && !B.tercMeta) return '';
+      const money = n => 'R$ '+Math.round(n||0).toLocaleString('pt-BR');
+      const tercPct = B.tercMeta>0 ? Math.round(B.tercReal/B.tercMeta*100) : 0;
+      const tercCor = (B.tercMeta>0 && B.tercReal<=B.tercMeta) ? '#0a8f4d' : '#cc2200';
+      return '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px">'
+        +'<div style="background:'+tercCor+'14;border:1px solid '+tercCor+';border-radius:10px;padding:14px 16px;flex:1;min-width:200px">'
+        +'<div style="font-size:11px;font-weight:800;color:'+tercCor+';text-transform:uppercase;letter-spacing:.5px">Serviços de Terceiros</div>'
+        +'<div style="font-size:26px;font-weight:900;color:'+tercCor+';line-height:1.1;margin:2px 0">'+money(B.tercReal)+'</div>'
+        +'<div style="font-size:11px;color:#333">Meta '+money(B.tercMeta)+' ('+tercPct+'%) · Previsão '+money(B.tercPrev)+'</div></div></div>';
+    })()
     +'<div style="margin-top:16px;font-size:10px;color:#999;text-align:right">Gerado pelo Painel Industrial · '+new Date().toLocaleString('pt-BR')+'</div>'
     +'</div>';
   const overlay = document.createElement('div');
@@ -13351,6 +13381,8 @@ function atualizarResumoSaude(){
   btn.style.borderColor = todosOk ? 'var(--green)' : '#f59e0b';
   btn.style.color = todosOk ? 'var(--green)' : '#f59e0b';
   btn.style.background = todosOk ? 'rgba(0,201,122,.12)' : 'rgba(245,158,11,.12)';
+  const dot = document.getElementById('saude-dot');
+  if(dot) dot.style.background = todosOk ? 'var(--green)' : '#f59e0b';
 }
 function abrirPainelSaude(){
   const st = _saudeStatus();
