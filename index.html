@@ -828,6 +828,15 @@
   .ra-tbl td, .ra-tbl th { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left; }
   .ra-tbl tr.ra-comp td { background:rgba(15,224,138,.16) !important; }
   .ra-tbl tr.ra-comp td:first-child { box-shadow:inset 3px 0 0 #0fe08a; }
+  @media print {
+    body.modo-print-aba > *:not(.tab-content-wrap):not(#tabs-host) { display:none !important; }
+    body.modo-print-aba .tab-content:not(.active) { display:none !important; }
+    body.modo-print-aba .tab-content.active { display:block !important; }
+    body.modo-print-aba header, body.modo-print-aba .tabs, body.modo-print-aba nav { display:none !important; }
+    body.modo-print-aba { background:#fff !important; color:#000 !important; }
+    body.modo-print-aba .dh, body.modo-print-aba .ra-card, body.modo-print-aba table { break-inside:avoid; }
+    @page { size:landscape; margin:10mm; }
+  }
   .dh { background: linear-gradient(155deg, var(--surface2), var(--surface)); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; cursor: pointer; transition: transform .15s; position: relative; overflow: hidden; }
   .dh:hover { transform: translateY(-4px); }
   .dh::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
@@ -1133,6 +1142,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <button id="theme-toggle" onclick="toggleTema()" title="Alternar tema claro/escuro" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:14px;cursor:pointer">🌙</button>
       <button onclick="pedirSenha(abrirModalFeriados)" style="background:rgba(245,158,11,.15);border:1px solid #f59e0b;color:#f59e0b;padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">📅 Feriados</button>
       <button id="saude-btn" onclick="abrirPainelSaude()" title="Status das fontes de dados" style="background:rgba(0,201,122,.12);border:1px solid var(--green);color:var(--green);padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">🩺 <span id="saude-resumo">Status</span></button>
+      <button onclick="exportarAbaPDF()" title="Exportar a aba atual como PDF" style="background:rgba(61,139,255,.12);border:1px solid var(--blue);color:var(--blue);padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">📄 PDF</button>
       <div style="position:relative;display:inline-block">
         <button class="upload-btn" id="process-btn" onclick="abrirMenuAtualizar(event)" title="Forçar atualização de dados (protegido por senha)" style="padding:7px 10px;font-size:14px">⚡ ▾</button>
         <div id="menu-atualizar" style="display:none;position:absolute;right:0;top:110%;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.4);z-index:3000;min-width:230px;padding:6px;max-height:70vh;overflow-y:auto">
@@ -3268,6 +3278,12 @@ function renderMontados() {
       {col:'KIT_HIDR',label:'KIT HIDR.'}
     ];
     cardsEl.innerHTML=cardProds.map(({col,label},ci)=>{
+      // total do mês anterior (mesmo col) para comparativo
+      let totalMesAnt=0;
+      try {
+        const mAnt = mesAtual===0?11:mesAtual-1; const aAnt = mesAtual===0?anoAtual-1:anoAtual;
+        sorted.forEach(r=>{ const d=parseDate(r.DATA||'01/01/2000'); if(d.getMonth()===mAnt && d.getFullYear()===aAnt){ totalMesAnt+=parseFloat(String(r[col]||'0').replace(',','.'))||0; } });
+      } catch(e){}
       const hasMeta=HAS_META.includes(col);
       const metaDia=getMontadosMeta(col,mesAtual);
       const metaAcum=metaDia*duAteMes;
@@ -3306,7 +3322,20 @@ function renderMontados() {
           +'<div style="margin-top:4px;font-size:10px">Saldo: <b style="color:'+saldoCor+'">'+saldoStr+'</b>'
           +' <span style="color:'+(isAbove?'var(--green)':'var(--red)')+'">('+(isAbove?'✓ acima':'✗ abaixo')+')</span></div>'
           +'<div style="margin-top:2px;font-size:10px;color:var(--text-muted)">Nec: <b style="color:'+(medNec>metaDia?'var(--red)':'var(--green)')+'">'+medNec+'/dia</b> ('+duRestantes+' du rest.)</div>'
+          +(function(){
+            const duTotalMes=duEmail+duRestantes;
+            const proj=Math.round(mediaDia*duTotalMes);
+            const metaMes=metaDia*duTotalMes;
+            const projOk=proj>=metaMes;
+            return '<div style="margin-top:3px;padding-top:3px;border-top:1px dashed var(--border);font-size:10px">Projeção mês: <b style="color:'+(projOk?'var(--green)':'var(--red)')+'">'+proj.toLocaleString('pt-BR')+'</b> '
+              +'<span style="color:'+(projOk?'var(--green)':'var(--red)')+'">'+(projOk?'▲':'▼')+' meta '+Math.round(metaMes).toLocaleString('pt-BR')+'</span></div>';
+          })()
         :'<div style="margin-top:4px;font-size:10px;color:#2a6a4a;font-style:italic">sem meta definida</div>')
+        +(totalMesAnt>0?(function(){
+            const dif=totalMes-totalMesAnt; const pct=Math.round(dif/totalMesAnt*100);
+            const cor=dif>=0?'var(--green)':'var(--red)'; const seta=dif>=0?'▲':'▼';
+            return '<div style="margin-top:3px;font-size:10px;color:var(--text-muted)">vs mês ant: <b style="color:'+cor+'">'+seta+' '+Math.abs(pct)+'%</b> ('+Math.round(totalMesAnt).toLocaleString('pt-BR')+')</div>';
+          })():'')
         +'</div>';
     }).join('');
 
@@ -11005,11 +11034,19 @@ function renderDashboard(){
   // IFE — % consolidado + selo + sparkline
   const ifeNum = parseFloat(String(ifeCons).replace('%','').replace(',','.'))||0;
   const ifeSelo = ifeNum>=95 ? '<div class="dh-selo up">▲ na meta</div>' : '<div class="dh-selo down">▼ abaixo</div>';
+  // Comparativo vs mês anterior (ifeSerie: penúltimo = mês anterior)
+  let ifeComp = '';
+  if(ifeSerie && ifeSerie.length>=2){
+    const atual=ifeSerie[ifeSerie.length-1], ant=ifeSerie[ifeSerie.length-2];
+    if(ant>0){ const dif=atual-ant; const seta=dif>=0?'▲':'▼'; const cor=dif>=0?'var(--green)':'var(--red)';
+      ifeComp='<div class="dh-meta" style="color:'+cor+'">'+seta+' '+Math.abs(dif).toFixed(1)+' pts vs mês anterior</div>'; }
+  }
   heroHtml += '<div class="dh ife" onclick="showTab(\'ife\')">'
     + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📈</span>IFE — mês atual</div>'+ifeSelo+'</div>'
     + '<div class="dh-big">'+ifeCons+'</div>'
     + '<div class="dh-meta">consolidado · Matriz '+ifeMatr+' · Filial SP '+ifeFil+'</div>'
     + (ifeConsSimStr?'<div class="dh-meta" style="color:var(--amber)">se faturar tudo: <b>'+ifeConsSimStr+'</b></div>':'')
+    + ifeComp
     + _spark(ifeSerie, '#3d8bff') + '</div>';
   // Pedidos em atraso — ao lado do IFE, clicável, abre o Resumo de Atrasos
   try {
@@ -11029,7 +11066,19 @@ function renderDashboard(){
       + '<div class="dh-big">'+_qtdTotal.toLocaleString('pt-BR')+'</div>'
       + '<div class="dh-meta" style="margin-bottom:6px">'+_famStr+'</div>'
       + '<div class="dh-meta">'+_peds.length+' pedidos · '+(_comp>0?'<b style="color:var(--green)">'+_comp+' completos p/ faturar</b>':'0 completos')+' · clique p/ resumo</div></div>';
+    // guarda dados para o boletim matinal
+    window._boletimDados = {
+      ife: ifeCons, ifeOk: ifeNum>=95,
+      atrasoQtd: _qtdTotal, atrasoPeds: _peds.length, atrasoComp: _comp,
+      ttUlt: ttUltDia, ttMed: ttMed, ttMeta: ttMetaDia,
+      pmUlt: pmUltDia, pmMed: pmMed, pmMeta: pmMetaDia
+    };
   } catch(e){ console.warn('card atraso', e); }
+  // Card BOLETIM MATINAL — gera PNG do resumo do dia
+  heroHtml += '<div class="dh" style="cursor:pointer;border-color:#a855f7" onclick="gerarBoletimPCP()">'
+    + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📰</span>Boletim do dia</div><div class="dh-selo" style="background:rgba(168,85,247,.2);color:#c084fc">PNG</div></div>'
+    + '<div class="dh-big" style="font-size:22px">Gerar resumo</div>'
+    + '<div class="dh-meta">IFE · atrasos · TT/PM do dia · clique p/ imagem</div></div>';
   // Terceiros — valor + meta + % + previsão + barra com marcador
   const tercPct = tercMeta>0 ? Math.round(tercReal/tercMeta*100) : 0;
   heroHtml += '<div class="dh terc" onclick="showTab(\'servicos\')">'
@@ -11726,6 +11775,71 @@ function pngResumoAtrasos(){
         }, 'image/png');
       })
       .catch(err => { console.error(err); alert('Erro ao gerar imagem: '+err.message); if(overlay.parentNode) document.body.removeChild(overlay); });
+  }));
+}
+
+// ===== EXPORTAR ABA ATUAL COMO PDF =====
+function exportarAbaPDF(){
+  const ativa = document.querySelector('.tab-content.active');
+  if(!ativa){ alert('Nenhuma aba ativa.'); return; }
+  document.body.classList.add('modo-print-aba');
+  const antes = document.title;
+  const tabNome = (document.querySelector('.tab.active')||{}).textContent || 'Painel';
+  document.title = 'Painel Industrial — '+tabNome.trim();
+  setTimeout(()=>{ window.print(); document.title=antes; document.body.classList.remove('modo-print-aba'); }, 200);
+}
+
+// ===== BOLETIM MATINAL DO PCP (PNG) =====
+function gerarBoletimPCP(){
+  const B = window._boletimDados;
+  if(!B){ alert('Dados ainda carregando, tente em instantes.'); return; }
+  if (typeof html2canvas === 'undefined'){ alert('Biblioteca de imagem carregando, tente de novo.'); return; }
+  const hoje = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  const card = (cor,titulo,valor,sub) =>
+    '<div style="background:'+cor+'14;border:1px solid '+cor+';border-radius:10px;padding:14px 16px;flex:1;min-width:150px">'
+    +'<div style="font-size:11px;font-weight:800;color:'+cor+';text-transform:uppercase;letter-spacing:.5px">'+titulo+'</div>'
+    +'<div style="font-size:30px;font-weight:900;color:'+cor+';line-height:1.1;margin:2px 0">'+valor+'</div>'
+    +'<div style="font-size:11px;color:#333">'+sub+'</div></div>';
+  const ttCor = B.ttMed>=B.ttMeta ? '#0a8f4d' : '#cc2200';
+  const pmCor = B.pmMed>=B.pmMeta ? '#0a8f4d' : '#cc2200';
+  const ifeCor = B.ifeOk ? '#0a8f4d' : '#cc2200';
+  const corpo =
+     '<div style="font-family:\'Segoe UI\',Arial,sans-serif;color:#1a1a2e;background:#fff;width:720px;padding:22px">'
+    +'<div style="border-bottom:3px solid #1a6fcc;padding-bottom:10px;margin-bottom:16px">'
+      +'<div style="font-size:20px;font-weight:900;color:#0d1b3e">📰 BOLETIM PCP <span style="color:#1a6fcc">— INTERPUMP</span></div>'
+      +'<div style="font-size:11px;color:#666;font-weight:600;margin-top:3px;text-transform:capitalize">'+hoje+'</div></div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px">'
+      +card('#1a6fcc','IFE mês', B.ife, B.ifeOk?'✓ na meta (≥95%)':'✗ abaixo da meta')
+      +card('#c0392b','Pedidos em atraso', B.atrasoQtd.toLocaleString('pt-BR')+' un', B.atrasoPeds+' pedidos · '+B.atrasoComp+' p/ faturar')
+    +'</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:10px">'
+      +card(ttCor,'TT — último dia', B.ttUlt.toLocaleString('pt-BR'), 'média '+B.ttMed+'/dia · meta '+B.ttMeta)
+      +card(pmCor,'PM — último dia', B.pmUlt.toLocaleString('pt-BR'), 'média '+B.pmMed+'/dia · meta '+B.pmMeta)
+    +'</div>'
+    +'<div style="margin-top:16px;font-size:10px;color:#999;text-align:right">Gerado pelo Painel Industrial · '+new Date().toLocaleString('pt-BR')+'</div>'
+    +'</div>';
+  const overlay = document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100000;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML='<div style="color:#fff;font-size:14px;font-weight:700">Gerando boletim...</div>';
+  document.body.appendChild(overlay);
+  const wrap=document.createElement('div');
+  wrap.style.cssText='position:fixed;left:0;top:0;z-index:1';
+  wrap.innerHTML=corpo;
+  overlay.appendChild(wrap);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    html2canvas(wrap.firstElementChild,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false})
+      .then(canvas=>{
+        canvas.toBlob(blob=>{
+          const a=document.createElement('a');
+          a.href=URL.createObjectURL(blob);
+          a.download='Boletim_PCP_'+new Date().toISOString().slice(0,10)+'.png';
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          URL.revokeObjectURL(a.href);
+          if(navigator.clipboard && window.ClipboardItem){ navigator.clipboard.write([new ClipboardItem({'image/png':blob})]).then(()=>{},()=>{}); }
+          if(overlay.parentNode) document.body.removeChild(overlay);
+        },'image/png');
+      })
+      .catch(err=>{ if(overlay.parentNode) document.body.removeChild(overlay); alert('Erro ao gerar boletim: '+err.message); });
   }));
 }
 // Mostra um catálogo de ideias de perguntas, organizado por categoria
