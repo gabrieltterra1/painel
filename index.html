@@ -833,8 +833,21 @@
     body.modo-print-aba .tab-content { display:none !important; }
     body.modo-print-aba .tab-content.active { display:block !important; }
     body.modo-print-aba { background:#fff !important; }
-    body.modo-print-aba .dh, body.modo-print-aba .ra-card, body.modo-print-aba table { break-inside:avoid; }
-    @page { size:landscape; margin:8mm; }
+    body.modo-print-aba .dh, body.modo-print-aba .ra-card { break-inside:avoid; }
+    body.modo-print-aba table { break-inside:auto; width:100% !important; table-layout:auto !important; font-size:9px !important; }
+    body.modo-print-aba tr { break-inside:avoid; }
+    body.modo-print-aba canvas { max-width:100% !important; height:auto !important; break-inside:avoid; }
+    body.print-sem-cards .dash-hero, body.print-sem-cards [id$="-cards"] { display:none !important; }
+    body.print-sem-tabela table { display:none !important; }
+    body.print-sem-graficos canvas, body.print-sem-graficos .dspark, body.print-sem-graficos svg.dspark { display:none !important; }
+    body.modo-print-boletim body > *, body.modo-print-boletim header, body.modo-print-boletim nav.tabs { display:none !important; }
+    body.modo-print-boletim .tab-content { display:none !important; }
+    body.modo-print-boletim #tab-dashboard { display:block !important; }
+    body.modo-print-boletim #tab-dashboard > *:not(#dash-hero-cards):not(:has(#dash-hero-cards)) { display:none !important; }
+    body.modo-print-boletim #dash-hero-cards { display:grid !important; grid-template-columns:repeat(2,1fr) !important; gap:12px !important; }
+    body.modo-print-boletim #dash-hero-cards .dh { break-inside:avoid; border:1px solid #ccc !important; }
+    body.modo-print-boletim { background:#fff !important; }
+    @page { size:portrait; margin:12mm; }
   }
   .dh { background: linear-gradient(155deg, var(--surface2), var(--surface)); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; cursor: pointer; transition: transform .15s; position: relative; overflow: hidden; }
   .dh:hover { transform: translateY(-4px); }
@@ -867,7 +880,7 @@
   .dh.meta-baixo .dh-big { color: #ff6b6b !important; }
   .dh.meta-baixo { box-shadow: 0 0 0 1px rgba(255,59,59,.12), 0 8px 30px rgba(255,59,59,.08) !important; }
   .dh-big small { font-size: 17px; color: var(--text-muted); font-weight: 600; }
-  .dh-meta { font-size: 11px; color: var(--text-muted); margin-bottom: 12px; }
+  .dh-meta { font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px; }
   .dprog { position: relative; height: 8px; background: rgba(255,255,255,.06); border-radius: 5px; margin-top: 4px; }
   .dprog i { display: block; height: 100%; border-radius: 5px; }
   .dprog.terc i { background: linear-gradient(90deg, #b87410, var(--amber)); }
@@ -876,7 +889,7 @@
   .dprog.meta-ok i { background: linear-gradient(90deg, #00794a, var(--green)); }
   .dprog.meta-baixo i { background: linear-gradient(90deg, #b32020, #ff6b6b); }
   .dprog .mark { position: absolute; top: -3px; width: 2px; height: 14px; background: #fff; border-radius: 1px; opacity: .6; }
-  .dspark { margin-top: 10px; height: 30px; width: 100%; }
+  .dspark { margin-top: 10px; height: 46px; width: 100%; }
   /* montagem */
   .dash-mont { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 32px; }
   .dmc { background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--green); border-radius: 12px; padding: 14px 16px; cursor: pointer; transition: transform .15s; }
@@ -10921,7 +10934,7 @@ function renderDashboard(){
       const meses=[...new Set(DATA.ife.map(r=>r.mesKey))].sort();
       const mesAt=meses[meses.length-1];
       const calc=emp=>{ const d=DATA.ife.filter(_ifeFiltrar(emp)).filter(r=>r.mesKey===mesAt); return _ifeCalc(d).ife; };
-      const fp=v=> v==null?'—':(Math.round(v*10)/10).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+      const fp=v=> v==null?'—':(Math.round(v*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';
       ifeCons=fp(calc('CONSOLIDADO')); ifeMatr=fp(calc('1')); ifeFil=fp(calc('2'));
 
       // ── IFE simulado (se faturar todos os pendentes do mês) ──
@@ -10991,8 +11004,14 @@ function renderDashboard(){
     if (!vals || vals.length < 2) return '';
     const max=Math.max(...vals), min=Math.min(...vals), rng=(max-min)||1;
     const n=vals.length;
-    const pts=vals.map((v,i)=>{ const x=Math.round(i/(n-1)*200); const y=Math.round(26-((v-min)/rng)*22)+2; return x+','+y; }).join(' ');
-    return '<svg class="dspark" viewBox="0 0 200 30" preserveAspectRatio="none"><polyline points="'+pts+'" fill="none" stroke="'+cor+'" stroke-width="2"/></svg>';
+    const coords=vals.map((v,i)=>{ const x=Math.round(i/(n-1)*200); const y=Math.round(26-((v-min)/rng)*22)+2; return [x,y]; });
+    const pts=coords.map(c=>c.join(',')).join(' ');
+    const area='0,30 '+pts+' 200,30';
+    const last=coords[coords.length-1];
+    return '<svg class="dspark" viewBox="0 0 200 30" preserveAspectRatio="none">'
+      +'<polygon points="'+area+'" fill="'+cor+'22" stroke="none"/>'
+      +'<polyline points="'+pts+'" fill="none" stroke="'+cor+'" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'
+      +'<circle cx="'+last[0]+'" cy="'+last[1]+'" r="3" fill="'+cor+'"/></svg>';
   };
   // séries para sparkline
   let ifeSerie=[], ttSerie=[], pmSerie=[];
@@ -11028,7 +11047,7 @@ function renderDashboard(){
     }
   } catch(e){ console.warn('dash du', e); }
 
-  let heroHtml='<div class="dash-hero">';
+  let heroHtml='<div class="dash-hero" id="dash-hero-cards">';
   // Card de DIAS ÚTEIS do mês (clicável → gera boletim do dia)
   heroHtml += '<div class="dh du" style="cursor:pointer" onclick="gerarBoletimPCP()" title="Clique para gerar o boletim do dia (PNG)">'
     + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📅</span>Dias úteis do mês</div><div class="dh-selo" style="background:rgba(168,85,247,.2);color:#c084fc">📰 Boletim</div></div>'
@@ -11043,7 +11062,7 @@ function renderDashboard(){
   if(ifeSerie && ifeSerie.length>=2){
     const atual=ifeSerie[ifeSerie.length-1], ant=ifeSerie[ifeSerie.length-2];
     if(ant>0){ const dif=atual-ant; const seta=dif>=0?'▲':'▼'; const cor=dif>=0?'var(--green)':'var(--red)';
-      ifeComp='<div class="dh-meta" style="color:'+cor+'">'+seta+' '+Math.abs(dif).toFixed(1)+' pts vs mês anterior</div>'; }
+      ifeComp='<div class="dh-meta" style="color:'+cor+'">'+seta+' '+Math.abs(dif).toFixed(2)+' pts vs mês anterior</div>'; }
   }
   heroHtml += '<div class="dh ife" onclick="showTab(\'ife\')">'
     + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📈</span>IFE — mês atual</div>'+ifeSelo+'</div>'
@@ -11075,7 +11094,7 @@ function renderDashboard(){
     try {
       if(DATA.ife && DATA.ife.length){
         const mk = [...new Set(DATA.ife.map(r=>r.mesKey))].sort().pop();
-        const calcL = (filt)=>{ const c=_ifeCalc(DATA.ife.filter(_ifeFiltrar(filt)).filter(r=>r.mesKey===mk)); return c.ife||0; };
+        const calcL = (filt)=>{ const c=_ifeCalc(DATA.ife.filter(_ifeFiltrar(filt)).filter(r=>r.mesKey===mk)); return c.ife!=null?(Math.round(c.ife*100)/100):0; };
         ifeLinhas = [
           {lbl:'Consolidado', val:calcL('CONSOLIDADO')},
           {lbl:'Matriz', val:calcL('1')},
@@ -11794,83 +11813,53 @@ function pngResumoAtrasos(){
 function exportarAbaPDF(){
   const ativa = document.querySelector('.tab-content.active');
   if(!ativa){ alert('Nenhuma aba ativa.'); return; }
-  document.body.classList.add('modo-print-aba');
-  const antes = document.title;
-  const tabNome = (document.querySelector('.tab.active')||{}).textContent || 'Painel';
-  document.title = 'Painel Industrial — '+tabNome.trim();
-  setTimeout(()=>{ window.print(); document.title=antes; document.body.classList.remove('modo-print-aba'); }, 200);
+  const tabNome = ((document.querySelector('.tab.active')||{}).textContent||'Painel').trim();
+  // menu de escolha do que imprimir
+  let menu = document.getElementById('pdf-menu-modal');
+  if(menu) menu.remove();
+  menu = document.createElement('div');
+  menu.id = 'pdf-menu-modal';
+  menu.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';
+  menu.onclick=e=>{ if(e.target===menu) menu.remove(); };
+  menu.innerHTML='<div style="background:var(--card,#151a2e);border:1px solid var(--border);border-radius:14px;max-width:380px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.6)">'
+    +'<h2 style="margin:0 0 4px;font-size:16px">\ud83d\udcc4 Exportar PDF \u2014 '+tabNome+'</h2>'
+    +'<p style="margin:0 0 14px;font-size:12px;color:var(--text-muted)">O que deseja incluir?</p>'
+    +'<label style="display:flex;align-items:center;gap:8px;padding:8px 0;font-size:13px;cursor:pointer"><input type="checkbox" id="pdf-cards" checked> Cards / indicadores</label>'
+    +'<label style="display:flex;align-items:center;gap:8px;padding:8px 0;font-size:13px;cursor:pointer"><input type="checkbox" id="pdf-tabela" checked> Tabelas</label>'
+    +'<label style="display:flex;align-items:center;gap:8px;padding:8px 0;font-size:13px;cursor:pointer"><input type="checkbox" id="pdf-graficos"> Gr\u00e1ficos</label>'
+    +'<div style="display:flex;gap:8px;margin-top:16px">'
+    +'<button onclick="_executarPDF()" style="flex:1;background:var(--blue);border:none;color:#fff;padding:9px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:700">Gerar PDF</button>'
+    +'<button onclick="document.getElementById(\'pdf-menu-modal\').remove()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:9px 14px;border-radius:6px;font-size:13px;cursor:pointer">Cancelar</button>'
+    +'</div></div>';
+  document.body.appendChild(menu);
+}
+function _executarPDF(){
+  const cards=document.getElementById('pdf-cards').checked;
+  const tabela=document.getElementById('pdf-tabela').checked;
+  const graficos=document.getElementById('pdf-graficos').checked;
+  const menu=document.getElementById('pdf-menu-modal'); if(menu) menu.remove();
+  const b=document.body.classList;
+  b.add('modo-print-aba');
+  b.toggle('print-sem-cards', !cards);
+  b.toggle('print-sem-tabela', !tabela);
+  b.toggle('print-sem-graficos', !graficos);
+  const antes=document.title;
+  const tabNome=((document.querySelector('.tab.active')||{}).textContent||'Painel').trim();
+  document.title='Painel Industrial \u2014 '+tabNome;
+  setTimeout(()=>{ window.print(); document.title=antes;
+    b.remove('modo-print-aba','print-sem-cards','print-sem-tabela','print-sem-graficos'); }, 200);
 }
 
 // ===== BOLETIM MATINAL DO PCP (PNG) =====
 function gerarBoletimPCP(){
-  const B = window._boletimDados;
-  if(!B){ alert('Dados ainda carregando, tente em instantes.'); return; }
-  if (typeof html2canvas === 'undefined'){ alert('Biblioteca de imagem carregando, tente de novo.'); return; }
-  const hoje = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
-  const card = (cor,titulo,valor,sub) =>
-    '<div style="background:'+cor+'14;border:1px solid '+cor+';border-radius:10px;padding:14px 16px;flex:1;min-width:150px">'
-    +'<div style="font-size:11px;font-weight:800;color:'+cor+';text-transform:uppercase;letter-spacing:.5px">'+titulo+'</div>'
-    +'<div style="font-size:30px;font-weight:900;color:'+cor+';line-height:1.1;margin:2px 0">'+valor+'</div>'
-    +'<div style="font-size:11px;color:#333">'+sub+'</div></div>';
-  const ttCor = B.ttMed>=B.ttMeta ? '#0a8f4d' : '#cc2200';
-  const pmCor = B.pmMed>=B.pmMeta ? '#0a8f4d' : '#cc2200';
-  const ifeCor = B.ifeOk ? '#0a8f4d' : '#cc2200';
-  const corpo =
-     '<div style="font-family:\'Segoe UI\',Arial,sans-serif;color:#1a1a2e;background:#fff;width:720px;padding:22px">'
-    +'<div style="border-bottom:3px solid #1a6fcc;padding-bottom:10px;margin-bottom:16px">'
-      +'<div style="font-size:20px;font-weight:900;color:#0d1b3e">📰 BOLETIM PCP <span style="color:#1a6fcc">— INTERPUMP</span></div>'
-      +'<div style="font-size:11px;color:#666;font-weight:600;margin-top:3px;text-transform:capitalize">'+hoje+'</div></div>'
-    +'<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px">'
-      +(function(){
-        const linhas = (B.ifeLinhas&&B.ifeLinhas.length)
-          ? B.ifeLinhas.map(l=>'<div style="display:flex;justify-content:space-between;gap:16px;font-size:12px;padding:3px 0;border-bottom:1px solid #eef2f9"><span style="color:#333">'+l.lbl+'</span><b style="color:#0d1b3e">'+l.val+'%</b></div>').join('')
-          : '<div style="font-size:12px;color:#999">IFE: '+B.ife+'</div>';
-        return '<div style="background:#1a6fcc14;border:1px solid #1a6fcc;border-radius:10px;padding:14px 16px;flex:1;min-width:200px">'
-          +'<div style="font-size:11px;font-weight:800;color:#1a6fcc;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">IFE — mês atual</div>'
-          +linhas+'</div>';
-      })()
-      +card('#c0392b','Pedidos em atraso', B.atrasoQtd.toLocaleString('pt-BR')+' un', B.atrasoPeds+' pedidos · '+B.atrasoComp+' p/ faturar')
-    +'</div>'
-    +'<div style="display:flex;flex-wrap:wrap;gap:10px">'
-      +card(ttCor,'TT — último dia', B.ttUlt.toLocaleString('pt-BR'), 'média '+B.ttMed+'/dia · meta '+B.ttMeta)
-      +card(pmCor,'PM — último dia', B.pmUlt.toLocaleString('pt-BR'), 'média '+B.pmMed+'/dia · meta '+B.pmMeta)
-    +'</div>'
-    +(function(){
-      if(!B.tercReal && !B.tercMeta) return '';
-      const money = n => 'R$ '+Math.round(n||0).toLocaleString('pt-BR');
-      const tercPct = B.tercMeta>0 ? Math.round(B.tercReal/B.tercMeta*100) : 0;
-      const tercCor = (B.tercMeta>0 && B.tercReal<=B.tercMeta) ? '#0a8f4d' : '#cc2200';
-      return '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px">'
-        +'<div style="background:'+tercCor+'14;border:1px solid '+tercCor+';border-radius:10px;padding:14px 16px;flex:1;min-width:200px">'
-        +'<div style="font-size:11px;font-weight:800;color:'+tercCor+';text-transform:uppercase;letter-spacing:.5px">Serviços de Terceiros</div>'
-        +'<div style="font-size:26px;font-weight:900;color:'+tercCor+';line-height:1.1;margin:2px 0">'+money(B.tercReal)+'</div>'
-        +'<div style="font-size:11px;color:#333">Meta '+money(B.tercMeta)+' ('+tercPct+'%) · Previsão '+money(B.tercPrev)+'</div></div></div>';
-    })()
-    +'<div style="margin-top:16px;font-size:10px;color:#999;text-align:right">Gerado pelo Painel Industrial · '+new Date().toLocaleString('pt-BR')+'</div>'
-    +'</div>';
-  const overlay = document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100000;display:flex;align-items:center;justify-content:center';
-  overlay.innerHTML='<div style="color:#fff;font-size:14px;font-weight:700">Gerando boletim...</div>';
-  document.body.appendChild(overlay);
-  const wrap=document.createElement('div');
-  wrap.style.cssText='position:fixed;left:0;top:0;z-index:1';
-  wrap.innerHTML=corpo;
-  overlay.appendChild(wrap);
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    html2canvas(wrap.firstElementChild,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false})
-      .then(canvas=>{
-        canvas.toBlob(blob=>{
-          const a=document.createElement('a');
-          a.href=URL.createObjectURL(blob);
-          a.download='Boletim_PCP_'+new Date().toISOString().slice(0,10)+'.png';
-          document.body.appendChild(a); a.click(); document.body.removeChild(a);
-          URL.revokeObjectURL(a.href);
-          if(navigator.clipboard && window.ClipboardItem){ navigator.clipboard.write([new ClipboardItem({'image/png':blob})]).then(()=>{},()=>{}); }
-          if(overlay.parentNode) document.body.removeChild(overlay);
-        },'image/png');
-      })
-      .catch(err=>{ if(overlay.parentNode) document.body.removeChild(overlay); alert('Erro ao gerar boletim: '+err.message); });
-  }));
+  // Garante que estamos no dashboard (onde os cards existem)
+  if(typeof showTab==='function') showTab('dashboard');
+  const hero = document.getElementById('dash-hero-cards');
+  if(!hero){ alert('Cards do dashboard n\u00e3o encontrados.'); return; }
+  document.body.classList.add('modo-print-boletim');
+  const antes = document.title;
+  document.title = 'Boletim PCP \u2014 '+new Date().toLocaleDateString('pt-BR');
+  setTimeout(()=>{ window.print(); document.title=antes; document.body.classList.remove('modo-print-boletim'); }, 250);
 }
 // Mostra um catálogo de ideias de perguntas, organizado por categoria
 function dashMostrarIdeias(){
@@ -12538,7 +12527,7 @@ function _dashResponder(q){
       const meses=[...new Set(DATA.ife.map(r=>r.mesKey))].sort();
       const mesAt=meses[meses.length-1];
       const calc=emp=>{ const c=_ifeCalc(DATA.ife.filter(_ifeFiltrar(emp)).filter(r=>r.mesKey===mesAt)); return c.ife; };
-      const fp=v=> v==null?'—':(Math.round(v*10)/10).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+      const fp=v=> v==null?'—':(Math.round(v*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';
       return _daBox('IFE — '+(mesAt||'mês atual'),
         '<div style="font-size:14px;line-height:1.9">'
         +'Consolidado: <b style="color:var(--blue-light);font-size:20px">'+fp(calc('CONSOLIDADO'))+'</b><br>'
