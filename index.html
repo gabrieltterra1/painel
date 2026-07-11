@@ -3319,40 +3319,37 @@ function renderMontados() {
         : 0;
       const isAbove=hasMeta&&metaDia>0&&mediaDia>=metaDia;
 
-      return '<div style="grid-column:'+(ci===0?'2':'auto')+';background:var(--surface);border:'+(hasMeta?'2':'1')+'px solid '+(hasMeta?cor:'var(--border)')+';border-radius:10px;padding:12px 14px;min-width:0;box-shadow:var(--card-shadow,none)">'
+      return '<div style="grid-column:'+(ci===0?'2':'auto')+';background:var(--surface);border:'+(hasMeta?'2':'1')+'px solid '+(hasMeta?cor:'var(--border)')+';border-radius:10px;padding:12px 14px;min-width:0;box-shadow:var(--card-shadow,none);display:flex;flex-direction:column">'
         +'<div style="font-size:9px;font-weight:700;color:'+cor+';letter-spacing:1px;margin-bottom:6px;white-space:normal;line-height:1.15">'+label+'</div>'
         +'<div style="display:flex;align-items:baseline;gap:10px;white-space:nowrap">'
         +'<div style="font-size:'+(hasMeta?'23':'20')+'px;font-weight:900;color:'+cor+'">'+Math.round(totalMes).toLocaleString('pt-BR')+'</div>'
         +(hojeQtd!==null?'<div style="font-size:13px;font-weight:700;color:var(--text-muted);border-left:2px solid var(--border);padding-left:8px">hoje: <span style="color:'+cor+';font-size:15px;font-weight:900">'+Math.round(hojeQtd).toLocaleString('pt-BR')+'</span></div>':'')
         +'</div>'
         +'<div style="font-size:9px;color:var(--text-muted);margin-top:2px">total · '+duEmail+' du</div>'
-        +(hasMeta&&metaDia>0?
-          '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;font-size:10px">'
+        +'<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;font-size:10px">'
           +'<span>Média: <b style="color:'+cor+'">'+mediaDia.toFixed(1)+'</b></span>'
-          +'<span>Meta: <b style="color:'+cor+'">'+metaDia+'</b></span>'
+          +(hasMeta&&metaDia>0?'<span>Meta: <b style="color:'+cor+'">'+metaDia+'</b></span>':'<span style="color:#2a6a4a;font-style:italic">sem meta</span>')
           +'</div>'
-          +'<div style="margin-top:4px;font-size:10px">Saldo: <b style="color:'+saldoCor+'">'+saldoStr+'</b>'
+        +(hasMeta&&metaDia>0?
+          '<div style="margin-top:4px;font-size:10px">Saldo: <b style="color:'+saldoCor+'">'+saldoStr+'</b>'
           +' <span style="color:'+(isAbove?'var(--green)':'var(--red)')+'">('+(isAbove?'✓ acima':'✗ abaixo')+')</span></div>'
           +'<div style="margin-top:2px;font-size:10px;color:var(--text-muted)">Nec: <b style="color:'+(medNec>metaDia?'var(--red)':'var(--green)')+'">'+medNec+'/dia</b> ('+duRestantes+' du rest.)</div>'
-          +(function(){
-            const duTotalMes=duEmail+duRestantes;
-            const proj=Math.round(mediaDia*duTotalMes);
-            const metaMes=metaDia*duTotalMes;
-            const projOk=proj>=metaMes;
-            return '<div style="margin-top:3px;padding-top:3px;border-top:1px dashed var(--border);font-size:10px">Projeção mês: <b style="color:'+(projOk?'var(--green)':'var(--red)')+'">'+proj.toLocaleString('pt-BR')+'</b> '
-              +'<span style="color:'+(projOk?'var(--green)':'var(--red)')+'">'+(projOk?'▲':'▼')+' meta '+Math.round(metaMes).toLocaleString('pt-BR')+'</span></div>';
-          })()
-        :'<div style="margin-top:4px;font-size:10px;color:#2a6a4a;font-style:italic">sem meta definida</div>'
-          +(function(){
-            const duTotalMes=duEmail+duRestantes;
-            const proj=Math.round(mediaDia*duTotalMes);
-            return '<div style="margin-top:3px;padding-top:3px;border-top:1px dashed var(--border);font-size:10px;color:var(--text-muted)">Projeção mês: <b style="color:var(--text)">'+proj.toLocaleString('pt-BR')+'</b></div>';
-          })())
+        :'')
         +(totalMesAnt>0?(function(){
             const dif=totalMes-totalMesAnt; const pct=Math.round(dif/totalMesAnt*100);
-            const cor=dif>=0?'var(--green)':'var(--red)'; const seta=dif>=0?'▲':'▼';
-            return '<div style="margin-top:3px;font-size:10px;color:var(--text-muted)">vs mês ant: <b style="color:'+cor+'">'+seta+' '+Math.abs(pct)+'%</b> ('+Math.round(totalMesAnt).toLocaleString('pt-BR')+')</div>';
+            const c2=dif>=0?'var(--green)':'var(--red)'; const seta=dif>=0?'▲':'▼';
+            return '<div style="margin-top:3px;font-size:10px;color:var(--text-muted)">vs mês ant: <b style="color:'+c2+'">'+seta+' '+Math.abs(pct)+'%</b> ('+Math.round(totalMesAnt).toLocaleString('pt-BR')+')</div>';
           })():'')
+        +(function(){
+            const duTotalMes=duEmail+duRestantes;
+            const proj=Math.round(mediaDia*duTotalMes);
+            if(hasMeta&&metaDia>0){
+              const metaMes=metaDia*duTotalMes; const projOk=proj>=metaMes;
+              return '<div style="margin-top:auto;padding-top:6px;font-size:10px;border-top:1px dashed var(--border)">Projeção mês: <b style="color:'+(projOk?'var(--green)':'var(--red)')+'">'+proj.toLocaleString('pt-BR')+'</b> '
+                +'<span style="color:'+(projOk?'var(--green)':'var(--red)')+'">'+(projOk?'▲':'▼')+' meta '+Math.round(metaMes).toLocaleString('pt-BR')+'</span></div>';
+            }
+            return '<div style="margin-top:auto;padding-top:6px;font-size:10px;border-top:1px dashed var(--border);color:var(--text-muted)">Projeção mês: <b style="color:var(--text)">'+proj.toLocaleString('pt-BR')+'</b></div>';
+          })()
         +'</div>';
     }).join('');
 
@@ -11070,7 +11067,7 @@ function renderDashboard(){
     + '<div class="dh-meta">consolidado · Matriz '+ifeMatr+' · Filial SP '+ifeFil+'</div>'
     + (ifeConsSimStr?'<div class="dh-meta" style="color:var(--amber)">se faturar tudo: <b>'+ifeConsSimStr+'</b></div>':'')
     + ifeComp
-    + _spark(ifeSerie, '#3d8bff') + '</div>';
+    + '</div>';
   // Pedidos em atraso — ao lado do IFE, clicável, abre o Resumo de Atrasos
   try {
     const _atr = (DATA.pedidos||[]).filter(p=>p.atrasado);
@@ -11126,7 +11123,7 @@ function renderDashboard(){
     + '<div class="dh-big">'+_dfmt(ttUltDia)+'</div>'
     + '<div class="dh-meta">média '+_dfmt(ttMed)+'/dia · meta '+_dfmt(ttMetaDia)+'/dia</div>'
     + '<div class="dprog '+(ttOk?'meta-ok':'meta-baixo')+'"><i style="width:'+pctBar(ttMed,ttMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div>'
-    + _spark(ttSerie, ttOk?'#00c97a':'#ff6b6b') + '</div>';
+    + '</div>';
   // PM — último dia + média + meta + selo + barra + sparkline
   const pmOk=pmMed>=pmMetaDia;
   heroHtml += '<div class="dh pm '+(pmOk?'meta-ok':'meta-baixo')+'" onclick="showTab(\'termico\')">'
@@ -11135,7 +11132,7 @@ function renderDashboard(){
     + '<div class="dh-big">'+_dfmt(pmUltDia)+'</div>'
     + '<div class="dh-meta">média '+_dfmt(pmMed)+'/dia · meta '+_dfmt(pmMetaDia)+'/dia</div>'
     + '<div class="dprog '+(pmOk?'meta-ok':'meta-baixo')+'"><i style="width:'+pctBar(pmMed,pmMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div>'
-    + _spark(pmSerie, pmOk?'#00c97a':'#ff6b6b') + '</div>';
+    + '</div>';
   heroHtml += '</div>';
 
   // ── MONTAGEM (só famílias com meta, 1 casa decimal) ──
