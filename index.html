@@ -12017,21 +12017,23 @@ function gerarBoletimPCP(){
       cardsHtml+='</div>';
       // tabela completa
       let tb='';
+      const _trunc='overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
       D.linhasFlat.forEach(l=>{
         const corSt=_raCorStatus(l.status);
         const trBg=l.completo?'background:rgba(15,224,138,.12)':'';
         tb+='<tr style="border-bottom:1px solid var(--border);'+trBg+'">'
-          +'<td style="padding:5px 8px;font-weight:700">'+esc(l.pedido)+'</td>'
-          +'<td style="padding:5px 8px">'+l.qtde.toLocaleString('pt-BR')+'</td>'
-          +'<td style="padding:5px 8px;font-weight:700">'+esc(l.codigo)+'</td>'
-          +'<td style="padding:5px 8px">'+esc(l.desc)+'</td>'
-          +'<td style="padding:5px 8px">'+esc(l.familia)+'</td>'
-          +'<td style="padding:5px 8px">'+esc(l.cliente)+'</td>'
-          +'<td style="padding:5px 8px">'+esc(l.rep)+'</td>'
-          +'<td style="padding:5px 8px;color:'+corSt+';font-weight:700">'+esc(l.status)+'</td>'
-          +'<td style="padding:5px 8px;font-weight:800;color:'+(l.completo?'#0fe08a':'#ffaa00')+'">'+(l.completo?'SIM':'NÃO')+'</td></tr>';
+          +'<td style="padding:5px 8px;font-weight:700;'+_trunc+'">'+esc(l.pedido)+'</td>'
+          +'<td style="padding:5px 8px;'+_trunc+'">'+l.qtde.toLocaleString('pt-BR')+'</td>'
+          +'<td style="padding:5px 8px;font-weight:700;'+_trunc+'">'+esc(l.codigo)+'</td>'
+          +'<td style="padding:5px 8px;'+_trunc+'" title="'+esc(l.desc)+'">'+esc(l.desc)+'</td>'
+          +'<td style="padding:5px 8px;'+_trunc+'">'+esc(l.familia)+'</td>'
+          +'<td style="padding:5px 8px;'+_trunc+'" title="'+esc(l.cliente)+'">'+esc(l.cliente)+'</td>'
+          +'<td style="padding:5px 8px;'+_trunc+'" title="'+esc(l.rep)+'">'+esc(l.rep)+'</td>'
+          +'<td style="padding:5px 8px;color:'+corSt+';font-weight:700;'+_trunc+'">'+esc(l.status)+'</td>'
+          +'<td style="padding:5px 8px;font-weight:800;color:'+(l.completo?'#0fe08a':'#ffaa00')+';'+_trunc+'">'+(l.completo?'SIM':'NÃO')+'</td></tr>';
       });
-      const tabela='<table style="width:100%;border-collapse:collapse;font-size:11px">'
+      const tabela='<table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed">'
+        +'<colgroup><col style="width:62px"><col style="width:46px"><col style="width:62px"><col style="width:210px"><col style="width:78px"><col style="width:150px"><col style="width:120px"><col style="width:110px"><col style="width:55px"></colgroup>'
         +'<thead><tr style="background:var(--border);color:var(--text-muted);text-align:left">'
         +'<th style="padding:6px 8px">PEDIDO</th><th style="padding:6px 8px">QTDE</th><th style="padding:6px 8px">CÓDIGO</th><th style="padding:6px 8px">DESCRIÇÃO</th><th style="padding:6px 8px">FAMÍLIA</th><th style="padding:6px 8px">CLIENTE</th><th style="padding:6px 8px">REPRES.</th><th style="padding:6px 8px">STATUS</th><th style="padding:6px 8px">COMPL.?</th>'
         +'</tr></thead><tbody>'+tb+'</tbody></table>';
