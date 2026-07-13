@@ -11115,23 +11115,24 @@ function renderDashboard(){
     + '<div class="dh-big">'+fmtMoney(tercReal)+'</div>'
     + '<div class="dh-meta">meta '+fmtMoney(tercMeta)+(tercPrev>0?' · prev. '+fmtMoney(tercPrev):'')+'</div>'
     + (tercMeta>0?'<div class="dprog terc"><i style="width:'+pctBar(tercReal,tercMeta)+'%"></i><span class="mark" style="left:100%"></span></div>':'')+'</div>';
-  // TT — último dia + média + meta + selo + barra + sparkline
+  // TT + PM num card único (empilhado)
   const ttOk=ttMed>=ttMetaDia;
-  heroHtml += '<div class="dh tt '+(ttOk?'meta-ok':'meta-baixo')+'" onclick="showTab(\'termico\')">'
-    + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">🌡️</span>TT — último dia</div>'
-      + '<div class="dh-selo '+(ttOk?'up':'down')+'">'+(ttOk?'▲ na meta':'▼ abaixo')+'</div></div>'
-    + '<div class="dh-big">'+_dfmt(ttUltDia)+'</div>'
-    + '<div class="dh-meta">média '+_dfmt(ttMed)+'/dia · meta '+_dfmt(ttMetaDia)+'/dia</div>'
-    + '<div class="dprog '+(ttOk?'meta-ok':'meta-baixo')+'"><i style="width:'+pctBar(ttMed,ttMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div>'
-    + '</div>';
-  // PM — último dia + média + meta + selo + barra + sparkline
   const pmOk=pmMed>=pmMetaDia;
-  heroHtml += '<div class="dh pm '+(pmOk?'meta-ok':'meta-baixo')+'" onclick="showTab(\'termico\')">'
-    + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">✨</span>PM — último dia</div>'
-      + '<div class="dh-selo '+(pmOk?'up':'down')+'">'+(pmOk?'▲ na meta':'▼ abaixo')+'</div></div>'
-    + '<div class="dh-big">'+_dfmt(pmUltDia)+'</div>'
-    + '<div class="dh-meta">média '+_dfmt(pmMed)+'/dia · meta '+_dfmt(pmMetaDia)+'/dia</div>'
-    + '<div class="dprog '+(pmOk?'meta-ok':'meta-baixo')+'"><i style="width:'+pctBar(pmMed,pmMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div>'
+  heroHtml += '<div class="dh" style="cursor:pointer" onclick="showTab(\'termico\')">'
+    + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">🌡️</span>Térmico & Polimento — último dia</div></div>'
+    + '<div style="display:flex;align-items:baseline;gap:8px;margin-top:6px">'
+      + '<span style="font-size:12px;color:var(--text-muted);width:30px">TT</span>'
+      + '<span style="font-size:28px;font-weight:900;color:'+(ttOk?'var(--green)':'#ff6b6b')+';font-family:var(--font-display);line-height:1">'+_dfmt(ttUltDia)+'</span>'
+      + '<span style="font-size:12px;color:var(--text-muted);flex:1">média '+_dfmt(ttMed)+' · meta '+_dfmt(ttMetaDia)+'</span>'
+      + '<span style="font-size:12px;color:'+(ttOk?'var(--green)':'#ff6b6b')+';font-weight:700">'+(ttOk?'▲':'▼')+'</span></div>'
+    + '<div class="dprog '+(ttOk?'meta-ok':'meta-baixo')+'" style="margin-top:6px"><i style="width:'+pctBar(ttMed,ttMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div>'
+    + '<div style="height:1px;background:var(--border);margin:12px 0"></div>'
+    + '<div style="display:flex;align-items:baseline;gap:8px">'
+      + '<span style="font-size:12px;color:var(--text-muted);width:30px">PM</span>'
+      + '<span style="font-size:28px;font-weight:900;color:'+(pmOk?'var(--green)':'#ff6b6b')+';font-family:var(--font-display);line-height:1">'+_dfmt(pmUltDia)+'</span>'
+      + '<span style="font-size:12px;color:var(--text-muted);flex:1">média '+_dfmt(pmMed)+' · meta '+_dfmt(pmMetaDia)+'</span>'
+      + '<span style="font-size:12px;color:'+(pmOk?'var(--green)':'#ff6b6b')+';font-weight:700">'+(pmOk?'▲':'▼')+'</span></div>'
+    + '<div class="dprog '+(pmOk?'meta-ok':'meta-baixo')+'" style="margin-top:6px"><i style="width:'+pctBar(pmMed,pmMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div>'
     + '</div>';
   heroHtml += '</div>';
 
@@ -11951,7 +11952,35 @@ function gerarBoletimPCP(){
   setTimeout(()=>{
     const hero=document.getElementById('dash-hero-cards');
     if(!hero){ alert('Cards do dashboard n\u00e3o encontrados.'); return; }
-    _capturaPNGElemento(hero, 'Boletim_PCP_'+new Date().toISOString().slice(0,10)+'.png', true);
+    // clona os cards num container com 3 colunas fixas para a imagem
+    const bg = getComputedStyle(document.body).backgroundColor || '#0d1117';
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100000;display:flex;align-items:center;justify-content:center';
+    overlay.innerHTML='<div style="color:#fff;font-size:14px;font-weight:700">Gerando boletim...</div>';
+    document.body.appendChild(overlay);
+    const wrap=document.createElement('div');
+    wrap.style.cssText='position:fixed;left:0;top:0;z-index:1;width:1020px;padding:20px;background:'+bg;
+    const clone=hero.cloneNode(true);
+    clone.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:16px';
+    // título
+    const titulo=document.createElement('div');
+    titulo.style.cssText='color:#fff;font-size:20px;font-weight:900;margin-bottom:16px;font-family:sans-serif';
+    titulo.textContent='📰 Boletim PCP — '+new Date().toLocaleDateString('pt-BR');
+    wrap.appendChild(titulo); wrap.appendChild(clone);
+    overlay.appendChild(wrap);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      html2canvas(wrap,{scale:2,backgroundColor:bg,useCORS:true,logging:false,windowWidth:1060})
+        .then(canvas=>{
+          canvas.toBlob(blob=>{
+            const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+            a.download='Boletim_PCP_'+new Date().toISOString().slice(0,10)+'.png';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
+            if(navigator.clipboard && window.ClipboardItem){ navigator.clipboard.write([new ClipboardItem({'image/png':blob})]).then(()=>{},()=>{}); }
+            if(overlay.parentNode) document.body.removeChild(overlay);
+          },'image/png');
+        })
+        .catch(err=>{ if(overlay.parentNode) document.body.removeChild(overlay); alert('Erro ao gerar boletim: '+err.message); });
+    }));
   }, 150);
 }
 // Captura um elemento da tela como PNG (fundo do tema), baixa e copia
