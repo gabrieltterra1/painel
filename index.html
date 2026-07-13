@@ -11557,10 +11557,130 @@ function _raBuild(){
   return { linhasFlat, pedidosOrd, completos, parciais, pedsCompletos, fam, qtdeTotal, qtdeFaturar };
 }
 
+// ===== estado de filtros/ordenação do modal de atrasos =====
+let raColFiltros = {};   // { colKey: Set(valores) }
+let raSortCol = 'pedido', raSortAsc = true;
+let raFiltroTopo = { familia:'', status:'', rep:'', completo:'' };
+const RA_COLS = [
+  ['pedido','PEDIDO','70px'], ['qtde','QTDE','55px','num'], ['codigo','CÓDIGO','70px'],
+  ['desc','DESCRIÇÃO','200px'], ['familia','FAMÍLIA','80px'], ['cliente','CLIENTE','140px'],
+  ['rep','REPRES.','130px'], ['status','STATUS','130px'], ['completoLbl','COMPL.?','65px']
+];
+function _raColVal(l, col){
+  if(col==='completoLbl') return l.completo?'SIM':'NÃO';
+  if(col==='qtde') return String(l.qtde);
+  return String(l[col]==null?'':l[col]);
+}
+function _raLinhasFiltradas(){
+  const D = window._raDados || _raBuild();
+  let arr = D.linhasFlat.slice();
+  // filtros rápidos do topo
+  if(raFiltroTopo.familia) arr=arr.filter(l=>l.familia===raFiltroTopo.familia);
+  if(raFiltroTopo.status)  arr=arr.filter(l=>l.status===raFiltroTopo.status);
+  if(raFiltroTopo.rep)     arr=arr.filter(l=>l.rep===raFiltroTopo.rep);
+  if(raFiltroTopo.completo) arr=arr.filter(l=>(l.completo?'SIM':'NÃO')===raFiltroTopo.completo);
+  // filtros por coluna
+  Object.keys(raColFiltros).forEach(col=>{ const s=raColFiltros[col]; if(s&&s.size) arr=arr.filter(l=>s.has(_raColVal(l,col))); });
+  // ordenação
+  const num = raSortCol==='qtde';
+  arr.sort((a,b)=>{
+    let va=_raColVal(a,raSortCol), vb=_raColVal(b,raSortCol);
+    if(num){ va=parseFloat(va)||0; vb=parseFloat(vb)||0; return raSortAsc?va-vb:vb-va; }
+    return raSortAsc ? String(va).localeCompare(String(vb),'pt-BR',{numeric:true}) : String(vb).localeCompare(String(va),'pt-BR',{numeric:true});
+  });
+  return arr;
+}
+function _raCorStatus(status){
+  const s=(status||'').toUpperCase();
+  if(status==='FATURAR'||s.includes('FATURAR')) return '#0fe08a';
+  if(s.includes('ABRIR')) return '#ff6b6b';
+  if(s.includes('FALTA')) return '#f59e0b';
+  if(s.includes('PARCIAL')) return '#22d3ee';
+  if(s.includes('SEPARADO')) return '#3ee89a';
+  if(s.includes('MISTO')) return '#c084fc';
+  return '#ffaa00';
+}
+function _raRenderTabela(){
+  const esc=_daEscapeHtml;
+  const linhas=_raLinhasFiltradas();
+  let tbody='';
+  if(!linhas.length){ tbody='<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--text-muted)">Nenhuma linha com esses filtros.</td></tr>'; }
+  else linhas.forEach(l=>{
+    const corSt=_raCorStatus(l.status);
+    const trCls=l.completo?' class="ra-comp"':'';
+    tbody+='<tr'+trCls+' style="border-bottom:1px solid var(--border)">'
+      +'<td style="padding:6px 8px;font-weight:700">'+esc(l.pedido)+'</td>'
+      +'<td style="padding:6px 8px">'+l.qtde.toLocaleString('pt-BR')+'</td>'
+      +'<td style="padding:6px 8px;font-weight:700">'+esc(l.codigo)+'</td>'
+      +'<td style="padding:6px 8px" title="'+esc(l.desc)+'">'+esc(l.desc)+'</td>'
+      +'<td style="padding:6px 8px">'+esc(l.familia)+'</td>'
+      +'<td style="padding:6px 8px" title="'+esc(l.cliente)+'">'+esc(l.cliente)+'</td>'
+      +'<td style="padding:6px 8px" title="'+esc(l.rep)+'">'+esc(l.rep)+'</td>'
+      +'<td style="padding:6px 8px;color:'+corSt+';font-weight:700">'+esc(l.status)+'</td>'
+      +'<td style="padding:6px 8px;font-weight:800;color:'+(l.completo?'#0fe08a':'#ffaa00')+'">'+(l.completo?'SIM':'NÃO')+'</td>'
+      +'</tr>';
+  });
+  // cabeçalho com clique p/ ordenar + ícone de filtro
+  const th = RA_COLS.map(c=>{
+    const [key,lbl]=c;
+    const ativo = raColFiltros[key]&&raColFiltros[key].size ? 'color:var(--blue)' : 'color:var(--text-muted)';
+    const seta = raSortCol===key ? (raSortAsc?' ▲':' ▼') : '';
+    return '<th style="padding:6px 8px;white-space:nowrap">'
+      +'<span style="cursor:pointer" onclick="raOrdenar(\''+key+'\')">'+lbl+seta+'</span> '
+      +'<span style="cursor:pointer;'+ativo+'" onclick="raAbrirFiltroCol(event,\''+key+'\')" title="Filtrar">▾</span></th>';
+  }).join('');
+  const cols = RA_COLS.map(c=>'<col style="width:'+c[2]+'">').join('');
+  const cont=document.getElementById('ra-tabela-cont');
+  if(cont) cont.innerHTML=
+    '<table class="ra-tbl" style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;min-width:920px">'
+    +'<colgroup>'+cols+'</colgroup>'
+    +'<thead><tr style="background:var(--border);color:var(--text-muted);text-align:left">'+th+'</tr></thead>'
+    +'<tbody>'+tbody+'</tbody></table>';
+  // atualiza contador
+  const cnt=document.getElementById('ra-contador');
+  if(cnt) cnt.textContent=linhas.length+' linhas';
+}
+function raOrdenar(col){ if(raSortCol===col) raSortAsc=!raSortAsc; else { raSortCol=col; raSortAsc=true; } _raRenderTabela(); }
+function raSetFiltroTopo(campo,val){ raFiltroTopo[campo]=val; _raRenderTabela(); }
+function raAbrirFiltroCol(ev, col){
+  ev.stopPropagation();
+  const exist=document.getElementById('ra-colfiltro-pop'); if(exist) exist.remove();
+  const D=window._raDados||_raBuild();
+  const valores=Array.from(new Set(D.linhasFlat.map(l=>_raColVal(l,col)))).sort((a,b)=>String(a).localeCompare(String(b),'pt-BR',{numeric:true}));
+  const sel=raColFiltros[col]||new Set(valores);
+  const pop=document.createElement('div');
+  pop.id='ra-colfiltro-pop';
+  pop.style.cssText='position:fixed;z-index:12000;background:var(--card,#151a2e);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.5);padding:10px;width:250px;max-height:60vh;display:flex;flex-direction:column';
+  const itens=valores.map(v=>'<label style="display:flex;gap:6px;align-items:center;padding:3px 2px;cursor:pointer;font-size:12px"><input type="checkbox" data-v="'+v.replace(/"/g,'&quot;')+'" '+(sel.has(v)?'checked':'')+'><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(v===''?'(vazio)':v)+'</span></label>').join('');
+  pop.innerHTML='<div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:6px">FILTRAR COLUNA</div>'
+    +'<div style="display:flex;gap:6px;margin-bottom:6px"><button onclick="raColMarcar(true)" style="flex:1;background:var(--border);border:none;color:var(--text);padding:4px;border-radius:5px;font-size:11px;cursor:pointer">Todos</button><button onclick="raColMarcar(false)" style="flex:1;background:var(--border);border:none;color:var(--text);padding:4px;border-radius:5px;font-size:11px;cursor:pointer">Nenhum</button></div>'
+    +'<div id="ra-colfiltro-lista" style="overflow-y:auto;flex:1">'+itens+'</div>'
+    +'<div style="display:flex;gap:6px;margin-top:8px"><button onclick="raColAplicar(\''+col+'\')" style="flex:1;background:var(--blue);border:none;color:#fff;padding:6px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">Aplicar</button><button onclick="document.getElementById(\'ra-colfiltro-pop\').remove()" style="background:var(--border);border:none;color:var(--text-muted);padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer">✕</button></div>';
+  document.body.appendChild(pop);
+  const w=pop.offsetWidth||250, h=pop.offsetHeight||360;
+  pop.style.left=Math.max(8,Math.min(ev.clientX,window.innerWidth-w-8))+'px';
+  pop.style.top=Math.max(8,Math.min(ev.clientY+12,window.innerHeight-h-8))+'px';
+}
+function raColMarcar(m){ document.querySelectorAll('#ra-colfiltro-lista input[type=checkbox]').forEach(c=>c.checked=m); }
+function raColAplicar(col){
+  const marcados=[...document.querySelectorAll('#ra-colfiltro-lista input:checked')].map(c=>c.getAttribute('data-v'));
+  const D=window._raDados||_raBuild();
+  const total=new Set(D.linhasFlat.map(l=>_raColVal(l,col))).size;
+  if(marcados.length===0||marcados.length===total) delete raColFiltros[col];
+  else raColFiltros[col]=new Set(marcados);
+  const pop=document.getElementById('ra-colfiltro-pop'); if(pop) pop.remove();
+  _raRenderTabela();
+}
+function raLimparFiltros(){ raColFiltros={}; raFiltroTopo={familia:'',status:'',rep:'',completo:''}; 
+  ['ra-f-familia','ra-f-status','ra-f-rep','ra-f-completo'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  _raRenderTabela();
+}
+
 function abrirResumoAtrasos(){
   const esc = _daEscapeHtml;
   const D = _raBuild();
   window._raDados = D;
+  raColFiltros={}; raFiltroTopo={familia:'',status:'',rep:'',completo:''}; raSortCol='pedido'; raSortAsc=true;
 
   // ── Cards ──
   let cardsHtml = '<div class="ra-cards">';
@@ -11584,54 +11704,25 @@ function abrirResumoAtrasos(){
   });
   cardsHtml += '</div>';
 
-  // ── Tabela (STATUS após REPRESENTANTE) ──
-  let tbody = '';
-  if (!D.linhasFlat.length) {
-    tbody = '<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--text-muted)">Nenhum pedido em atraso. \u{1F389}</td></tr>';
-  } else {
-    D.linhasFlat.forEach(l => {
-      const _mst = (l.status||'').toUpperCase();
-      let corSt = '#ffaa00';
-      if (l.status==='FATURAR' || _mst.includes('FATURAR')) corSt = '#0fe08a';
-      else if (_mst.includes('ABRIR')) corSt = '#ff6b6b';
-      else if (_mst.includes('FALTA')) corSt = '#f59e0b';
-      else if (_mst.includes('PARCIAL')) corSt = '#22d3ee';
-      else if (_mst.includes('SEPARADO')) corSt = '#3ee89a';
-      else if (_mst.includes('MISTO')) corSt = '#c084fc';
-      const trCls = l.completo ? ' class="ra-comp"' : '';
-      tbody += '<tr'+trCls+' style="border-bottom:1px solid var(--border)">'
-        + '<td style="padding:6px 8px;font-weight:700">'+esc(l.pedido)+'</td>'
-        + '<td style="padding:6px 8px">'+l.qtde.toLocaleString('pt-BR')+'</td>'
-        + '<td style="padding:6px 8px;font-weight:700">'+esc(l.codigo)+'</td>'
-        + '<td style="padding:6px 8px" title="'+esc(l.desc)+'">'+esc(l.desc)+'</td>'
-        + '<td style="padding:6px 8px">'+esc(l.familia)+'</td>'
-        + '<td style="padding:6px 8px" title="'+esc(l.cliente)+'">'+esc(l.cliente)+'</td>'
-        + '<td style="padding:6px 8px" title="'+esc(l.rep)+'">'+esc(l.rep)+'</td>'
-        + '<td style="padding:6px 8px;color:'+corSt+';font-weight:700">'+esc(l.status)+'</td>'
-        + '<td style="padding:6px 8px;font-weight:800;color:'+(l.completo?'#0fe08a':'#ffaa00')+'">'+(l.completo?'SIM':'N\u00c3O')+'</td>'
-        + '</tr>';
-    });
-  }
-  const tabelaHtml =
-    '<div style="overflow-x:auto"><table class="ra-tbl" style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;min-width:920px">'
-    + '<colgroup>'
-    + '<col style="width:70px"><col style="width:55px"><col style="width:70px"><col style="width:200px">'
-    + '<col style="width:80px"><col style="width:140px"><col style="width:130px"><col style="width:130px"><col style="width:65px">'
-    + '</colgroup>'
-    + '<thead><tr style="background:var(--border);color:var(--text-muted);text-align:left">'
-    + '<th style="padding:6px 8px">PEDIDO</th><th style="padding:6px 8px">QTDE</th>'
-    + '<th style="padding:6px 8px">CÓDIGO</th><th style="padding:6px 8px">DESCRIÇÃO</th>'
-    + '<th style="padding:6px 8px">FAMÍLIA</th><th style="padding:6px 8px">CLIENTE</th>'
-    + '<th style="padding:6px 8px">REPRES.</th><th style="padding:6px 8px">STATUS</th>'
-    + '<th style="padding:6px 8px">COMPL.?</th>'
-    + '</tr></thead><tbody>'+tbody+'</tbody></table></div>';
+  // opções únicas para os filtros do topo
+  const uniq = (k)=>Array.from(new Set(D.linhasFlat.map(l=>l[k]).filter(Boolean))).sort((a,b)=>String(a).localeCompare(String(b),'pt-BR'));
+  const opt = (arr)=>arr.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+  const filtrosTopo =
+    '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px">'
+    +'<select id="ra-f-familia" onchange="raSetFiltroTopo(\'familia\',this.value)" style="background:var(--border);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:12px"><option value="">Família: todas</option>'+opt(uniq('familia'))+'</select>'
+    +'<select id="ra-f-status" onchange="raSetFiltroTopo(\'status\',this.value)" style="background:var(--border);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:12px"><option value="">Status: todos</option>'+opt(uniq('status'))+'</select>'
+    +'<select id="ra-f-rep" onchange="raSetFiltroTopo(\'rep\',this.value)" style="background:var(--border);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:12px"><option value="">Representante: todos</option>'+opt(uniq('rep'))+'</select>'
+    +'<select id="ra-f-completo" onchange="raSetFiltroTopo(\'completo\',this.value)" style="background:var(--border);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:12px"><option value="">Completo: todos</option><option value="SIM">Só completos</option><option value="NÃO">Só parciais</option></select>'
+    +'<button onclick="raLimparFiltros()" style="background:rgba(255,59,59,.08);border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer">✕ Limpar</button>'
+    +'<span id="ra-contador" style="font-size:11px;color:var(--text-muted);margin-left:auto"></span>'
+    +'</div>';
 
   let modal = document.getElementById('resumo-atrasos-modal');
   if (!modal) {
     modal = document.createElement('div');
     modal.id = 'resumo-atrasos-modal';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
-    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+    modal.onclick = e => { if (e.target === modal){ const p=document.getElementById('ra-colfiltro-pop'); if(p)p.remove(); modal.remove(); } };
     document.body.appendChild(modal);
   }
   modal.innerHTML =
@@ -11644,7 +11735,8 @@ function abrirResumoAtrasos(){
     + '<button onclick="pngResumoAtrasos()" style="background:rgba(168,85,247,.15);border:1px solid #a855f7;color:#c084fc;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700">\u{1F4F7} PNG</button>'
     + '<button onclick="document.getElementById(\'resumo-atrasos-modal\').remove()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">\u2715</button>'
     + '</div></div>'
-    + '<div style="padding:16px 20px;overflow:auto;background:var(--card,#151a2e)">'+cardsHtml+tabelaHtml+'</div></div>';
+    + '<div style="padding:16px 20px;overflow:auto;background:var(--card,#151a2e)">'+cardsHtml+filtrosTopo+'<div id="ra-tabela-cont" style="overflow-x:auto"></div></div></div>';
+  _raRenderTabela();
 }
 
 function copiarResumoAtrasosWhatsApp(){
