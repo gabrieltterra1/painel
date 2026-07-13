@@ -11998,6 +11998,47 @@ function gerarBoletimPCP(){
     addBloco('ife-resumo', 'IFE — Detalhamento');
     addBloco('tt-container', 'Tratamento T\u00e9rmico');
     addBloco('pm-container', 'Polimento (PM)');
+    // ── Pedidos em atraso (cards + tabela completa, igual ao modal) ──
+    try {
+      const esc=_daEscapeHtml;
+      const D=_raBuild();
+      const h=document.createElement('div');
+      h.style.cssText='color:'+(getComputedStyle(document.body).color||'#fff')+';font-size:14px;font-weight:800;margin:18px 0 10px;font-family:sans-serif;text-transform:uppercase;letter-spacing:.5px;opacity:.85';
+      h.textContent='Pedidos em Atraso';
+      wrap.appendChild(h);
+      // cards
+      let cardsHtml='<div class="ra-cards" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px">';
+      cardsHtml+='<div class="ra-card ra-card-tot"><div class="ra-card-t">TOTAL EM ATRASO</div><div class="ra-card-n">'+D.qtdeTotal.toLocaleString('pt-BR')+'</div><div class="ra-card-s">'+D.pedidosOrd.length+' pedidos · <b style="color:#0fe08a">'+D.qtdeFaturar.toLocaleString('pt-BR')+' un p/ faturar</b></div></div>';
+      let listaComp=D.pedsCompletos.slice(0,6).map(p=>'<b>'+esc(p.pedido)+'</b> '+esc((p.cliente||'').slice(0,20))).join('<br>');
+      if(D.pedsCompletos.length>6) listaComp+='<br>+'+(D.pedsCompletos.length-6)+' pedidos';
+      if(!D.pedsCompletos.length) listaComp='<span style="opacity:.6">nenhum</span>';
+      cardsHtml+='<div class="ra-card ra-card-comp"><div class="ra-card-t" style="color:#0fe08a">✅ PEDIDOS 100% P/ FATURAR</div><div class="ra-card-n" style="color:#0fe08a">'+D.completos+'</div><div class="ra-card-s" style="line-height:1.6">'+listaComp+'</div></div>';
+      Object.keys(D.fam).sort().forEach(f=>{ const c=D.fam[f]; cardsHtml+='<div class="ra-card"><div class="ra-card-t">'+esc(f)+'</div><div class="ra-card-n">'+c.qtde.toLocaleString('pt-BR')+'</div><div class="ra-card-s">'+c.pedidos.size+' pedidos · '+(c.qtdeFaturar>0?'<b style="color:#0fe08a">'+c.qtdeFaturar.toLocaleString('pt-BR')+' un p/ faturar</b>':'0 p/ faturar')+'</div></div>'; });
+      cardsHtml+='</div>';
+      // tabela completa
+      let tb='';
+      D.linhasFlat.forEach(l=>{
+        const corSt=_raCorStatus(l.status);
+        const trBg=l.completo?'background:rgba(15,224,138,.12)':'';
+        tb+='<tr style="border-bottom:1px solid var(--border);'+trBg+'">'
+          +'<td style="padding:5px 8px;font-weight:700">'+esc(l.pedido)+'</td>'
+          +'<td style="padding:5px 8px">'+l.qtde.toLocaleString('pt-BR')+'</td>'
+          +'<td style="padding:5px 8px;font-weight:700">'+esc(l.codigo)+'</td>'
+          +'<td style="padding:5px 8px">'+esc(l.desc)+'</td>'
+          +'<td style="padding:5px 8px">'+esc(l.familia)+'</td>'
+          +'<td style="padding:5px 8px">'+esc(l.cliente)+'</td>'
+          +'<td style="padding:5px 8px">'+esc(l.rep)+'</td>'
+          +'<td style="padding:5px 8px;color:'+corSt+';font-weight:700">'+esc(l.status)+'</td>'
+          +'<td style="padding:5px 8px;font-weight:800;color:'+(l.completo?'#0fe08a':'#ffaa00')+'">'+(l.completo?'SIM':'NÃO')+'</td></tr>';
+      });
+      const tabela='<table style="width:100%;border-collapse:collapse;font-size:11px">'
+        +'<thead><tr style="background:var(--border);color:var(--text-muted);text-align:left">'
+        +'<th style="padding:6px 8px">PEDIDO</th><th style="padding:6px 8px">QTDE</th><th style="padding:6px 8px">CÓDIGO</th><th style="padding:6px 8px">DESCRIÇÃO</th><th style="padding:6px 8px">FAMÍLIA</th><th style="padding:6px 8px">CLIENTE</th><th style="padding:6px 8px">REPRES.</th><th style="padding:6px 8px">STATUS</th><th style="padding:6px 8px">COMPL.?</th>'
+        +'</tr></thead><tbody>'+tb+'</tbody></table>';
+      const box=document.createElement('div');
+      box.innerHTML=cardsHtml+tabela;
+      wrap.appendChild(box);
+    } catch(e){ console.warn('boletim atrasos', e); }
     overlay.appendChild(wrap);
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
       html2canvas(wrap,{scale:2,backgroundColor:bg,useCORS:true,logging:false,windowWidth:1220})
