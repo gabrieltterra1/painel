@@ -10936,6 +10936,9 @@ function renderDashboard(){
       ifeCons=fp(calc('CONSOLIDADO')); ifeMatr=fp(calc('1')); ifeFil=fp(calc('2'));
 
       // ── IFE simulado (se faturar todos os pendentes do mês) ──
+      // Regra: Matriz = realizado + pendentes do mês (reais). Filial SP = projeção pela média.
+      //        Pendentes faturados; os já ATRASADOS continuam como atraso, os em dia entram como em dia.
+      //        Base em QUANTIDADE (mesma unidade do IFE oficial).
       try {
         const hojeI=new Date(); hojeI.setHours(0,0,0,0);
         const cMat=_ifeCalc(DATA.ife.filter(_ifeFiltrar('1')).filter(r=>r.mesKey===mesAt));
@@ -10945,11 +10948,17 @@ function renderDashboard(){
         const utilI=d=>{const dw=d.getDay();const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');return dw!==0&&dw!==6&&!ferI.has(iso);};
         let duP=0,duT=0;
         for(let d=new Date(hojeI.getFullYear(),hojeI.getMonth(),1); d<=fimMesI; d.setDate(d.getDate()+1)){ if(utilI(d)){ duT++; if(d<=hojeI) duP++; } }
-        const fatI=duP>0?duT/duP:1;
-        const pendI=(DATA.pedidos||[]).filter(p=>p.dataEnt && p.dataEnt<=fimMesI);
-        let pTot=0,pAtr=0; pendI.forEach(p=>{const q=p.qtde||0;pTot+=q;if(p.atrasado)pAtr+=q;});
-        const tMatS=cMat.total+pTot, aMatS=cMat.atrasado+pAtr;
-        const tFilS=Math.round(cFil.total*fatI), aFilS=Math.round(cFil.atrasado*fatI);
+        const fatProj=duP>0?duT/duP:1;
+
+        // MATRIZ: realizado + pendentes REAIS do mês (DATA.pedidos é só Matriz). Só os já-atrasados somam ao atraso.
+        const pendMat=(DATA.pedidos||[]).filter(p=>p.dataEnt && p.dataEnt<=fimMesI);
+        let pTotM=0,pAtrM=0;
+        pendMat.forEach(p=>{ const q=p.qtde||0; pTotM+=q; if(p.atrasado) pAtrM+=q; });
+        const tMatS=cMat.total+pTotM, aMatS=cMat.atrasado+pAtrM;
+
+        // FILIAL SP: projeção do realizado atual pela média (extrapola até o fim do mês).
+        const tFilS=Math.round(cFil.total*fatProj), aFilS=Math.round(cFil.atrasado*fatProj);
+
         const tConsS=tMatS+tFilS, aConsS=aMatS+aFilS;
         const ifeConsS=tConsS>0?(1-aConsS/tConsS)*100:null;
         if(ifeConsS!=null) ifeConsSimStr=fp(ifeConsS);
@@ -11948,29 +11957,50 @@ function _executarPDF(){
 
 // ===== BOLETIM MATINAL DO PCP (PNG) =====
 function gerarBoletimPCP(){
-  if(typeof showTab==='function') showTab('dashboard');
   if(typeof html2canvas==='undefined'){ alert('Biblioteca de imagem carregando, tente de novo.'); return; }
+  // garante que os blocos detalhados estejam renderizados
+  try{ if(typeof renderTermico==='function') renderTermico(); }catch(e){}
+  try{ if(typeof renderIFE==='function') renderIFE(); }catch(e){}
+  if(typeof showTab==='function') showTab('dashboard');
   setTimeout(()=>{
     const hero=document.getElementById('dash-hero-cards');
     if(!hero){ alert('Cards do dashboard n\u00e3o encontrados.'); return; }
-    // clona os cards num container com 3 colunas fixas para a imagem
     const bg = getComputedStyle(document.body).backgroundColor || '#0d1117';
     const overlay=document.createElement('div');
     overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100000;display:flex;align-items:center;justify-content:center';
     overlay.innerHTML='<div style="color:#fff;font-size:14px;font-weight:700">Gerando boletim...</div>';
     document.body.appendChild(overlay);
     const wrap=document.createElement('div');
-    wrap.style.cssText='position:fixed;left:0;top:0;z-index:1;width:1020px;padding:20px;background:'+bg;
-    const clone=hero.cloneNode(true);
-    clone.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:16px';
+    wrap.style.cssText='position:fixed;left:0;top:0;z-index:1;width:1160px;padding:22px;background:'+bg;
     // título
     const titulo=document.createElement('div');
-    titulo.style.cssText='color:#fff;font-size:20px;font-weight:900;margin-bottom:16px;font-family:sans-serif';
-    titulo.textContent='📰 Boletim PCP — '+new Date().toLocaleDateString('pt-BR');
-    wrap.appendChild(titulo); wrap.appendChild(clone);
+    titulo.style.cssText='color:'+(getComputedStyle(document.body).color||'#fff')+';font-size:22px;font-weight:900;margin-bottom:16px;font-family:sans-serif';
+    titulo.textContent='\ud83d\udcf0 Boletim PCP \u2014 '+new Date().toLocaleDateString('pt-BR');
+    wrap.appendChild(titulo);
+    // cards do topo (3 por linha)
+    const cloneHero=hero.cloneNode(true);
+    cloneHero.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px';
+    wrap.appendChild(cloneHero);
+    // helper para clonar um bloco com título
+    const addBloco=(id, tituloTxt)=>{
+      const el=document.getElementById(id);
+      if(!el || !el.innerHTML.trim()) return;
+      const h=document.createElement('div');
+      h.style.cssText='color:'+(getComputedStyle(document.body).color||'#fff')+';font-size:14px;font-weight:800;margin:18px 0 10px;font-family:sans-serif;text-transform:uppercase;letter-spacing:.5px;opacity:.85';
+      h.textContent=tituloTxt;
+      wrap.appendChild(h);
+      const c=el.cloneNode(true);
+      c.style.maxHeight='none'; c.style.overflow='visible';
+      // remove scroll horizontal dos cards TT/PM para mostrar todos
+      c.querySelectorAll('[style*="overflow-x"]').forEach(x=>{ x.style.overflowX='visible'; x.style.flexWrap='wrap'; });
+      wrap.appendChild(c);
+    };
+    addBloco('ife-resumo', 'IFE — Detalhamento');
+    addBloco('tt-container', 'Tratamento T\u00e9rmico');
+    addBloco('pm-container', 'Polimento (PM)');
     overlay.appendChild(wrap);
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
-      html2canvas(wrap,{scale:2,backgroundColor:bg,useCORS:true,logging:false,windowWidth:1060})
+      html2canvas(wrap,{scale:2,backgroundColor:bg,useCORS:true,logging:false,windowWidth:1220})
         .then(canvas=>{
           canvas.toBlob(blob=>{
             const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
@@ -11982,7 +12012,7 @@ function gerarBoletimPCP(){
         })
         .catch(err=>{ if(overlay.parentNode) document.body.removeChild(overlay); alert('Erro ao gerar boletim: '+err.message); });
     }));
-  }, 150);
+  }, 400);
 }
 // Captura um elemento da tela como PNG (fundo do tema), baixa e copia
 function _capturaPNGElemento(el, filename, comCabecalho){
