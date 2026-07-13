@@ -10933,7 +10933,9 @@ function renderDashboard(){
       const mesAt=meses[meses.length-1];
       const calc=emp=>{ const d=DATA.ife.filter(_ifeFiltrar(emp)).filter(r=>r.mesKey===mesAt); return _ifeCalc(d).ife; };
       const fp=v=> v==null?'—':(Math.round(v*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';
-      ifeCons=fp(calc('CONSOLIDADO')); ifeMatr=fp(calc('1')); ifeFil=fp(calc('2'));
+      const _mMat=calc('1'), _mFil=calc('2');
+      ifeCons=fp(calc('CONSOLIDADO')); ifeMatr=fp(_mMat); ifeFil=fp(_mFil);
+      window._ifeMatrNum=_mMat; window._ifeFilNum=_mFil;
 
       // ── IFE simulado (se faturar todos os pendentes do mês) ──
       // Regra: Matriz = realizado + pendentes do mês (reais). Filial SP = projeção pela média.
@@ -11057,9 +11059,9 @@ function renderDashboard(){
   let heroHtml='<div class="dash-hero" id="dash-hero-cards">';
   // Card de DIAS ÚTEIS do mês (clicável → gera boletim do dia)
   heroHtml += '<div class="dh du" style="cursor:pointer" onclick="gerarBoletimPCP()" title="Clique para gerar o boletim do dia (PNG)">'
-    + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📅</span>Dias úteis do mês</div><div class="dh-selo" style="background:rgba(168,85,247,.2);color:#c084fc">📰 Boletim</div></div>'
+    + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📅</span>Dias úteis do mês</div><div class="dh-selo" style="background:rgba(168,85,247,.2);color:#c084fc">📰 Boletim PCP</div></div>'
     + '<div class="dh-big">'+duPassados+'<small> / '+duTotal+'</small></div>'
-    + '<div class="dh-meta">'+duPassados+' passados · '+duRestantes+' restantes (com hoje)</div>'
+    + '<div class="dh-meta">📆 '+new Date().toLocaleDateString('pt-BR')+' · '+duPassados+' passados · '+duRestantes+' restantes (com hoje)</div>'
     + '<div class="dprog du"><i style="width:'+(duTotal>0?Math.round(duPassados/duTotal*100):0)+'%"></i></div></div>';
   // IFE — % consolidado + selo + sparkline
   const ifeNum = parseFloat(String(ifeCons).replace('%','').replace(',','.'))||0;
@@ -11074,7 +11076,12 @@ function renderDashboard(){
   heroHtml += '<div class="dh ife" onclick="showTab(\'ife\')">'
     + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📈</span>IFE — mês atual</div>'+ifeSelo+'</div>'
     + '<div class="dh-big">'+ifeCons+'</div>'
-    + '<div class="dh-meta">consolidado · Matriz '+ifeMatr+' · Filial SP '+ifeFil+'</div>'
+    + (function(){
+        const meta=95;
+        const mN=window._ifeMatrNum, fN=window._ifeFilNum;
+        const fmt=(lbl,val,num)=>{ if(num==null) return lbl+' '+val; const ok=num>=meta; const cor=ok?'var(--green)':'#ff6b6b'; return lbl+' <b style="color:'+cor+'">'+val+' '+(ok?'▲':'▼')+'</b>'; };
+        return '<div class="dh-meta">consolidado · '+fmt('Matriz',ifeMatr,mN)+' · '+fmt('Filial SP',ifeFil,fN)+'</div>';
+      })()
     + (ifeConsSimStr?'<div class="dh-meta" style="color:var(--amber)">se faturar tudo: <b>'+ifeConsSimStr+'</b></div>':'')
     + ifeComp
     + '</div>';
