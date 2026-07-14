@@ -12062,7 +12062,7 @@ function gerarBoletimPCP(){
       cardsHtml+='</div>';
       // tabela completa
       let tb='';
-      const _trunc='overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+      const _trunc='overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;';
       D.linhasFlat.forEach(l=>{
         const corSt=_raCorStatus(l.status);
         const trBg=l.completo?'background:rgba(15,224,138,.12)':'';
