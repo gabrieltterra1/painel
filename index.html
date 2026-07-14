@@ -11963,6 +11963,44 @@ function _executarPDF(){
 }
 
 // ===== BOLETIM MATINAL DO PCP (PNG) =====
+function _boletimTextoWhatsApp(){
+  const B=window._boletimDados;
+  if(!B) return null;
+  const money=n=>'R$ '+Math.round(n||0).toLocaleString('pt-BR');
+  const hoje=new Date().toLocaleDateString('pt-BR');
+  let t='*📰 BOLETIM PCP — '+hoje+'*\n';
+  // IFE
+  t+='\n*IFE — mês atual*\n';
+  if(B.ifeLinhas && B.ifeLinhas.length){
+    B.ifeLinhas.forEach(l=>{ const ok=l.val>=95; t+=(ok?'✅':'⚠️')+' '+l.lbl+': '+l.val+'%\n'; });
+  } else { t+='• Consolidado: '+B.ife+'\n'; }
+  // Atrasos
+  t+='\n*Pedidos em atraso*\n';
+  t+='• '+B.atrasoQtd.toLocaleString('pt-BR')+' un em atraso ('+B.atrasoPeds+' pedidos)\n';
+  t+='• '+B.atrasoComp+' pedidos 100% p/ faturar\n';
+  // TT / PM
+  const ttOk=B.ttMed>=B.ttMeta, pmOk=B.pmMed>=B.pmMeta;
+  t+='\n*Térmico & Polimento (último dia)*\n';
+  t+=(ttOk?'✅':'⚠️')+' TT: '+B.ttUlt.toLocaleString('pt-BR')+' (média '+B.ttMed+' · meta '+B.ttMeta+')\n';
+  t+=(pmOk?'✅':'⚠️')+' PM: '+B.pmUlt.toLocaleString('pt-BR')+' (média '+B.pmMed+' · meta '+B.pmMeta+')\n';
+  // Terceiros
+  if(B.tercReal||B.tercMeta){
+    const pct=B.tercMeta>0?Math.round(B.tercReal/B.tercMeta*100):0;
+    const ok=B.tercMeta>0 && B.tercReal<=B.tercMeta;
+    t+='\n*Serviços de Terceiros*\n';
+    t+=(ok?'✅':'⚠️')+' '+money(B.tercReal)+' de '+money(B.tercMeta)+' ('+pct+'%)\n';
+    t+='• Previsão: '+money(B.tercPrev)+'\n';
+  }
+  return t;
+}
+function _boletimCopiarTexto(){
+  const t=_boletimTextoWhatsApp();
+  if(!t) return;
+  navigator.clipboard.writeText(t).then(()=>{},()=>{
+    const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(e){} ta.remove();
+  });
+}
+
 function gerarBoletimPCP(){
   if(typeof html2canvas==='undefined'){ alert('Biblioteca de imagem carregando, tente de novo.'); return; }
   // garante que os blocos detalhados estejam renderizados
@@ -12056,8 +12094,10 @@ function gerarBoletimPCP(){
             const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
             a.download='Boletim_PCP_'+new Date().toISOString().slice(0,10)+'.png';
             document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
-            if(navigator.clipboard && window.ClipboardItem){ navigator.clipboard.write([new ClipboardItem({'image/png':blob})]).then(()=>{},()=>{}); }
+            // texto do WhatsApp fica no clipboard (imagem foi baixada como arquivo)
+            _boletimCopiarTexto();
             if(overlay.parentNode) document.body.removeChild(overlay);
+            alert('✅ Boletim gerado!\n• Imagem baixada\n• Texto copiado — cole no WhatsApp');
           },'image/png');
         })
         .catch(err=>{ if(overlay.parentNode) document.body.removeChild(overlay); alert('Erro ao gerar boletim: '+err.message); });
