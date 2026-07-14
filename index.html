@@ -11059,7 +11059,7 @@ function renderDashboard(){
   let heroHtml='<div class="dash-hero" id="dash-hero-cards">';
   // Card de DIAS ÚTEIS do mês (clicável → gera boletim do dia)
   heroHtml += '<div class="dh du" style="cursor:pointer" onclick="gerarBoletimPCP()" title="Clique para gerar o boletim do dia (PNG)">'
-    + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📅</span>Dias úteis do mês</div><div class="dh-selo" style="background:rgba(168,85,247,.2);color:#c084fc">📰 Boletim PCP</div></div>'
+    + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📅</span>Dias úteis do mês</div><div class="dh-selo" style="background:rgba(168,85,247,.2);color:#c084fc">📊 Indicadores PCP</div></div>'
     + '<div class="dh-big">'+duPassados+'<small> / '+duTotal+'</small></div>'
     + '<div class="dh-meta">📆 '+new Date().toLocaleDateString('pt-BR')+' · '+duPassados+' passados · '+duRestantes+' restantes (com hoje)</div>'
     + '<div class="dprog du"><i style="width:'+(duTotal>0?Math.round(duPassados/duTotal*100):0)+'%"></i></div></div>';
@@ -11968,7 +11968,7 @@ function _boletimTextoWhatsApp(){
   if(!B) return null;
   const money=n=>'R$ '+Math.round(n||0).toLocaleString('pt-BR');
   const hoje=new Date().toLocaleDateString('pt-BR');
-  let t='*📰 BOLETIM PCP — '+hoje+'*\n';
+  let t='*📊 INDICADORES PCP — '+hoje+'*\n';
   // IFE
   t+='\n*IFE — mês atual*\n';
   if(B.ifeLinhas && B.ifeLinhas.length){
@@ -12020,7 +12020,7 @@ function gerarBoletimPCP(){
     // título
     const titulo=document.createElement('div');
     titulo.style.cssText='color:'+(getComputedStyle(document.body).color||'#fff')+';font-size:22px;font-weight:900;margin-bottom:16px;font-family:sans-serif';
-    titulo.textContent='\ud83d\udcf0 Boletim PCP \u2014 '+new Date().toLocaleDateString('pt-BR');
+    titulo.textContent='\ud83d\udcca Indicadores PCP \u2014 '+new Date().toLocaleDateString('pt-BR');
     wrap.appendChild(titulo);
     // cards do topo (3 por linha)
     const cloneHero=hero.cloneNode(true);
