@@ -7774,14 +7774,26 @@ function renderServico() {
       ];
     } else {
       barDatasets = [
-        {type:'bar',label:'Filial SP',data:mesesBarras.map(m=>filByM[m]),backgroundColor:serieFill('--serie-laranja'),borderColor:cssVar('--serie-laranja'),borderWidth:1,stack:'s',datalabels:{display:false}},
-        {type:'bar',label:'Matriz',data:mesesBarras.map(m=>matByM[m]),backgroundColor:serieFill('--serie-azul'),borderColor:cssVar('--serie-azul'),borderWidth:1,stack:'s',datalabels:{display:false}}
+        {type:'bar',label:'Filial SP',data:mesesBarras.map(m=>filByM[m]),backgroundColor:serieFill('--serie-laranja'),borderColor:cssVar('--serie-laranja'),borderWidth:1,stack:'s',
+          datalabels:{display:ctx=>filByM[mesesBarras[ctx.dataIndex]]>0,color:cssVar('--text'),font:{size:8,weight:'700'},anchor:'center',align:'center',formatter:v=>v>0?'R$'+Math.round(v).toLocaleString('pt-BR'):''}},
+        {type:'bar',label:'Matriz',data:mesesBarras.map(m=>matByM[m]),backgroundColor:serieFill('--serie-azul'),borderColor:cssVar('--serie-azul'),borderWidth:1,stack:'s',
+          datalabels:{display:ctx=>matByM[mesesBarras[ctx.dataIndex]]>0,color:cssVar('--text'),font:{size:8,weight:'700'},anchor:'center',align:'center',formatter:v=>v>0?'R$'+Math.round(v).toLocaleString('pt-BR'):''}}
       ];
     }
+    // Metas mensais (Budget e Competitividade) para cada mês das barras
+    const _tMeta = DATA.tercMeta || {}, _tComp = DATA.tercComp || {};
+    const _mFB = {'2025':{'01':515165.59,'02':602939.61,'03':627959.22,'04':626854.41,'05':627450.83,'06':603448.00,'07':693083.81,'08':627450.83,'09':663156.79,'10':693058.90,'11':567742.04,'12':471689.98},'2026':{'01':554871.00,'02':652688.00,'03':717942.00,'04':652687.00,'05':620060.00,'06':685257.00,'07':750570.00,'08':685314.00,'09':685314.00,'10':685314.00,'11':620060.00,'12':456922.00}};
+    const _cFB = {'2025':{'01':504289.33,'02':610858.35,'03':588773.20,'04':591810.25,'05':620558.09,'06':564775.15,'07':659224.61,'08':580306.66,'09':617224.52,'10':625889.87,'11':568397.89,'12':433950.39},'2026':{'01':588944.94,'02':574970.71,'03':665368.37,'04':579243.51,'05':0,'06':0,'07':0,'08':0,'09':0,'10':0,'11':0,'12':0}};
+    const _gM = mk => { const v=_tMeta[mk]; if(v!==undefined&&v!=='')return parseFloat(v); const [a,m]=mk.split('-'); return _mFB[a]?.[m]||0; };
+    const _gC = mk => { const v=_tComp[mk]; if(v!==undefined&&v!=='')return parseFloat(v); const [a,m]=mk.split('-'); return _cFB[a]?.[m]||0; };
+    const budgetLine = mesesBarras.map(mk=>{ const v=_gM(mk); return v>0?v:null; });
+    const compLine   = mesesBarras.map(mk=>{ const v=_gC(mk); return v>0?v:null; });
     servicoCharts.push(new Chart(tlCanvas,{
       data:{labels:mesesBarras.map(mesLabel),datasets:barDatasets.concat([
         {type:'line',label:'Total',data:totalBarras,borderColor:cssVar('--serie-laranja'),backgroundColor:'transparent',borderWidth:2.5,pointRadius:4,tension:0.3,
-          datalabels:{display:true,color:'#ffaa00',font:{size:10,weight:'700'},anchor:'end',align:'top',formatter:(v)=> v ? (anosBarras.length===1 ? 'R$'+Math.round(v).toLocaleString('pt-BR') : fmtK(v)) : ''}}
+          datalabels:{display:true,color:'#ffaa00',font:{size:10,weight:'700'},anchor:'end',align:'top',formatter:(v)=> v ? (anosBarras.length===1 ? 'R$'+Math.round(v).toLocaleString('pt-BR') : fmtK(v)) : ''}},
+        {type:'line',label:'Budget',data:budgetLine,borderColor:cssVar('--serie-vermelho'),backgroundColor:'transparent',borderWidth:2,pointRadius:2,tension:0,spanGaps:true,stack:'meta',datalabels:{display:false}},
+        {type:'line',label:'Competitividade',data:compLine,borderColor:cssVar('--serie-verde'),backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:2,tension:0,spanGaps:true,stack:'comp',datalabels:{display:false}}
       ])},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:cssVar('--text')}},datalabels:{}},
