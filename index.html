@@ -1510,7 +1510,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div style="position:relative;height:300px;min-width:600px;">
         <canvas id="servico-timeline-chart"></canvas>
       </div>
-      <table id="timeline-table" style="border-collapse:collapse;white-space:nowrap;font-size:12px;width:max-content;min-width:100%;margin-top:4px">
+      <table id="timeline-table" style="display:none;border-collapse:collapse;white-space:nowrap;font-size:12px;width:max-content;min-width:100%;margin-top:4px">
         <thead class="blue"><tr id="timeline-thead"></tr></thead>
         <tbody id="timeline-body"></tbody>
       </table>
@@ -7784,17 +7784,47 @@ function renderServico() {
     const _gC = mk => { const v=_tComp[mk]; if(v!==undefined&&v!=='')return parseFloat(v); const [a,m]=mk.split('-'); return _cFB[a]?.[m]||0; };
     const budgetLine = mesesBarras.map(mk=>{ const v=_gM(mk); return v>0?v:null; });
     const compLine   = mesesBarras.map(mk=>{ const v=_gC(mk); return v>0?v:null; });
-    // Plugin: força a área de plotagem a começar onde começam as colunas de MÊS na tabela.
-    // Tabela: ANO(50) + EMPRESA(90) = 140px à esquerda; coluna TOTAL (~1 mês) à direita.
+    // Tabela desenhada DENTRO do canvas: 3 linhas (Matriz/Filial/Total) alinhadas às barras.
     const COL_ESQ = 140;
-    const alinhaTabelaPlugin = {
-      id:'alinhaTabelaTL',
-      beforeLayout(chart){
-        const n = mesesBarras.length; if(!n) return;
-        const colW = (chart.width - COL_ESQ) / (n + 1); // +1 = coluna TOTAL à direita
-        chart.options.layout.padding = Object.assign({}, chart.options.layout.padding, { right: colW });
-      },
-      afterFit(){}
+    const nMeses = mesesBarras.length;
+    const _fmtR = v => v>0 ? 'R$ '+Math.round(v).toLocaleString('pt-BR') : '—';
+    const totMat = mesesBarras.reduce((s,mk)=>s+(matByM[mk]||0),0);
+    const totFil = mesesBarras.reduce((s,mk)=>s+(filByM[mk]||0),0);
+    const tabelaDentroPlugin = {
+      id:'tabelaDentroTL',
+      afterDraw(chart){
+        const ctx=chart.ctx, xAxis=chart.scales.x, area=chart.chartArea;
+        if(!xAxis||!area) return;
+        const corMat=cssVar('--serie-azul'), corFil=cssVar('--serie-laranja'), corTxt=cssVar('--text'), corMut=cssVar('--text-muted');
+        const lh=15, y0=area.bottom+18;
+        const rowY=[y0, y0+lh, y0+lh*2];
+        ctx.save();
+        // faixas de fundo (zebra) nas 3 linhas
+        ctx.fillStyle='rgba(255,255,255,0.03)';
+        ctx.fillRect(0, rowY[1]-11, chart.width, lh);
+        // rótulos à esquerda
+        ctx.textAlign='left'; ctx.font='700 10px sans-serif';
+        ctx.fillStyle=corMat; ctx.fillText('Matriz', 6, rowY[0]);
+        ctx.fillStyle=corFil; ctx.fillText('Filial SP', 6, rowY[1]);
+        ctx.fillStyle=corTxt; ctx.fillText('Total', 6, rowY[2]);
+        // valores por mês, centralizados na barra
+        ctx.textAlign='center'; ctx.font='600 9px sans-serif';
+        mesesBarras.forEach((mk,i)=>{
+          const x=xAxis.getPixelForValue(i);
+          ctx.fillStyle=corMat; ctx.fillText(_fmtR(matByM[mk]), x, rowY[0]);
+          ctx.fillStyle=corFil; ctx.fillText(_fmtR(filByM[mk]), x, rowY[1]);
+          ctx.fillStyle=corTxt; ctx.font='700 9px sans-serif'; ctx.fillText(_fmtR((matByM[mk]||0)+(filByM[mk]||0)), x, rowY[2]); ctx.font='600 9px sans-serif';
+        });
+        // coluna TOTAL à direita
+        const xTot = chart.width - 8;
+        ctx.textAlign='right'; ctx.font='700 9px sans-serif';
+        ctx.fillStyle=corMut; ctx.textAlign='center'; ctx.fillText('TOTAL', xTot-30, y0-15);
+        ctx.textAlign='right';
+        ctx.fillStyle=corMat; ctx.fillText(_fmtR(totMat), xTot, rowY[0]);
+        ctx.fillStyle=corFil; ctx.fillText(_fmtR(totFil), xTot, rowY[1]);
+        ctx.fillStyle=corTxt; ctx.fillText(_fmtR(totMat+totFil), xTot, rowY[2]);
+        ctx.restore();
+      }
     };
     servicoCharts.push(new Chart(tlCanvas,{
       data:{labels:mesesBarras.map(mesLabel),datasets:barDatasets.concat([
@@ -7803,10 +7833,10 @@ function renderServico() {
       ])},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:cssVar('--text')}},datalabels:{}},
-        scales:{x:{stacked:true,afterFit:(s)=>{s.paddingLeft=0;},ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}},
-          y:{stacked:true,afterFit:(s)=>{ s.width = COL_ESQ; },ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}}},
-        layout:{padding:{top:30}}
-      },plugins:[ChartDataLabels,alinhaTabelaPlugin]
+        scales:{x:{stacked:true,ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}},
+          y:{stacked:true,ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}}},
+        layout:{padding:{top:30,bottom:64}}
+      },plugins:[ChartDataLabels,tabelaDentroPlugin]
     }));
   }
 
