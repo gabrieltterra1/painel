@@ -1507,7 +1507,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="chart-card" style="margin-bottom:28px;">
     <div class="chart-title">Linha do Tempo — Matriz vs Filial SP (R$)</div>
     <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
-      <div id="tl-canvas-wrap" style="position:relative;height:410px;min-width:600px;">
+      <div id="tl-canvas-wrap" style="position:relative;height:460px;min-width:600px;">
         <canvas id="servico-timeline-chart"></canvas>
       </div>
       <table id="timeline-table" style="display:none;border-collapse:collapse;white-space:nowrap;font-size:12px;width:max-content;min-width:100%;margin-top:4px">
@@ -7790,6 +7790,8 @@ function renderServico() {
     const _fmtR = v => v>0 ? 'R$ '+(Math.round(v*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
     const totMat = mesesBarras.reduce((s,mk)=>s+(matByM[mk]||0),0);
     const totFil = mesesBarras.reduce((s,mk)=>s+(filByM[mk]||0),0);
+    const totBud = mesesBarras.reduce((s,mk)=>s+(_gM(mk)||0),0);
+    const totCmp = mesesBarras.reduce((s,mk)=>s+(_gC(mk)||0),0);
     // largura mínima: ~150px por mês + espaço para rótulos e coluna TOTAL — permite rolagem lateral
     const _wrap = document.getElementById('tl-canvas-wrap');
     if(_wrap){ _wrap.style.minWidth = Math.max(600, nMeses*150 + 260) + 'px'; }
@@ -7799,21 +7801,28 @@ function renderServico() {
         const ctx=chart.ctx, xAxis=chart.scales.x, area=chart.chartArea;
         if(!xAxis||!area) return;
         const corMat=cssVar('--serie-azul'), corFil=cssVar('--serie-laranja'), corTxt=cssVar('--text'), corMut=cssVar('--text-muted');
-        const lh=21, y0=area.bottom+44;   // afasta bem do rótulo do mês (eixo X)
-        const rowY=[y0, y0+lh, y0+lh*2];
+        const corBud=cssVar('--serie-vermelho'), corCmp=cssVar('--serie-verde');
+        const lh=21, y0=area.bottom+44;
+        const rowY=[y0, y0+lh, y0+lh*2, y0+lh*3, y0+lh*4]; // Matriz, Filial, Total, Budget, Compet.
         ctx.save();
-        // zebra na linha do meio
+        // zebra nas linhas pares (Filial e Budget)
         ctx.fillStyle='rgba(255,255,255,0.04)';
         ctx.fillRect(0, rowY[1]-14, chart.width, lh);
-        // linha separadora ABAIXO do rótulo do mês (não corta o texto)
+        ctx.fillRect(0, rowY[3]-14, chart.width, lh);
+        // linha separadora ABAIXO do rótulo do mês
         ctx.strokeStyle=cssVar('--border'); ctx.lineWidth=1;
         ctx.beginPath(); ctx.moveTo(0, y0-19); ctx.lineTo(chart.width, y0-19); ctx.stroke();
+        // divisória entre Total e as metas
+        ctx.beginPath(); ctx.moveTo(0, rowY[2]+7); ctx.lineTo(chart.width, rowY[2]+7); ctx.stroke();
         // rótulos à esquerda
         ctx.textAlign='left'; ctx.font='800 13px sans-serif';
         ctx.fillStyle=corMat; ctx.fillText('Matriz', 6, rowY[0]);
         ctx.fillStyle=corFil; ctx.fillText('Filial SP', 6, rowY[1]);
         ctx.fillStyle=corTxt; ctx.fillText('Total', 6, rowY[2]);
-        // coluna TOTAL: reserva uma faixa à direita, afastada do último mês
+        ctx.font='700 12px sans-serif';
+        ctx.fillStyle=corBud; ctx.fillText('Budget', 6, rowY[3]);
+        ctx.fillStyle=corCmp; ctx.fillText('Competit.', 6, rowY[4]);
+        // coluna TOTAL: faixa à direita, afastada do último mês
         const totColW = 118;
         const xTot = chart.width - totColW/2 - 4;
         // valores por mês, centralizados na barra
@@ -7825,9 +7834,12 @@ function renderServico() {
           ctx.fillStyle=corFil; ctx.fillText(_fmtR(filByM[mk]), x, rowY[1]);
           ctx.font='800 12px sans-serif';
           ctx.fillStyle=corTxt; ctx.fillText(_fmtR((matByM[mk]||0)+(filByM[mk]||0)), x, rowY[2]);
+          ctx.font='600 11px sans-serif';
+          ctx.fillStyle=corBud; ctx.fillText(_fmtR(_gM(mk)), x, rowY[3]);
+          ctx.fillStyle=corCmp; ctx.fillText(_fmtR(_gC(mk)), x, rowY[4]);
         });
         // divisória vertical antes da coluna TOTAL
-        ctx.strokeStyle=cssVar('--border'); ctx.beginPath(); ctx.moveTo(chart.width-totColW, y0-19); ctx.lineTo(chart.width-totColW, rowY[2]+6); ctx.stroke();
+        ctx.strokeStyle=cssVar('--border'); ctx.beginPath(); ctx.moveTo(chart.width-totColW, y0-19); ctx.lineTo(chart.width-totColW, rowY[4]+6); ctx.stroke();
         // cabeçalho e valores da coluna TOTAL
         ctx.textAlign='center'; ctx.font='800 11px sans-serif'; ctx.fillStyle=corMut;
         ctx.fillText('TOTAL', xTot, y0-26);
@@ -7835,6 +7847,9 @@ function renderServico() {
         ctx.fillStyle=corMat; ctx.fillText(_fmtR(totMat), xTot, rowY[0]);
         ctx.fillStyle=corFil; ctx.fillText(_fmtR(totFil), xTot, rowY[1]);
         ctx.fillStyle=corTxt; ctx.fillText(_fmtR(totMat+totFil), xTot, rowY[2]);
+        ctx.font='700 11px sans-serif';
+        ctx.fillStyle=corBud; ctx.fillText(_fmtR(totBud), xTot, rowY[3]);
+        ctx.fillStyle=corCmp; ctx.fillText(_fmtR(totCmp), xTot, rowY[4]);
         ctx.restore();
       }
     };
@@ -7847,7 +7862,7 @@ function renderServico() {
         plugins:{legend:{labels:{color:cssVar('--text')}},datalabels:{}},
         scales:{x:{stacked:true,ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}},
           y:{stacked:true,ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}}},
-        layout:{padding:{top:30,bottom:104,right:118}}
+        layout:{padding:{top:30,bottom:150,right:118}}
       },plugins:[ChartDataLabels,tabelaDentroPlugin]
     }));
   }
