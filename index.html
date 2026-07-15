@@ -7809,6 +7809,9 @@ function renderServico() {
         ctx.fillStyle='rgba(255,255,255,0.04)';
         ctx.fillRect(0, rowY[1]-14, chart.width, lh);
         ctx.fillRect(0, rowY[3]-14, chart.width, lh);
+        // destaque da linha Total
+        ctx.fillStyle='rgba(255,170,0,0.10)';
+        ctx.fillRect(0, rowY[2]-14, chart.width, lh);
         // linha separadora ABAIXO do rótulo do mês
         ctx.strokeStyle=cssVar('--border'); ctx.lineWidth=1;
         ctx.beginPath(); ctx.moveTo(0, y0-19); ctx.lineTo(chart.width, y0-19); ctx.stroke();
@@ -7818,7 +7821,9 @@ function renderServico() {
         ctx.textAlign='left'; ctx.font='800 13px sans-serif';
         ctx.fillStyle=corMat; ctx.fillText('Matriz', 6, rowY[0]);
         ctx.fillStyle=corFil; ctx.fillText('Filial SP', 6, rowY[1]);
+        ctx.font='900 14px sans-serif';
         ctx.fillStyle=corTxt; ctx.fillText('Total', 6, rowY[2]);
+        ctx.font='800 13px sans-serif';
         ctx.font='700 12px sans-serif';
         ctx.fillStyle=corBud; ctx.fillText('Budget', 6, rowY[3]);
         ctx.fillStyle=corCmp; ctx.fillText('Competit.', 6, rowY[4]);
@@ -7832,7 +7837,7 @@ function renderServico() {
           ctx.font='700 12px sans-serif';
           ctx.fillStyle=corMat; ctx.fillText(_fmtR(matByM[mk]), x, rowY[0]);
           ctx.fillStyle=corFil; ctx.fillText(_fmtR(filByM[mk]), x, rowY[1]);
-          ctx.font='800 12px sans-serif';
+          ctx.font='900 13px sans-serif';
           ctx.fillStyle=corTxt; ctx.fillText(_fmtR((matByM[mk]||0)+(filByM[mk]||0)), x, rowY[2]);
           ctx.font='600 11px sans-serif';
           ctx.fillStyle=corBud; ctx.fillText(_fmtR(_gM(mk)), x, rowY[3]);
@@ -7859,7 +7864,18 @@ function renderServico() {
         {type:'line',label:'Competitividade',data:compLine,borderColor:cssVar('--serie-verde'),backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:2,tension:0,spanGaps:true,stack:'comp',datalabels:{display:false}}
       ])},
       options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{labels:{color:cssVar('--text')}},datalabels:{}},
+        plugins:{legend:{labels:{color:cssVar('--text')}},datalabels:{},
+          tooltip:{callbacks:{label:function(ctx){
+            const lbl=ctx.dataset.label||'';
+            const v=ctx.parsed.y;
+            if(v==null) return lbl+': —';
+            // metas: só valor (não entram no % do total)
+            if(lbl==='Budget'||lbl==='Competitividade') return lbl+': R$ '+Math.round(v).toLocaleString('pt-BR');
+            const mk=mesesBarras[ctx.dataIndex];
+            const totMes=(matByM[mk]||0)+(filByM[mk]||0);
+            const pct=totMes>0?(v/totMes*100):0;
+            return lbl+': R$ '+Math.round(v).toLocaleString('pt-BR')+' ('+pct.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%)';
+          }}}},
         scales:{x:{stacked:true,ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}},
           y:{stacked:true,ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}}},
         layout:{padding:{top:30,bottom:150,right:118}}
