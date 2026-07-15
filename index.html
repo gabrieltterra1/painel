@@ -1504,18 +1504,16 @@ document.addEventListener('DOMContentLoaded', () => {
   <!-- LINHA DO TEMPO MATRIZ vs FILIAL -->
   <div class="section-title">Linha do Tempo — Matriz vs Filial SP por Mês</div>
   <div style="margin-bottom:8px"><button class="upload-btn" style="background:rgba(0,201,122,.15);color:var(--green);border:1px solid var(--green);font-size:12px;padding:6px 12px" onclick="exportarTabelaDOM('#timeline-table','linha_do_tempo_servicos')">⤓ Gerar Excel</button></div>
-  <div style="overflow-x:auto;margin-bottom:8px;-webkit-overflow-scrolling:touch">
-    <table id="timeline-table" style="border-collapse:collapse;white-space:nowrap;font-size:12px;width:max-content;min-width:100%">
-      <thead class="blue"><tr id="timeline-thead"></tr></thead>
-      <tbody id="timeline-body"></tbody>
-    </table>
-  </div>
   <div class="chart-card" style="margin-bottom:28px;">
     <div class="chart-title">Linha do Tempo — Matriz vs Filial SP (R$)</div>
     <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
       <div style="position:relative;height:300px;min-width:600px;">
         <canvas id="servico-timeline-chart"></canvas>
       </div>
+      <table id="timeline-table" style="border-collapse:collapse;white-space:nowrap;font-size:12px;width:max-content;min-width:100%;margin-top:4px">
+        <thead class="blue"><tr id="timeline-thead"></tr></thead>
+        <tbody id="timeline-body"></tbody>
+      </table>
     </div>
     <!-- Canvas separado para modo comparativo -->
     <div id="servico-comparativo-wrap" style="display:none;margin-top:12px">
@@ -7786,32 +7784,6 @@ function renderServico() {
     const _gC = mk => { const v=_tComp[mk]; if(v!==undefined&&v!=='')return parseFloat(v); const [a,m]=mk.split('-'); return _cFB[a]?.[m]||0; };
     const budgetLine = mesesBarras.map(mk=>{ const v=_gM(mk); return v>0?v:null; });
     const compLine   = mesesBarras.map(mk=>{ const v=_gC(mk); return v>0?v:null; });
-    // Plugin: escreve Matriz/Filial/Total abaixo de cada barra (alinhado ao eixo X)
-    const _fmtVal = v => v>0 ? Math.round(v).toLocaleString('pt-BR') : '—';
-    const valoresAbaixoPlugin = {
-      id:'valoresAbaixoTL',
-      afterDraw(chart){
-        const ctx=chart.ctx; const xAxis=chart.scales.x; const area=chart.chartArea;
-        if(!xAxis||!area) return;
-        const corMat=cssVar('--serie-azul'), corFil=cssVar('--serie-laranja'), corTxt=cssVar('--text');
-        const y0=area.bottom+16;   // 1ª linha (Matriz)
-        const lh=13;               // altura de linha
-        ctx.save();
-        ctx.font='700 9px sans-serif'; ctx.textAlign='center';
-        mesesBarras.forEach((mk,i)=>{
-          const x=xAxis.getPixelForValue(i);
-          ctx.fillStyle=corMat; ctx.fillText(_fmtVal(matByM[mk]), x, y0);
-          ctx.fillStyle=corFil; ctx.fillText(_fmtVal(filByM[mk]), x, y0+lh);
-          ctx.fillStyle=corTxt; ctx.fillText(_fmtVal((matByM[mk]||0)+(filByM[mk]||0)), x, y0+lh*2);
-        });
-        // rótulos de linha à esquerda
-        ctx.textAlign='right'; ctx.font='700 8px sans-serif';
-        ctx.fillStyle=corMat; ctx.fillText('Matriz', area.left-4, y0);
-        ctx.fillStyle=corFil; ctx.fillText('Filial', area.left-4, y0+lh);
-        ctx.fillStyle=corTxt; ctx.fillText('Total', area.left-4, y0+lh*2);
-        ctx.restore();
-      }
-    };
     servicoCharts.push(new Chart(tlCanvas,{
       data:{labels:mesesBarras.map(mesLabel),datasets:barDatasets.concat([
         {type:'line',label:'Budget',data:budgetLine,borderColor:cssVar('--serie-vermelho'),backgroundColor:'transparent',borderWidth:2,pointRadius:2,tension:0,spanGaps:true,stack:'meta',datalabels:{display:false}},
@@ -7820,8 +7792,8 @@ function renderServico() {
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:cssVar('--text')}},datalabels:{}},
         scales:{x:{stacked:true,ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}},y:{stacked:true,ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}}},
-        layout:{padding:{top:30,bottom:52}}
-      },plugins:[ChartDataLabels,valoresAbaixoPlugin]
+        layout:{padding:{top:30}}
+      },plugins:[ChartDataLabels]
     }));
   }
 
