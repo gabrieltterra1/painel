@@ -7736,7 +7736,7 @@ function renderServico() {
     const shortMes = m => { const [y,mo]=m.split('-'); return new Date(+y,+mo-1,1).toLocaleDateString('pt-BR',{month:'short'}).toUpperCase().replace('.',''); };
     if (theadTl) theadTl.innerHTML=
       '<th style="'+thP+';text-align:left;position:sticky;left:0;background:var(--header-table-bg);color:#fff;z-index:3;min-width:50px">ANO</th>'
-      +'<th style="'+thP+';text-align:left;position:sticky;left:50px;background:var(--header-table-bg);color:#fff;z-index:3">EMPRESA</th>'
+      +'<th style="'+thP+';text-align:left;position:sticky;left:50px;background:var(--header-table-bg);color:#fff;z-index:3;min-width:90px;width:90px">EMPRESA</th>'
       +allMeses.map(mm=>{ const [y2,mo2]=['2000',mm]; return '<th style="'+thP+'">'+new Date(2000,+mm-1,1).toLocaleDateString('pt-BR',{month:'short'}).toUpperCase().replace('.','')+'</th>'; }).join('')
       +'<th style="'+thP+'">TOTAL</th>';
     if (tbodyTl) tbodyTl.innerHTML=htmlRows;
@@ -7784,6 +7784,18 @@ function renderServico() {
     const _gC = mk => { const v=_tComp[mk]; if(v!==undefined&&v!=='')return parseFloat(v); const [a,m]=mk.split('-'); return _cFB[a]?.[m]||0; };
     const budgetLine = mesesBarras.map(mk=>{ const v=_gM(mk); return v>0?v:null; });
     const compLine   = mesesBarras.map(mk=>{ const v=_gC(mk); return v>0?v:null; });
+    // Plugin: força a área de plotagem a começar onde começam as colunas de MÊS na tabela.
+    // Tabela: ANO(50) + EMPRESA(90) = 140px à esquerda; coluna TOTAL (~1 mês) à direita.
+    const COL_ESQ = 140;
+    const alinhaTabelaPlugin = {
+      id:'alinhaTabelaTL',
+      beforeLayout(chart){
+        const n = mesesBarras.length; if(!n) return;
+        const colW = (chart.width - COL_ESQ) / (n + 1); // +1 = coluna TOTAL à direita
+        chart.options.layout.padding = Object.assign({}, chart.options.layout.padding, { right: colW });
+      },
+      afterFit(){}
+    };
     servicoCharts.push(new Chart(tlCanvas,{
       data:{labels:mesesBarras.map(mesLabel),datasets:barDatasets.concat([
         {type:'line',label:'Budget',data:budgetLine,borderColor:cssVar('--serie-vermelho'),backgroundColor:'transparent',borderWidth:2,pointRadius:2,tension:0,spanGaps:true,stack:'meta',datalabels:{display:false}},
@@ -7791,9 +7803,10 @@ function renderServico() {
       ])},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{labels:{color:cssVar('--text')}},datalabels:{}},
-        scales:{x:{stacked:true,ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}},y:{stacked:true,ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}}},
+        scales:{x:{stacked:true,afterFit:(s)=>{s.paddingLeft=0;},ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}},
+          y:{stacked:true,afterFit:(s)=>{ s.width = COL_ESQ; },ticks:{color:cssVar('--text-muted'),callback:fmtK},grid:{color:cssVar('--grid')}}},
         layout:{padding:{top:30}}
-      },plugins:[ChartDataLabels]
+      },plugins:[ChartDataLabels,alinhaTabelaPlugin]
     }));
   }
 
