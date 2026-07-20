@@ -7206,10 +7206,10 @@ function _pvGerarRelatorio() {
   // ── Cards HTML ─────────────────────────────────────────────────────────
   let cardsHtml = '';
   famCards.forEach(function(c) {
-    cardsHtml += '<div class="card-item" style="background:' + c.color + '28;border:2px solid ' + c.color + ';border-radius:8px;padding:8px 12px;">';
-    cardsHtml += '<div style="font-size:10px;font-weight:900;color:' + c.color + ';margin-bottom:4px">' + c.label + '</div>';
-    cardsHtml += '<div style="font-size:20px;font-weight:900;color:' + c.color + ';margin-bottom:5px">' + c.tot + ' <span style="font-size:10px">itens</span></div>';
-    cardsHtml += '<div style="font-size:11px;line-height:2;color:#333">';
+    cardsHtml += '<div class="card-item" style="background:' + c.color + '28;border:2px solid ' + c.color + ';border-radius:8px;">';
+    cardsHtml += '<div style="font-size:9px;font-weight:900;color:' + c.color + ';margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + c.label + '</div>';
+    cardsHtml += '<div style="font-size:18px;font-weight:900;color:' + c.color + ';margin-bottom:4px;line-height:1">' + c.tot + ' <span style="font-size:9px">itens</span></div>';
+    cardsHtml += '<div style="font-size:9px;line-height:1.7;color:#333">';
     if (c.sep   > 0) cardsHtml += '<span style="color:#007700">\u2713 ' + c.sep   + ' sep.</span><br>';
     if (c.parc  > 0) cardsHtml += '<span style="color:#06b6d4">\u25d1 ' + c.parc  + ' parc.</span><br>';
     if (c.falta > 0) cardsHtml += '<span style="color:#f59e0b">\u2699 ' + c.falta + ' falta sep.</span><br>';
@@ -7227,8 +7227,8 @@ function _pvGerarRelatorio() {
     +'.header h2 { font-size:18px; font-weight:900; color:#0d1b3e; }'
     +'.header h2 span { color:#1a6fcc; }'
     +'.header .sub { font-size:9px; color:#666; text-align:right; line-height:1.5; }'
-    +'.cards { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; max-width:100%; }'
-    +'.card-item { flex:1; min-width:100px; max-width:180px; box-sizing:border-box; }'
+    +'.cards { display:flex; flex-wrap:nowrap; gap:6px; margin-bottom:14px; width:792px; max-width:792px; }'
+    +'.card-item { flex:1 1 0; min-width:0; max-width:none; box-sizing:border-box; padding:6px 8px !important; }'
     +'.cards-title { font-size:9px; font-weight:700; color:#666; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:6px; }'
     +'table { width:792px; border-collapse:collapse; font-size:10px; table-layout:fixed; }'
     +'thead tr { background:#0d1b3e; }'
