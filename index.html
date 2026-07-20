@@ -2577,8 +2577,8 @@ function renderOF() {
 
   // ── TABELA EXECUTIVE BLUE ──────────────────────────────────────────────
   const fmtN = v => { const n=parseFloat(String(v||'').replace(',','.')); if(isNaN(n)||n===0) return '<span style="color:var(--th-bg)">—</span>'; return Math.round(n).toLocaleString('pt-BR'); };
-  const thBase = 'padding:11px 8px;text-align:right;font-size:12px;font-weight:800;overflow:hidden;text-overflow:ellipsis;';
-  const tdBase = 'padding:9px 8px;text-align:right;font-size:15px;overflow:hidden;text-overflow:ellipsis;';
+  const thBase = 'padding:11px 8px;text-align:center;font-size:12px;font-weight:800;overflow:hidden;text-overflow:ellipsis;';
+  const tdBase = 'padding:9px 8px;text-align:center;font-size:15px;overflow:hidden;text-overflow:ellipsis;';
   const stickyTh = thBase+'text-align:left;position:sticky;left:0;z-index:3;';
   const stickyTd = tdBase+'text-align:left;position:sticky;left:0;z-index:1;font-size:14px;';
 
@@ -3356,8 +3356,8 @@ function renderMontados() {
   const fmtN=v=>{const n=parseFloat(String(v||'').replace(',','.'));if(isNaN(n)||n===0)return '<span style="color:var(--muted-dim)">—</span>';return Math.round(n).toLocaleString('pt-BR');};
   const fmtM=v=>{const n=parseFloat(String(v||'').replace(',','.'));if(isNaN(n)||n===0)return '<span style="color:var(--muted-dim)">—</span>';return n.toFixed(2);};
 
-  const thBase='padding:11px 8px;text-align:right;font-size:10px;letter-spacing:.5px;overflow:hidden;text-overflow:ellipsis;';
-  const tdBase='padding:9px 8px;text-align:right;font-size:13px;overflow:hidden;text-overflow:ellipsis;';
+  const thBase='padding:11px 8px;text-align:center;font-size:10px;letter-spacing:.5px;overflow:hidden;text-overflow:ellipsis;';
+  const tdBase='padding:9px 8px;text-align:center;font-size:13px;overflow:hidden;text-overflow:ellipsis;';
   const stickyTh=thBase+'text-align:left;position:sticky;left:0;z-index:3;';
   const stickyTd=tdBase+'text-align:left;position:sticky;left:0;z-index:1;font-size:13px;';
 
@@ -7195,7 +7195,7 @@ function _pvGerarRelatorio() {
     tbodyHtml += '<td style="font-size:13px;font-weight:900;text-align:center;padding:3px 4px;color:#1a1a2e">' + aMontar + '</td>';
     tbodyHtml += '<td style="font-family:monospace;font-size:10px;font-weight:700;color:#1a6fcc;white-space:nowrap;padding:3px 4px;text-align:left">' + codigo + '</td>';
     tbodyHtml += '<td style="font-size:9px;padding:3px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1a1a2e;text-align:left" title="' + desc.replace(/"/g,"'") + '">' + desc + '</td>';
-    tbodyHtml += '<td style="font-size:9px;font-weight:700;white-space:nowrap;padding:3px 4px;color:#333">' + familia + '</td>';
+    tbodyHtml += '<td style="font-size:9px;font-weight:700;white-space:nowrap;padding:3px 4px;color:#333;text-align:left">' + familia + '</td>';
     tbodyHtml += '<td style="text-align:right;font-size:10px;font-weight:700;padding:3px 4px;color:' + projColor + '">' + proj + '</td>';
     tbodyHtml += '<td style="font-size:9px;color:#222;padding:3px 4px;white-space:normal;word-break:break-word;text-align:left;vertical-align:top">' + _fmtDetalheOF(detalhe) + '</td>';
     tbodyHtml += '</tr>';
@@ -7228,7 +7228,7 @@ function _pvGerarRelatorio() {
     +'.header h2 span { color:#1a6fcc; }'
     +'.header .sub { font-size:9px; color:#666; text-align:right; line-height:1.5; }'
     +'.cards { display:flex; flex-wrap:nowrap; gap:6px; margin-bottom:14px; width:792px; max-width:792px; }'
-    +'.card-item { flex:1 1 0; min-width:0; max-width:none; box-sizing:border-box; padding:6px 8px !important; }'
+    +'.card-item { flex:1 1 0; min-width:0; max-width:396px; box-sizing:border-box; padding:6px 8px !important; }'
     +'.cards-title { font-size:9px; font-weight:700; color:#666; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:6px; }'
     +'table { width:792px; border-collapse:collapse; font-size:10px; table-layout:fixed; }'
     +'thead tr { background:#0d1b3e; }'
