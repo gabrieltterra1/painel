@@ -2596,7 +2596,7 @@ function renderOF() {
   +'</tr>'
   +'<tr style="background:var(--header-table-bg)">'
   +'<td style="'+stickyTd+'background:var(--header-table-bg);color:#fff;font-weight:700;font-size:12px;letter-spacing:1px">TOTAL EM OF</td>'
-  +cols.map(c=>`<td style="${tdBase}color:#fff;font-weight:800;font-size:17px">${fmtN(totals[c])}</td>`).join('')
+  +cols.map(c=>`<td onclick="${totals[c]>0?`filtrarOFTotal('${c}')`:''}" style="${tdBase}color:#fff;font-weight:800;font-size:17px;${totals[c]>0?'cursor:pointer':''}"${totals[c]>0?' title="Clique para ver todas as OFs desta família"':''}>${fmtN(totals[c])}</td>`).join('')
   +'</tr>'
   +'<tr style="background:var(--header-table-bg);border-bottom:2px solid var(--border)">'
   +'<td style="'+stickyTd+'background:var(--header-table-bg);color:#fff;font-size:12px;letter-spacing:1px">EM ATRASO</td>'
@@ -3075,6 +3075,17 @@ function abrirResumoOF(familia, dataFim){
   atualizarBotaoLimparOF();
   renderOFDetalheTabela();
   mostrarPopupResumoOF(itens, OF_FAM_LABEL[familia]+' — entrega '+dataFim);
+}
+function filtrarOFTotal(familia){
+  const itens = (DATA.ofItens||[]).filter(it=>it.FAMILIA===familia);
+  if(!itens.length) return;
+  const classesFam = new Set(itens.map(it=>it.CLAS));
+  ofDetFiltros = { CLAS: classesFam };
+  ofDetBusca = '';
+  atualizarBotaoLimparOF();
+  renderOFDetalheTabela();
+  mostrarPopupResumoOF(itens, OF_FAM_LABEL[familia]+' — TODAS AS OFs');
+  const wrap=document.getElementById('of-detail-wrap'); if(wrap) wrap.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function filtrarOFAtraso(familia){
   const itens = (DATA.ofItens||[]).filter(it=>it.FAMILIA===familia && it.DT_FINAL && isOverdue(it.DT_FINAL));
