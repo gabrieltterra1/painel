@@ -11187,7 +11187,7 @@ function renderDashboard(){
     if(ant>0){ const dif=atual-ant; const seta=dif>=0?'▲':'▼'; const cor=dif>=0?'var(--green)':'var(--red)';
       ifeComp='<div class="dh-meta" style="color:'+cor+'">'+seta+' '+Math.abs(dif).toFixed(2)+' pts vs mês anterior</div>'; }
   }
-  heroHtml += '<div class="dh ife" onclick="showTab(\'ife\')">'
+  heroHtml += '<div class="dh ife '+(ifeCons==='—'?'':(ifeNum>=95?'meta-ok':'meta-baixo'))+'" onclick="showTab(\'ife\')">'
     + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📈</span>IFE — mês atual</div>'+ifeSelo+'</div>'
     + '<div class="dh-big">'+ifeCons+'</div>'
     + (function(){
