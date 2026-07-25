@@ -1345,7 +1345,7 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
   <div class="chart-card" style="margin-bottom:28px;">
     <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
-      <div style="position:relative;height:280px;min-height:280px;min-width:320px;">
+      <div id="ns-chart-wrap" style="position:relative;height:300px;min-height:300px;min-width:640px;">
         <canvas id="ns-chart"></canvas>
       </div>
     </div>
@@ -10896,7 +10896,7 @@ function renderNSChart() {
   nsTable.style.cssText = 'overflow-x:auto;margin-top:12px;';
   const dataRows = datasets.filter(d=>d.type!=='line');
   const colors = {'TOMADA':'#3d8bff','BOMBA':'#ff8c3b','GUINCHO OS-M':'#f59e0b','GUINCHO OP':'#fb923c','ENROLADOR':'#c97aff'};
-  nsTable.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;">
+  nsTable.innerHTML = `<table style="width:100%;min-width:640px;border-collapse:collapse;font-size:12px;table-layout:fixed;">
     <colgroup><col style="width:90px">${nsLabels.map(()=>'<col>').join('')}</colgroup>
     <thead><tr style="background:var(--th-bg)">
       <th style="padding:7px 14px;text-align:left;color:var(--text-muted);font-family:var(--font-display);letter-spacing:1px"></th>
