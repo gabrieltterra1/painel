@@ -9104,10 +9104,52 @@ function abrirFaltaDetalhe(classificacao, uf, descClasse){
 
   tit.textContent = 'FALTA ABASTECER — '+empNome+' • '+(descClasse||(Array.isArray(classificacao)?classificacao.join(', '):classificacao));
   const totFalta = itensFalta.reduce((s,it)=>s+Math.abs(it.DIF_SALDO),0);
-  sub.textContent = itensFalta.length+' itens em falta • '+Math.round(totFalta).toLocaleString('pt-BR')+' peças faltando'+(clienteCod?' • pedidos do cliente '+clienteCod:'');
+  sub.textContent = itensFalta.length+' códigos em falta • '+Math.round(totFalta).toLocaleString('pt-BR')+' peças faltando'+(clienteCod?' • pedidos do cliente '+clienteCod:'');
 
   const th='padding:8px 10px;text-align:center;font-size:11px;font-weight:800;color:#fff;white-space:nowrap';
   const td='padding:7px 10px;text-align:center;font-size:12px;white-space:nowrap';
+
+  const isMatriz = (uf === 'RS');
+
+  if (isMatriz) {
+    // ── MATRIZ (empresa produtora): Ordens de Produção no lugar de Trânsito/Transferência ──
+    body.innerHTML =
+       '<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border)"><div style="max-height:480px;overflow:auto">'
+      +'<table style="border-collapse:collapse;width:100%;min-width:720px">'
+      +'<colgroup><col style="width:72px"><col style="min-width:200px"><col style="width:80px"><col style="width:90px"><col style="width:150px"><col style="width:80px"></colgroup>'
+      +'<thead style="position:sticky;top:0"><tr style="background:var(--header-table-bg)">'
+      +'<th style="'+th+'">CÓDIGO</th>'
+      +'<th style="'+th+';text-align:left">DESCRIÇÃO</th>'
+      +'<th style="'+th+'">FALTA</th>'
+      +'<th style="'+th+'">PEDIDOS<br>NA MATRIZ</th>'
+      +'<th style="'+th+'">ORDENS DE<br>PRODUÇÃO</th>'
+      +'<th style="'+th+'" title="OFs abertas − Falta − Pedidos na Matriz">SALDO</th></tr></thead><tbody>'
+      + (itensFalta.map((it,i)=>{
+          const falta = Math.abs(it.DIF_SALDO);
+          const pedMatriz = Number(it.PEDIDOS)||0;
+          // Ordens de produção abertas do mesmo código (todas são da Matriz)
+          const ofs = (DATA.ofItens||[]).filter(o=>o.COD_ITEM===it.COD_ITEM);
+          const ofQtd = ofs.reduce((s,o)=>s+(Number(o.QTDE_PEND)||0),0);
+          const ofNum = ofs.length;
+          const ofTxt = ofNum
+            ? Math.round(ofQtd).toLocaleString('pt-BR')+' un <span style="color:var(--text-muted);font-size:11px">('+ofNum+' OF'+(ofNum>1?'s':'')+')</span>'
+            : '<span style="color:var(--muted-dim)">—</span>';
+          // SALDO = OFs abertas − pedidos na Matriz − falta
+          const saldo = Math.round(ofQtd - pedMatriz - falta);
+          const saldoCor = saldo > 0 ? 'var(--green)' : (saldo < 0 ? 'var(--red)' : 'var(--text-muted)');
+          return '<tr style="background:'+(i%2===0?'transparent':'var(--row-alt)')+'">'
+            +'<td style="'+td+';font-weight:600">'+it.COD_ITEM+'</td>'
+            +'<td style="'+td+';text-align:left;white-space:normal">'+it.DESC+'</td>'
+            +'<td style="'+td+';color:var(--red);font-weight:700">'+Math.round(falta).toLocaleString('pt-BR')+'</td>'
+            +'<td style="'+td+';color:'+(pedMatriz>0?'var(--amber)':'var(--muted-dim)')+'">'+(pedMatriz>0?Math.round(pedMatriz).toLocaleString('pt-BR'):'—')+'</td>'
+            +'<td style="'+td+';color:'+(ofQtd>0?'var(--serie-roxo)':'var(--muted-dim)')+';font-weight:600">'+ofTxt+'</td>'
+            +'<td style="'+td+';font-weight:700;color:'+saldoCor+'">'+saldo.toLocaleString('pt-BR')+'</td></tr>';
+        }).join('')
+        || '<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--text-muted)">Sem itens em falta para esta classificação/empresa no detalhamento.</td></tr>')
+      +'</tbody></table></div></div>';
+    modal.style.display='flex';
+    return;
+  }
 
   body.innerHTML =
      '<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border)"><div style="max-height:480px;overflow:auto">'
