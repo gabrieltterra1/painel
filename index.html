@@ -9112,18 +9112,25 @@ function _estDetLinhas(){
   return base.map(it=>{
     const falta = it.DIF_SALDO < 0 ? Math.abs(it.DIF_SALDO) : 0;
     const pedEmp = Number(it.PEDIDOS)||0;
+    const estAtual = Number(it.EST_ATUAL)||0;
+    const paramES = Number(it.PARAM_ES)||0;
+    const completo = ctx.modo==='completa';
     if(ctx.isMatriz){
       const ofs = (DATA.ofItens||[]).filter(o=>o.COD_ITEM===it.COD_ITEM);
       const ofQtd = ofs.reduce((s,o)=>s+(Number(o.QTDE_PEND)||0),0);
-      const saldo = Math.round(ofQtd - pedEmp - falta);
-      return { cod:it.COD_ITEM, desc:it.DESC, falta, ped:pedEmp, of:ofQtd, ofNum:ofs.length, saldo };
+      // completa: Estoque + OFs − Pedidos − Est.Seg ; falta: OFs − Pedidos − Falta
+      const saldo = completo ? Math.round(estAtual + ofQtd - pedEmp - paramES)
+                             : Math.round(ofQtd - pedEmp - falta);
+      return { cod:it.COD_ITEM, desc:it.DESC, est:estAtual, param:paramES, falta, ped:pedEmp, of:ofQtd, ofNum:ofs.length, saldo };
     } else {
       const transAba=(DATA.transito_detail||[]).filter(r=>r.codigo===it.COD_ITEM && r.empresa===ctx.uf).reduce((s,r)=>s+r.quantidade,0);
       const transito=it.EST_TRANSITO || transAba;
       const peds=(DATA.pedidos||[]).filter(p=>p.codigo===it.COD_ITEM && ctx.clienteCod && p.clienteCod===ctx.clienteCod);
       const pedTransfQtd=peds.reduce((s,p)=>s+(Number(p.qtde)||0),0);
-      const saldo=Math.round(transito + pedTransfQtd - pedEmp - falta);
-      return { cod:it.COD_ITEM, desc:it.DESC, falta, ped:pedEmp, transito, pedTransf:pedTransfQtd, pedTxt:(peds.length?peds.map(p=>Math.round(p.qtde).toLocaleString('pt-BR')+' un'+(p.dataEntStr?' ('+p.dataEntStr.split('-').reverse().join('/')+')':'')).join(' • '):''), saldo };
+      // completa: Estoque + Trânsito + Transferência − Pedidos − Est.Seg ; falta: Trânsito + Transferência − Pedidos − Falta
+      const saldo = completo ? Math.round(estAtual + transito + pedTransfQtd - pedEmp - paramES)
+                             : Math.round(transito + pedTransfQtd - pedEmp - falta);
+      return { cod:it.COD_ITEM, desc:it.DESC, est:estAtual, param:paramES, falta, ped:pedEmp, transito, pedTransf:pedTransfQtd, pedTxt:(peds.length?peds.map(p=>Math.round(p.qtde).toLocaleString('pt-BR')+' un'+(p.dataEntStr?' ('+p.dataEntStr.split('-').reverse().join('/')+')':'')).join(' • '):''), saldo };
     }
   });
 }
@@ -9144,9 +9151,13 @@ function _estDetLinhasFiltradas(){
 }
 
 function _estDetColunas(){
-  return _estDetCtx.isMatriz
-    ? [['cod','CÓDIGO',0],['desc','DESCRIÇÃO',0],['falta','FALTA',1],['ped','PEDIDOS<br>NA MATRIZ',1],['of','ORDENS DE<br>PRODUÇÃO',1],['saldo','SALDO',1]]
-    : [['cod','CÓDIGO',0],['desc','DESCRIÇÃO',0],['falta','FALTA',1],['ped','PEDIDOS<br>NA FILIAL',1],['transito','EM<br>TRÂNSITO',1],['pedTransf','PEDIDOS DE<br>TRANSFERÊNCIA',1],['saldo','SALDO',1]];
+  const completo = _estDetCtx.modo==='completa';
+  const estCols = completo ? [['est','ESTOQUE<br>ATUAL',1],['param','EST. SEG.<br>(PARÂM.)',1]] : [];
+  const faltaCol = completo ? [] : [['falta','FALTA',1]];
+  if(_estDetCtx.isMatriz){
+    return [['cod','CÓDIGO',0],['desc','DESCRIÇÃO',0],...estCols,...faltaCol,['ped','PEDIDOS<br>NA MATRIZ',1],['of','ORDENS DE<br>PRODUÇÃO',1],['saldo','SALDO',1]];
+  }
+  return [['cod','CÓDIGO',0],['desc','DESCRIÇÃO',0],...estCols,...faltaCol,['ped','PEDIDOS<br>NA FILIAL',1],['transito','EM<br>TRÂNSITO',1],['pedTransf','PEDIDOS DE<br>TRANSFERÊNCIA',1],['saldo','SALDO',1]];
 }
 
 function _estDetRender(){
@@ -9185,38 +9196,42 @@ function _estDetRender(){
 
   // linhas
   let tb='';
+  const _cell = (l, key) => {
+    if(key==='cod')  return '<td style="'+td+';font-weight:600">'+l.cod+'</td>';
+    if(key==='desc') return '<td style="'+td+';text-align:left;white-space:normal">'+l.desc+'</td>';
+    if(key==='est')  return '<td style="'+td+';color:'+(l.est>0?'var(--text)':'var(--muted-dim)')+';font-weight:600">'+(l.est?Math.round(l.est).toLocaleString('pt-BR'):'—')+'</td>';
+    if(key==='param')return '<td style="'+td+';color:var(--text-muted)">'+(l.param?Math.round(l.param).toLocaleString('pt-BR'):'—')+'</td>';
+    if(key==='falta')return '<td style="'+td+';color:'+(l.falta>0?'var(--red)':'var(--muted-dim)')+';font-weight:'+(l.falta>0?'700':'400')+'">'+(l.falta>0?Math.round(l.falta).toLocaleString('pt-BR'):'—')+'</td>';
+    if(key==='ped')  return '<td style="'+td+';color:'+(l.ped>0?'var(--amber)':'var(--muted-dim)')+'">'+(l.ped>0?Math.round(l.ped).toLocaleString('pt-BR'):'—')+'</td>';
+    if(key==='of')   return '<td style="'+td+';color:'+(l.of>0?'var(--serie-roxo)':'var(--muted-dim)')+';font-weight:600">'+(l.of>0?Math.round(l.of).toLocaleString('pt-BR')+' <span style="color:var(--text-muted);font-size:11px">('+l.ofNum+' OF'+(l.ofNum>1?'s':'')+')</span>':'—')+'</td>';
+    if(key==='transito') return '<td style="'+td+';color:'+(l.transito>0?'var(--serie-azul)':'var(--muted-dim)')+'">'+(l.transito>0?Math.round(l.transito).toLocaleString('pt-BR'):'—')+'</td>';
+    if(key==='pedTransf')return '<td style="'+td+';text-align:left;white-space:normal;font-size:11px">'+(l.pedTxt||'<span style="color:var(--muted-dim)">—</span>')+'</td>';
+    if(key==='saldo'){ const sc=l.saldo>0?'var(--green)':(l.saldo<0?'var(--red)':'var(--text-muted)'); return '<td style="'+td+';font-weight:700;color:'+sc+'">'+l.saldo.toLocaleString('pt-BR')+'</td>'; }
+    return '<td style="'+td+'">—</td>';
+  };
   linhas.forEach((l,i)=>{
     const bg=i%2===0?'transparent':'var(--row-alt)';
-    const saldoCor=l.saldo>0?'var(--green)':(l.saldo<0?'var(--red)':'var(--text-muted)');
-    tb+='<tr style="background:'+bg+'">'
-      +'<td style="'+td+';font-weight:600">'+l.cod+'</td>'
-      +'<td style="'+td+';text-align:left;white-space:normal">'+l.desc+'</td>'
-      +'<td style="'+td+';color:'+(l.falta>0?'var(--red)':'var(--muted-dim)')+';font-weight:'+(l.falta>0?'700':'400')+'">'+(l.falta>0?Math.round(l.falta).toLocaleString('pt-BR'):'—')+'</td>'
-      +'<td style="'+td+';color:'+(l.ped>0?'var(--amber)':'var(--muted-dim)')+'">'+(l.ped>0?Math.round(l.ped).toLocaleString('pt-BR'):'—')+'</td>';
-    if(ctx.isMatriz){
-      tb+='<td style="'+td+';color:'+(l.of>0?'var(--serie-roxo)':'var(--muted-dim)')+';font-weight:600">'+(l.of>0?Math.round(l.of).toLocaleString('pt-BR')+' <span style="color:var(--text-muted);font-size:11px">('+l.ofNum+' OF'+(l.ofNum>1?'s':'')+')</span>':'—')+'</td>';
-    } else {
-      tb+='<td style="'+td+';color:'+(l.transito>0?'var(--serie-azul)':'var(--muted-dim)')+'">'+(l.transito>0?Math.round(l.transito).toLocaleString('pt-BR'):'—')+'</td>'
-        +'<td style="'+td+';text-align:left;white-space:normal;font-size:11px">'+(l.pedTxt||'<span style="color:var(--muted-dim)">—</span>')+'</td>';
-    }
-    tb+='<td style="'+td+';font-weight:700;color:'+saldoCor+'">'+l.saldo.toLocaleString('pt-BR')+'</td></tr>';
+    tb+='<tr style="background:'+bg+'">'+cols.map(c=>_cell(l,c[0])).join('')+'</tr>';
   });
   if(!linhas.length) tb='<tr><td colspan="'+cols.length+'" style="padding:20px;text-align:center;color:var(--text-muted)">Nenhum código com esses filtros.</td></tr>';
 
-  // rodapé com somatório (recalcula conforme filtros)
+  // rodapé com somatório (recalcula conforme filtros), dirigido pelas colunas ativas
   const soma = (k)=>linhas.reduce((s,l)=>s+(Number(l[k])||0),0);
   const tf='padding:8px 10px;text-align:center;font-size:12px;font-weight:800;color:#fff;border-top:2px solid var(--serie-azul)';
-  let tfoot='<tr style="background:var(--header-table-bg)">'
-    +'<td style="'+tf+';text-align:left" colspan="2">TOTAL ('+linhas.length+')</td>'
-    +'<td style="'+tf+';color:var(--red)">'+Math.round(soma('falta')).toLocaleString('pt-BR')+'</td>'
-    +'<td style="'+tf+';color:var(--amber)">'+Math.round(soma('ped')).toLocaleString('pt-BR')+'</td>';
-  if(ctx.isMatriz){ tfoot+='<td style="'+tf+';color:var(--serie-roxo)">'+Math.round(soma('of')).toLocaleString('pt-BR')+'</td>'; }
-  else { tfoot+='<td style="'+tf+';color:var(--serie-azul)">'+Math.round(soma('transito')).toLocaleString('pt-BR')+'</td>'
-    +'<td style="'+tf+'">'+Math.round(soma('pedTransf')).toLocaleString('pt-BR')+'</td>'; }
-  const somaSaldo=Math.round(soma('saldo'));
-  tfoot+='<td style="'+tf+';color:'+(somaSaldo>0?'var(--green)':(somaSaldo<0?'var(--red)':'#fff'))+'">'+somaSaldo.toLocaleString('pt-BR')+'</td></tr>';
+  const corCol={est:'var(--text)',param:'var(--text-muted)',falta:'var(--red)',ped:'var(--amber)',of:'var(--serie-roxo)',transito:'var(--serie-azul)',pedTransf:'#fff'};
+  let tfoot='<tr style="background:var(--header-table-bg)">';
+  let pulouLabel=false;
+  cols.forEach(c=>{
+    const k=c[0];
+    if(k==='cod'){ tfoot+='<td style="'+tf+';text-align:left" colspan="2">TOTAL ('+linhas.length+')</td>'; pulouLabel=true; return; }
+    if(k==='desc'){ return; } // já coberto pelo colspan
+    if(k==='saldo'){ const ss=Math.round(soma('saldo')); tfoot+='<td style="'+tf+';color:'+(ss>0?'var(--green)':(ss<0?'var(--red)':'#fff'))+'">'+ss.toLocaleString('pt-BR')+'</td>'; return; }
+    if(k==='pedTransf'){ tfoot+='<td style="'+tf+';color:'+corCol[k]+'">'+Math.round(soma('pedTransf')).toLocaleString('pt-BR')+'</td>'; return; }
+    tfoot+='<td style="'+tf+';color:'+(corCol[k]||'#fff')+'">'+Math.round(soma(k)).toLocaleString('pt-BR')+'</td>';
+  });
+  tfoot+='</tr>';
 
-  const minW = ctx.isMatriz ? 720 : 780;
+  const minW = (ctx.isMatriz ? 720 : 780) + (ctx.modo==='completa' ? 160 : 0);
   body.innerHTML =
      '<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border)"><div style="max-height:60vh;overflow:auto">'
     +'<table style="border-collapse:collapse;width:100%;min-width:'+minW+'px">'
@@ -9269,7 +9284,7 @@ function _estDetExcel(){
     return l[k]!=null?l[k]:'';
   }));
   const soma=(k)=>linhas.reduce((s,l)=>s+(Number(l[k])||0),0);
-  const totRow=cols.map(c=>['falta','ped','of','transito','pedTransf','saldo'].includes(c[0])?Math.round(soma(c[0])):(c[0]==='cod'?'TOTAL':''));
+  const totRow=cols.map(c=>['est','param','falta','ped','of','transito','pedTransf','saldo'].includes(c[0])?Math.round(soma(c[0])):(c[0]==='cod'?'TOTAL':''));
   const aoa=[head,...linTxt,totRow];
   if(typeof XLSX!=='undefined'){
     const wb=XLSX.utils.book_new(); const ws=XLSX.utils.aoa_to_sheet(aoa);
