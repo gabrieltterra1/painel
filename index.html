@@ -1344,7 +1344,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
   <div class="chart-card" style="margin-bottom:28px;">
-    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+    <div id="ns-scroll-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
       <div id="ns-chart-wrap" style="position:relative;height:300px;min-height:300px;min-width:640px;">
         <canvas id="ns-chart"></canvas>
       </div>
@@ -10887,13 +10887,14 @@ function renderNSChart() {
     }
   });
 
-  // annotation table
-  const nsParent = document.getElementById('ns-chart').closest('.chart-card');
+  // annotation table — dentro do mesmo container de scroll do gráfico (rolam juntos)
+  const nsScroll = document.getElementById('ns-scroll-wrap');
+  const nsParent = nsScroll || document.getElementById('ns-chart').closest('.chart-card');
   const oldT = nsParent.querySelector('.ns-data-table');
   if (oldT) oldT.remove();
   const nsTable = document.createElement('div');
   nsTable.className = 'ns-data-table';
-  nsTable.style.cssText = 'overflow-x:auto;margin-top:12px;';
+  nsTable.style.cssText = 'margin-top:12px;min-width:640px;';
   const dataRows = datasets.filter(d=>d.type!=='line');
   const colors = {'TOMADA':'#3d8bff','BOMBA':'#ff8c3b','GUINCHO OS-M':'#f59e0b','GUINCHO OP':'#fb923c','ENROLADOR':'#c97aff'};
   nsTable.innerHTML = `<table style="width:100%;min-width:640px;border-collapse:collapse;font-size:12px;table-layout:fixed;">
