@@ -9086,111 +9086,199 @@ const FILIAL_CLIENTE_COD = { 'SP':'842', 'GO':'60019', 'MG':'1189', 'PE':'60819'
 const UF_EMP_NOME = { 'RS':'Matriz', 'SP':'SP', 'MG':'MG', 'GO':'GO', 'PE':'PE' };
 
 // Clique em TOT FALTA ABASTECER da linha agregada (classificacao + uf)
+// ===== POPUP DETALHE ESTOQUE (Falta / Completa) com filtros, ordenação e somatório =====
+let _estDetCtx = null; // {classList, uf, empNome, descClasse, isMatriz, clienteCod, modo}
+let _estDetColFiltros = {};   // { colKey: Set(valores) }
+let _estDetSort = { col:null, asc:true };
+
 function abrirFaltaDetalhe(classificacao, uf, descClasse){
-  const modal=document.getElementById('modal-estoque-det');
-  const body =document.getElementById('modal-estoque-det-body');
-  const tit  =document.getElementById('modal-estoque-det-titulo');
-  const sub  =document.getElementById('modal-estoque-det-sub');
-  if(!modal||!body) return;
   const empNome = UF_EMP_NOME[uf] || uf;
-  // classificacao pode ser string única ou lista; itens com prefixo terminado em '*' casam por início
   const classList = Array.isArray(classificacao) ? classificacao : [classificacao];
-  const _casa = (cod) => classList.some(c => c.endsWith('*') ? cod.startsWith(c.slice(0,-1)) : cod===c);
-  // Itens detalhados da mesma classificação + empresa, com falta (Diferença_Saldo < 0)
-  const itensFalta = (DATA.estoqueDet||[])
-    .filter(it => _casa(it.COD_CLASSE) && it.EMPRESA===empNome && it.DIF_SALDO < 0)
-    .sort((a,b)=>a.DIF_SALDO-b.DIF_SALDO);
   const clienteCod = FILIAL_CLIENTE_COD[uf] || null;
+  _estDetCtx = { classList, uf, empNome, descClasse, isMatriz:(uf==='RS'), clienteCod, modo:'falta' };
+  _estDetColFiltros = {};
+  _estDetSort = { col:null, asc:true };
+  _estDetRender();
+  document.getElementById('modal-estoque-det').style.display='flex';
+}
 
-  tit.textContent = 'FALTA ABASTECER — '+empNome+' • '+(descClasse||(Array.isArray(classificacao)?classificacao.join(', '):classificacao));
-  const totFalta = itensFalta.reduce((s,it)=>s+Math.abs(it.DIF_SALDO),0);
-  sub.textContent = itensFalta.length+' códigos em falta • '+Math.round(totFalta).toLocaleString('pt-BR')+' peças faltando'+(clienteCod?' • pedidos do cliente '+clienteCod:'');
+// monta a lista de linhas (com todos os campos calculados) conforme o modo
+function _estDetLinhas(){
+  const ctx=_estDetCtx; if(!ctx) return [];
+  const _casa = (cod) => ctx.classList.some(c => c.endsWith('*') ? cod.startsWith(c.slice(0,-1)) : cod===c);
+  let base = (DATA.estoqueDet||[]).filter(it => _casa(it.COD_CLASSE) && it.EMPRESA===ctx.empNome);
+  if(ctx.modo==='falta') base = base.filter(it => it.DIF_SALDO < 0);
+  else base = base.filter(it => (it.PARAM_ES||0) > 0); // completa: todos com estoque de segurança cadastrado
+  return base.map(it=>{
+    const falta = it.DIF_SALDO < 0 ? Math.abs(it.DIF_SALDO) : 0;
+    const pedEmp = Number(it.PEDIDOS)||0;
+    if(ctx.isMatriz){
+      const ofs = (DATA.ofItens||[]).filter(o=>o.COD_ITEM===it.COD_ITEM);
+      const ofQtd = ofs.reduce((s,o)=>s+(Number(o.QTDE_PEND)||0),0);
+      const saldo = Math.round(ofQtd - pedEmp - falta);
+      return { cod:it.COD_ITEM, desc:it.DESC, falta, ped:pedEmp, of:ofQtd, ofNum:ofs.length, saldo };
+    } else {
+      const transAba=(DATA.transito_detail||[]).filter(r=>r.codigo===it.COD_ITEM && r.empresa===ctx.uf).reduce((s,r)=>s+r.quantidade,0);
+      const transito=it.EST_TRANSITO || transAba;
+      const peds=(DATA.pedidos||[]).filter(p=>p.codigo===it.COD_ITEM && ctx.clienteCod && p.clienteCod===ctx.clienteCod);
+      const pedTransfQtd=peds.reduce((s,p)=>s+(Number(p.qtde)||0),0);
+      const saldo=Math.round(transito + pedTransfQtd - pedEmp - falta);
+      return { cod:it.COD_ITEM, desc:it.DESC, falta, ped:pedEmp, transito, pedTransf:pedTransfQtd, pedTxt:(peds.length?peds.map(p=>Math.round(p.qtde).toLocaleString('pt-BR')+' un'+(p.dataEntStr?' ('+p.dataEntStr.split('-').reverse().join('/')+')':'')).join(' • '):''), saldo };
+    }
+  });
+}
 
+// aplica filtros de coluna e ordenação
+function _estDetLinhasFiltradas(){
+  let arr=_estDetLinhas();
+  Object.keys(_estDetColFiltros).forEach(col=>{ const s=_estDetColFiltros[col]; if(s&&s.size) arr=arr.filter(l=>s.has(String(l[col]))); });
+  if(_estDetSort.col){
+    const c=_estDetSort.col, asc=_estDetSort.asc;
+    const numeric=['falta','ped','of','transito','pedTransf','saldo'].includes(c);
+    arr.sort((a,b)=>{ let va=a[c],vb=b[c];
+      if(numeric){ va=Number(va)||0; vb=Number(vb)||0; return asc?va-vb:vb-va; }
+      return asc?String(va).localeCompare(String(vb),'pt-BR',{numeric:true}):String(vb).localeCompare(String(va),'pt-BR',{numeric:true});
+    });
+  }
+  return arr;
+}
+
+function _estDetColunas(){
+  return _estDetCtx.isMatriz
+    ? [['cod','CÓDIGO',0],['desc','DESCRIÇÃO',0],['falta','FALTA',1],['ped','PEDIDOS<br>NA MATRIZ',1],['of','ORDENS DE<br>PRODUÇÃO',1],['saldo','SALDO',1]]
+    : [['cod','CÓDIGO',0],['desc','DESCRIÇÃO',0],['falta','FALTA',1],['ped','PEDIDOS<br>NA FILIAL',1],['transito','EM<br>TRÂNSITO',1],['pedTransf','PEDIDOS DE<br>TRANSFERÊNCIA',1],['saldo','SALDO',1]];
+}
+
+function _estDetRender(){
+  const ctx=_estDetCtx; if(!ctx) return;
+  const tit=document.getElementById('modal-estoque-det-titulo');
+  const sub=document.getElementById('modal-estoque-det-sub');
+  const body=document.getElementById('modal-estoque-det-body');
+  const linhas=_estDetLinhasFiltradas();
   const th='padding:8px 10px;text-align:center;font-size:11px;font-weight:800;color:#fff;white-space:nowrap';
   const td='padding:7px 10px;text-align:center;font-size:12px;white-space:nowrap';
+  const cols=_estDetColunas();
+  const modoLbl = ctx.modo==='falta' ? 'FALTA ABASTECER' : 'ESTOQUE DE SEGURANÇA (COMPLETO)';
+  tit.textContent = modoLbl+' — '+ctx.empNome+' • '+(ctx.descClasse||ctx.classList.join(', '));
 
-  const isMatriz = (uf === 'RS');
+  // barra de controles
+  const totFalta = linhas.reduce((s,l)=>s+(l.falta||0),0);
+  const temFiltro = Object.keys(_estDetColFiltros).length>0;
+  sub.innerHTML =
+     '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px">'
+    +'<button onclick="_estDetToggleModo()" style="background:rgba(61,139,255,.15);border:1px solid var(--serie-azul);color:var(--serie-azul);padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:700">'
+      +(ctx.modo==='falta'?'📋 Ver completo (todos c/ estoque seg.)':'⚠ Ver só em falta')+'</button>'
+    +'<button onclick="_estDetLimpar()" style="background:rgba(255,59,59,.08);border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer"'+(temFiltro?'':' disabled')+'>✕ Limpar filtros</button>'
+    +'<button onclick="_estDetExcel()" style="background:rgba(0,201,122,.12);border:1px solid var(--green);color:var(--green);padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">⤓ Gerar Excel</button>'
+    +'<span style="font-size:11px;color:var(--text-muted);margin-left:auto">'+linhas.length+' códigos'+(ctx.modo==='falta'?' em falta • '+Math.round(totFalta).toLocaleString('pt-BR')+' peças faltando':'')+(ctx.clienteCod?' • cliente '+ctx.clienteCod:'')+'</span>'
+    +'</div>';
 
-  if (isMatriz) {
-    // ── MATRIZ (empresa produtora): Ordens de Produção no lugar de Trânsito/Transferência ──
-    body.innerHTML =
-       '<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border)"><div style="max-height:480px;overflow:auto">'
-      +'<table style="border-collapse:collapse;width:100%;min-width:720px">'
-      +'<colgroup><col style="width:72px"><col style="min-width:200px"><col style="width:80px"><col style="width:90px"><col style="width:150px"><col style="width:80px"></colgroup>'
-      +'<thead style="position:sticky;top:0"><tr style="background:var(--header-table-bg)">'
-      +'<th style="'+th+'">CÓDIGO</th>'
-      +'<th style="'+th+';text-align:left">DESCRIÇÃO</th>'
-      +'<th style="'+th+'">FALTA</th>'
-      +'<th style="'+th+'">PEDIDOS<br>NA MATRIZ</th>'
-      +'<th style="'+th+'">ORDENS DE<br>PRODUÇÃO</th>'
-      +'<th style="'+th+'" title="OFs abertas − Falta − Pedidos na Matriz">SALDO</th></tr></thead><tbody>'
-      + (itensFalta.map((it,i)=>{
-          const falta = Math.abs(it.DIF_SALDO);
-          const pedMatriz = Number(it.PEDIDOS)||0;
-          // Ordens de produção abertas do mesmo código (todas são da Matriz)
-          const ofs = (DATA.ofItens||[]).filter(o=>o.COD_ITEM===it.COD_ITEM);
-          const ofQtd = ofs.reduce((s,o)=>s+(Number(o.QTDE_PEND)||0),0);
-          const ofNum = ofs.length;
-          const ofTxt = ofNum
-            ? Math.round(ofQtd).toLocaleString('pt-BR')+' un <span style="color:var(--text-muted);font-size:11px">('+ofNum+' OF'+(ofNum>1?'s':'')+')</span>'
-            : '<span style="color:var(--muted-dim)">—</span>';
-          // SALDO = OFs abertas − pedidos na Matriz − falta
-          const saldo = Math.round(ofQtd - pedMatriz - falta);
-          const saldoCor = saldo > 0 ? 'var(--green)' : (saldo < 0 ? 'var(--red)' : 'var(--text-muted)');
-          return '<tr style="background:'+(i%2===0?'transparent':'var(--row-alt)')+'">'
-            +'<td style="'+td+';font-weight:600">'+it.COD_ITEM+'</td>'
-            +'<td style="'+td+';text-align:left;white-space:normal">'+it.DESC+'</td>'
-            +'<td style="'+td+';color:var(--red);font-weight:700">'+Math.round(falta).toLocaleString('pt-BR')+'</td>'
-            +'<td style="'+td+';color:'+(pedMatriz>0?'var(--amber)':'var(--muted-dim)')+'">'+(pedMatriz>0?Math.round(pedMatriz).toLocaleString('pt-BR'):'—')+'</td>'
-            +'<td style="'+td+';color:'+(ofQtd>0?'var(--serie-roxo)':'var(--muted-dim)')+';font-weight:600">'+ofTxt+'</td>'
-            +'<td style="'+td+';font-weight:700;color:'+saldoCor+'">'+saldo.toLocaleString('pt-BR')+'</td></tr>';
-        }).join('')
-        || '<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--text-muted)">Sem itens em falta para esta classificação/empresa no detalhamento.</td></tr>')
-      +'</tbody></table></div></div>';
-    modal.style.display='flex';
-    return;
-  }
+  // cabeçalho com ordenar + filtrar
+  const thead = cols.map(c=>{
+    const [key,lbl,num]=c;
+    const ativo=_estDetColFiltros[key]&&_estDetColFiltros[key].size?'color:var(--serie-azul)':'color:#fff';
+    const seta=_estDetSort.col===key?(_estDetSort.asc?' ▲':' ▼'):'';
+    return '<th style="'+th+(key==='desc'?';text-align:left':'')+'">'
+      +'<span style="cursor:pointer" onclick="_estDetOrdenar(\''+key+'\')">'+lbl+seta+'</span> '
+      +'<span style="cursor:pointer;'+ativo+'" onclick="_estDetAbrirFiltro(event,\''+key+'\')" title="Filtrar">▾</span></th>';
+  }).join('');
 
+  // linhas
+  let tb='';
+  linhas.forEach((l,i)=>{
+    const bg=i%2===0?'transparent':'var(--row-alt)';
+    const saldoCor=l.saldo>0?'var(--green)':(l.saldo<0?'var(--red)':'var(--text-muted)');
+    tb+='<tr style="background:'+bg+'">'
+      +'<td style="'+td+';font-weight:600">'+l.cod+'</td>'
+      +'<td style="'+td+';text-align:left;white-space:normal">'+l.desc+'</td>'
+      +'<td style="'+td+';color:'+(l.falta>0?'var(--red)':'var(--muted-dim)')+';font-weight:'+(l.falta>0?'700':'400')+'">'+(l.falta>0?Math.round(l.falta).toLocaleString('pt-BR'):'—')+'</td>'
+      +'<td style="'+td+';color:'+(l.ped>0?'var(--amber)':'var(--muted-dim)')+'">'+(l.ped>0?Math.round(l.ped).toLocaleString('pt-BR'):'—')+'</td>';
+    if(ctx.isMatriz){
+      tb+='<td style="'+td+';color:'+(l.of>0?'var(--serie-roxo)':'var(--muted-dim)')+';font-weight:600">'+(l.of>0?Math.round(l.of).toLocaleString('pt-BR')+' <span style="color:var(--text-muted);font-size:11px">('+l.ofNum+' OF'+(l.ofNum>1?'s':'')+')</span>':'—')+'</td>';
+    } else {
+      tb+='<td style="'+td+';color:'+(l.transito>0?'var(--serie-azul)':'var(--muted-dim)')+'">'+(l.transito>0?Math.round(l.transito).toLocaleString('pt-BR'):'—')+'</td>'
+        +'<td style="'+td+';text-align:left;white-space:normal;font-size:11px">'+(l.pedTxt||'<span style="color:var(--muted-dim)">—</span>')+'</td>';
+    }
+    tb+='<td style="'+td+';font-weight:700;color:'+saldoCor+'">'+l.saldo.toLocaleString('pt-BR')+'</td></tr>';
+  });
+  if(!linhas.length) tb='<tr><td colspan="'+cols.length+'" style="padding:20px;text-align:center;color:var(--text-muted)">Nenhum código com esses filtros.</td></tr>';
+
+  // rodapé com somatório (recalcula conforme filtros)
+  const soma = (k)=>linhas.reduce((s,l)=>s+(Number(l[k])||0),0);
+  const tf='padding:8px 10px;text-align:center;font-size:12px;font-weight:800;color:#fff;border-top:2px solid var(--serie-azul)';
+  let tfoot='<tr style="background:var(--header-table-bg)">'
+    +'<td style="'+tf+';text-align:left" colspan="2">TOTAL ('+linhas.length+')</td>'
+    +'<td style="'+tf+';color:var(--red)">'+Math.round(soma('falta')).toLocaleString('pt-BR')+'</td>'
+    +'<td style="'+tf+';color:var(--amber)">'+Math.round(soma('ped')).toLocaleString('pt-BR')+'</td>';
+  if(ctx.isMatriz){ tfoot+='<td style="'+tf+';color:var(--serie-roxo)">'+Math.round(soma('of')).toLocaleString('pt-BR')+'</td>'; }
+  else { tfoot+='<td style="'+tf+';color:var(--serie-azul)">'+Math.round(soma('transito')).toLocaleString('pt-BR')+'</td>'
+    +'<td style="'+tf+'">'+Math.round(soma('pedTransf')).toLocaleString('pt-BR')+'</td>'; }
+  const somaSaldo=Math.round(soma('saldo'));
+  tfoot+='<td style="'+tf+';color:'+(somaSaldo>0?'var(--green)':(somaSaldo<0?'var(--red)':'#fff'))+'">'+somaSaldo.toLocaleString('pt-BR')+'</td></tr>';
+
+  const minW = ctx.isMatriz ? 720 : 780;
   body.innerHTML =
-     '<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border)"><div style="max-height:480px;overflow:auto">'
-    +'<table style="border-collapse:collapse;width:100%;min-width:780px">'
-    +'<colgroup><col style="width:72px"><col style="min-width:160px"><col style="width:56px"><col style="width:72px"><col style="width:80px"><col style="min-width:160px"><col style="width:66px"></colgroup>'
-    +'<thead style="position:sticky;top:0"><tr style="background:var(--header-table-bg)">'
-    +'<th style="'+th+'">CÓDIGO</th>'
-    +'<th style="'+th+';text-align:left">DESCRIÇÃO</th>'
-    +'<th style="'+th+'">FALTA</th>'
-    +'<th style="'+th+'">PEDIDOS<br>NA FILIAL</th>'
-    +'<th style="'+th+'">EM<br>TRÂNSITO</th>'
-    +'<th style="'+th+';text-align:left;padding-left:20px">PEDIDOS DE<br>TRANSFERÊNCIA</th>'
-    +'<th style="'+th+'" title="Trânsito + Transferência − Pedidos na filial − Falta">SALDO</th></tr></thead><tbody>'
-    + (itensFalta.map((it,i)=>{
-        const falta = Math.abs(it.DIF_SALDO);
-        const pedFilial = Number(it.PEDIDOS)||0;
-        // Trânsito: do próprio detalhado + conferência com a aba Trânsito (transito_detail por código+UF)
-        const transAba = (DATA.transito_detail||[]).filter(r=>r.codigo===it.COD_ITEM && r.empresa===uf).reduce((s,r)=>s+r.quantidade,0);
-        const transito = it.EST_TRANSITO || transAba;
-        const transTip = (transAba && it.EST_TRANSITO && transAba!==it.EST_TRANSITO) ? ' title="email:'+it.EST_TRANSITO+' / trânsito:'+transAba+'"' : '';
-        // Pedidos de transferência: pedidos de venda mesmo código E cliente = código da filial
-        const peds = (DATA.pedidos||[]).filter(p=>p.codigo===it.COD_ITEM && clienteCod && p.clienteCod===clienteCod);
-        const pedTransfQtd = peds.reduce((s,p)=>s+(Number(p.qtde)||0),0);
-        const pedTxt = peds.length
-          ? peds.map(p=>Math.round(p.qtde).toLocaleString('pt-BR')+' un'+(p.dataEntStr?' ('+p.dataEntStr.split('-').reverse().join('/')+')':'')).join(' • ')
-          : '<span style="color:var(--muted-dim)">—</span>';
-        // SALDO = trânsito + pedidos transferência − pedidos na filial − falta
-        const saldo = Math.round(transito + pedTransfQtd - pedFilial - falta);
-        const saldoCor = saldo > 0 ? 'var(--green)' : (saldo < 0 ? 'var(--red)' : 'var(--text-muted)');
-        return '<tr style="background:'+(i%2===0?'transparent':'var(--row-alt)')+'">'
-          +'<td style="'+td+';font-weight:600">'+it.COD_ITEM+'</td>'
-          +'<td style="'+td+';text-align:left;white-space:normal">'+it.DESC+'</td>'
-          +'<td style="'+td+';color:var(--red);font-weight:700">'+Math.round(falta).toLocaleString('pt-BR')+'</td>'
-          +'<td style="'+td+';color:'+(pedFilial>0?'var(--amber)':'var(--muted-dim)')+'">'+(pedFilial>0?Math.round(pedFilial).toLocaleString('pt-BR'):'—')+'</td>'
-          +'<td style="'+td+';color:'+(transito>0?'var(--serie-azul)':'var(--muted-dim)')+'"'+transTip+'>'+(transito>0?Math.round(transito).toLocaleString('pt-BR'):'—')+'</td>'
-          +'<td style="'+td+';text-align:left;white-space:normal;font-size:11px;padding-left:20px">'+pedTxt+'</td>'
-          +'<td style="'+td+';font-weight:700;color:'+saldoCor+'">'+saldo.toLocaleString('pt-BR')+'</td></tr>';
-      }).join('')
-      || '<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--text-muted)">Sem itens em falta para esta classificação/empresa no detalhamento.</td></tr>')
-    +'</tbody></table></div></div>';
-  modal.style.display='flex';
+     '<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border)"><div style="max-height:60vh;overflow:auto">'
+    +'<table style="border-collapse:collapse;width:100%;min-width:'+minW+'px">'
+    +'<thead style="position:sticky;top:0;z-index:2"><tr style="background:var(--header-table-bg)">'+thead+'</tr></thead>'
+    +'<tbody>'+tb+'</tbody>'
+    +'<tfoot style="position:sticky;bottom:0">'+tfoot+'</tfoot>'
+    +'</table></div></div>';
+}
+
+function _estDetToggleModo(){ _estDetCtx.modo = _estDetCtx.modo==='falta'?'completa':'falta'; _estDetColFiltros={}; _estDetRender(); }
+function _estDetOrdenar(col){ if(_estDetSort.col===col) _estDetSort.asc=!_estDetSort.asc; else {_estDetSort.col=col;_estDetSort.asc=true;} _estDetRender(); }
+function _estDetLimpar(){ _estDetColFiltros={}; _estDetRender(); }
+
+function _estDetAbrirFiltro(ev, col){
+  ev.stopPropagation();
+  const ex=document.getElementById('estdet-filtro-pop'); if(ex) ex.remove();
+  const linhasAll=_estDetLinhas();
+  const valores=Array.from(new Set(linhasAll.map(l=>String(l[col])))).sort((a,b)=>String(a).localeCompare(String(b),'pt-BR',{numeric:true}));
+  const sel=_estDetColFiltros[col]||new Set(valores);
+  const pop=document.createElement('div');
+  pop.id='estdet-filtro-pop';
+  pop.style.cssText='position:fixed;z-index:12000;background:var(--surface,#151a2e);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.5);padding:10px;width:240px;max-height:60vh;display:flex;flex-direction:column';
+  const itens=valores.map(v=>'<label style="display:flex;gap:6px;align-items:center;padding:3px 2px;cursor:pointer;font-size:12px"><input type="checkbox" data-v="'+String(v).replace(/"/g,'&quot;')+'" '+(sel.has(v)?'checked':'')+'><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(v===''?'(vazio)':v)+'</span></label>').join('');
+  pop.innerHTML='<div style="font-size:11px;font-weight:700;color:var(--serie-azul);margin-bottom:6px">FILTRAR COLUNA</div>'
+    +'<div style="display:flex;gap:6px;margin-bottom:6px"><button onclick="_estDetFiltroMarcar(true)" style="flex:1;background:var(--border);border:none;color:var(--text);padding:4px;border-radius:5px;font-size:11px;cursor:pointer">Todos</button><button onclick="_estDetFiltroMarcar(false)" style="flex:1;background:var(--border);border:none;color:var(--text);padding:4px;border-radius:5px;font-size:11px;cursor:pointer">Nenhum</button></div>'
+    +'<div id="estdet-filtro-lista" style="overflow-y:auto;flex:1">'+itens+'</div>'
+    +'<div style="display:flex;gap:6px;margin-top:8px"><button onclick="_estDetFiltroAplicar(\''+col+'\')" style="flex:1;background:var(--serie-azul);border:none;color:#fff;padding:6px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">Aplicar</button><button onclick="document.getElementById(\'estdet-filtro-pop\').remove()" style="background:var(--border);border:none;color:var(--text-muted);padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer">✕</button></div>';
+  document.body.appendChild(pop);
+  const w=pop.offsetWidth||240,h=pop.offsetHeight||360;
+  pop.style.left=Math.max(8,Math.min(ev.clientX,window.innerWidth-w-8))+'px';
+  pop.style.top=Math.max(8,Math.min(ev.clientY+12,window.innerHeight-h-8))+'px';
+}
+function _estDetFiltroMarcar(m){ document.querySelectorAll('#estdet-filtro-lista input[type=checkbox]').forEach(c=>c.checked=m); }
+function _estDetFiltroAplicar(col){
+  const marcados=[...document.querySelectorAll('#estdet-filtro-lista input:checked')].map(c=>c.getAttribute('data-v'));
+  const total=new Set(_estDetLinhas().map(l=>String(l[col]))).size;
+  if(marcados.length===0||marcados.length===total) delete _estDetColFiltros[col];
+  else _estDetColFiltros[col]=new Set(marcados);
+  const pop=document.getElementById('estdet-filtro-pop'); if(pop) pop.remove();
+  _estDetRender();
+}
+function _estDetExcel(){
+  const ctx=_estDetCtx; const linhas=_estDetLinhasFiltradas();
+  const cols=_estDetColunas();
+  const head=cols.map(c=>c[1].replace(/<br>/g,' '));
+  const linTxt=linhas.map(l=>cols.map(c=>{
+    const k=c[0];
+    if(k==='of') return (l.of||0)+(l.ofNum?(' ('+l.ofNum+' OFs)'):'');
+    if(k==='pedTransf') return (l.pedTxt||'').replace(/<[^>]+>/g,'');
+    return l[k]!=null?l[k]:'';
+  }));
+  const soma=(k)=>linhas.reduce((s,l)=>s+(Number(l[k])||0),0);
+  const totRow=cols.map(c=>['falta','ped','of','transito','pedTransf','saldo'].includes(c[0])?Math.round(soma(c[0])):(c[0]==='cod'?'TOTAL':''));
+  const aoa=[head,...linTxt,totRow];
+  if(typeof XLSX!=='undefined'){
+    const wb=XLSX.utils.book_new(); const ws=XLSX.utils.aoa_to_sheet(aoa);
+    XLSX.utils.book_append_sheet(wb,ws,'Estoque Seg');
+    XLSX.writeFile(wb,'estoque_seguranca_'+ctx.empNome+'_'+(ctx.modo)+'.xlsx');
+  } else {
+    const csv=aoa.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(';')).join('\n');
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='estoque_seguranca.csv'; a.click();
+  }
 }
 
 function parseEstoque(text) {
