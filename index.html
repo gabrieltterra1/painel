@@ -9093,13 +9093,16 @@ function abrirFaltaDetalhe(classificacao, uf, descClasse){
   const sub  =document.getElementById('modal-estoque-det-sub');
   if(!modal||!body) return;
   const empNome = UF_EMP_NOME[uf] || uf;
+  // classificacao pode ser string única ou lista; itens com prefixo terminado em '*' casam por início
+  const classList = Array.isArray(classificacao) ? classificacao : [classificacao];
+  const _casa = (cod) => classList.some(c => c.endsWith('*') ? cod.startsWith(c.slice(0,-1)) : cod===c);
   // Itens detalhados da mesma classificação + empresa, com falta (Diferença_Saldo < 0)
   const itensFalta = (DATA.estoqueDet||[])
-    .filter(it => it.COD_CLASSE===classificacao && it.EMPRESA===empNome && it.DIF_SALDO < 0)
+    .filter(it => _casa(it.COD_CLASSE) && it.EMPRESA===empNome && it.DIF_SALDO < 0)
     .sort((a,b)=>a.DIF_SALDO-b.DIF_SALDO);
   const clienteCod = FILIAL_CLIENTE_COD[uf] || null;
 
-  tit.textContent = 'FALTA ABASTECER — '+empNome+' • '+(descClasse||classificacao);
+  tit.textContent = 'FALTA ABASTECER — '+empNome+' • '+(descClasse||(Array.isArray(classificacao)?classificacao.join(', '):classificacao));
   const totFalta = itensFalta.reduce((s,it)=>s+Math.abs(it.DIF_SALDO),0);
   sub.textContent = itensFalta.length+' itens em falta • '+Math.round(totFalta).toLocaleString('pt-BR')+' peças faltando'+(clienteCod?' • pedidos do cliente '+clienteCod:'');
 
@@ -10805,6 +10808,26 @@ function renderNSChart() {
     data: { labels: nsLabels, datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
+      onClick: (evt, elements) => {
+        if(!elements || !elements.length) return;
+        const el = elements[0];
+        const ds = window._nsChart.data.datasets[el.datasetIndex];
+        if(!ds || ds.type==='line') return; // ignora linha de meta
+        const ufArr = ['RS','SP','MG','GO','PE'];
+        const uf = ufArr[el.index];
+        const NS_CLASS_MAP = {
+          'TOMADA':['300.200.001'],
+          'BOMBA':['300.500.001'],
+          'GUINCHO OS-M':['800.010.020'],
+          'GUINCHO OP':['800.010.040'],
+          'ENROLADOR':['800.050*'],
+          'CILINDRO':['300.400.001','300.300.005']
+        };
+        const classes = NS_CLASS_MAP[ds.label];
+        if(!classes) return;
+        abrirFaltaDetalhe(classes, uf, ds.label);
+      },
+      onHover: (evt, elements) => { const c = elements && elements.length && window._nsChart.data.datasets[elements[0].datasetIndex].type!=='line'; evt.native.target.style.cursor = c ? 'pointer' : 'default'; },
       plugins: {
         legend: { labels: { color: cssVar('--text'), font: { size: 12 } } },
         tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%` } },
@@ -10817,7 +10840,7 @@ function renderNSChart() {
       },
       scales: {
         x: { ticks: { color: cssVar('--text-muted'), font: { size: 14, weight: '700' } }, grid: { color: cssVar('--grid') } },
-        y: { min: 0, max: 105, ticks: { color: cssVar('--text-muted'), callback: v => v + '%' }, grid: { color: cssVar('--grid') } }
+        y: { min: 0, max: 105, afterFit:(s)=>{ s.width = 90; }, ticks: { color: cssVar('--text-muted'), callback: v => v + '%' }, grid: { color: cssVar('--grid') } }
       }
     }
   });
@@ -10831,9 +10854,10 @@ function renderNSChart() {
   nsTable.style.cssText = 'overflow-x:auto;margin-top:12px;';
   const dataRows = datasets.filter(d=>d.type!=='line');
   const colors = {'TOMADA':'#3d8bff','BOMBA':'#ff8c3b','GUINCHO OS-M':'#f59e0b','GUINCHO OP':'#fb923c','ENROLADOR':'#c97aff'};
-  nsTable.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px;">
+  nsTable.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;">
+    <colgroup><col style="width:90px">${nsLabels.map(()=>'<col>').join('')}</colgroup>
     <thead><tr style="background:var(--th-bg)">
-      <th style="padding:7px 14px;text-align:left;color:var(--text-muted);min-width:90px;font-family:var(--font-display);letter-spacing:1px"></th>
+      <th style="padding:7px 14px;text-align:left;color:var(--text-muted);font-family:var(--font-display);letter-spacing:1px"></th>
       ${nsLabels.map(l=>`<th style="padding:7px 14px;text-align:center;color:var(--text);font-family:var(--font-display);letter-spacing:2px">${l}</th>`).join('')}
     </tr></thead>
     <tbody>
