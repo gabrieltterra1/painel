@@ -2570,6 +2570,14 @@ function renderOF() {
           '<div style="margin-top:6px;font-size:10px;color:var(--text-muted)">Programado: <b style="color:'+(diasCobre>=duRestantes?'var(--green)':'var(--red)')+'">'+( diasCobre!==null?(diasCobre).toFixed(1):' —')+' du</b>'
           +' <span style="color:var(--text-muted)">(faltam '+duRestantes+' du)</span></div>'
         :'')
+        +(function(){
+            const sd = (window._montadosSaldo||{})[metaProd];
+            if(!hasMeta || !sd) return '';
+            const saldoStr=(sd.saldo>=0?'+':'')+sd.saldo.toLocaleString('pt-BR');
+            const c=sd.saldo>=0?'var(--green)':'var(--red)';
+            return '<div style="margin-top:4px;font-size:10px">Saldo vs meta: <b style="color:'+c+'">'+saldoStr+'</b>'
+              +' <span style="color:'+(sd.isAbove?'var(--green)':'var(--red)')+'">('+(sd.isAbove?'✓ acima':'✗ abaixo')+')</span></div>';
+          })()
         +(atrasado>0?'<div style="margin-top:4px;font-size:10px;color:var(--red);font-weight:700">⚑ '+Math.round(atrasado).toLocaleString('pt-BR')+' em atraso</div>':'')
         +'</div>';
     }).join('');
@@ -3328,6 +3336,8 @@ function renderMontados() {
         ? Math.ceil(metaDia + Math.abs(saldoDevendo) / duRestantes)
         : 0;
       const isAbove=hasMeta&&metaDia>0&&mediaDia>=metaDia;
+      // guarda saldo vs meta por família para reuso em OF Abertas
+      if(hasMeta && metaDia>0){ window._montadosSaldo = window._montadosSaldo||{}; window._montadosSaldo[col]={saldo:Math.round(saldo),isAbove}; }
 
       return '<div style="grid-column:'+(ci===0?'2':'auto')+';background:var(--surface);border:'+(hasMeta?'2':'1')+'px solid '+(hasMeta?cor:'var(--border)')+';border-radius:10px;padding:12px 14px;min-width:0;box-shadow:var(--card-shadow,none);display:flex;flex-direction:column">'
         +'<div style="font-size:9px;font-weight:700;color:'+cor+';letter-spacing:1px;margin-bottom:6px;white-space:normal;line-height:1.15">'+label+'</div>'
@@ -5986,6 +5996,30 @@ function _pvPopularMultiDatas(datas, hoje) {
     });
   });
   lista.innerHTML = html;
+}
+
+// Vem do dashboard: abre Pedidos filtrando a família do card + datas até o fim do mês
+const _MONT_TO_PVFAM = {
+  'TOMADA_MULT':['TOMADA+MULT'],'BOMBA':['BOMBA'],'CILINDRO':['CILINDRO'],
+  'GUINCHO':['GUINCHO+ENROLADOR','GUINCHO - OUTROS'],'CONJ_EIXO':['CONJ EIXO'],
+  'COMANDO':['WALVOIL - COMANDO'],'VALVULA':['WALVOIL - VALVULA'],'KIT_HIDR':['KIT HIDRAULICO']
+};
+function irParaPedidosPorFamilia(colMont){
+  showTab('pedidos');
+  setTimeout(()=>{
+    try{
+      const fams = _MONT_TO_PVFAM[colMont] || [];
+      // 1) família: marca só as famílias correspondentes
+      document.querySelectorAll('#ms-pv-familia .ms-item input[type=checkbox]').forEach(cb=>{ cb.checked = fams.includes(cb.value); });
+      msChange('ms-pv-familia');
+      // 2) datas: marca só as datas <= fim do mês atual
+      const hoje2=new Date(); hoje2.setHours(0,0,0,0);
+      const fimMes=new Date(hoje2.getFullYear(), hoje2.getMonth()+1, 0);
+      const fimIso=fimMes.getFullYear()+'-'+String(fimMes.getMonth()+1).padStart(2,'0')+'-'+String(fimMes.getDate()).padStart(2,'0');
+      const dataCbs=document.querySelectorAll('#ms-pv-data-list .ms-item input[type=checkbox]');
+      if(dataCbs.length){ dataCbs.forEach(cb=>{ cb.checked = cb.value <= fimIso; }); msChange('ms-pv-data'); }
+    }catch(e){ console.warn('irParaPedidosPorFamilia',e); }
+  }, 60);
 }
 
 // Marca/desmarca todas as datas de um mês
@@ -11508,7 +11542,7 @@ function renderDashboard(){
         const ritmo = (tot>0 && duEff>0) ? (tot/duEff) : 0;
         const acimaMeta = metaDia>0 && ritmo>metaDia; // ritmo necessário ultrapassa a meta diária
         const cor=tot>0?'var(--amber)':'var(--green-soft)';
-        return '<div class="dmc'+(acimaMeta?' crit':'')+'" onclick="showTab(&quot;pedidos&quot;)" style="cursor:pointer'+(acimaMeta?';background:rgba(255,80,80,.12);border:1px solid var(--red)':'')+'">'
+        return '<div class="dmc'+(acimaMeta?' crit':'')+'" onclick="irParaPedidosPorFamilia(&quot;'+col+'&quot;)" style="cursor:pointer'+(acimaMeta?';background:rgba(255,80,80,.12);border:1px solid var(--red)':'')+'">'
           +'<div class="dmc-top"><span class="ml">'+label+'</span>'+(acimaMeta?'<span class="badge" style="color:var(--red)">▲ acima da meta</span>':'')+'</div>'
           +'<div class="mv" style="color:'+(acimaMeta?'#ff6b6b':cor)+'">'+Math.round(tot).toLocaleString('pt-BR')+'</div>'
           +(tot>0?'<div class="ms" style="font-size:10px;color:var(--text-muted);margin-top:2px">ritmo <b style="color:'+(acimaMeta?'#ff6b6b':'var(--amber)')+'">'+fmt1(ritmo)+'/dia</b> · meta '+(metaDia>0?fmt1(metaDia):'—')+'/dia<br><span style="font-size:9px">'+fmt1(duEff)+' du restantes</span></div>':'<div class="ms" style="font-size:10px;color:var(--green-soft);margin-top:2px">ok</div>')
@@ -13905,8 +13939,8 @@ function _dashParseISO(s){
 function renderAll() {
   window._dadosCarregados = true;
   try { aplicarChartDefaults(); } catch(e){}
-  renderOF();
   renderMontados();
+  renderOF();
   renderEstoque();
   renderServico();
   renderTermico();
