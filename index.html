@@ -6004,12 +6004,18 @@ const _MONT_TO_PVFAM = {
   'GUINCHO':['GUINCHO+ENROLADOR','GUINCHO - OUTROS'],'CONJ_EIXO':['CONJ EIXO'],
   'COMANDO':['WALVOIL - COMANDO'],'VALVULA':['WALVOIL - VALVULA'],'KIT_HIDR':['KIT HIDRAULICO']
 };
+// mapeamento para a tabela "Agrupado por Produto" (ms-pv-fam2) que usa famílias mais agregadas
+const _MONT_TO_FAM2 = {
+  'TOMADA_MULT':['TOMADA+MULT'],'BOMBA':['BOMBA'],'CILINDRO':['CILINDRO'],
+  'GUINCHO':['GUINCHO'],'CONJ_EIXO':['CONJ EIXO'],
+  'COMANDO':['WALVOIL'],'VALVULA':['WALVOIL'],'KIT_HIDR':['KIT HIDRAULICO']
+};
 function irParaPedidosPorFamilia(colMont){
   showTab('pedidos');
   setTimeout(()=>{
     try{
       const fams = _MONT_TO_PVFAM[colMont] || [];
-      // 1) família: marca só as famílias correspondentes
+      // 1) família (tabela Prioridades por Data de Entrega)
       document.querySelectorAll('#ms-pv-familia .ms-item input[type=checkbox]').forEach(cb=>{ cb.checked = fams.includes(cb.value); });
       msChange('ms-pv-familia');
       // 2) datas: marca só as datas <= fim do mês atual
@@ -6018,6 +6024,10 @@ function irParaPedidosPorFamilia(colMont){
       const fimIso=fimMes.getFullYear()+'-'+String(fimMes.getMonth()+1).padStart(2,'0')+'-'+String(fimMes.getDate()).padStart(2,'0');
       const dataCbs=document.querySelectorAll('#ms-pv-data-list .ms-item input[type=checkbox]');
       if(dataCbs.length){ dataCbs.forEach(cb=>{ cb.checked = cb.value <= fimIso; }); msChange('ms-pv-data'); }
+      // 3) família (tabela Agrupado por Produto)
+      const fams2 = _MONT_TO_FAM2[colMont] || [];
+      document.querySelectorAll('#ms-pv-fam2 .ms-item input[type=checkbox]').forEach(cb=>{ cb.checked = fams2.includes(cb.value); });
+      msChange('ms-pv-fam2');
     }catch(e){ console.warn('irParaPedidosPorFamilia',e); }
   }, 60);
 }
