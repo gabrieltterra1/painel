@@ -5928,6 +5928,7 @@ function atualizarBotaoLimparPV(){
 }
 function pvLimparTudo(){
   pvColFiltros = {}; pvSortCol = null;
+  window._pvSoNegativo = false;
   msMarcarTodos('ms-pv-status'); msMarcarTodos('ms-pv-familia'); msMarcarTodos('ms-pv-data');
   ['ms-pv-status','ms-pv-familia','ms-pv-data'].forEach(id=>{const l=document.getElementById(id+'-label');if(l)l.textContent='Todos';});
   const s=document.getElementById('pv-search'); if(s)s.value='';
@@ -6012,6 +6013,7 @@ const _MONT_TO_FAM2 = {
 };
 function irParaPedidosPorFamilia(colMont){
   showTab('pedidos');
+  window._pvSoNegativo = true; // filtra só projetado negativo (tabela Prioridades por Data)
   setTimeout(()=>{
     try{
       const fams = _MONT_TO_PVFAM[colMont] || [];
@@ -6028,6 +6030,8 @@ function irParaPedidosPorFamilia(colMont){
       const fams2 = _MONT_TO_FAM2[colMont] || [];
       document.querySelectorAll('#ms-pv-fam2 .ms-item input[type=checkbox]').forEach(cb=>{ cb.checked = fams2.includes(cb.value); });
       msChange('ms-pv-fam2');
+      // projetado negativo na tabela Agrupado
+      const projEl=document.getElementById('pv-proj-filt'); if(projEl) projEl.value='neg';
       // 4) datas da tabela Agrupado (ms-pv-dias): marca só dias <= fim do mês
       const diaCbs=document.querySelectorAll('#ms-pv-dias-list .pv-dia-item input[type=checkbox]');
       if(diaCbs.length){
@@ -6178,6 +6182,7 @@ function renderPedidos() {
   // Aplicar filtros
   let filtrados = todos.filter(r => {
     if (dataAtiva && !dataFiltSet.has(r.dataEntStr||'')) return false;
+    if (window._pvSoNegativo && !(r.projetado!=null && r.projetado < 0)) return false;
     if (familiaFilt.length && !familiaFilt.includes(pvFamilia(r.classificacao))) return false;
     if (statusFilt.length) {
       // status por linha (FATURAR/POSSUI OF/SEM OF/ATRASADO) + status de OF derivado por linha
@@ -6559,6 +6564,7 @@ function pvLimparFiltros() {
   // Resetar projetado
   const proj = document.getElementById('pv-proj-filt');
   if (proj) proj.value = '';
+  window._pvSoNegativo = false;
   // Limpar busca
   const search = document.getElementById('pv-search2');
   if (search) search.value = '';
