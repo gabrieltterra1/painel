@@ -6028,6 +6028,14 @@ function irParaPedidosPorFamilia(colMont){
       const fams2 = _MONT_TO_FAM2[colMont] || [];
       document.querySelectorAll('#ms-pv-fam2 .ms-item input[type=checkbox]').forEach(cb=>{ cb.checked = fams2.includes(cb.value); });
       msChange('ms-pv-fam2');
+      // 4) datas da tabela Agrupado (ms-pv-dias): marca só dias <= fim do mês
+      const diaCbs=document.querySelectorAll('#ms-pv-dias-list .pv-dia-item input[type=checkbox]');
+      if(diaCbs.length){
+        diaCbs.forEach(cb=>{ cb.checked = cb.value <= fimIso; });
+        // sincroniza os checkboxes de mês e o "todos"
+        document.querySelectorAll('#ms-pv-dias .pv-mes-cb').forEach(mcb=>{ mcb.indeterminate=false; });
+        msChange('ms-pv-dias');
+      }
     }catch(e){ console.warn('irParaPedidosPorFamilia',e); }
   }, 60);
 }
@@ -7057,7 +7065,7 @@ function _pvStatusBadge(statusOf, faturar) {
   if (sof.includes('◑ SEP. PARCIAL'))
     return badge('rgba(6,182,212,0.18)','#06b6d4','◑ SEP. PARCIAL');
   if (sof.includes('▣ SEPARADO'))
-    return badge('rgba(31,170,89,0.18)','#1faa59','✓ SEPARADO');
+    return badge('rgba(61,139,255,0.18)','#3d8bff','✓ SEPARADO');
   return badge('rgba(255,59,59,0.18)','var(--red)','✗ ABRIR OF');
 }
 
@@ -11955,7 +11963,7 @@ function _raCorStatus(status){
   if(s.includes('ABRIR')) return '#ff6b6b';
   if(s.includes('FALTA')) return '#f59e0b';
   if(s.includes('PARCIAL')) return '#22d3ee';
-  if(s.includes('SEPARADO')) return '#3ee89a';
+  if(s.includes('SEPARADO')) return '#3d8bff';
   if(s.includes('MISTO')) return '#c084fc';
   return '#ffaa00';
 }
