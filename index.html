@@ -12702,8 +12702,8 @@ function _boletimCardsMesFechado(ano, mes){
     +'<div class="dh-selo '+(ifeOk?'up':'down')+'">'+(ifeOk?'▲ na meta':'▼ abaixo')+'</div></div>'
     +'<div class="dh-big">'+ifeNum.toFixed(2).replace('.',',')+'%</div>'
     +'<div class="dh-meta">consolidado · Matriz <b style="color:'+_cIfeMat+'">'+ifeMat.toFixed(2).replace('.',',')+'%</b> · Filial SP <b style="color:'+_cIfeFil+'">'+ifeFil.toFixed(2).replace('.',',')+'%</b></div></div>';
-  // Card 3: Montagem — média/dia (mesma posição dos Atrasos no mês atual)
-  h+=montMediaHtml;
+  // Card 3: Montado × Vendido (mesma posição dos Atrasos no mês atual)
+  h+=montHtml;
   // Card 4: Terceiros (Budget + Competitividade vs realizado)
   const _tercDif = tercMeta>0 ? tercReal - tercMeta : 0;
   const _compDif = tercComp>0 ? tercReal - tercComp : 0;
@@ -12733,8 +12733,8 @@ function _boletimCardsMesFechado(ano, mes){
     +'<span style="font-size:11px;color:var(--text-muted)">/dia</span>'
     +'<span style="font-size:11px;color:var(--text-muted);flex:1;text-align:right">total '+Math.round(pmTot).toLocaleString('pt-BR')+' · meta '+_f1(pmMetaDia)+'/du</span></div>'
     +'<div class="dprog '+(pmOk?'meta-ok':'meta-baixo')+'" style="margin-top:6px"><i style="width:'+_pctB(pmMed,pmMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div></div>';
-  // Card 6: Montado x Vendido
-  h+=montHtml;
+  // Card 6: Montagem — média/dia
+  h+=montMediaHtml;
 
   // ── Detalhamento do fechamento: IFE (mesmo modelo do mês atual) + totais TT/PM ──
   try {
