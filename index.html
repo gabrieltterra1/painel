@@ -1714,6 +1714,18 @@ document.addEventListener('DOMContentLoaded', () => {
         <div style="position:relative;height:220px;min-width:400px"><canvas id="tt-saldo-acum-chart"></canvas></div>
       </div>
     </div>
+    <div class="chart-card">
+      <div class="chart-title">PM — SALDO POR MÊS (realizado − meta total)</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <div style="position:relative;height:220px;min-width:400px"><canvas id="pm-saldo-chart"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">PM — SALDO ACUMULADO NO ANO</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <div style="position:relative;height:220px;min-width:400px"><canvas id="pm-saldo-acum-chart"></canvas></div>
+      </div>
+    </div>
   </div>
 
   <!-- Gráficos META x REALIZADO total mensal -->
@@ -4145,6 +4157,15 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
   });
   const ttSaldoAcum = ttSaldo.reduce((acc,v,i) => { acc.push(v!==null?(acc[i-1]||0)+v:null); return acc; }, []);
 
+  // PM: saldo por mês e acumulado (mesma lógica do TT)
+  const pmMetaParcialAtual = metas.PM[mesAtual] * diasUteisMes(ano, mesAtual);
+  const pmSaldo     = pmReal.map((v,i) => {
+    if (i < mesAtual) return v - pmMetaMes[i];
+    if (i === mesAtual) return v - pmMetaParcialAtual;
+    return null;
+  });
+  const pmSaldoAcum = pmSaldo.reduce((acc,v,i) => { acc.push(v!==null?(acc[i-1]||0)+v:null); return acc; }, []);
+
   // Acumulado: apenas até mês anterior
   const labelsAcum = MESES_LABEL.slice(0, mesAtual);
   const ttRealAcum = ttReal.slice(0, mesAtual);
@@ -4317,6 +4338,38 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
     }, plugins:[ChartDataLabels]
   });
 
+  // ── 5b. PM Saldo por mês ────────────────────────────────────────────────
+  if(document.getElementById('pm-saldo-chart')){
+  _destroy('pm-saldo-chart');
+  new Chart(document.getElementById('pm-saldo-chart'), {
+    type:'bar',
+    data:{ labels, datasets:[{
+      label:'Saldo PM',
+      data: pmSaldo.map(v => v),
+      backgroundColor: pmSaldo.map((v,i) => {
+        if (v===null) return 'transparent';
+        const alpha = i===mesAtual ? 'cc' : '77';
+        return (v>=0 ? '#00c97a' : '#ff3b3b') + alpha;
+      }),
+      borderColor: pmSaldo.map(v => v===null?'transparent':(v>=0?'#00c97a':'#ff3b3b')),
+      borderWidth:1, borderRadius:4,
+      datalabels:{ color:cssVar('--text'), anchor:'end',
+        align: pmSaldo.map(v => v===null ? 'top' : v>=0 ? 'top' : 'bottom'),
+        font:{size:10,weight:'700'},
+        formatter: v => (v===null||v===undefined) ? '' : v!==0 ? (v>0?'+':'')+v.toLocaleString('pt-BR') : '' }
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, datalabels:{display:true} },
+      scales:{
+        x:{ticks:{color:cssVar('--text-muted')},grid:{display:false}},
+        y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')},
+          afterDataLimits(s){const e=Math.max(Math.abs(s.min),Math.abs(s.max))*.2;s.min-=e;s.max+=e;}}
+      }, layout:{padding:{top:24,bottom:24}}
+    }, plugins:[ChartDataLabels]
+  });
+  }
+
   // ── 6. TT Saldo acumulado no ano ────────────────────────────────────────
   _destroy('tt-saldo-acum-chart');
   new Chart(document.getElementById('tt-saldo-acum-chart'), {
@@ -4344,7 +4397,34 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
     }, plugins:[ChartDataLabels]
   });
 
-  // ── 7. TT Meta mensal x Realizado ──────────────────────────────────────
+  // ── 6b. PM Saldo acumulado no ano ───────────────────────────────────────
+  if(document.getElementById('pm-saldo-acum-chart')){
+  _destroy('pm-saldo-acum-chart');
+  new Chart(document.getElementById('pm-saldo-acum-chart'), {
+    type:'line',
+    data:{ labels, datasets:[
+      { label:'Acumulado PM',
+        data: pmSaldoAcum,
+        borderColor:cssVar('--serie-roxo'), backgroundColor:'rgba(168,85,247,.1)', fill:true,
+        tension:.3, pointRadius:5,
+        pointBackgroundColor: pmSaldoAcum.map((v,i) => i===mesAtual ? '#fff' : (v>=0?'#00c97a':'#ff3b3b')),
+        pointBorderColor: pmSaldoAcum.map((v,i) => i===mesAtual ? '#a855f7' : 'transparent'),
+        pointBorderWidth: 2,
+        datalabels:{ color:cssVar('--text'), anchor:'end', align:'top', font:{size:10,weight:'700'},
+          formatter: v => (v===null||v===undefined) ? '' : v!==0 ? (v>0?'+':'')+v.toLocaleString('pt-BR') : '' }
+      },
+      { label:'Zero', data:Array(12).fill(0),
+        borderColor:'rgba(255,255,255,.25)', borderDash:[4,4],
+        pointRadius:0, datalabels:{display:false}, fill:false }
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, datalabels:{display:true} },
+      scales:{ x:{ticks:{color:cssVar('--text-muted')},grid:{display:false}}, y:{ticks:{color:cssVar('--text-muted')},grid:{color:cssVar('--grid')}} },
+      layout:{padding:{top:24}}
+    }, plugins:[ChartDataLabels]
+  });
+  }
   _destroy('tt-meta-chart');
   new Chart(document.getElementById('tt-meta-chart'), {
     type:'bar',
@@ -12474,8 +12554,8 @@ function _boletimCardsMesFechado(ano, mes){
   let ifeNum=0, ifeMat=0, ifeFil=0;
   try{
     ifeNum = _ifeCalc(DATA.ife.filter(_ifeFiltrar('CONSOLIDADO')).filter(r=>r.mesKey===mesKey)).ife||0;
-    ifeMat = _ifeCalc(DATA.ife.filter(_ifeFiltrar('MATRIZ')).filter(r=>r.mesKey===mesKey)).ife||0;
-    ifeFil = _ifeCalc(DATA.ife.filter(_ifeFiltrar('FILIAL SP')).filter(r=>r.mesKey===mesKey)).ife||0;
+    ifeMat = _ifeCalc(DATA.ife.filter(_ifeFiltrar('1')).filter(r=>r.mesKey===mesKey)).ife||0;
+    ifeFil = _ifeCalc(DATA.ife.filter(_ifeFiltrar('2')).filter(r=>r.mesKey===mesKey)).ife||0;
   }catch(e){}
   const ifeOk=ifeNum>=95;
 
@@ -12539,69 +12619,86 @@ function _boletimCardsMesFechado(ano, mes){
   // Card 1: Dias úteis (fechamento)
   h+='<div class="dh du"><div class="dh-top"><div class="dh-cap"><span class="dh-ic">📅</span>Fechamento do mês</div>'
     +'<div class="dh-selo" style="background:rgba(168,85,247,.2);color:#c084fc">📊 Fechado</div></div>'
-    +'<div class="dh-big" style="font-size:26px;line-height:1.1">'+MES[mes]+'<small style="display:block;font-size:14px;color:var(--text-muted);margin-top:2px">'+ano+'</small></div>'
-    +'<div class="dh-meta">🗓 '+du+' dias úteis no mês</div></div>';
+    +'<div class="dh-big" style="font-size:30px;line-height:1.05">'+MES[mes]+'<span style="color:#c084fc">/'+ano+'</span></div>'
+    +'<div class="dh-meta">'+du+' dias úteis no mês</div></div>';
   // Card 2: IFE
   h+='<div class="dh ife '+(ifeOk?'meta-ok':'meta-baixo')+'"><div class="dh-top"><div class="dh-cap"><span class="dh-ic">📈</span>IFE — '+MES[mes]+'</div>'
     +'<div class="dh-selo '+(ifeOk?'up':'down')+'">'+(ifeOk?'▲ na meta':'▼ abaixo')+'</div></div>'
     +'<div class="dh-big">'+ifeNum.toFixed(2).replace('.',',')+'%</div>'
     +'<div class="dh-meta">consolidado · Matriz '+ifeMat.toFixed(2).replace('.',',')+'% · Filial SP '+ifeFil.toFixed(2).replace('.',',')+'%</div></div>';
   // Card 3: Terceiros
+  const _tercDif = tercMeta>0 ? tercReal - tercMeta : 0;
+  const _tercDifTxt = tercMeta>0 ? ((_tercDif<=0?'▼ ':'▲ ')+'R$ '+Math.round(Math.abs(_tercDif)).toLocaleString('pt-BR')+(_tercDif<=0?' abaixo':' acima')+' da meta') : '';
   h+='<div class="dh terc"><div class="dh-top"><div class="dh-cap"><span class="dh-ic">🔧</span>Terceiros</div>'
     +'<div class="dh-selo" style="background:rgba(61,139,255,.15);color:#3d8bff">'+tercPct+'% meta</div></div>'
     +'<div class="dh-big">'+_money(tercReal)+'</div>'
-    +'<div class="dh-meta">meta '+_money(tercMeta)+(tercMeta>0?' · '+(tercReal<=tercMeta?'dentro':'acima')+' do budget':'')+'</div></div>';
+    +'<div class="dh-meta">meta '+_money(tercMeta)+(_tercDifTxt?' · <span style="color:'+(_tercDif<=0?'var(--green)':'#ff6b6b')+';font-weight:700">'+_tercDifTxt+'</span>':'')+'</div></div>';
   // Card 4: TT/PM
   h+='<div class="dh"><div class="dh-top"><div class="dh-cap"><span class="dh-ic">🌡️</span>Térmico & Polimento — '+MES[mes]+'</div></div>'
     +'<div style="display:flex;align-items:baseline;gap:8px;margin-top:6px">'
     +'<span style="font-size:12px;color:var(--text-muted);width:30px">TT</span>'
     +'<span style="font-size:26px;font-weight:900;color:'+(ttOk?'var(--green)':'#ff6b6b')+';font-family:var(--font-display);line-height:1">'+_f1(ttMed)+'</span>'
-    +'<span style="font-size:12px;color:var(--text-muted);flex:1">total '+Math.round(ttTot).toLocaleString('pt-BR')+' · meta '+_f1(ttMetaDia)+'/du</span></div>'
+    +'<span style="font-size:11px;color:var(--text-muted)">/dia</span>'
+    +'<span style="font-size:11px;color:var(--text-muted);flex:1;text-align:right">total '+Math.round(ttTot).toLocaleString('pt-BR')+' · meta '+_f1(ttMetaDia)+'/du</span></div>'
     +'<div class="dprog '+(ttOk?'meta-ok':'meta-baixo')+'" style="margin-top:6px"><i style="width:'+_pctB(ttMed,ttMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div>'
     +'<div style="height:1px;background:var(--border);margin:12px 0"></div>'
     +'<div style="display:flex;align-items:baseline;gap:8px">'
     +'<span style="font-size:12px;color:var(--text-muted);width:30px">PM</span>'
     +'<span style="font-size:26px;font-weight:900;color:'+(pmOk?'var(--green)':'#ff6b6b')+';font-family:var(--font-display);line-height:1">'+_f1(pmMed)+'</span>'
-    +'<span style="font-size:12px;color:var(--text-muted);flex:1">total '+Math.round(pmTot).toLocaleString('pt-BR')+' · meta '+_f1(pmMetaDia)+'/du</span></div>'
+    +'<span style="font-size:11px;color:var(--text-muted)">/dia</span>'
+    +'<span style="font-size:11px;color:var(--text-muted);flex:1;text-align:right">total '+Math.round(pmTot).toLocaleString('pt-BR')+' · meta '+_f1(pmMetaDia)+'/du</span></div>'
     +'<div class="dprog '+(pmOk?'meta-ok':'meta-baixo')+'" style="margin-top:6px"><i style="width:'+_pctB(pmMed,pmMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div></div>';
   // Card 5: Montado x Vendido
   h+=montHtml;
 
-  // ── Detalhamento do fechamento: IFE por empresa/família + totais TT/PM ──
+  // ── Detalhamento do fechamento: IFE (mesmo modelo do mês atual) + totais TT/PM ──
   try {
-    const FAM=[{k:'Walvoil',l:'WALVOIL',px:['6']},{k:'Guinchos',l:'GUINCHOS',px:['8']},{k:'Forca',l:'FORÇA',px:['3']},{k:'Hydrocar',l:'HYDROCAR',px:['4','5']},{k:'Pecas',l:'PEÇAS',px:['1','2']}];
-    const famDe=clas=>{const c=String(clas||'').trim();for(const f of FAM)if(f.px.some(p=>c.startsWith(p)))return f.k;return null;};
-    const _linhasMes=(filtro)=>DATA.ife.filter(_ifeFiltrar(filtro)).filter(r=>r.mesKey===mesKey);
-    const _ifePct=v=>v.total>0?((v.total-v.atrasado)/v.total*100):0;
-    const _cellIFE=(linhas)=>{
-      const c=_ifeCalc(linhas);
-      if(!c.total) return '<td style="padding:7px 10px;text-align:center;color:var(--muted-dim)">—</td>';
-      const pct=c.ife||0; const ok=pct>=95;
-      return '<td style="padding:7px 10px;text-align:center;color:'+(ok?'var(--green)':'#ff6b6b')+';font-weight:700">'+pct.toFixed(2).replace('.',',')+'%<div style="font-size:9px;color:var(--text-muted);font-weight:400">'+c.total+' ent</div></td>';
-    };
-    const th='padding:8px 10px;text-align:center;font-size:11px;font-weight:800;color:#fff;white-space:nowrap';
-    let ife='<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-bottom:8px"><table style="border-collapse:collapse;width:100%;min-width:640px">'
-      +'<thead><tr style="background:var(--header-table-bg)"><th style="'+th+';text-align:left">EMPRESA / FAMÍLIA</th>'
-      +FAM.map(f=>'<th style="'+th+'">'+f.l+'</th>').join('')+'<th style="'+th+'">TOTAL</th></tr></thead><tbody>';
-    // Consolidado, Matriz, Filial
-    const grupos=[['CONSOLIDADO','CONSOLIDADO'],['1','MATRIZ'],['2','FILIAL SP']];
-    grupos.forEach(([filt,lbl],gi)=>{
-      const base=_linhasMes(filt);
-      ife+='<tr style="background:'+(gi%2?'var(--row-alt)':'transparent')+'"><td style="padding:7px 10px;text-align:left;font-weight:700">'+lbl+'</td>';
-      FAM.forEach(f=>{ ife+=_cellIFE(base.filter(r=>famDe(r.clas)===f.k)); });
-      ife+=_cellIFE(base)+'</tr>';
-    });
-    ife+='</tbody></table></div>';
+    const FAM_D=[{k:'Walvoil',l:'WALVOIL',c:'#10b981',px:['6']},{k:'Guinchos',l:'GUINCHOS',c:'#f59e0b',px:['8']},{k:'Forca',l:'FORÇA',c:'#3d8bff',px:['3']},{k:'Hydrocar',l:'HYDROCAR/HYDROVEN',c:'#a855f7',px:['4','5']},{k:'Pecas',l:'PEÇAS',c:'#06b6d4',px:['1','2']}];
+    const famDe=clas=>{const c=String(clas||'').trim();for(const f of FAM_D)if(f.px.some(p=>c.startsWith(p)))return f.k;return null;};
+    const _col=v=>v===null?'var(--text-muted)':(v>=95?'var(--green)':(v>=90?'#f59e0b':'#ff6b6b'));
+    const _mesLg=MES[mes].toUpperCase()+'/'+ano;
+    // bloco resumo Consolidado / Matriz / Filial
+    const _ifePorFiltro=f=>{ const c=_ifeCalc(DATA.ife.filter(_ifeFiltrar(f)).filter(r=>r.mesKey===mesKey)); return c.total>0?(c.ife||0):null; };
+    const ifeCons=_ifePorFiltro('CONSOLIDADO'), ifeMz=_ifePorFiltro('1'), ifeFl=_ifePorFiltro('2');
+    const resumoList=[{label:'CONSOLIDADO',val:ifeCons,big:true},{label:'MATRIZ',val:ifeMz,big:false},{label:'FILIAL SP',val:ifeFl,big:false}];
+    let resumo='<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:10px">'
+      +'<div style="background:var(--border);padding:10px 20px;font-size:11px;letter-spacing:1px;color:var(--text-muted)">IFE '+_mesLg+' — RESUMO</div>'
+      +'<div style="display:flex;flex-wrap:wrap">'
+      +resumoList.map((c,i)=>{
+        const cor=_col(c.val); const sz=c.big?'36px':'28px';
+        const meta=c.val!==null?(c.val>=95?'✓ acima da meta':'✗ abaixo da meta (95%)'):'—';
+        const metaCor=c.val!==null?(c.val>=95?'var(--green)':'var(--red)'):'var(--text-muted)';
+        const border=i<resumoList.length-1?'border-right:1px solid var(--border);':'';
+        return '<div style="text-align:center;padding:20px 32px;'+border+'flex:1">'
+          +'<div style="font-size:10px;color:var(--text-muted);letter-spacing:1px;margin-bottom:6px">'+c.label+'</div>'
+          +'<div style="font-size:'+sz+';font-weight:900;color:'+cor+';line-height:1">'+(c.val!==null?c.val.toFixed(2)+'%':'—')+'</div>'
+          +'<div style="font-size:11px;font-weight:700;margin-top:6px;color:'+metaCor+'">'+meta+'</div></div>';
+      }).join('')
+      +'</div></div>';
+    // cards de família da Matriz
+    const baseMatriz=DATA.ife.filter(_ifeFiltrar('1')).filter(r=>r.mesKey===mesKey);
+    const famCards=FAM_D.map(f=>{
+      const linhas=baseMatriz.filter(r=>famDe(r.clas)===f.k);
+      const cc=_ifeCalc(linhas); const val=cc.total>0?(cc.ife||0):null; const cor=_col(val);
+      return '<div style="background:'+f.c+'18;border:2px solid '+f.c+';border-radius:8px;padding:10px 14px;min-width:100px;flex:1;text-align:center">'
+        +'<div style="font-size:9px;font-weight:900;color:'+f.c+';margin-bottom:4px;letter-spacing:0.4px">'+f.l+'</div>'
+        +'<div style="font-size:20px;font-weight:900;color:'+cor+'">'+(val!==null?val.toFixed(1)+'%':'—')+'</div>'
+        +'<div style="font-size:9px;color:var(--text-muted)">'+cc.total+' entregas</div>'
+        +'<div style="font-size:9px;font-weight:700;color:'+(val!==null?(val>=95?'var(--green)':'var(--red)'):'var(--text-muted)')+'">'+(val!==null?(val>=95?'✓':'✗ -'+(95-val).toFixed(1)+'%'):'—')+'</div></div>';
+    }).join('');
+    const ife=resumo
+      +'<div style="margin-bottom:6px;font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:1px">IFE MATRIZ — POR FAMÍLIA</div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'+famCards+'</div>';
     // Totais TT/PM do mês
-    const _f1=v=>(Math.round(v*10)/10).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+    const _f1b=v=>(Math.round(v*10)/10).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
     const ttpm='<div style="display:flex;gap:12px;flex-wrap:wrap">'
       +'<div style="flex:1;min-width:200px;background:var(--surface);border:1px solid #f59e0b44;border-radius:10px;padding:12px 16px">'
       +'<div style="font-size:11px;font-weight:700;color:#f59e0b;margin-bottom:6px">TRATAMENTO TÉRMICO — '+MES[mes]+'</div>'
-      +'<div style="font-size:13px;color:var(--text)">Total: <b>'+Math.round(ttTot).toLocaleString('pt-BR')+'</b> peças · Média: <b>'+_f1(ttMed)+'</b>/du · Meta: '+_f1(ttMetaDia)+'/du</div></div>'
+      +'<div style="font-size:13px;color:var(--text)">Total: <b>'+Math.round(ttTot).toLocaleString('pt-BR')+'</b> peças · Média: <b>'+_f1b(ttMed)+'</b>/du · Meta: '+_f1b(ttMetaDia)+'/du</div></div>'
       +'<div style="flex:1;min-width:200px;background:var(--surface);border:1px solid #a855f744;border-radius:10px;padding:12px 16px">'
       +'<div style="font-size:11px;font-weight:700;color:#a855f7;margin-bottom:6px">POLIMENTO — '+MES[mes]+'</div>'
-      +'<div style="font-size:13px;color:var(--text)">Total: <b>'+Math.round(pmTot).toLocaleString('pt-BR')+'</b> pares · Média: <b>'+_f1(pmMed)+'</b>/du · Meta: '+_f1(pmMetaDia)+'/du</div></div></div>';
-    window._boletimDetalheFechado = { ife, ttpm };
+      +'<div style="font-size:13px;color:var(--text)">Total: <b>'+Math.round(pmTot).toLocaleString('pt-BR')+'</b> pares · Média: <b>'+_f1b(pmMed)+'</b>/du · Meta: '+_f1b(pmMetaDia)+'/du</div></div></div>';
+    window._boletimDetalheFechado = { ife, ttpm, ano, mes };
   } catch(e){ console.warn('detalhe fechado', e); window._boletimDetalheFechado=null; }
 
   return h;
@@ -12756,6 +12853,23 @@ function gerarBoletimPCP(){
       const bIfe=document.createElement('div'); bIfe.innerHTML=D.ife; wrap.appendChild(bIfe);
       wrap.appendChild(mkTit('Térmico & Polimento — totais do mês'));
       const bTt=document.createElement('div'); bTt.innerHTML=D.ttpm; wrap.appendChild(bTt);
+      // gráficos de saldo acumulado no ano (clonados da aba TT/PM como imagem)
+      try{
+        if(typeof renderTermico==='function') renderTermico();
+        const gWrap=document.createElement('div');
+        gWrap.style.cssText='display:flex;gap:14px;flex-wrap:wrap;margin-top:14px';
+        [['tt-saldo-acum-chart','TT — SALDO ACUMULADO NO ANO','#f59e0b'],['pm-saldo-acum-chart','PM — SALDO ACUMULADO NO ANO','#a855f7']].forEach(([id,tit,cor])=>{
+          const cv=document.getElementById(id);
+          if(cv){
+            const box=document.createElement('div');
+            box.style.cssText='flex:1;min-width:300px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px';
+            box.innerHTML='<div style="font-size:11px;font-weight:700;color:'+cor+';margin-bottom:8px">'+tit+'</div>';
+            try{ const img=new Image(); img.src=cv.toDataURL('image/png'); img.style.cssText='width:100%;height:auto'; box.appendChild(img); }catch(er){}
+            gWrap.appendChild(box);
+          }
+        });
+        if(gWrap.children.length) wrap.appendChild(gWrap);
+      }catch(er){ console.warn('graf saldo boletim',er); }
     }
     overlay.appendChild(wrap);
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
