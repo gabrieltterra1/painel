@@ -11413,7 +11413,7 @@ function renderDashboard(){
 
   let heroHtml='<div class="dash-hero" id="dash-hero-cards">';
   // Card de DIAS ÚTEIS do mês (clicável → gera boletim do dia)
-  heroHtml += '<div class="dh du" style="cursor:pointer" onclick="gerarBoletimPCP()" title="Clique para gerar o boletim do dia (PNG)">'
+  heroHtml += '<div class="dh du" style="cursor:pointer" onclick="abrirSeletorMesBoletim()" title="Clique para gerar o boletim (mês atual ou fechamento anterior)">'
     + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">📅</span>Dias úteis do mês</div><div class="dh-selo" style="background:rgba(168,85,247,.2);color:#c084fc">📊 Indicadores PCP</div></div>'
     + '<div class="dh-big">'+duPassados+'<small> / '+duTotal+'</small></div>'
     + '<div class="dh-meta">📆 '+new Date().toLocaleDateString('pt-BR')+' · '+duPassados+' passados · '+duRestantes+' restantes (com hoje)</div>'
@@ -11506,6 +11506,54 @@ function renderDashboard(){
       + '<span style="font-size:12px;color:'+(pmOk?'var(--green)':'#ff6b6b')+';font-weight:700">'+(pmOk?'▲':'▼')+'</span></div>'
     + '<div class="dprog '+(pmOk?'meta-ok':'meta-baixo')+'" style="margin-top:6px"><i style="width:'+pctBar(pmMed,pmMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div>'
     + '</div>';
+  // ── Card MONTAGEM — média/dia (6º card do hero, mesmo estilo TT/PM) ──
+  try {
+    const _norm=s=>String(s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const _isMediaLb=s=>{const n=_norm(s);return /M.DIA/.test(n)&&!n.includes('TOTAL');};
+    const _num=v=>{const n=parseFloat(String(v||'').replace('.','').replace(',','.'));return isNaN(n)?0:n;};
+    const _hoje=new Date(); _hoje.setHours(0,0,0,0);
+    const _mes=_hoje.getMonth(), _ano=_hoje.getFullYear();
+    const _fer=getFeriados().map(f=>f.data);
+    const _rowsAno=(DATA.montados||[]).filter(r=>r.DATA&&!_norm(r.DATA).includes('TOTAL')&&!_isMediaLb(r.DATA)&&!_norm(r.DATA).includes('DIAS')&&!_norm(r.DATA).includes('UTEIS'));
+    const _rows=_rowsAno.filter(r=>{const d=parseDate(r.DATA||'');return d&&d.getMonth()===_mes&&d.getFullYear()===_ano;});
+    const _cols=['TOMADA_MULT','BOMBA','CILINDRO','GUINCHO','CONJ_EIXO','COMANDO','VALVULA','KIT_HIDR'];
+    const _somaLinha=r=>_cols.reduce((s,c)=>s+_num(r[c]),0);
+    const _diasComData=_rows.map(r=>({d:parseDate(r.DATA||''),r})).filter(x=>x.d).sort((a,b)=>b.d-a.d);
+    const _ultDiaObj=_diasComData.find(x=>x.d.getTime()!==_hoje.getTime());
+    const _montDiaAnt=_ultDiaObj?_somaLinha(_ultDiaObj.r):0;
+    const _duMont=_rows.filter(r=>{const d=parseDate(r.DATA||'');if(!d||d.getTime()===_hoje.getTime())return false;if(d.getDay()===0||d.getDay()===6)return false;const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');return !_fer.includes(iso);}).length;
+    const _totMes=_rows.reduce((s,r)=>{const d=parseDate(r.DATA||'');if(d&&d.getTime()===_hoje.getTime())return s;return s+_somaLinha(r);},0);
+    const _mediaMont=_duMont>0?_totMes/_duMont:0;
+    const _metaMont=_cols.reduce((s,c)=>s+((typeof getMontadosMeta==='function')?(getMontadosMeta(c,_mes)||0):0),0);
+    const _montOk=_metaMont>0?_mediaMont>=_metaMont:true;
+    const _f1=v=>(Math.round(v*10)/10).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+    const _pctB=(a,b)=>b>0?Math.min(100,Math.round(a/b*100)):0;
+    const _famMeta=[['TOMADA_MULT','Tomada'],['BOMBA','Bomba'],['CILINDRO','Cilindro'],['GUINCHO','Guincho']];
+    let _famRows='';
+    _famMeta.forEach(([c,lb])=>{
+      const semHoje=_rows.reduce((s,r)=>{const d=parseDate(r.DATA||'');if(d&&d.getTime()===_hoje.getTime())return s;return s+_num(r[c]);},0);
+      const md=_duMont>0?semHoje/_duMont:0;
+      const mt=(typeof getMontadosMeta==='function')?(getMontadosMeta(c,_mes)||0):0;
+      const ok=mt>0?md>=mt:true;
+      _famRows+='<div style="display:flex;align-items:baseline;gap:6px;font-size:11px;margin-top:3px">'
+        +'<span style="color:var(--text-muted);width:52px">'+lb+'</span>'
+        +'<span style="font-weight:800;color:'+(ok?'var(--green)':'#ff6b6b')+'">'+_f1(md)+'</span>'
+        +'<span style="color:var(--text-muted)">/'+_f1(mt)+'</span>'
+        +'<span style="color:'+(ok?'var(--green)':'#ff6b6b')+';margin-left:auto">'+(mt>0?(ok?'▲':'▼'):'')+'</span></div>';
+    });
+    heroHtml += '<div class="dh" style="cursor:pointer" onclick="showTab(\'montados\')">'
+      + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">🔧</span>Montagem — média/dia</div></div>'
+      + '<div style="display:flex;align-items:baseline;gap:8px;margin-top:6px">'
+        + '<span style="font-size:12px;color:var(--text-muted);width:40px">Total</span>'
+        + '<span style="font-size:28px;font-weight:900;color:'+(_montOk?'var(--green)':'#ff6b6b')+';font-family:var(--font-display);line-height:1">'+_f1(_mediaMont)+'</span>'
+        + '<span style="font-size:12px;color:var(--text-muted);flex:1">ontem '+_f1(_montDiaAnt)+' · meta '+_f1(_metaMont)+'</span>'
+        + '<span style="font-size:12px;color:'+(_montOk?'var(--green)':'#ff6b6b')+';font-weight:700">'+(_montOk?'▲':'▼')+'</span></div>'
+      + '<div class="dprog '+(_montOk?'meta-ok':'meta-baixo')+'" style="margin-top:6px"><i style="width:'+_pctB(_mediaMont,_metaMont)+'%"></i><span class="mark" style="left:100%"></span></div>'
+      + '<div style="height:1px;background:var(--border);margin:10px 0"></div>'
+      + _famRows
+      + '</div>';
+  } catch(e){ console.warn('card montagem hero', e); }
+
   heroHtml += '</div>';
 
   // ── MONTAGEM (só famílias com meta, 1 casa decimal) ──
@@ -12356,6 +12404,153 @@ function _boletimCopiarTexto(){
   });
 }
 
+// ===== BOLETIM: seleção de mês (atual ou fechado) =====
+window._boletimMesSel = null; // {ano, mes} ou null = mês atual
+
+// Popup ao clicar no card de data
+function abrirSeletorMesBoletim(){
+  const ex=document.getElementById('modal-boletim-mes'); if(ex) ex.remove();
+  const hoje=new Date();
+  // meses disponíveis: a partir de jan/2025 até o mês atual
+  const opts=[];
+  for(let a=hoje.getFullYear(); a>=2025; a--){
+    const mIni = (a===hoje.getFullYear()) ? hoje.getMonth() : 11;
+    for(let m=mIni; m>=0; m--){ opts.push({a,m}); }
+  }
+  const MES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const modal=document.createElement('div');
+  modal.id='modal-boletim-mes';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100001;display:flex;align-items:center;justify-content:center';
+  let lista=opts.map(o=>{
+    const atual=(o.a===hoje.getFullYear()&&o.m===hoje.getMonth());
+    return '<button onclick="_selecionarMesBoletim('+o.a+','+o.m+')" style="display:block;width:100%;text-align:left;padding:9px 14px;background:'+(atual?'rgba(168,85,247,.15)':'transparent')+';border:none;border-bottom:1px solid var(--border);color:var(--text);font-size:13px;cursor:pointer">'
+      +MES[o.m]+' de '+o.a+(atual?' <span style="color:#c084fc;font-size:11px">(mês atual)</span>':' <span style="color:var(--text-muted);font-size:11px">(fechamento)</span>')+'</button>';
+  }).join('');
+  modal.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0;width:340px;max-height:70vh;display:flex;flex-direction:column;overflow:hidden">'
+    +'<div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'
+    +'<span style="font-weight:800;color:var(--serie-azul);font-size:14px">📊 Gerar Indicadores PCP</span>'
+    +'<span onclick="document.getElementById(\'modal-boletim-mes\').remove()" style="cursor:pointer;color:var(--text-muted);font-size:18px">✕</span></div>'
+    +'<div style="padding:10px 16px;font-size:12px;color:var(--text-muted)">Escolha o mês. O mês atual usa os dados em andamento; meses anteriores mostram o fechamento completo.</div>'
+    +'<div style="overflow-y:auto;flex:1">'+lista+'</div></div>';
+  modal.onclick=(e)=>{ if(e.target===modal) modal.remove(); };
+  document.body.appendChild(modal);
+}
+function _selecionarMesBoletim(ano,mes){
+  const hoje=new Date();
+  window._boletimMesSel = (ano===hoje.getFullYear()&&mes===hoje.getMonth()) ? null : {ano,mes};
+  const m=document.getElementById('modal-boletim-mes'); if(m) m.remove();
+  gerarBoletimPCP();
+}
+
+// Recalcula os 4 indicadores para um mês fechado e devolve HTML dos cards do hero
+function _boletimCardsMesFechado(ano, mes){
+  const MES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mm=String(mes+1).padStart(2,'0');
+  const mesKey=ano+'-'+mm;
+  const _f1=v=>(Math.round(v*10)/10).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+  const _money=n=>'R$ '+Math.round(n||0).toLocaleString('pt-BR');
+  const _pctB=(a,b)=>b>0?Math.min(100,Math.round(a/b*100)):0;
+  const du = (typeof diasUteisMes==='function') ? diasUteisMes(ano,mes,true) : 0;
+
+  // ---- IFE consolidado do mês ----
+  let ifeNum=0, ifeMat=0, ifeFil=0;
+  try{
+    ifeNum = _ifeCalc(DATA.ife.filter(_ifeFiltrar('CONSOLIDADO')).filter(r=>r.mesKey===mesKey)).ife||0;
+    ifeMat = _ifeCalc(DATA.ife.filter(_ifeFiltrar('MATRIZ')).filter(r=>r.mesKey===mesKey)).ife||0;
+    ifeFil = _ifeCalc(DATA.ife.filter(_ifeFiltrar('FILIAL SP')).filter(r=>r.mesKey===mesKey)).ife||0;
+  }catch(e){}
+  const ifeOk=ifeNum>=95;
+
+  // ---- Terceiros realizado do mês ----
+  let tercReal=0, tercMeta=0;
+  try{
+    (DATA.servico||[]).forEach(r=>{ if(r.mes===mesKey) tercReal += (Number(r.valor)||0); });
+    const tm=DATA.tercMeta||{}; tercMeta = (tm[mesKey]!==undefined&&tm[mesKey]!=='')?parseFloat(tm[mesKey]):0;
+  }catch(e){}
+  const tercPct = tercMeta>0 ? Math.round(tercReal/tercMeta*100) : 0;
+
+  // ---- TT / PM do mês (média/dia útil) ----
+  let ttTot=0, pmTot=0, ttMetaDia=0, pmMetaDia=0;
+  try{
+    (DATA.termico?.termico||[]).forEach(r=>{ const [a,m]=(r.mes||'').split('-').map(Number); if(a===ano&&m-1===mes) ttTot+=r.qtde; });
+    (DATA.termico?.polimento||[]).forEach(r=>{ const [a,m]=(r.mes||'').split('-').map(Number); if(a===ano&&m-1===mes) pmTot+=r.qtde/2; });
+    const metas=(typeof getMetas==='function')?getMetas():{TT:[],PM:[]};
+    ttMetaDia=metas.TT[mes]||0; pmMetaDia=metas.PM[mes]||0;
+  }catch(e){}
+  const ttMed=du>0?ttTot/du:0, pmMed=du>0?pmTot/du:0;
+  const ttOk=ttMetaDia>0?ttMed>=ttMetaDia:true, pmOk=pmMetaDia>0?pmMed>=pmMetaDia:true;
+
+  // ---- Montagem do mês (Montado x Vendido) ----
+  let montHtml='';
+  try{
+    const ag=_montAgrupaAno();
+    if(ag.ano===ano && ag.porMes[mes]){
+      const pm=ag.porMes[mes];
+      const cols=['TOMADA_MULT','BOMBA','CILINDRO','GUINCHO','CONJ_EIXO','COMANDO','VALVULA','KIT_HIDR'];
+      const totMont=cols.reduce((s,c)=>s+(pm.qtd[c]||0),0);
+      const totVend=cols.reduce((s,c)=>s+getMontadosVenda(c,ano,mes),0);
+      const dif=totMont-totVend;
+      const duM=pm.duReg||du;
+      const medMont=duM>0?totMont/duM:0, medVend=duM>0?totVend/duM:0;
+      const famMeta=[['TOMADA_MULT','Tomada'],['BOMBA','Bomba'],['CILINDRO','Cilindro'],['GUINCHO','Guincho']];
+      let fr='';
+      famMeta.forEach(([c,lb])=>{
+        const q=pm.qtd[c]||0, v=getMontadosVenda(c,ano,mes);
+        const d=q-v;
+        fr+='<div style="display:flex;align-items:baseline;gap:6px;font-size:11px;margin-top:3px">'
+          +'<span style="color:var(--text-muted);width:52px">'+lb+'</span>'
+          +'<span style="font-weight:800">'+Math.round(q).toLocaleString('pt-BR')+'</span>'
+          +'<span style="color:var(--text-muted)">mont · '+Math.round(v).toLocaleString('pt-BR')+' vend</span>'
+          +'<span style="margin-left:auto;font-weight:700;color:'+(d>=0?'var(--green)':'#ff6b6b')+'">'+(d>=0?'+':'')+Math.round(d).toLocaleString('pt-BR')+'</span></div>';
+      });
+      montHtml='<div class="dh"><div class="dh-top"><div class="dh-cap"><span class="dh-ic">🔧</span>Montado × Vendido</div></div>'
+        +'<div style="display:flex;align-items:baseline;gap:8px;margin-top:6px">'
+        +'<span style="font-size:12px;color:var(--text-muted);width:52px">Montado</span>'
+        +'<span style="font-size:26px;font-weight:900;color:var(--text);font-family:var(--font-display);line-height:1">'+Math.round(totMont).toLocaleString('pt-BR')+'</span>'
+        +'<span style="font-size:12px;color:var(--text-muted);flex:1">média '+_f1(medMont)+'/du</span></div>'
+        +'<div style="display:flex;align-items:baseline;gap:8px;margin-top:6px">'
+        +'<span style="font-size:12px;color:var(--text-muted);width:52px">Vendido</span>'
+        +'<span style="font-size:20px;font-weight:800;color:var(--text-muted);font-family:var(--font-display);line-height:1">'+Math.round(totVend).toLocaleString('pt-BR')+'</span>'
+        +'<span style="font-size:12px;color:var(--text-muted);flex:1">saldo <b style="color:'+(dif>=0?'var(--green)':'#ff6b6b')+'">'+(dif>=0?'+':'')+Math.round(dif).toLocaleString('pt-BR')+'</b></span></div>'
+        +'<div style="height:1px;background:var(--border);margin:10px 0"></div>'+fr+'</div>';
+    }
+  }catch(e){ console.warn('boletim mont fechado',e); }
+
+  // ---- monta os cards (mesma estética do hero) ----
+  let h='';
+  // Card 1: Dias úteis (fechamento)
+  h+='<div class="dh du"><div class="dh-top"><div class="dh-cap"><span class="dh-ic">📅</span>Dias úteis do mês</div>'
+    +'<div class="dh-selo" style="background:rgba(168,85,247,.2);color:#c084fc">📊 Fechamento</div></div>'
+    +'<div class="dh-big">'+du+'<small> dias úteis</small></div>'
+    +'<div class="dh-meta">📆 Fechamento de '+MES[mes]+' de '+ano+'</div></div>';
+  // Card 2: IFE
+  h+='<div class="dh ife '+(ifeOk?'meta-ok':'meta-baixo')+'"><div class="dh-top"><div class="dh-cap"><span class="dh-ic">📈</span>IFE — '+MES[mes]+'</div>'
+    +'<div class="dh-selo '+(ifeOk?'up':'down')+'">'+(ifeOk?'▲ na meta':'▼ abaixo')+'</div></div>'
+    +'<div class="dh-big">'+ifeNum.toFixed(2).replace('.',',')+'%</div>'
+    +'<div class="dh-meta">consolidado · Matriz '+ifeMat.toFixed(2).replace('.',',')+'% · Filial SP '+ifeFil.toFixed(2).replace('.',',')+'%</div></div>';
+  // Card 3: Terceiros
+  h+='<div class="dh terc"><div class="dh-top"><div class="dh-cap"><span class="dh-ic">🔧</span>Terceiros</div>'
+    +'<div class="dh-selo" style="background:rgba(61,139,255,.15);color:#3d8bff">'+tercPct+'% meta</div></div>'
+    +'<div class="dh-big">'+_money(tercReal)+'</div>'
+    +'<div class="dh-meta">meta '+_money(tercMeta)+(tercMeta>0?' · '+(tercReal<=tercMeta?'dentro':'acima')+' do budget':'')+'</div></div>';
+  // Card 4: TT/PM
+  h+='<div class="dh"><div class="dh-top"><div class="dh-cap"><span class="dh-ic">🌡️</span>Térmico & Polimento — '+MES[mes]+'</div></div>'
+    +'<div style="display:flex;align-items:baseline;gap:8px;margin-top:6px">'
+    +'<span style="font-size:12px;color:var(--text-muted);width:30px">TT</span>'
+    +'<span style="font-size:26px;font-weight:900;color:'+(ttOk?'var(--green)':'#ff6b6b')+';font-family:var(--font-display);line-height:1">'+_f1(ttMed)+'</span>'
+    +'<span style="font-size:12px;color:var(--text-muted);flex:1">total '+Math.round(ttTot).toLocaleString('pt-BR')+' · meta '+_f1(ttMetaDia)+'/du</span></div>'
+    +'<div class="dprog '+(ttOk?'meta-ok':'meta-baixo')+'" style="margin-top:6px"><i style="width:'+_pctB(ttMed,ttMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div>'
+    +'<div style="height:1px;background:var(--border);margin:12px 0"></div>'
+    +'<div style="display:flex;align-items:baseline;gap:8px">'
+    +'<span style="font-size:12px;color:var(--text-muted);width:30px">PM</span>'
+    +'<span style="font-size:26px;font-weight:900;color:'+(pmOk?'var(--green)':'#ff6b6b')+';font-family:var(--font-display);line-height:1">'+_f1(pmMed)+'</span>'
+    +'<span style="font-size:12px;color:var(--text-muted);flex:1">total '+Math.round(pmTot).toLocaleString('pt-BR')+' · meta '+_f1(pmMetaDia)+'/du</span></div>'
+    +'<div class="dprog '+(pmOk?'meta-ok':'meta-baixo')+'" style="margin-top:6px"><i style="width:'+_pctB(pmMed,pmMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div></div>';
+  // Card 5: Montado x Vendido
+  h+=montHtml;
+  return h;
+}
+
 function gerarBoletimPCP(){
   if(typeof html2canvas==='undefined'){ alert('Biblioteca de imagem carregando, tente de novo.'); return; }
   // garante que os blocos detalhados estejam renderizados
@@ -12375,10 +12570,22 @@ function gerarBoletimPCP(){
     // título
     const titulo=document.createElement('div');
     titulo.style.cssText='color:'+(getComputedStyle(document.body).color||'#fff')+';font-size:22px;font-weight:900;margin-bottom:16px;font-family:sans-serif';
-    titulo.textContent='\ud83d\udcca Indicadores PCP \u2014 '+new Date().toLocaleDateString('pt-BR');
+    const _selMes=window._boletimMesSel;
+    const _MESNOME=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    if(_selMes){
+      titulo.textContent='\ud83d\udcca Indicadores PCP \u2014 Fechamento de '+_MESNOME[_selMes.mes]+'/'+_selMes.ano;
+    } else {
+      titulo.textContent='\ud83d\udcca Indicadores PCP \u2014 '+new Date().toLocaleDateString('pt-BR');
+    }
     wrap.appendChild(titulo);
     // cards do topo (3 por linha)
-    const cloneHero=hero.cloneNode(true);
+    let cloneHero;
+    if(_selMes){
+      cloneHero=document.createElement('div');
+      cloneHero.innerHTML=_boletimCardsMesFechado(_selMes.ano, _selMes.mes);
+    } else {
+      cloneHero=hero.cloneNode(true);
+    }
     cloneHero.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px';
     wrap.appendChild(cloneHero);
     // helper para clonar um bloco com título
@@ -12395,6 +12602,7 @@ function gerarBoletimPCP(){
       c.querySelectorAll('[style*="overflow-x"]').forEach(x=>{ x.style.overflowX='visible'; x.style.flexWrap='wrap'; });
       wrap.appendChild(c);
     };
+    if(!_selMes){
     addBloco('ife-resumo', 'IFE — Detalhamento');
     // ── TT: cards + itens do último dia ──
     try {
@@ -12482,6 +12690,7 @@ function gerarBoletimPCP(){
       box.innerHTML=cardsHtml+tabela;
       wrap.appendChild(box);
     } catch(e){ console.warn('boletim atrasos', e); }
+    } // fim if(!_selMes) — blocos detalhados só no modo mês atual
     overlay.appendChild(wrap);
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
       html2canvas(wrap,{scale:2,backgroundColor:bg,useCORS:true,logging:false,windowWidth:1220})
