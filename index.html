@@ -2601,7 +2601,7 @@ function renderOF() {
   const thBase = 'padding:11px 8px;text-align:center;font-size:12px;font-weight:800;overflow:hidden;text-overflow:ellipsis;';
   const tdBase = 'padding:9px 8px;text-align:center;font-size:15px;overflow:hidden;text-overflow:ellipsis;';
   const stickyTh = thBase+'text-align:left;position:sticky;left:0;z-index:3;';
-  const stickyTd = tdBase+'text-align:left;position:sticky;left:0;z-index:1;font-size:14px;';
+  const stickyTd = tdBase+'text-align:left;position:sticky;left:0;z-index:2;font-size:14px;';
 
   const wrap = document.getElementById('of-table-wrap');
   if (!wrap) return;
@@ -3392,8 +3392,8 @@ function renderMontados() {
 
   const thBase='padding:11px 8px;text-align:center;font-size:10px;letter-spacing:.5px;overflow:hidden;text-overflow:ellipsis;';
   const tdBase='padding:9px 8px;text-align:center;font-size:13px;overflow:hidden;text-overflow:ellipsis;';
-  const stickyTh=thBase+'text-align:left;position:sticky;left:0;z-index:3;';
-  const stickyTd=tdBase+'text-align:left;position:sticky;left:0;z-index:1;font-size:13px;';
+  const stickyTh=thBase+'text-align:left;position:sticky;left:0;z-index:3;min-width:110px;';
+  const stickyTd=tdBase+'text-align:left;position:sticky;left:0;z-index:2;font-size:13px;min-width:110px;';
 
   el.innerHTML=`
   <div style="border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:0 4px 24px rgba(0,0,0,0.4)">
@@ -3431,8 +3431,9 @@ function renderMontados() {
             const d=parseDate(r.DATA||'01/01/2000');
             const isToday=d.getTime()===hoje.getTime();
             const bg=isToday?'rgba(76,175,130,0.22)':i%2===0?'transparent':'var(--row-alt)';
+            const bgSticky=isToday?'rgba(76,175,130,0.22)':i%2===0?'var(--surface)':'var(--row-alt)';
             return `<tr style="background:${bg}">
-              <td style="${stickyTd}background:${bg};color:${isToday?'var(--green-text)':'var(--text)'};font-size:14px;font-weight:${isToday?'700':'400'}">${r.DATA||''}${isToday?' ●':''}</td>
+              <td style="${stickyTd}background:${bgSticky};color:${isToday?'var(--green-text)':'var(--text)'};font-size:14px;font-weight:${isToday?'700':'400'}">${r.DATA||''}${isToday?' ●':''}</td>
               ${cols.map(c=>`<td style="${tdBase}color:var(--text);font-size:15px;${isToday?'font-weight:700;':''}">${fmtN(r[c])}</td>`).join('')}
             </tr>`;
           }).join('')}
