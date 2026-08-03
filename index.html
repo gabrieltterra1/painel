@@ -12718,7 +12718,7 @@ function _boletimCardsMesFechado(ano, mes){
     +_linMeta('Budget', tercMeta, _tercDif)
     +_linMeta('Competit.', tercComp, _compDif)
     +'</div></div>';
-  // Card 4: TT/PM
+  // Card 5: TT/PM
   h+='<div class="dh"><div class="dh-top"><div class="dh-cap"><span class="dh-ic">🌡️</span>Térmico & Polimento — '+MES[mes]+'</div></div>'
     +'<div style="display:flex;align-items:baseline;gap:8px;margin-top:6px">'
     +'<span style="font-size:12px;color:var(--text-muted);width:30px">TT</span>'
@@ -12733,14 +12733,14 @@ function _boletimCardsMesFechado(ano, mes){
     +'<span style="font-size:11px;color:var(--text-muted)">/dia</span>'
     +'<span style="font-size:11px;color:var(--text-muted);flex:1;text-align:right">total '+Math.round(pmTot).toLocaleString('pt-BR')+' · meta '+_f1(pmMetaDia)+'/du</span></div>'
     +'<div class="dprog '+(pmOk?'meta-ok':'meta-baixo')+'" style="margin-top:6px"><i style="width:'+_pctB(pmMed,pmMetaDia)+'%"></i><span class="mark" style="left:100%"></span></div></div>';
-  // Card 5: Montado x Vendido
+  // Card 6: Montado x Vendido
   h+=montHtml;
 
   // ── Detalhamento do fechamento: IFE (mesmo modelo do mês atual) + totais TT/PM ──
   try {
     const FAM_D=[{k:'Walvoil',l:'WALVOIL',c:'#10b981',px:['6']},{k:'Guinchos',l:'GUINCHOS',c:'#f59e0b',px:['8']},{k:'Forca',l:'FORÇA',c:'#3d8bff',px:['3']},{k:'Hydrocar',l:'HYDROCAR/HYDROVEN',c:'#a855f7',px:['4','5']},{k:'Pecas',l:'PEÇAS',c:'#06b6d4',px:['1','2']}];
     const famDe=clas=>{const c=String(clas||'').trim();for(const f of FAM_D)if(f.px.some(p=>c.startsWith(p)))return f.k;return null;};
-    const _col=v=>v===null?'var(--text-muted)':(v>=95?'var(--green)':(v>=90?'#f59e0b':'#ff6b6b'));
+    const _col=v=>v===null?'var(--text-muted)':(v>=95?'var(--green)':'#ff6b6b');
     const _mesLg=MES[mes].toUpperCase()+'/'+ano;
     // bloco resumo Consolidado / Matriz / Filial
     const _ifePorFiltro=f=>{ const c=_ifeCalc(DATA.ife.filter(_ifeFiltrar(f)).filter(r=>r.mesKey===mesKey)); return c.total>0?(c.ife||0):null; };
