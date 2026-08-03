@@ -12446,20 +12446,18 @@ function _executarPDF(){
   }, 150);
 }
 
-// Calcula saldo acumulado (realizado − meta) mês a mês para TT e PM de um ano
-function _boletimCalcSaldoAcum(ano){
+// Calcula saldo acumulado (realizado − meta) mês a mês para TT e PM de um ano, até mesLim (0-based)
+function _boletimCalcSaldoAcum(ano, mesLim){
   const metas=(typeof getMetas==='function')?getMetas():{TT:[],PM:[]};
-  const hoje=new Date();
-  const mesAtual=(ano===hoje.getFullYear())?hoje.getMonth():12; // se ano passado, todos os meses fechados
+  const limite = (mesLim!=null) ? mesLim : 11; // vai até o mês selecionado
   const ttReal=Array(12).fill(0), pmReal=Array(12).fill(0);
   (DATA.termico?.termico||[]).forEach(r=>{ const [a,m]=(r.mes||'').split('-').map(Number); if(a===ano) ttReal[m-1]+=r.qtde; });
   (DATA.termico?.polimento||[]).forEach(r=>{ const [a,m]=(r.mes||'').split('-').map(Number); if(a===ano) pmReal[m-1]+=r.qtde/2; });
   const duMes=Array.from({length:12},(_,m)=>diasUteisMes(ano,m,true));
   const _saldo=(real,metaArr)=>real.map((v,i)=>{
-    if(i>mesAtual) return null;
+    if(i>limite) return null; // só até o mês selecionado
     const metaMes=(metaArr[i]||0)*duMes[i];
-    if(i===mesAtual && ano===hoje.getFullYear()) return v-(metaArr[i]||0)*diasUteisMes(ano,i);
-    return v-metaMes;
+    return v-metaMes; // meses fechados: mês completo
   });
   const _acum=arr=>arr.reduce((acc,v,i)=>{acc.push(v!=null?(acc[i-1]||0)+v:null);return acc;},[]);
   return { tt:_acum(_saldo(ttReal,metas.TT)), pm:_acum(_saldo(pmReal,metas.PM)) };
@@ -12480,8 +12478,9 @@ function _boletimTextoWhatsApp(){
       const pct=F.tercMeta>0?Math.round(F.tercReal/F.tercMeta*100):0;
       const ok=F.tercMeta>0 && F.tercReal<=F.tercMeta;
       t+='\n*Servi\u00e7os de Terceiros*\n';
-      t+=(ok?'\u2705':'\u26a0\ufe0f')+' '+money(F.tercReal)+' de '+money(F.tercMeta)+' ('+pct+'%)\n';
-      if(F.tercMeta>0) t+='\u2022 '+(F.tercDif<=0?'\u25bc '+money(Math.abs(F.tercDif))+' abaixo':'\u25b2 '+money(F.tercDif)+' acima')+' da meta\n';
+      t+=(ok?'\u2705':'\u26a0\ufe0f')+' Realizado: '+money(F.tercReal)+'\n';
+      if(F.tercMeta>0) t+='\u2022 Budget: '+money(F.tercMeta)+' ('+(F.tercDif<=0?'\u25bc '+money(Math.abs(F.tercDif))+' abaixo':'\u25b2 '+money(F.tercDif)+' acima')+')\n';
+      if(F.tercComp>0) t+='\u2022 Competitividade: '+money(F.tercComp)+' ('+(F.tercCompDif<=0?'\u25bc '+money(Math.abs(F.tercCompDif))+' abaixo':'\u25b2 '+money(F.tercCompDif)+' acima')+')\n';
     }
     const ttOk=F.ttMetaDia>0?F.ttMed>=F.ttMetaDia:true, pmOk=F.pmMetaDia>0?F.pmMed>=F.pmMetaDia:true;
     t+='\n*T\u00e9rmico & Polimento (m\u00eas)*\n';
@@ -12490,9 +12489,11 @@ function _boletimTextoWhatsApp(){
     if(F.montTot||F.vendTot){
       const dif=F.montTot-F.vendTot;
       t+='\n*Montado \u00d7 Vendido*\n';
-      t+='\u2022 Montado: '+Math.round(F.montTot).toLocaleString('pt-BR')+'\n';
-      t+='\u2022 Vendido: '+Math.round(F.vendTot).toLocaleString('pt-BR')+'\n';
-      t+='\u2022 Saldo: '+(dif>=0?'+':'')+Math.round(dif).toLocaleString('pt-BR')+'\n';
+      (F.montVendFam||[]).forEach(x=>{
+        const d=x.mont-x.vend;
+        t+='\u2022 '+x.lbl+': '+Math.round(x.mont).toLocaleString('pt-BR')+' mont \u00d7 '+Math.round(x.vend).toLocaleString('pt-BR')+' vend = '+(d>=0?'+':'')+Math.round(d).toLocaleString('pt-BR')+'\n';
+      });
+      t+='\u2022 *TOTAL: '+Math.round(F.montTot).toLocaleString('pt-BR')+' mont \u00d7 '+Math.round(F.vendTot).toLocaleString('pt-BR')+' vend = '+(dif>=0?'+':'')+Math.round(dif).toLocaleString('pt-BR')+'*\n';
     }
     return t;
   }
@@ -12608,10 +12609,11 @@ function _boletimCardsMesFechado(ano, mes){
   const ifeOk=ifeNum>=95;
 
   // ---- Terceiros realizado do mês ----
-  let tercReal=0, tercMeta=0;
+  let tercReal=0, tercMeta=0, tercComp=0;
   try{
     (DATA.servico||[]).forEach(r=>{ if(r.mes===mesKey) tercReal += (Number(r.valor)||0); });
     const tm=DATA.tercMeta||{}; tercMeta = (tm[mesKey]!==undefined&&tm[mesKey]!=='')?parseFloat(tm[mesKey]):0;
+    const tc=DATA.tercComp||{}; tercComp = (tc[mesKey]!==undefined&&tc[mesKey]!=='')?parseFloat(tc[mesKey]):0;
   }catch(e){}
   const tercPct = tercMeta>0 ? Math.round(tercReal/tercMeta*100) : 0;
 
@@ -12694,19 +12696,28 @@ function _boletimCardsMesFechado(ano, mes){
     +'<div class="dh-big" style="font-size:30px;line-height:1.05">'+MES[mes]+'<span style="color:#c084fc">/'+ano+'</span></div>'
     +'<div class="dh-meta">'+du+' dias úteis no mês</div></div>';
   // Card 2: IFE
+  const _cIfeMat = ifeMat>=95?'var(--green)':'#ff6b6b';
+  const _cIfeFil = ifeFil>=95?'var(--green)':'#ff6b6b';
   h+='<div class="dh ife '+(ifeOk?'meta-ok':'meta-baixo')+'"><div class="dh-top"><div class="dh-cap"><span class="dh-ic">📈</span>IFE — '+MES[mes]+'</div>'
     +'<div class="dh-selo '+(ifeOk?'up':'down')+'">'+(ifeOk?'▲ na meta':'▼ abaixo')+'</div></div>'
     +'<div class="dh-big">'+ifeNum.toFixed(2).replace('.',',')+'%</div>'
-    +'<div class="dh-meta">consolidado · Matriz '+ifeMat.toFixed(2).replace('.',',')+'% · Filial SP '+ifeFil.toFixed(2).replace('.',',')+'%</div></div>';
+    +'<div class="dh-meta">consolidado · Matriz <b style="color:'+_cIfeMat+'">'+ifeMat.toFixed(2).replace('.',',')+'%</b> · Filial SP <b style="color:'+_cIfeFil+'">'+ifeFil.toFixed(2).replace('.',',')+'%</b></div></div>';
   // Card 3: Montagem — média/dia (mesma posição dos Atrasos no mês atual)
   h+=montMediaHtml;
-  // Card 4: Terceiros
+  // Card 4: Terceiros (Budget + Competitividade vs realizado)
   const _tercDif = tercMeta>0 ? tercReal - tercMeta : 0;
-  const _tercDifTxt = tercMeta>0 ? ((_tercDif<=0?'▼ ':'▲ ')+'R$ '+Math.round(Math.abs(_tercDif)).toLocaleString('pt-BR')+(_tercDif<=0?' abaixo':' acima')+' da meta') : '';
+  const _compDif = tercComp>0 ? tercReal - tercComp : 0;
+  const _linMeta = (lbl, meta, dif) => meta>0
+    ? '<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:3px"><span style="color:var(--text-muted)">'+lbl+' '+_money(meta)+'</span>'
+      +'<span style="font-weight:700;color:'+(dif<=0?'var(--green)':'#ff6b6b')+'">'+(dif<=0?'▼ ':'▲ ')+_money(Math.abs(dif))+'</span></div>'
+    : '';
   h+='<div class="dh terc"><div class="dh-top"><div class="dh-cap"><span class="dh-ic">🔧</span>Terceiros</div>'
-    +'<div class="dh-selo" style="background:rgba(61,139,255,.15);color:#3d8bff">'+tercPct+'% meta</div></div>'
+    +'<div class="dh-selo" style="background:rgba(61,139,255,.15);color:#3d8bff">'+tercPct+'% budget</div></div>'
     +'<div class="dh-big">'+_money(tercReal)+'</div>'
-    +'<div class="dh-meta">meta '+_money(tercMeta)+(_tercDifTxt?' · <span style="color:'+(_tercDif<=0?'var(--green)':'#ff6b6b')+';font-weight:700">'+_tercDifTxt+'</span>':'')+'</div></div>';
+    +'<div style="margin-top:6px">'
+    +_linMeta('Budget', tercMeta, _tercDif)
+    +_linMeta('Competit.', tercComp, _compDif)
+    +'</div></div>';
   // Card 4: TT/PM
   h+='<div class="dh"><div class="dh-top"><div class="dh-cap"><span class="dh-ic">🌡️</span>Térmico & Polimento — '+MES[mes]+'</div></div>'
     +'<div style="display:flex;align-items:baseline;gap:8px;margin-top:6px">'
@@ -12793,10 +12804,11 @@ function _boletimCardsMesFechado(ano, mes){
     window._boletimDadosFechado = {
       ano, mes, mesNome:MES[mes], du,
       ifeCons:ifeNum, ifeMat, ifeFil,
-      tercReal, tercMeta, tercDif:(tercMeta>0?tercReal-tercMeta:0),
+      tercReal, tercMeta, tercComp, tercDif:(tercMeta>0?tercReal-tercMeta:0), tercCompDif:(tercComp>0?tercReal-tercComp:0),
       ttTot, ttMed, ttMetaDia, pmTot, pmMed, pmMetaDia,
       montTot:(function(){try{const ag=_montAgrupaAno();if(ag.ano===ano&&ag.porMes[mes]){return ['TOMADA_MULT','BOMBA','CILINDRO','GUINCHO','CONJ_EIXO','COMANDO','VALVULA','KIT_HIDR'].reduce((s,c)=>s+(ag.porMes[mes].qtd[c]||0),0);}return 0;}catch(e){return 0;}})(),
-      vendTot:(function(){try{return ['TOMADA_MULT','BOMBA','CILINDRO','GUINCHO','CONJ_EIXO','COMANDO','VALVULA','KIT_HIDR'].reduce((s,c)=>s+getMontadosVenda(c,ano,mes),0);}catch(e){return 0;}})()
+      vendTot:(function(){try{return ['TOMADA_MULT','BOMBA','CILINDRO','GUINCHO','CONJ_EIXO','COMANDO','VALVULA','KIT_HIDR'].reduce((s,c)=>s+getMontadosVenda(c,ano,mes),0);}catch(e){return 0;}})(),
+      montVendFam:(function(){try{const ag=_montAgrupaAno();if(!(ag.ano===ano&&ag.porMes[mes]))return[];const pm=ag.porMes[mes];const labels={'TOMADA_MULT':'Tomada','BOMBA':'Bomba','CILINDRO':'Cilindro','GUINCHO':'Guincho','CONJ_EIXO':'Conj.Eixo','COMANDO':'Comando','VALVULA':'Válvula','KIT_HIDR':'Kit Hidr.'};return Object.keys(labels).map(c=>({lbl:labels[c],mont:pm.qtd[c]||0,vend:getMontadosVenda(c,ano,mes)})).filter(x=>x.mont>0||x.vend>0);}catch(e){return[];}})()
     };
   } catch(e){ console.warn('detalhe fechado', e); window._boletimDetalheFechado=null; }
 
@@ -12956,7 +12968,7 @@ function gerarBoletimPCP(){
       try{
         const gWrap=document.createElement('div');
         gWrap.style.cssText='display:flex;gap:14px;flex-wrap:wrap;margin-top:14px';
-        const _saldoAcumSeries = _boletimCalcSaldoAcum(D.ano);
+        const _saldoAcumSeries = _boletimCalcSaldoAcum(D.ano, D.mes);
         [['TT','TT — SALDO ACUMULADO NO ANO','#f59e0b',_saldoAcumSeries.tt],
          ['PM','PM — SALDO ACUMULADO NO ANO','#a855f7',_saldoAcumSeries.pm]].forEach(([tag,tit,cor,serie])=>{
           const box=document.createElement('div');
