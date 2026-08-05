@@ -5813,6 +5813,7 @@ function parsePedidos(text) {
       of_parc:  String(r[iOfParc]||'').trim(),
       total_of: parseNum(r[iTotOf]),
       cliente:  String(r[iCliente]||'').trim(),
+      representante: String(r[23]||'').trim(),
       clienteCod: String(r[iCliCod]||'').trim(),
       classificacao: String(r[iClass]||'').trim(),
       familia:  familia(r[iClass]),
@@ -6802,6 +6803,52 @@ function _pvCalcularGrupos(base) {
   return grupos;
 }
 
+// Popup: pedidos de venda de um item, no período (dias) selecionado
+function abrirPedidosItem(codigo){
+  const diasSel = getMsValues('ms-pv-dias');
+  const peds = (DATA.pedidos||[])
+    .filter(r => r.codigo===codigo && (diasSel.length===0 || diasSel.includes(r.dataEntStr||'')))
+    .sort((a,b)=>(a.dataEntStr||'').localeCompare(b.dataEntStr||''));
+  let modal=document.getElementById('modal-pedidos-item');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='modal-pedidos-item';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100002;display:flex;align-items:center;justify-content:center';
+    modal.onclick=(e)=>{ if(e.target===modal) modal.remove(); };
+    document.body.appendChild(modal);
+  }
+  const desc = peds.length?peds[0].descricao:'';
+  const totQtde = peds.reduce((s,p)=>s+(Number(p.qtde)||0),0);
+  const _dt=s=>s?String(s).split('-').reverse().join('/'):'—';
+  const th='padding:8px 10px;text-align:left;font-size:11px;font-weight:800;color:#fff;white-space:nowrap;background:var(--header-table-bg)';
+  const td='padding:7px 10px;font-size:12px;white-space:nowrap';
+  let linhas='';
+  peds.forEach((p,i)=>{
+    const bg=i%2===0?'transparent':'var(--row-alt)';
+    linhas+='<tr style="background:'+bg+'">'
+      +'<td style="'+td+';text-align:right;font-weight:700">'+(Number(p.qtde)||0).toLocaleString('pt-BR')+'</td>'
+      +'<td style="'+td+'">'+(p.pedido||'—')+'</td>'
+      +'<td style="'+td+'">'+(p.cliente||'—')+'</td>'
+      +'<td style="'+td+'">'+(p.representante||'—')+'</td>'
+      +'<td style="'+td+';text-align:center">'+_dt(p.dataEmisStr)+'</td>'
+      +'<td style="'+td+';text-align:center'+(p.atrasado?';color:var(--red);font-weight:700':'')+'">'+(p.atrasado?'⚠ ':'')+_dt(p.dataEntStr)+'</td></tr>';
+  });
+  if(!peds.length) linhas='<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--text-muted)">Nenhum pedido no período selecionado.</td></tr>';
+  modal.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;width:900px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column">'
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">'
+      +'<div><div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--serie-azul);letter-spacing:1px">PEDIDOS DE VENDA — '+codigo+'</div>'
+      +'<div style="font-size:12px;color:var(--text-muted);margin-top:2px">'+desc+'</div></div>'
+      +'<span onclick="document.getElementById(\'modal-pedidos-item\').remove()" style="cursor:pointer;color:var(--text-muted);font-size:20px">✕</span></div>'
+    +'<div style="font-size:11px;color:var(--text-muted);margin-bottom:12px">'+peds.length+' pedido(s) · '+totQtde.toLocaleString('pt-BR')+' peças'+(diasSel.length?' · período filtrado':' · todas as datas')+'</div>'
+    +'<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border);overflow:auto">'
+    +'<table style="border-collapse:collapse;width:100%;min-width:760px">'
+    +'<thead style="position:sticky;top:0"><tr>'
+    +'<th style="'+th+';text-align:right">QTDE</th><th style="'+th+'">PEDIDO</th><th style="'+th+'">CLIENTE</th>'
+    +'<th style="'+th+'">REPRESENTANTE</th><th style="'+th+';text-align:center">EMISSÃO</th><th style="'+th+';text-align:center">ENTREGA</th></tr></thead>'
+    +'<tbody>'+linhas+'</tbody></table></div></div>';
+  modal.style.display='flex';
+}
+
 function renderPvPrioridades() {
   if (!DATA.pedidos || DATA.pedidos.length === 0) return;
 
@@ -7042,7 +7089,7 @@ function renderPvPrioridades() {
         <button onclick="pvToggleOculto('${g.codigo}')" title="Ocultar este item"
           style="background:rgba(255,59,59,0.15);border:1px solid var(--red);color:var(--red);width:22px;height:22px;border-radius:4px;cursor:pointer;font-size:14px;line-height:1;padding:0">−</button>
       </td>
-      <td style="font-family:monospace;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${g.codigo}</td>
+      <td onclick="abrirPedidosItem('${g.codigo}')" style="font-family:monospace;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;color:#3d8bff;text-decoration:underline;text-decoration-style:dotted" title="Ver pedidos de venda deste item no período">${g.codigo}</td>
       <td style="font-size:11px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${g.descricao}">${g.descricao}</td>
       <td style="color:${color};font-size:11px;font-weight:700">${g.familia}</td>
       <td style="text-align:right;font-weight:700">${g.qtde_pv}</td>
@@ -11611,17 +11658,21 @@ function renderDashboard(){
     const _f1=v=>(Math.round(v*10)/10).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
     const _pctB=(a,b)=>b>0?Math.min(100,Math.round(a/b*100)):0;
     const _famMeta=[['TOMADA_MULT','Tomada'],['BOMBA','Bomba'],['CILINDRO','Cilindro'],['GUINCHO','Guincho']];
+    const _duTotalMes=(typeof diasUteisMes==='function')?diasUteisMes(_ano,_mes,true):_duMont;
     let _famRows='';
     _famMeta.forEach(([c,lb])=>{
       const semHoje=_rows.reduce((s,r)=>{const d=parseDate(r.DATA||'');if(d&&d.getTime()===_hoje.getTime())return s;return s+_num(r[c]);},0);
       const md=_duMont>0?semHoje/_duMont:0;
       const mt=(typeof getMontadosMeta==='function')?(getMontadosMeta(c,_mes)||0):0;
       const ok=mt>0?md>=mt:true;
+      const saldoFam=mt>0?Math.round((md-mt)*_duTotalMes):null;
+      const saldoTxt=saldoFam!=null?((saldoFam>=0?'+':'')+saldoFam.toLocaleString('pt-BR')):'';
       _famRows+='<div style="display:flex;align-items:baseline;gap:6px;font-size:11px;margin-top:3px">'
         +'<span style="color:var(--text-muted);width:52px">'+lb+'</span>'
         +'<span style="font-weight:800;color:'+(ok?'var(--green)':'#ff6b6b')+'">'+_f1(md)+'</span>'
         +'<span style="color:var(--text-muted)">/'+_f1(mt)+'</span>'
-        +'<span style="color:'+(ok?'var(--green)':'#ff6b6b')+';margin-left:auto">'+(mt>0?(ok?'▲':'▼'):'')+'</span></div>';
+        +(saldoTxt?'<span style="margin-left:auto;font-weight:700;color:'+(saldoFam>=0?'var(--green)':'#ff6b6b')+'">'+saldoTxt+'</span>':'<span style="margin-left:auto"></span>')
+        +'<span style="color:'+(ok?'var(--green)':'#ff6b6b')+';width:12px;text-align:right">'+(mt>0?(ok?'▲':'▼'):'')+'</span></div>';
     });
     heroHtml += '<div class="dh so-boletim" style="cursor:pointer" onclick="showTab(\'montados\')">'
       + '<div class="dh-top"><div class="dh-cap"><span class="dh-ic">🔧</span>Montagem — média/dia</div></div>'
