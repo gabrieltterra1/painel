@@ -6821,15 +6821,16 @@ function abrirPedidosItem(codigo){
   const totQtde = peds.reduce((s,p)=>s+(Number(p.qtde)||0),0);
   const _dt=s=>s?String(s).split('-').reverse().join('/'):'—';
   const th='padding:8px 10px;text-align:left;font-size:11px;font-weight:800;color:#fff;white-space:nowrap;background:var(--header-table-bg)';
-  const td='padding:7px 10px;font-size:12px;white-space:nowrap';
+  const td='padding:7px 10px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+  const _esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   let linhas='';
   peds.forEach((p,i)=>{
     const bg=i%2===0?'transparent':'var(--row-alt)';
     linhas+='<tr style="background:'+bg+'">'
       +'<td style="'+td+';text-align:right;font-weight:700">'+(Number(p.qtde)||0).toLocaleString('pt-BR')+'</td>'
-      +'<td style="'+td+'">'+(p.pedido||'—')+'</td>'
-      +'<td style="'+td+'">'+(p.cliente||'—')+'</td>'
-      +'<td style="'+td+'">'+(p.representante||'—')+'</td>'
+      +'<td style="'+td+'">'+_esc(p.pedido||'—')+'</td>'
+      +'<td style="'+td+';max-width:230px" title="'+_esc(p.cliente)+'">'+_esc(p.cliente||'—')+'</td>'
+      +'<td style="'+td+';max-width:190px" title="'+_esc(p.representante)+'">'+_esc(p.representante||'—')+'</td>'
       +'<td style="'+td+';text-align:center">'+_dt(p.dataEmisStr)+'</td>'
       +'<td style="'+td+';text-align:center'+(p.atrasado?';color:var(--red);font-weight:700':'')+'">'+(p.atrasado?'⚠ ':'')+_dt(p.dataEntStr)+'</td></tr>';
   });
@@ -6840,8 +6841,9 @@ function abrirPedidosItem(codigo){
       +'<div style="font-size:12px;color:var(--text-muted);margin-top:2px">'+desc+'</div></div>'
       +'<span onclick="document.getElementById(\'modal-pedidos-item\').remove()" style="cursor:pointer;color:var(--text-muted);font-size:20px">✕</span></div>'
     +'<div style="font-size:11px;color:var(--text-muted);margin-bottom:12px">'+peds.length+' pedido(s) · '+totQtde.toLocaleString('pt-BR')+' peças'+(diasSel.length?' · período filtrado':' · todas as datas')+'</div>'
-    +'<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border);overflow:auto">'
-    +'<table style="border-collapse:collapse;width:100%;min-width:760px">'
+    +'<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border);overflow:auto;-webkit-overflow-scrolling:touch">'
+    +'<table style="border-collapse:collapse;width:100%;min-width:720px;table-layout:fixed">'
+    +'<colgroup><col style="width:70px"><col style="width:90px"><col style="width:230px"><col style="width:190px"><col style="width:95px"><col style="width:95px"></colgroup>'
     +'<thead style="position:sticky;top:0"><tr>'
     +'<th style="'+th+';text-align:right">QTDE</th><th style="'+th+'">PEDIDO</th><th style="'+th+'">CLIENTE</th>'
     +'<th style="'+th+'">REPRESENTANTE</th><th style="'+th+';text-align:center">EMISSÃO</th><th style="'+th+';text-align:center">ENTREGA</th></tr></thead>'
@@ -11658,14 +11660,13 @@ function renderDashboard(){
     const _f1=v=>(Math.round(v*10)/10).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
     const _pctB=(a,b)=>b>0?Math.min(100,Math.round(a/b*100)):0;
     const _famMeta=[['TOMADA_MULT','Tomada'],['BOMBA','Bomba'],['CILINDRO','Cilindro'],['GUINCHO','Guincho']];
-    const _duTotalMes=(typeof diasUteisMes==='function')?diasUteisMes(_ano,_mes,true):_duMont;
     let _famRows='';
     _famMeta.forEach(([c,lb])=>{
       const semHoje=_rows.reduce((s,r)=>{const d=parseDate(r.DATA||'');if(d&&d.getTime()===_hoje.getTime())return s;return s+_num(r[c]);},0);
       const md=_duMont>0?semHoje/_duMont:0;
       const mt=(typeof getMontadosMeta==='function')?(getMontadosMeta(c,_mes)||0):0;
       const ok=mt>0?md>=mt:true;
-      const saldoFam=mt>0?Math.round((md-mt)*_duTotalMes):null;
+      const saldoFam=mt>0?Math.round((md-mt)*_duMont):null;
       const saldoTxt=saldoFam!=null?((saldoFam>=0?'+':'')+saldoFam.toLocaleString('pt-BR')):'';
       _famRows+='<div style="display:flex;align-items:baseline;gap:6px;font-size:11px;margin-top:3px">'
         +'<span style="color:var(--text-muted);width:52px">'+lb+'</span>'
