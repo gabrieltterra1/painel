@@ -6829,8 +6829,8 @@ function abrirPedidosItem(codigo){
     linhas+='<tr style="background:'+bg+'">'
       +'<td style="'+td+';text-align:center;font-weight:700">'+(Number(p.qtde)||0).toLocaleString('pt-BR')+'</td>'
       +'<td style="'+td+';text-align:center">'+_esc(p.pedido||'—')+'</td>'
-      +'<td style="'+td+';max-width:230px" title="'+_esc(p.cliente)+'">'+_esc(p.cliente||'—')+'</td>'
-      +'<td style="'+td+';max-width:190px" title="'+_esc(p.representante)+'">'+_esc(p.representante||'—')+'</td>'
+      +'<td style="'+td+';text-align:left;max-width:230px" title="'+_esc(p.cliente)+'">'+_esc(p.cliente||'—')+'</td>'
+      +'<td style="'+td+';text-align:left;max-width:190px" title="'+_esc(p.representante)+'">'+_esc(p.representante||'—')+'</td>'
       +'<td style="'+td+';text-align:center">'+_dt(p.dataEmisStr)+'</td>'
       +'<td style="'+td+';text-align:center'+(p.atrasado?';color:var(--red);font-weight:700':'')+'">'+(p.atrasado?'⚠ ':'')+_dt(p.dataEntStr)+'</td></tr>';
   });
