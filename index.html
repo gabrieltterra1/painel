@@ -6827,8 +6827,8 @@ function abrirPedidosItem(codigo){
   peds.forEach((p,i)=>{
     const bg=i%2===0?'transparent':'var(--row-alt)';
     linhas+='<tr style="background:'+bg+'">'
-      +'<td style="'+td+';text-align:right;font-weight:700">'+(Number(p.qtde)||0).toLocaleString('pt-BR')+'</td>'
-      +'<td style="'+td+'">'+_esc(p.pedido||'—')+'</td>'
+      +'<td style="'+td+';text-align:center;font-weight:700">'+(Number(p.qtde)||0).toLocaleString('pt-BR')+'</td>'
+      +'<td style="'+td+';text-align:center">'+_esc(p.pedido||'—')+'</td>'
       +'<td style="'+td+';max-width:230px" title="'+_esc(p.cliente)+'">'+_esc(p.cliente||'—')+'</td>'
       +'<td style="'+td+';max-width:190px" title="'+_esc(p.representante)+'">'+_esc(p.representante||'—')+'</td>'
       +'<td style="'+td+';text-align:center">'+_dt(p.dataEmisStr)+'</td>'
@@ -6845,7 +6845,7 @@ function abrirPedidosItem(codigo){
     +'<table style="border-collapse:collapse;width:100%;min-width:720px;table-layout:fixed">'
     +'<colgroup><col style="width:70px"><col style="width:90px"><col style="width:230px"><col style="width:190px"><col style="width:95px"><col style="width:95px"></colgroup>'
     +'<thead style="position:sticky;top:0"><tr>'
-    +'<th style="'+th+';text-align:right">QTDE</th><th style="'+th+'">PEDIDO</th><th style="'+th+'">CLIENTE</th>'
+    +'<th style="'+th+';text-align:center">QTDE</th><th style="'+th+';text-align:center">PEDIDO</th><th style="'+th+'">CLIENTE</th>'
     +'<th style="'+th+'">REPRESENTANTE</th><th style="'+th+';text-align:center">EMISSÃO</th><th style="'+th+';text-align:center">ENTREGA</th></tr></thead>'
     +'<tbody>'+linhas+'</tbody></table></div></div>';
   modal.style.display='flex';
