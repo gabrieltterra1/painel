@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Painel Industrial / PCP</title>
+<title>Painel PCP</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2080%2080%22%3E%3Crect%20width%3D%2280%22%20height%3D%2280%22%20rx%3D%2216%22%20fill%3D%22%230d1b3e%22/%3E%3Cg%20transform%3D%22translate%2818%2C58%29%22%3E%3Crect%20x%3D%220%22%20y%3D%22-15%22%20width%3D%2211%22%20height%3D%2215%22%20rx%3D%222%22%20fill%3D%22%235a9bff%22/%3E%3Crect%20x%3D%2216%22%20y%3D%22-24%22%20width%3D%2211%22%20height%3D%2224%22%20rx%3D%222%22%20fill%3D%22%235a9bff%22/%3E%3Crect%20x%3D%2232%22%20y%3D%22-35%22%20width%3D%2211%22%20height%3D%2235%22%20rx%3D%222%22%20fill%3D%22%235a9bff%22/%3E%3Cpath%20d%3D%22M2%2C-20%20L34%2C-39%22%20fill%3D%22none%22%20stroke%3D%22%233ee89a%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22/%3E%3Cpath%20d%3D%22M40%2C-44%20L28%2C-41%20L35%2C-33%20Z%22%20fill%3D%22%233ee89a%22/%3E%3C/g%3E%3C/svg%3E">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
@@ -1076,7 +1076,7 @@
 <!-- LOGIN SCREEN -->
 <div id="login-screen">
   <div class="login-box">
-    <div class="login-logo">PAINEL <span>INDUSTRIAL</span></div>
+    <div class="login-logo">PAINEL <span>PCP</span></div>
     <div class="login-sub">Interpump Group</div>
     <input class="login-input" type="password" id="login-input"
       placeholder="Digite a senha"
@@ -1136,14 +1136,14 @@ if (sessionStorage.getItem('auth') === '1') {
 
 // Allow Enter key
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('%cPainel Industrial — build 2026-07-06 (webapp.txt + Gemini JSONP + assist header + forcarAba 15s)', 'color:#3ee89a;font-weight:bold');
+  console.log('%cPainel PCP — build 2026-07-06 (webapp.txt + Gemini JSONP + assist header + forcarAba 15s)', 'color:#3ee89a;font-weight:bold');
   const inp = document.getElementById('login-input');
   if (inp) inp.focus();
 });
 </script>
 
 <header>
-  <h1>PAINEL <span>INDUSTRIAL</span></h1>
+  <h1>PAINEL <span>PCP</span></h1>
   <div class="header-right">
     <div class="monitor-status">
       <div class="status-dot" id="status-dot"></div>
@@ -7442,7 +7442,7 @@ function _pvGerarRelatorio() {
   const corpo =
      '<div class="header">'
     +'<div class="header-left">'
-    +'<h2>&#x1F4CB; PAINEL <span>INDUSTRIAL</span> &mdash; Prioridades de Venda</h2>'
+    +'<h2>&#x1F4CB; PAINEL <span>PCP</span> &mdash; Prioridades de Venda</h2>'
     +'<div class="head-info">Impresso em ' + hojeHora + ' &nbsp;|&nbsp; &#x1F4E7; &Uacute;ltimo dado: ' + ultimoDado + ' &nbsp;|&nbsp; Per&iacute;odo: ' + periodoLabel + (filtrosLabel ? ' &nbsp;|&nbsp; ' + filtrosLabel : '') + '</div>'
     +'</div>'
     +'</div>'
@@ -12394,7 +12394,7 @@ function _raRelatorioHTML(){
     +'tr.comp td{background:#d6f5e3 !important;font-weight:600}'
     +'@media print{body{margin:6px}}';
   const corpo =
-     '<div class="header"><h2>\u{1F4CB} PAINEL <span>INDUSTRIAL</span> \u2014 Pedidos em Atraso</h2>'
+     '<div class="header"><h2>\u{1F4CB} PAINEL <span>PCP</span> \u2014 Pedidos em Atraso</h2>'
     +'<div class="head-info">Impresso em '+hoje+' &nbsp;|&nbsp; '+D.pedidosOrd.length+' pedidos ('+D.completos+' completos, '+D.parciais+' parciais) &nbsp;|&nbsp; '+D.qtdeTotal+' un em atraso, '+D.qtdeFaturar+' p/ faturar</div></div>'
     +'<div class="cards">'+cards+'</div>'
     +'<table><colgroup><col style="width:70px"><col style="width:50px"><col style="width:66px"><col style="width:190px"><col style="width:78px"><col style="width:140px"><col style="width:120px"><col style="width:120px"><col style="width:66px"></colgroup>'
