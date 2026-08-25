@@ -5250,11 +5250,12 @@ function renderIFE() {
   // ── QUADRO RESUMO MÊS ATUAL ─────────────────────────────────────────────
   const calcEmp = emp => {
     const d = DATA.ife.filter(_ifeFiltrar(emp)).filter(r=>r.mesKey===mesAtual);
-    return _ifeCalc(d).ife;
+    return _ifeCalc(d);
   };
-  const ifeConsolidado = calcEmp('CONSOLIDADO');
-  const ifeMatriz      = calcEmp('1');
-  const ifeFilial      = calcEmp('2');
+  const _cCons = calcEmp('CONSOLIDADO'), _cMat = calcEmp('1'), _cFil = calcEmp('2');
+  const ifeConsolidado = _cCons.ife;
+  const ifeMatriz      = _cMat.ife;
+  const ifeFilial      = _cFil.ife;
 
   // IFE por família na MATRIZ
   const FAM_IFE = {
@@ -5282,7 +5283,7 @@ function renderIFE() {
     return `<div style="background:${cfg.color}18;border:2px solid ${cfg.color};border-radius:8px;padding:10px 14px;min-width:100px;flex:1;text-align:center">
       <div style="font-size:9px;font-weight:900;color:${cfg.color};margin-bottom:4px;letter-spacing:0.4px">${cfg.label.toUpperCase()}</div>
       <div style="font-size:20px;font-weight:900;color:${cor}">${ife!==null?ife.toFixed(1)+'%':'—'}</div>
-      <div style="font-size:9px;color:var(--text-muted)">${d.total} entregas</div>
+      <div style="font-size:9px;color:var(--text-muted)">${d.total} entregas · <span style="color:${d.atrasado>0?'var(--red)':'var(--text-muted)'}">${d.atrasado} atras.</span></div>
       <div style="font-size:9px;font-weight:700;color:${ife!==null?(ife>=95?'var(--green)':'var(--red)'):'var(--text-muted)'}">${ife!==null?(ife>=95?'✓':'✗ -'+(95-ife).toFixed(1)+'%'):'—'}</div>
     </div>`;
   }).join('');
@@ -5295,9 +5296,9 @@ function renderIFE() {
       <div style="display:flex;flex-wrap:wrap">
         ${(() => {
           const ifeList = [
-            {label:'CONSOLIDADO', val:ifeConsolidado, big:true},
-            {label:'MATRIZ',      val:ifeMatriz,      big:false},
-            {label:'FILIAL SP',   val:ifeFilial,      big:false}
+            {label:'CONSOLIDADO', val:ifeConsolidado, big:true,  tot:_cCons.total, atr:_cCons.atrasado},
+            {label:'MATRIZ',      val:ifeMatriz,      big:false, tot:_cMat.total,  atr:_cMat.atrasado},
+            {label:'FILIAL SP',   val:ifeFilial,      big:false, tot:_cFil.total,  atr:_cFil.atrasado}
           ];
           return ifeList.map(function(c,i) {
             const cor = c.val!==null?_ifeColor(c.val):'var(--text-muted)';
@@ -5308,7 +5309,8 @@ function renderIFE() {
             return '<div style="text-align:center;padding:20px 32px;'+border+'flex:1">'
               + '<div style="font-size:10px;color:var(--text-muted);letter-spacing:1px;margin-bottom:6px">'+c.label+'</div>'
               + '<div style="font-size:'+sz+';font-weight:900;color:'+cor+';line-height:1">'+(c.val!==null?c.val.toFixed(2)+'%':'—')+'</div>'
-              + '<div style="font-size:11px;font-weight:700;margin-top:6px;color:'+metaCor+'">'+meta+'</div>'
+              + '<div style="font-size:10px;color:var(--text-muted);margin-top:5px">'+(c.tot||0).toLocaleString('pt-BR')+' entregas · <span style="color:'+((c.atr||0)>0?'var(--red)':'var(--text-muted)')+'">'+(c.atr||0).toLocaleString('pt-BR')+' atrasadas</span></div>'
+              + '<div style="font-size:11px;font-weight:700;margin-top:4px;color:'+metaCor+'">'+meta+'</div>'
               + '</div>';
           }).join('');
         })()}
@@ -5528,12 +5530,12 @@ function _renderIFEHistorico(meses) {
 
   // Célula: IFE% (colorido) + nº de entregas embaixo
   const cell = linhas => {
-    const { ife, total } = _ifeCalc(linhas);
+    const { ife, total, atrasado } = _ifeCalc(linhas);
     if (ife == null || total === 0)
       return '<td style="text-align:right;color:var(--text-muted)">—</td>';
     return '<td style="text-align:right">'
       + '<div style="font-weight:700;color:'+_ifeColor(ife)+'">'+ife.toFixed(2)+'%</div>'
-      + '<div style="font-size:9px;color:var(--text-muted)">'+total.toLocaleString('pt-BR')+' ent.</div>'
+      + '<div style="font-size:9px;color:var(--text-muted)">'+total.toLocaleString('pt-BR')+' ent. · <span style="color:'+(atrasado>0?'var(--red)':'var(--text-muted)')+'">'+atrasado.toLocaleString('pt-BR')+' atr.</span></div>'
       + '</td>';
   };
 
@@ -5590,16 +5592,17 @@ function abrirModalIFEMes(mesKey) {
     return null;
   };
 
-  const ifeEmp = emp => _ifeCalc(DATA.ife.filter(_ifeFiltrar(emp)).filter(r=>r.mesKey===mesKey)).ife;
-  const ifeConsolidado = ifeEmp('CONSOLIDADO');
-  const ifeMatriz      = ifeEmp('1');
-  const ifeFilial      = ifeEmp('2');
+  const ifeEmpFull = emp => _ifeCalc(DATA.ife.filter(_ifeFiltrar(emp)).filter(r=>r.mesKey===mesKey));
+  const _mCons = ifeEmpFull('CONSOLIDADO'), _mMat = ifeEmpFull('1'), _mFil = ifeEmpFull('2');
+  const ifeConsolidado = _mCons.ife;
+  const ifeMatriz      = _mMat.ife;
+  const ifeFilial      = _mFil.ife;
 
   // Cards de resumo (mesmo visual do topo)
   const ifeList = [
-    {label:'CONSOLIDADO', val:ifeConsolidado, big:true},
-    {label:'MATRIZ',      val:ifeMatriz,      big:false},
-    {label:'FILIAL SP',   val:ifeFilial,      big:false},
+    {label:'CONSOLIDADO', val:ifeConsolidado, big:true,  tot:_mCons.total, atr:_mCons.atrasado},
+    {label:'MATRIZ',      val:ifeMatriz,      big:false, tot:_mMat.total,  atr:_mMat.atrasado},
+    {label:'FILIAL SP',   val:ifeFilial,      big:false, tot:_mFil.total,  atr:_mFil.atrasado},
   ];
   const resumoHtml = ifeList.map((c,i) => {
     const cor = c.val!==null?_ifeColor(c.val):'var(--text-muted)';
@@ -5610,7 +5613,8 @@ function abrirModalIFEMes(mesKey) {
     return '<div style="text-align:center;padding:20px 32px;'+border+'flex:1">'
       + '<div style="font-size:10px;color:var(--text-muted);letter-spacing:1px;margin-bottom:6px">'+c.label+'</div>'
       + '<div style="font-size:'+sz+';font-weight:900;color:'+cor+';line-height:1">'+(c.val!==null?c.val.toFixed(2)+'%':'—')+'</div>'
-      + '<div style="font-size:11px;font-weight:700;margin-top:6px;color:'+metaCor+'">'+meta+'</div>'
+      + '<div style="font-size:10px;color:var(--text-muted);margin-top:5px">'+(c.tot||0).toLocaleString('pt-BR')+' entregas · <span style="color:'+((c.atr||0)>0?'var(--red)':'var(--text-muted)')+'">'+(c.atr||0).toLocaleString('pt-BR')+' atrasadas</span></div>'
+      + '<div style="font-size:11px;font-weight:700;margin-top:4px;color:'+metaCor+'">'+meta+'</div>'
       + '</div>';
   }).join('');
 
@@ -5624,7 +5628,7 @@ function abrirModalIFEMes(mesKey) {
     return '<div style="background:'+f.color+'18;border:2px solid '+f.color+';border-radius:8px;padding:10px 14px;min-width:100px;flex:1;text-align:center">'
       + '<div style="font-size:9px;font-weight:900;color:'+f.color+';margin-bottom:4px;letter-spacing:0.4px">'+f.label+'</div>'
       + '<div style="font-size:20px;font-weight:900;color:'+cor+'">'+(ife!==null?ife.toFixed(1)+'%':'—')+'</div>'
-      + '<div style="font-size:9px;color:var(--text-muted)">'+total.toLocaleString('pt-BR')+' entregas</div>'
+      + '<div style="font-size:9px;color:var(--text-muted)">'+total.toLocaleString('pt-BR')+' ent · <span style="color:'+(atrasado>0?'var(--red)':'var(--text-muted)')+'">'+atrasado.toLocaleString('pt-BR')+' atras.</span></div>'
       + '<div style="font-size:9px;font-weight:700;color:'+(ife!==null?(ife>=95?'var(--green)':'var(--red)'):'var(--text-muted)')+'">'+(ife!==null?(ife>=95?'✓':'✗ -'+(95-ife).toFixed(1)+'%'):'—')+'</div>'
       + '</div>';
   }).join('');
@@ -11418,6 +11422,9 @@ function renderDashboard(){
       const meses=[...new Set(DATA.ife.map(r=>r.mesKey))].sort();
       const mesAt=meses[meses.length-1];
       const calc=emp=>{ const d=DATA.ife.filter(_ifeFiltrar(emp)).filter(r=>r.mesKey===mesAt); return _ifeCalc(d).ife; };
+      const calcFull=emp=>{ const d=DATA.ife.filter(_ifeFiltrar(emp)).filter(r=>r.mesKey===mesAt); return _ifeCalc(d); };
+      const _hCons=calcFull('CONSOLIDADO');
+      window._ifeConsTot=_hCons.total; window._ifeConsAtr=_hCons.atrasado;
       const fp=v=> v==null?'—':(Math.round(v*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';
       const _mMat=calc('1'), _mFil=calc('2');
       ifeCons=fp(calc('CONSOLIDADO')); ifeMatr=fp(_mMat); ifeFil=fp(_mFil);
@@ -11567,6 +11574,11 @@ function renderDashboard(){
         const mN=window._ifeMatrNum, fN=window._ifeFilNum;
         const fmt=(lbl,val,num)=>{ if(num==null) return lbl+' '+val; const ok=num>=meta; const cor=ok?'var(--green)':'#ff6b6b'; return lbl+' <b style="color:'+cor+'">'+val+' '+(ok?'▲':'▼')+'</b>'; };
         return '<div class="dh-meta">consolidado · '+fmt('Matriz',ifeMatr,mN)+' · '+fmt('Filial SP',ifeFil,fN)+'</div>';
+      })()
+    + (function(){
+        const t=window._ifeConsTot, a=window._ifeConsAtr;
+        if(t==null||!t) return '';
+        return '<div class="dh-meta">'+t.toLocaleString('pt-BR')+' entregas · <span style="color:'+(a>0?'#ff6b6b':'var(--text-muted)')+'">'+(a||0).toLocaleString('pt-BR')+' atrasadas</span></div>';
       })()
     + (ifeConsSimStr?'<div class="dh-meta" style="color:var(--amber)">se faturar tudo: <b>'+ifeConsSimStr+'</b></div>':'')
     + ifeComp
@@ -12754,7 +12766,12 @@ function _boletimCardsMesFechado(ano, mes){
   h+='<div class="dh ife '+(ifeOk?'meta-ok':'meta-baixo')+'"><div class="dh-top"><div class="dh-cap"><span class="dh-ic">📈</span>IFE — '+MES[mes]+'</div>'
     +'<div class="dh-selo '+(ifeOk?'up':'down')+'">'+(ifeOk?'▲ na meta':'▼ abaixo')+'</div></div>'
     +'<div class="dh-big">'+ifeNum.toFixed(2).replace('.',',')+'%</div>'
-    +'<div class="dh-meta">consolidado · Matriz <b style="color:'+_cIfeMat+'">'+ifeMat.toFixed(2).replace('.',',')+'%</b> · Filial SP <b style="color:'+_cIfeFil+'">'+ifeFil.toFixed(2).replace('.',',')+'%</b></div></div>';
+    +'<div class="dh-meta">consolidado · Matriz <b style="color:'+_cIfeMat+'">'+ifeMat.toFixed(2).replace('.',',')+'%</b> · Filial SP <b style="color:'+_cIfeFil+'">'+ifeFil.toFixed(2).replace('.',',')+'%</b></div>'
+    +(function(){ try{ const c=_ifeCalc(DATA.ife.filter(_ifeFiltrar('CONSOLIDADO')).filter(r=>r.mesKey===mesKey));
+        if(!c.total) return '';
+        return '<div class="dh-meta">'+c.total.toLocaleString('pt-BR')+' entregas · <span style="color:'+(c.atrasado>0?'#ff6b6b':'var(--text-muted)')+'">'+c.atrasado.toLocaleString('pt-BR')+' atrasadas</span></div>';
+      }catch(e){ return ''; } })()
+    +'</div>';
   // Card 3: Montado × Vendido (mesma posição dos Atrasos no mês atual)
   h+=montHtml;
   // Card 4: Terceiros (Budget + Competitividade vs realizado)
@@ -12796,9 +12813,10 @@ function _boletimCardsMesFechado(ano, mes){
     const _col=v=>v===null?'var(--text-muted)':(v>=95?'var(--green)':'#ff6b6b');
     const _mesLg=MES[mes].toUpperCase()+'/'+ano;
     // bloco resumo Consolidado / Matriz / Filial
-    const _ifePorFiltro=f=>{ const c=_ifeCalc(DATA.ife.filter(_ifeFiltrar(f)).filter(r=>r.mesKey===mesKey)); return c.total>0?(c.ife||0):null; };
-    const ifeCons=_ifePorFiltro('CONSOLIDADO'), ifeMz=_ifePorFiltro('1'), ifeFl=_ifePorFiltro('2');
-    const resumoList=[{label:'CONSOLIDADO',val:ifeCons,big:true},{label:'MATRIZ',val:ifeMz,big:false},{label:'FILIAL SP',val:ifeFl,big:false}];
+    const _ifePorFiltro=f=>{ const c=_ifeCalc(DATA.ife.filter(_ifeFiltrar(f)).filter(r=>r.mesKey===mesKey)); return { val:(c.total>0?(c.ife||0):null), tot:c.total, atr:c.atrasado }; };
+    const _rCons=_ifePorFiltro('CONSOLIDADO'), _rMz=_ifePorFiltro('1'), _rFl=_ifePorFiltro('2');
+    const ifeCons=_rCons.val, ifeMz=_rMz.val, ifeFl=_rFl.val;
+    const resumoList=[{label:'CONSOLIDADO',val:ifeCons,big:true,tot:_rCons.tot,atr:_rCons.atr},{label:'MATRIZ',val:ifeMz,big:false,tot:_rMz.tot,atr:_rMz.atr},{label:'FILIAL SP',val:ifeFl,big:false,tot:_rFl.tot,atr:_rFl.atr}];
     let resumo='<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:10px">'
       +'<div style="background:var(--border);padding:10px 20px;font-size:11px;letter-spacing:1px;color:var(--text-muted)">IFE '+_mesLg+' — RESUMO</div>'
       +'<div style="display:flex;flex-wrap:wrap">'
@@ -12810,7 +12828,8 @@ function _boletimCardsMesFechado(ano, mes){
         return '<div style="text-align:center;padding:20px 32px;'+border+'flex:1">'
           +'<div style="font-size:10px;color:var(--text-muted);letter-spacing:1px;margin-bottom:6px">'+c.label+'</div>'
           +'<div style="font-size:'+sz+';font-weight:900;color:'+cor+';line-height:1">'+(c.val!==null?c.val.toFixed(2)+'%':'—')+'</div>'
-          +'<div style="font-size:11px;font-weight:700;margin-top:6px;color:'+metaCor+'">'+meta+'</div></div>';
+          +'<div style="font-size:10px;color:var(--text-muted);margin-top:5px">'+(c.tot||0).toLocaleString('pt-BR')+' entregas · <span style="color:'+((c.atr||0)>0?'var(--red)':'var(--text-muted)')+'">'+(c.atr||0).toLocaleString('pt-BR')+' atrasadas</span></div>'
+          +'<div style="font-size:11px;font-weight:700;margin-top:4px;color:'+metaCor+'">'+meta+'</div></div>';
       }).join('')
       +'</div></div>';
     // cards de família da Matriz
@@ -12821,7 +12840,7 @@ function _boletimCardsMesFechado(ano, mes){
       return '<div style="background:'+f.c+'18;border:2px solid '+f.c+';border-radius:8px;padding:10px 14px;min-width:100px;flex:1;text-align:center">'
         +'<div style="font-size:9px;font-weight:900;color:'+f.c+';margin-bottom:4px;letter-spacing:0.4px">'+f.l+'</div>'
         +'<div style="font-size:20px;font-weight:900;color:'+cor+'">'+(val!==null?val.toFixed(1)+'%':'—')+'</div>'
-        +'<div style="font-size:9px;color:var(--text-muted)">'+cc.total+' entregas</div>'
+        +'<div style="font-size:9px;color:var(--text-muted)">'+cc.total.toLocaleString('pt-BR')+' ent · <span style="color:'+(cc.atrasado>0?'var(--red)':'var(--text-muted)')+'">'+cc.atrasado.toLocaleString('pt-BR')+' atras.</span></div>'
         +'<div style="font-size:9px;font-weight:700;color:'+(val!==null?(val>=95?'var(--green)':'var(--red)'):'var(--text-muted)')+'">'+(val!==null?(val>=95?'✓':'✗ -'+(95-val).toFixed(1)+'%'):'—')+'</div></div>';
     }).join('');
     const ife=resumo
