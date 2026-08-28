@@ -4431,9 +4431,11 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
     type:'bar',
     data:{ labels, datasets:[
       { label:'Meta mensal TT',
+        type:'line',
         data:ttMetaMes,
-        backgroundColor: ttMetaMes.map((_,i) => i===mesAtual ? '#f59e0b55' : '#f59e0b33'),
-        borderColor:cssVar('--serie-laranja'), borderWidth:1, borderRadius:4,
+        borderColor:cssVar('--serie-laranja'), backgroundColor:'transparent',
+        borderWidth:2.5, tension:.3, pointRadius:4, pointBackgroundColor:cssVar('--serie-laranja'),
+        order:0,
         datalabels:{ color:'#f59e0b', anchor:'end', align:'top', font:{size:9},
           formatter:v=>v>0?v.toLocaleString('pt-BR'):'' }
       },
@@ -4441,6 +4443,7 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
         data:ttReal,
         backgroundColor: ttReal.map((_,i) => i===mesAtual ? '#3d8bffcc' : '#3d8bff77'),
         borderColor:cssVar('--serie-azul'), borderWidth:1, borderRadius:4,
+        order:1,
         datalabels:{ color:cssVar('--text'), anchor:'center', align:'center', font:{size:10,weight:'700'},
           formatter:v=>v>0?v.toLocaleString('pt-BR'):'' }
       }
@@ -4459,9 +4462,11 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
     type:'bar',
     data:{ labels, datasets:[
       { label:'Meta mensal PM (pares)',
+        type:'line',
         data:pmMetaMes,
-        backgroundColor: pmMetaMes.map((_,i) => i===mesAtual ? '#06b6d455' : '#06b6d433'),
-        borderColor:cssVar('--serie-ciano'), borderWidth:1, borderRadius:4,
+        borderColor:cssVar('--serie-ciano'), backgroundColor:'transparent',
+        borderWidth:2.5, tension:.3, pointRadius:4, pointBackgroundColor:cssVar('--serie-ciano'),
+        order:0,
         datalabels:{ color:'#06b6d4', anchor:'end', align:'top', font:{size:9},
           formatter:v=>v>0?v.toLocaleString('pt-BR'):'' }
       },
@@ -4469,6 +4474,7 @@ function renderMetaCharts(ttPorMes, pmPorMes, ano, mesAtual) {
         data:pmReal,
         backgroundColor: pmReal.map((_,i) => i===mesAtual ? '#a855f7cc' : '#a855f777'),
         borderColor:cssVar('--serie-roxo'), borderWidth:1, borderRadius:4,
+        order:1,
         datalabels:{ color:cssVar('--text'), anchor:'center', align:'center', font:{size:10,weight:'700'},
           formatter:v=>v>0?v.toLocaleString('pt-BR'):'' }
       }
@@ -12766,6 +12772,14 @@ function _boletimCardsMesFechado(ano, mes){
         +'<span style="font-size:20px;font-weight:800;color:var(--text-muted);font-family:var(--font-display);line-height:1">'+Math.round(totVend).toLocaleString('pt-BR')+'</span>'
         +'<span style="font-size:12px;color:var(--text-muted);flex:1">saldo <b style="color:'+(dif>=0?'var(--green)':'#ff6b6b')+'">'+(dif>=0?'+':'')+Math.round(dif).toLocaleString('pt-BR')+'</b></span></div>'
         +'<div style="height:1px;background:var(--border);margin:10px 0"></div>'+fr+'</div>';
+    } else {
+      // sem dados de montagem para este ano/mês (a aba ITENS_MONTADOS guarda apenas o ano corrente)
+      const _semDados=(titulo)=>'<div class="dh"><div class="dh-top"><div class="dh-cap"><span class="dh-ic">🔧</span>'+titulo+'</div></div>'
+        +'<div style="display:flex;align-items:center;justify-content:center;min-height:90px;text-align:center">'
+        +'<div style="font-size:12px;color:var(--text-muted);line-height:1.5">Sem dados de montagem para<br><b>'+MES[mes]+'/'+ano+'</b>'
+        +'<div style="font-size:10px;margin-top:6px;opacity:.8">A base guarda apenas o ano corrente</div></div></div></div>';
+      montHtml=_semDados('Montado × Vendido');
+      montMediaHtml=_semDados('Montagem — média/dia');
     }
   }catch(e){ console.warn('boletim mont fechado',e); }
 
