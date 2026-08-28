@@ -12697,10 +12697,26 @@ function _boletimCardsMesFechado(ano, mes){
   let montHtml='';
   let montMediaHtml='';
   try{
-    const ag=_montAgrupaAno();
-    if(ag.ano===ano && ag.porMes[mes]){
-      const pm=ag.porMes[mes];
+    // calcula direto de DATA.montados para o ano/mês pedidos (não depende do ano único de _montAgrupaAno)
+    const _nrm=s=>String(s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const _ehMedia=s=>{const n=_nrm(s);return /M.DIA/.test(n)&&!n.includes('TOTAL');};
+    const _hj=new Date(); _hj.setHours(0,0,0,0);
+    const _feriados=getFeriados().map(f=>f.data);
+    const _linhasMes=(DATA.montados||[]).filter(r=>{
+      if(!r.DATA||_nrm(r.DATA).includes('TOTAL')||_ehMedia(r.DATA)||_nrm(r.DATA).includes('DIAS')||_nrm(r.DATA).includes('UTEIS')) return false;
+      const d=parseDate(r.DATA||'');
+      return d && d.getFullYear()===ano && d.getMonth()===mes && d.getTime()!==_hj.getTime();
+    });
+    if(_linhasMes.length){
       const cols=['TOMADA_MULT','BOMBA','CILINDRO','GUINCHO','CONJ_EIXO','COMANDO','VALVULA','KIT_HIDR'];
+      const pm={qtd:{}, duReg:0};
+      _linhasMes.forEach(r=>{
+        cols.forEach(c=>{ pm.qtd[c]=(pm.qtd[c]||0)+_montNum(r[c]); });
+        const d=parseDate(r.DATA||'');
+        const fds=(d.getDay()===0||d.getDay()===6);
+        const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        if(!fds && !_feriados.includes(iso)) pm.duReg++;
+      });
       const totMont=cols.reduce((s,c)=>s+(pm.qtd[c]||0),0);
       const totVend=cols.reduce((s,c)=>s+getMontadosVenda(c,ano,mes),0);
       const dif=totMont-totVend;
