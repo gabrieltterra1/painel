@@ -7353,6 +7353,28 @@ function _pvStatusOfLinha(r) {
   return { statusOf: rv.statusOf, tipos };
 }
 
+// Data de entrega (DT_FINAL) de uma OF, para priorizar montagem pela data mais próxima.
+// Cache reconstruído quando DATA.ofItens muda de tamanho.
+let _ofDtCache=null, _ofDtCacheLen=-1;
+function _ofDataEntrega(num){
+  const itens = DATA.ofItens||[];
+  if(_ofDtCache===null || _ofDtCacheLen!==itens.length){
+    _ofDtCache={};
+    itens.forEach(it=>{
+      const n=String(it.NUM_ORDEM||'').trim();
+      if(!n || !it.DT_FINAL) return;
+      const d=parseDate(it.DT_FINAL);
+      if(!d) return;
+      const t=d.getTime();
+      // se a mesma OF tem várias linhas, usa a data mais próxima
+      if(_ofDtCache[n]==null || t<_ofDtCache[n]) _ofDtCache[n]=t;
+    });
+    _ofDtCacheLen=itens.length;
+  }
+  const v=_ofDtCache[String(num).trim()];
+  return v==null?Infinity:v; // OF sem data conhecida vai para o fim da fila
+}
+
 function _pvCalcMontarCompleto(proj, ofSemStr, ofCompStr, ofParcStr) {
   if (proj >= 0) return { montar: 'FATURAR', statusOf: 'FATURAR' };
 
@@ -7361,25 +7383,29 @@ function _pvCalcMontarCompleto(proj, ofSemStr, ofCompStr, ofParcStr) {
   const ofsParc = _pvParseOfs(ofParcStr);
   const ofsSem  = _pvParseOfs(ofSemStr);
 
-  // Soma OFs inteiras até cobrir a necessidade — nunca corta uma OF no meio
-  const somarAteNec = (ofs, nec) => {
-    let acum = 0;
-    for (const o of ofs) {
-      if (acum >= nec) break;
-      acum += o.qty; // sempre usa a OF inteira
-    }
-    return acum;
-  };
+  // Fila única priorizada pela DATA DE ENTREGA da OF (mais próxima primeiro).
+  // Empate de data → regra anterior: SEPARADO → SEP. PARCIAL → FALTA SEPARAR.
+  const fila = [
+    ...ofsComp.map((o,i)=>({ of:o.of, qty:o.qty, tipo:0, ord:i })),
+    ...ofsParc.map((o,i)=>({ of:o.of, qty:o.qty, tipo:1, ord:i })),
+    ...ofsSem .map((o,i)=>({ of:o.of, qty:o.qty, tipo:2, ord:i }))
+  ].sort((a,b)=>{
+    const da=_ofDataEntrega(a.of), db=_ofDataEntrega(b.of);
+    if(da!==db) return da-db;
+    if(a.tipo!==b.tipo) return a.tipo-b.tipo;
+    return a.ord-b.ord;
+  });
 
-  // Total de OFs disponíveis (sem duplicação)
-  const totalOfsDisp = ofsComp.reduce((s,o)=>s+o.qty,0)
-                     + ofsParc.reduce((s,o)=>s+o.qty,0)
-                     + ofsSem.reduce((s,o)=>s+o.qty,0);
-
-  let qtComp = somarAteNec(ofsComp, necessidade);
-  let qtParc = qtComp < necessidade ? somarAteNec(ofsParc, necessidade - qtComp) : 0;
-  let qtSem  = (qtComp+qtParc) < necessidade ? somarAteNec(ofsSem, necessidade-qtComp-qtParc) : 0;
-  const totalMontavel = qtComp + qtParc + qtSem;
+  // Consome OFs inteiras (nunca corta uma OF no meio) até cobrir a necessidade
+  const usados=[0,0,0];
+  let acum=0;
+  for(const o of fila){
+    if(acum>=necessidade) break;
+    acum += o.qty;
+    usados[o.tipo] += o.qty;
+  }
+  const qtComp=usados[0], qtParc=usados[1], qtSem=usados[2];
+  const totalMontavel = acum;
 
   // O que falta abrir OF
   const faltaAbrirOf = Math.max(0, necessidade - totalMontavel);
