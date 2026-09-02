@@ -1342,6 +1342,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <button class="ns-btn" onclick="setNSProduct('guincho_enrol')">GUINCHO + ENROL.</button>
       <button class="ns-btn" onclick="setNSProduct('cilindro')">CILINDRO</button>
       <button class="ns-btn" onclick="setNSProduct('todos')">TODOS</button>
+      <button onclick="abrirFaltaConsolidadoProduto()" title="Somatório das faltas de todas as empresas, por código" style="margin-left:10px;background:rgba(61,139,255,.14);border:1px solid var(--serie-azul);color:var(--serie-azul);padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.5px">Σ VER CONSOLIDADO</button>
     </div>
   </div>
   <div class="chart-card" style="margin-bottom:28px;">
@@ -11245,6 +11246,138 @@ function parseServico(text) {
     return {empresa, empresa_num, mes, valor: Math.round(v.valor*100)/100, valorAteOntem: Math.round(v.valorAteOntem*100)/100, linha: v.linha, processo: getFornProcesso(empresa)};
   });
 }
+// ===== POPUP: FALTAS CONSOLIDADAS (soma de todas as empresas por código) =====
+let _fcCtx=null;            // {classList, titulo}
+let _fcBusca='';
+let _fcSort={col:'total', asc:false};
+const _FC_UFS=['RS','SP','MG','GO','PE'];
+const _FC_LB ={RS:'MTZ', SP:'SP', MG:'MG', GO:'GO', PE:'PE'};
+
+// classificações por grupo de produto (mesmo mapa do gráfico NS)
+const _FC_CLASSES={
+  'tomada_bomba':{ cls:['300.200.001','300.500.001'], tit:'Tomada + Bomba' },
+  'guincho_enrol':{ cls:['800.010.020','800.010.040','800.050*'], tit:'Guincho + Enrolador' },
+  'cilindro':{ cls:['300.400.001','300.300.005'], tit:'Cilindro' },
+  'todos':{ cls:['300.200.001','300.500.001','800.010.020','800.010.040','800.050*','300.400.001','300.300.005'], tit:'Todos os produtos' }
+};
+
+function abrirFaltaConsolidadoProduto(){
+  const g=_FC_CLASSES[_nsProduct]||_FC_CLASSES['todos'];
+  abrirFaltaConsolidado(g.cls, g.tit);
+}
+
+function abrirFaltaConsolidado(classificacao, titulo){
+  _fcCtx={ classList: Array.isArray(classificacao)?classificacao:[classificacao], titulo: titulo||'' };
+  _fcBusca=''; _fcSort={col:'total', asc:false};
+  let modal=document.getElementById('modal-falta-consol');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='modal-falta-consol';
+    modal.style.cssText='display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100003;align-items:center;justify-content:center';
+    modal.onclick=e=>{ if(e.target===modal) modal.remove(); };
+    document.body.appendChild(modal);
+  }
+  _fcRender();
+  modal.style.display='flex';
+}
+
+function _fcLinhas(){
+  if(!_fcCtx) return [];
+  const casa = cod => _fcCtx.classList.some(c => c.endsWith('*') ? String(cod).startsWith(c.slice(0,-1)) : cod===c);
+  const nomeParaUf={}; _FC_UFS.forEach(u=>{ nomeParaUf[UF_EMP_NOME[u]]=u; });
+  const mapa={};
+  (DATA.estoqueDet||[]).forEach(it=>{
+    if(!casa(it.COD_CLASSE)) return;
+    const uf=nomeParaUf[it.EMPRESA]; if(!uf) return;
+    const falta = it.DIF_SALDO < 0 ? Math.abs(it.DIF_SALDO) : 0;
+    if(!mapa[it.COD_ITEM]) mapa[it.COD_ITEM]={ cod:it.COD_ITEM, desc:it.DESC, RS:0,SP:0,MG:0,GO:0,PE:0, total:0 };
+    mapa[it.COD_ITEM][uf]+=falta;
+    mapa[it.COD_ITEM].total+=falta;
+    if(!mapa[it.COD_ITEM].desc && it.DESC) mapa[it.COD_ITEM].desc=it.DESC;
+  });
+  let arr=Object.values(mapa).filter(l=>l.total>0);
+  const q=_fcBusca.trim().toLowerCase();
+  if(q) arr=arr.filter(l=>(l.cod+' '+l.desc).toLowerCase().includes(q));
+  const c=_fcSort.col, asc=_fcSort.asc?1:-1;
+  arr.sort((a,b)=>{
+    if(c==='cod'||c==='desc') return String(a[c]).localeCompare(String(b[c]),'pt-BR',{numeric:true})*asc;
+    return ((Number(a[c])||0)-(Number(b[c])||0))*asc;
+  });
+  return arr;
+}
+
+function _fcRender(){
+  const modal=document.getElementById('modal-falta-consol'); if(!modal) return;
+  const linhas=_fcLinhas();
+  const tot={RS:0,SP:0,MG:0,GO:0,PE:0,total:0};
+  linhas.forEach(l=>{ _FC_UFS.forEach(u=>tot[u]+=l[u]); tot.total+=l.total; });
+  const th='padding:8px 8px;font-size:11px;font-weight:800;color:#fff;white-space:nowrap;background:var(--header-table-bg)';
+  const td='padding:6px 8px;font-size:12px;white-space:nowrap';
+  const seta=k=>_fcSort.col===k?(_fcSort.asc?' ▲':' ▼'):'';
+  const cel=(v,destaque)=>'<td style="'+td+';text-align:center;'+(v>0?(destaque?'color:var(--red);font-weight:800':'color:var(--text);font-weight:600'):'color:var(--muted-dim)')+'">'+(v>0?Math.round(v).toLocaleString('pt-BR'):'—')+'</td>';
+  modal.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;width:1000px;max-width:96vw;max-height:88vh;display:flex;flex-direction:column">'
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">'
+      +'<div><div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--serie-azul);letter-spacing:1px">FALTA CONSOLIDADA — TODAS AS EMPRESAS</div>'
+      +'<div style="font-size:12px;color:var(--text-muted);margin-top:2px">'+(_fcCtx.titulo||'')+' · '+linhas.length+' códigos · '+Math.round(tot.total).toLocaleString('pt-BR')+' peças em falta</div></div>'
+      +'<span onclick="document.getElementById(\'modal-falta-consol\').remove()" style="cursor:pointer;color:var(--text-muted);font-size:20px">✕</span></div>'
+    +'<div style="display:flex;gap:8px;align-items:center;margin:10px 0">'
+      +'<input id="fc-busca" oninput="_fcBuscar(this.value)" value="'+_fcBusca.replace(/"/g,'&quot;')+'" placeholder="Buscar código ou descrição…" style="flex:1;background:var(--panel);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:6px;font-size:12px">'
+      +'<button onclick="_fcExcel()" style="background:rgba(0,201,122,.12);border:1px solid var(--green);color:var(--green);padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📊 Excel</button></div>'
+    +'<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border);overflow:auto;-webkit-overflow-scrolling:touch">'
+    +'<table style="border-collapse:collapse;width:100%;min-width:820px;table-layout:fixed">'
+    +'<colgroup><col style="width:100px"><col><col style="width:78px"><col style="width:70px"><col style="width:70px"><col style="width:70px"><col style="width:70px"><col style="width:86px"></colgroup>'
+    +'<thead style="position:sticky;top:0;z-index:2"><tr>'
+      +'<th style="'+th+';cursor:pointer;text-align:center" onclick="_fcOrdenar(\'cod\')">CÓDIGO'+seta('cod')+'</th>'
+      +'<th style="'+th+';cursor:pointer;text-align:left" onclick="_fcOrdenar(\'desc\')">DESCRIÇÃO'+seta('desc')+'</th>'
+      + _FC_UFS.map(u=>'<th style="'+th+';cursor:pointer;text-align:center" onclick="_fcOrdenar(\''+u+'\')">'+_FC_LB[u]+seta(u)+'</th>').join('')
+      +'<th style="'+th+';cursor:pointer;text-align:center;background:var(--serie-azul)" onclick="_fcOrdenar(\'total\')">TOTAL'+seta('total')+'</th>'
+    +'</tr></thead><tbody>'
+    + (linhas.length?linhas.map((l,i)=>'<tr style="background:'+(i%2===0?'transparent':'var(--row-alt)')+'">'
+        +'<td style="'+td+';text-align:center;font-family:monospace">'+l.cod+'</td>'
+        +'<td style="'+td+';text-align:left;overflow:hidden;text-overflow:ellipsis" title="'+String(l.desc||'').replace(/"/g,'&quot;')+'">'+(l.desc||'')+'</td>'
+        + _FC_UFS.map(u=>cel(l[u],false)).join('')
+        + cel(l.total,true)
+      +'</tr>').join('')
+      :'<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--text-muted)">Nenhum código em falta.</td></tr>')
+    +'</tbody>'
+    +'<tfoot><tr style="background:var(--header-table-bg);font-weight:800">'
+      +'<td style="'+td+';text-align:center;color:#fff" colspan="2">TOTAL GERAL</td>'
+      + _FC_UFS.map(u=>'<td style="'+td+';text-align:center;color:#fff">'+Math.round(tot[u]).toLocaleString('pt-BR')+'</td>').join('')
+      +'<td style="'+td+';text-align:center;color:#fff;background:var(--serie-azul)">'+Math.round(tot.total).toLocaleString('pt-BR')+'</td>'
+    +'</tr></tfoot></table></div></div>';
+}
+
+function _fcBuscar(v){ _fcBusca=v; _fcRender();
+  const el=document.getElementById('fc-busca'); if(el){ el.focus(); el.setSelectionRange(el.value.length,el.value.length); } }
+function _fcOrdenar(k){ if(_fcSort.col===k) _fcSort.asc=!_fcSort.asc; else _fcSort={col:k, asc:(k==='cod'||k==='desc')}; _fcRender(); }
+function _fcExcel(){
+  const linhas=_fcLinhas();
+  const cab=['CODIGO','DESCRICAO'].concat(_FC_UFS.map(u=>_FC_LB[u])).concat(['TOTAL']);
+  const dados=linhas.map(l=>[l.cod,l.desc].concat(_FC_UFS.map(u=>Math.round(l[u]))).concat([Math.round(l.total)]));
+  try{
+    if(typeof XLSX!=='undefined'){
+      const ws=XLSX.utils.aoa_to_sheet([cab].concat(dados));
+      const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Falta consolidada');
+      XLSX.writeFile(wb,'falta_consolidada_'+new Date().toISOString().slice(0,10)+'.xlsx');
+      return;
+    }
+  }catch(e){}
+  const csv=[cab.join(';')].concat(dados.map(r=>r.join(';'))).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:'text/csv;charset=utf-8'}));
+  a.download='falta_consolidada_'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
+}
+
+// classificações por série do gráfico NS (usado no clique da barra e da tabela)
+const NS_TAB_CLASSES = {
+  'TOMADA':['300.200.001'],
+  'BOMBA':['300.500.001'],
+  'GUINCHO OS-M':['800.010.020'],
+  'GUINCHO OP':['800.010.040'],
+  'ENROLADOR':['800.050*'],
+  'CILINDRO':['300.400.001','300.300.005']
+};
+
 // ===== NS CHART — dynamic product selector =====
 let _nsProduct = 'tomada_bomba';
 
@@ -11308,15 +11441,7 @@ function renderNSChart() {
         if(!ds || ds.type==='line') return; // ignora linha de meta
         const ufArr = ['RS','SP','MG','GO','PE'];
         const uf = ufArr[el.index];
-        const NS_CLASS_MAP = {
-          'TOMADA':['300.200.001'],
-          'BOMBA':['300.500.001'],
-          'GUINCHO OS-M':['800.010.020'],
-          'GUINCHO OP':['800.010.040'],
-          'ENROLADOR':['800.050*'],
-          'CILINDRO':['300.400.001','300.300.005']
-        };
-        const classes = NS_CLASS_MAP[ds.label];
+        const classes = NS_TAB_CLASSES[ds.label];
         if(!classes) return;
         abrirFaltaDetalhe(classes, uf, ds.label);
       },
@@ -11361,8 +11486,9 @@ function renderNSChart() {
     </tr></thead>
     <tbody>
       ${dataRows.map((ds,i) => `<tr style="border-bottom:1px solid var(--border)">
-        <td style="padding:6px 14px;white-space:nowrap">
-          <span style="display:inline-block;width:10px;height:10px;background:${colors[ds.label]||palette[i]};border-radius:2px;margin-right:6px;vertical-align:middle"></span>${ds.label}
+        <td style="padding:6px 14px;white-space:nowrap;cursor:pointer" title="Ver falta consolidada (todas as empresas)"
+            onclick="abrirFaltaConsolidado((NS_TAB_CLASSES['${ds.label}']||[]),'${ds.label}')">
+          <span style="display:inline-block;width:10px;height:10px;background:${colors[ds.label]||palette[i]};border-radius:2px;margin-right:6px;vertical-align:middle"></span><span style="text-decoration:underline;text-decoration-style:dotted">${ds.label}</span>
         </td>
         ${ds.data.map(v=>v==null
           ? `<td style="text-align:center;color:var(--text-muted);font-weight:600;padding:6px 14px" title="Sem parâmetro de estoque de segurança cadastrado">s/ param.</td>`
