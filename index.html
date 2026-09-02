@@ -11272,36 +11272,27 @@ function renderNSChart() {
     datasets.push({ label:'BOMBA',  data: empsNS.map(e=>(n[e]||{}).BOM||0), backgroundColor:serieFill('--serie-laranja'), borderRadius:4 });
   }
   if (_nsProduct === 'guincho_enrol' || _nsProduct === 'todos') {
-    const guinchoOSM = empsNS.map(e => {
-      const rows = DATA.estoque.filter(r => r.uf === e && r.classificacao === '800.010.020');
+    // null = sem parâmetro de estoque de segurança cadastrado (≠ 0%)
+    const _nsPct = (filtro) => empsNS.map(e => {
+      const rows = DATA.estoque.filter(r => r.uf === e && filtro(r));
       const totParam = rows.reduce((s,r)=>s+r.qtde_param_es,0);
+      if (totParam <= 0) return null;
       const totAbast = rows.reduce((s,r)=>s+r.qtde_abast,0);
-      return totParam>0 ? Math.round(totAbast/totParam*1000)/10 : 0;
+      return Math.round(totAbast/totParam*1000)/10;
     });
-    datasets.push({ label:'GUINCHO OS-M', data: guinchoOSM, backgroundColor:serieFill('--serie-laranja'), borderRadius:4 });
-    const guinchoOP = empsNS.map(e => {
-      const rows = DATA.estoque.filter(r => r.uf === e && r.classificacao === '800.010.040');
-      const totParam = rows.reduce((s,r)=>s+r.qtde_param_es,0);
-      const totAbast = rows.reduce((s,r)=>s+r.qtde_abast,0);
-      return totParam>0 ? Math.round(totAbast/totParam*1000)/10 : 0;
-    });
-    datasets.push({ label:'GUINCHO OP', data: guinchoOP, backgroundColor:serieFill('--serie-laranja'), borderRadius:4 });
-    const enrolData = empsNS.map(e => {
-      const rows = DATA.estoque.filter(r => r.uf === e && r.classificacao.startsWith('800.050'));
-      const totParam = rows.reduce((s,r)=>s+r.qtde_param_es,0);
-      const totAbast = rows.reduce((s,r)=>s+r.qtde_abast,0);
-      return totParam>0 ? Math.round(totAbast/totParam*1000)/10 : 0;
-    });
-    datasets.push({ label:'ENROLADOR', data: enrolData, backgroundColor:serieFill('--serie-roxo'), borderRadius:4 });
+    datasets.push({ label:'GUINCHO OS-M', data: _nsPct(r=>r.classificacao === '800.010.020'), backgroundColor:serieFill('--serie-laranja'), borderRadius:4 });
+    datasets.push({ label:'GUINCHO OP',   data: _nsPct(r=>r.classificacao === '800.010.040'), backgroundColor:serieFill('--serie-ciano'),   borderRadius:4 });
+    datasets.push({ label:'ENROLADOR',    data: _nsPct(r=>r.classificacao.startsWith('800.050')), backgroundColor:serieFill('--serie-roxo'), borderRadius:4 });
   }
 
   if (_nsProduct === 'cilindro' || _nsProduct === 'todos') {
     const cilData = empsNS.map(e => {
       const rows = DATA.estoque.filter(r=>r.uf===e&&(r.classificacao==='300.400.001'||r.classificacao==='300.300.005'));
-      const avg = rows.length > 0 ? rows.reduce((s,r)=>s+r.pct_es,0)/rows.length : 0;
+      if (!rows.length) return null; // sem parâmetro cadastrado
+      const avg = rows.reduce((s,r)=>s+r.pct_es,0)/rows.length;
       return parseFloat(avg.toFixed(1));
     });
-    if (cilData.some(v=>v>0)) datasets.push({label:'CILINDRO',data:cilData,backgroundColor:serieFill('--serie-verde'),borderRadius:4});
+    if (cilData.some(v=>v!==null)) datasets.push({label:'CILINDRO',data:cilData,backgroundColor:serieFill('--serie-verde'),borderRadius:4});
   }
   datasets.push({ label:'META', data:[90,90,90,90,90], type:'line', borderColor:cssVar('--serie-verde'), borderWidth:2, borderDash:[6,4], pointRadius:0, fill:false, tension:0 });
 
@@ -11332,12 +11323,17 @@ function renderNSChart() {
       onHover: (evt, elements) => { const c = elements && elements.length && window._nsChart.data.datasets[elements[0].datasetIndex].type!=='line'; evt.native.target.style.cursor = c ? 'pointer' : 'default'; },
       plugins: {
         legend: { labels: { color: cssVar('--text'), font: { size: 12 } } },
-        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%` } },
+        tooltip: { callbacks: { label: ctx => ctx.parsed.y==null
+          ? `${ctx.dataset.label}: sem parâmetro de estoque de segurança`
+          : `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%` } },
         datalabels: {
           display: ctx => ctx.dataset.type !== 'line',
-          color: '#fff', font: { size: 11, weight: '700' },
-          anchor: 'end', align: 'start', offset: 4,
-          formatter: v => v.toFixed(1) + '%'
+          color: ctx => ctx.dataset.data[ctx.dataIndex]==null ? cssVar('--text-muted') : '#fff',
+          font: { size: 11, weight: '700' },
+          anchor: ctx => ctx.dataset.data[ctx.dataIndex]==null ? 'start' : 'end',
+          align: ctx => ctx.dataset.data[ctx.dataIndex]==null ? 'end' : 'start',
+          offset: 4,
+          formatter: v => v==null ? 's/ param.' : v.toFixed(1) + '%'
         }
       },
       scales: {
@@ -11356,7 +11352,7 @@ function renderNSChart() {
   nsTable.className = 'ns-data-table';
   nsTable.style.cssText = 'margin-top:12px;min-width:640px;';
   const dataRows = datasets.filter(d=>d.type!=='line');
-  const colors = {'TOMADA':'#3d8bff','BOMBA':'#ff8c3b','GUINCHO OS-M':'#f59e0b','GUINCHO OP':'#fb923c','ENROLADOR':'#c97aff'};
+  const colors = {'TOMADA':cssVar('--serie-azul'),'BOMBA':cssVar('--serie-laranja'),'GUINCHO OS-M':cssVar('--serie-laranja'),'GUINCHO OP':cssVar('--serie-ciano'),'ENROLADOR':cssVar('--serie-roxo'),'CILINDRO':cssVar('--serie-verde')};
   nsTable.innerHTML = `<table style="width:100%;min-width:640px;border-collapse:collapse;font-size:12px;table-layout:fixed;">
     <colgroup><col style="width:90px">${nsLabels.map(()=>'<col>').join('')}</colgroup>
     <thead><tr style="background:var(--th-bg)">
@@ -11368,7 +11364,9 @@ function renderNSChart() {
         <td style="padding:6px 14px;white-space:nowrap">
           <span style="display:inline-block;width:10px;height:10px;background:${colors[ds.label]||palette[i]};border-radius:2px;margin-right:6px;vertical-align:middle"></span>${ds.label}
         </td>
-        ${ds.data.map(v=>`<td style="text-align:center;color:${colors[ds.label]||palette[i]};font-weight:700;padding:6px 14px">${v.toFixed(1)}%</td>`).join('')}
+        ${ds.data.map(v=>v==null
+          ? `<td style="text-align:center;color:var(--text-muted);font-weight:600;padding:6px 14px" title="Sem parâmetro de estoque de segurança cadastrado">s/ param.</td>`
+          : `<td style="text-align:center;color:${colors[ds.label]||palette[i]};font-weight:700;padding:6px 14px">${v.toFixed(1)}%</td>`).join('')}
       </tr>`).join('')}
       <tr>
         <td style="padding:6px 14px;white-space:nowrap">
