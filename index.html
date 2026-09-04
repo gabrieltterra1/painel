@@ -11285,15 +11285,43 @@ function _fcLinhas(){
   if(!_fcCtx) return [];
   const casa = cod => _fcCtx.classList.some(c => c.endsWith('*') ? String(cod).startsWith(c.slice(0,-1)) : cod===c);
   const nomeParaUf={}; _FC_UFS.forEach(u=>{ nomeParaUf[UF_EMP_NOME[u]]=u; });
+
+  // índices para o cálculo do "já programado" (mesma regra do popup por empresa)
+  const ofPorCod={};
+  (DATA.ofItens||[]).forEach(o=>{ ofPorCod[o.COD_ITEM]=(ofPorCod[o.COD_ITEM]||0)+(Number(o.QTDE_PEND)||0); });
+  const transfPorCodUf={};
+  (DATA.pedidos||[]).forEach(p=>{
+    for(const uf in FILIAL_CLIENTE_COD){
+      if(p.clienteCod===FILIAL_CLIENTE_COD[uf]){
+        const k=p.codigo+'|'+uf; transfPorCodUf[k]=(transfPorCodUf[k]||0)+(Number(p.qtde)||0);
+      }
+    }
+  });
+  const transPorCodUf={};
+  (DATA.transito_detail||[]).forEach(r=>{ const k=r.codigo+'|'+r.empresa; transPorCodUf[k]=(transPorCodUf[k]||0)+(Number(r.quantidade)||0); });
+
   const mapa={};
   (DATA.estoqueDet||[]).forEach(it=>{
     if(!casa(it.COD_CLASSE)) return;
     const uf=nomeParaUf[it.EMPRESA]; if(!uf) return;
     const falta = it.DIF_SALDO < 0 ? Math.abs(it.DIF_SALDO) : 0;
-    if(!mapa[it.COD_ITEM]) mapa[it.COD_ITEM]={ cod:it.COD_ITEM, desc:it.DESC, RS:0,SP:0,MG:0,GO:0,PE:0, total:0 };
-    mapa[it.COD_ITEM][uf]+=falta;
-    mapa[it.COD_ITEM].total+=falta;
-    if(!mapa[it.COD_ITEM].desc && it.DESC) mapa[it.COD_ITEM].desc=it.DESC;
+    if(!mapa[it.COD_ITEM]) mapa[it.COD_ITEM]={ cod:it.COD_ITEM, desc:it.DESC, RS:0,SP:0,MG:0,GO:0,PE:0, total:0, aprog:0 };
+    const l=mapa[it.COD_ITEM];
+    l[uf]+=falta; l.total+=falta;
+    if(!l.desc && it.DESC) l.desc=it.DESC;
+    // já programado: Matriz = OFs em aberto ; Filiais = trânsito + pedidos de transferência
+    if(falta>0){
+      const pedEmp=Number(it.PEDIDOS)||0;
+      let saldo;
+      if(uf==='RS'){
+        saldo = (ofPorCod[it.COD_ITEM]||0) - pedEmp - falta;
+      } else {
+        const transito = it.EST_TRANSITO || transPorCodUf[it.COD_ITEM+'|'+uf] || 0;
+        const transf = transfPorCodUf[it.COD_ITEM+'|'+uf] || 0;
+        saldo = transito + transf - pedEmp - falta;
+      }
+      if(saldo<0) l.aprog += Math.abs(Math.round(saldo)); // só o que ainda não tem programação
+    }
   });
   let arr=Object.values(mapa).filter(l=>l.total>0);
   const q=_fcBusca.trim().toLowerCase();
@@ -11309,8 +11337,8 @@ function _fcLinhas(){
 function _fcRender(){
   const modal=document.getElementById('modal-falta-consol'); if(!modal) return;
   const linhas=_fcLinhas();
-  const tot={RS:0,SP:0,MG:0,GO:0,PE:0,total:0};
-  linhas.forEach(l=>{ _FC_UFS.forEach(u=>tot[u]+=l[u]); tot.total+=l.total; });
+  const tot={RS:0,SP:0,MG:0,GO:0,PE:0,total:0,aprog:0};
+  linhas.forEach(l=>{ _FC_UFS.forEach(u=>tot[u]+=l[u]); tot.total+=l.total; tot.aprog+=l.aprog; });
   const th='padding:8px 8px;font-size:11px;font-weight:800;color:#fff;white-space:nowrap;background:var(--header-table-bg)';
   const td='padding:6px 8px;font-size:12px;white-space:nowrap';
   const seta=k=>_fcSort.col===k?(_fcSort.asc?' ▲':' ▼'):'';
@@ -11318,32 +11346,35 @@ function _fcRender(){
   modal.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;width:1000px;max-width:96vw;max-height:88vh;display:flex;flex-direction:column">'
     +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">'
       +'<div><div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--serie-azul);letter-spacing:1px">FALTA CONSOLIDADA — TODAS AS EMPRESAS</div>'
-      +'<div style="font-size:12px;color:var(--text-muted);margin-top:2px">'+(_fcCtx.titulo||'')+' · '+linhas.length+' códigos · '+Math.round(tot.total).toLocaleString('pt-BR')+' peças em falta</div></div>'
+      +'<div style="font-size:12px;color:var(--text-muted);margin-top:2px">'+(_fcCtx.titulo||'')+' · '+linhas.length+' códigos · '+Math.round(tot.total).toLocaleString('pt-BR')+' peças em falta · <b style="color:var(--red)">'+Math.round(tot.aprog).toLocaleString('pt-BR')+' a programar</b></div></div>'
       +'<span onclick="document.getElementById(\'modal-falta-consol\').remove()" style="cursor:pointer;color:var(--text-muted);font-size:20px">✕</span></div>'
     +'<div style="display:flex;gap:8px;align-items:center;margin:10px 0">'
       +'<input id="fc-busca" oninput="_fcBuscar(this.value)" value="'+_fcBusca.replace(/"/g,'&quot;')+'" placeholder="Buscar código ou descrição…" style="flex:1;background:var(--panel);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:6px;font-size:12px">'
       +'<button onclick="_fcExcel()" style="background:rgba(0,201,122,.12);border:1px solid var(--green);color:var(--green);padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📊 Excel</button></div>'
     +'<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border);overflow:auto;-webkit-overflow-scrolling:touch">'
-    +'<table style="border-collapse:collapse;width:100%;min-width:820px;table-layout:fixed">'
-    +'<colgroup><col style="width:100px"><col><col style="width:78px"><col style="width:70px"><col style="width:70px"><col style="width:70px"><col style="width:70px"><col style="width:86px"></colgroup>'
+    +'<table style="border-collapse:collapse;width:100%;min-width:900px;table-layout:fixed">'
+    +'<colgroup><col style="width:100px"><col><col style="width:64px"><col style="width:60px"><col style="width:60px"><col style="width:60px"><col style="width:60px"><col style="width:80px"><col style="width:104px"></colgroup>'
     +'<thead style="position:sticky;top:0;z-index:2"><tr>'
       +'<th style="'+th+';cursor:pointer;text-align:center" onclick="_fcOrdenar(\'cod\')">CÓDIGO'+seta('cod')+'</th>'
       +'<th style="'+th+';cursor:pointer;text-align:left" onclick="_fcOrdenar(\'desc\')">DESCRIÇÃO'+seta('desc')+'</th>'
       + _FC_UFS.map(u=>'<th style="'+th+';cursor:pointer;text-align:center" onclick="_fcOrdenar(\''+u+'\')">'+_FC_LB[u]+seta(u)+'</th>').join('')
       +'<th style="'+th+';cursor:pointer;text-align:center;background:var(--serie-azul)" onclick="_fcOrdenar(\'total\')">TOTAL'+seta('total')+'</th>'
+      +'<th style="'+th+';cursor:pointer;text-align:center;background:var(--serie-vermelho)" title="Falta que ainda não tem OF, trânsito ou pedido de transferência" onclick="_fcOrdenar(\'aprog\')">A PROGRAMAR'+seta('aprog')+'</th>'
     +'</tr></thead><tbody>'
     + (linhas.length?linhas.map((l,i)=>'<tr style="background:'+(i%2===0?'transparent':'var(--row-alt)')+'">'
         +'<td style="'+td+';text-align:center;font-family:monospace">'+l.cod+'</td>'
         +'<td style="'+td+';text-align:left;overflow:hidden;text-overflow:ellipsis" title="'+String(l.desc||'').replace(/"/g,'&quot;')+'">'+(l.desc||'')+'</td>'
         + _FC_UFS.map(u=>cel(l[u],false)).join('')
-        + cel(l.total,true)
+        + '<td style="'+td+';text-align:center;font-weight:700;color:var(--text)">'+(l.total>0?Math.round(l.total).toLocaleString('pt-BR'):'—')+'</td>'
+        + '<td style="'+td+';text-align:center;font-weight:800;color:'+(l.aprog>0?'var(--red)':'var(--green)')+'">'+(l.aprog>0?Math.round(l.aprog).toLocaleString('pt-BR'):'✓ 0')+'</td>'
       +'</tr>').join('')
-      :'<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--text-muted)">Nenhum código em falta.</td></tr>')
+      :'<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--text-muted)">Nenhum código em falta.</td></tr>')
     +'</tbody>'
     +'<tfoot><tr style="background:var(--header-table-bg);font-weight:800">'
       +'<td style="'+td+';text-align:center;color:#fff" colspan="2">TOTAL GERAL</td>'
       + _FC_UFS.map(u=>'<td style="'+td+';text-align:center;color:#fff">'+Math.round(tot[u]).toLocaleString('pt-BR')+'</td>').join('')
       +'<td style="'+td+';text-align:center;color:#fff;background:var(--serie-azul)">'+Math.round(tot.total).toLocaleString('pt-BR')+'</td>'
+      +'<td style="'+td+';text-align:center;color:#fff;background:var(--serie-vermelho)">'+Math.round(tot.aprog).toLocaleString('pt-BR')+'</td>'
     +'</tr></tfoot></table></div></div>';
 }
 
@@ -11352,8 +11383,8 @@ function _fcBuscar(v){ _fcBusca=v; _fcRender();
 function _fcOrdenar(k){ if(_fcSort.col===k) _fcSort.asc=!_fcSort.asc; else _fcSort={col:k, asc:(k==='cod'||k==='desc')}; _fcRender(); }
 function _fcExcel(){
   const linhas=_fcLinhas();
-  const cab=['CODIGO','DESCRICAO'].concat(_FC_UFS.map(u=>_FC_LB[u])).concat(['TOTAL']);
-  const dados=linhas.map(l=>[l.cod,l.desc].concat(_FC_UFS.map(u=>Math.round(l[u]))).concat([Math.round(l.total)]));
+  const cab=['CODIGO','DESCRICAO'].concat(_FC_UFS.map(u=>_FC_LB[u])).concat(['TOTAL','A PROGRAMAR']);
+  const dados=linhas.map(l=>[l.cod,l.desc].concat(_FC_UFS.map(u=>Math.round(l[u]))).concat([Math.round(l.total),Math.round(l.aprog)]));
   try{
     if(typeof XLSX!=='undefined'){
       const ws=XLSX.utils.aoa_to_sheet([cab].concat(dados));
