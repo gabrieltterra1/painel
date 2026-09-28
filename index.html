@@ -6206,6 +6206,18 @@ function _pvPopularMultiDatas(datas, hoje) {
   lista.innerHTML = html;
 }
 
+// Vem do dashboard: abre a aba Plano 91 já filtrada pela família do card
+function irParaPlano91PorFamilia(familia){
+  showTab('plano91');
+  setTimeout(()=>{
+    try{
+      const sel=document.getElementById('plano91-familia');
+      if(sel){ sel.value=familia; }
+      if(typeof renderPlano91==='function') renderPlano91();
+    }catch(e){ console.warn('irParaPlano91PorFamilia',e); }
+  }, 60);
+}
+
 // Vem do dashboard: abre Pedidos filtrando a família do card + datas até o fim do mês
 const _MONT_TO_PVFAM = {
   'TOMADA_MULT':['TOMADA+MULT'],'BOMBA':['BOMBA'],'CILINDRO':['CILINDRO'],
@@ -12082,6 +12094,29 @@ function renderDashboard(){
           +'</div>';
       }).join('');
       montHtml+='<div class="dash-eyebrow" style="margin-top:14px"><span class="bar-accent" style="background:var(--amber)"></span>Necessidade — a montar até fim do mês</div><div class="dash-mont">'+necCards+'</div>';
+
+      // ── PLANO 91 — programado até fim do mês (por família) ──
+      try {
+        const _P91_FAM={'TOMADA_MULT':'TOMADA+MULT','BOMBA':'BOMBA','CILINDRO':'CILINDRO','GUINCHO':'GUINCHO+ENROLADOR','CONJ_EIXO':'CONJ EIXO','COMANDO':'WALVOIL - COMANDO','VALVULA':'WALVOIL - VALVULA','KIT_HIDR':'KIT HIDRAULICO'};
+        const fimMesIso=fimMes.getFullYear()+'-'+String(fimMes.getMonth()+1).padStart(2,'0')+'-'+String(fimMes.getDate()).padStart(2,'0');
+        const p91Cards=necProds.map(([col,label])=>{
+          const fam=_P91_FAM[col];
+          let qt=0, itens=0;
+          (DATA.plano91||[]).forEach(i=>{
+            if(i.familia!==fam) return;
+            if(!i.dataFimIso || i.dataFimIso>fimMesIso) return; // só até o fim do mês
+            qt+=i.qtde; itens++;
+          });
+          const cor=qt>0?'var(--serie-azul)':'var(--green-soft)';
+          return '<div class="dmc" onclick="irParaPlano91PorFamilia(&quot;'+fam+'&quot;)" style="cursor:pointer">'
+            +'<div class="dmc-top"><span class="ml">'+label+'</span></div>'
+            +'<div class="mv" style="color:'+cor+'">'+Math.round(qt).toLocaleString('pt-BR')+'</div>'
+            +(qt>0?'<div class="ms" style="font-size:10px;color:var(--text-muted);margin-top:2px">'+itens+' ordem(ns) no Plano 91</div>'
+                  :'<div class="ms" style="font-size:10px;color:var(--text-muted);margin-top:2px">sem programação</div>')
+            +'</div>';
+        }).join('');
+        montHtml+='<div class="dash-eyebrow" style="margin-top:14px"><span class="bar-accent" style="background:var(--serie-azul)"></span>Plano 91 — programado até fim do mês</div><div class="dash-mont">'+p91Cards+'</div>';
+      } catch(e){ console.warn('dash plano91 cards',e); }
     } catch(e){ console.warn('dash mont nec',e); montHtml+='<div style="margin-top:10px;padding:8px;background:rgba(255,80,80,.15);border:1px solid var(--red);border-radius:8px;font-size:11px;color:#ff6b6b">⚠ Cards de necessidade: '+(e&&e.message?e.message:e)+'</div>'; }
   } catch(e){ console.warn('dash mont',e); }
 
