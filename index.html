@@ -12107,11 +12107,21 @@ function renderDashboard(){
             if(!i.dataFimIso || i.dataFimIso>fimMesIso) return; // só até o fim do mês
             qt+=i.qtde; itens++;
           });
+          // mesma lógica do bloco de Necessidade: ritmo necessário vs meta/dia
+          const montHoje=(typeof _montadoHojeFamilia==='function')?_montadoHojeFamilia(col):0;
+          const metaDia=(typeof getMontadosMeta==='function')?(getMontadosMeta(col,mesAtual)||0):0;
+          let fracHoje=0;
+          if(hojeUtil){
+            fracHoje = (metaDia>0) ? Math.min(1, Math.max(0, (metaDia-montHoje)/metaDia)) : 1;
+          }
+          const duEff = duFuturos + fracHoje;
+          const ritmo = (qt>0 && duEff>0) ? (qt/duEff) : 0;
+          const acimaMeta = metaDia>0 && ritmo>metaDia;
           const cor=qt>0?'var(--serie-azul)':'var(--green-soft)';
-          return '<div class="dmc" onclick="irParaPlano91PorFamilia(&quot;'+fam+'&quot;)" style="cursor:pointer">'
-            +'<div class="dmc-top"><span class="ml">'+label+'</span></div>'
-            +'<div class="mv" style="color:'+cor+'">'+Math.round(qt).toLocaleString('pt-BR')+'</div>'
-            +(qt>0?'<div class="ms" style="font-size:10px;color:var(--text-muted);margin-top:2px">'+itens+' ordem(ns) no Plano 91</div>'
+          return '<div class="dmc'+(acimaMeta?' crit':'')+'" onclick="irParaPlano91PorFamilia(&quot;'+fam+'&quot;)" style="cursor:pointer'+(acimaMeta?';background:rgba(255,80,80,.12);border:1px solid var(--red)':'')+'">'
+            +'<div class="dmc-top"><span class="ml">'+label+'</span>'+(acimaMeta?'<span class="badge" style="color:var(--red)">▲ acima da meta</span>':'')+'</div>'
+            +'<div class="mv" style="color:'+(acimaMeta?'#ff6b6b':cor)+'">'+Math.round(qt).toLocaleString('pt-BR')+'</div>'
+            +(qt>0?'<div class="ms" style="font-size:10px;color:var(--text-muted);margin-top:2px">ritmo <b style="color:'+(acimaMeta?'#ff6b6b':'var(--serie-azul)')+'">'+fmt1(ritmo)+'/dia</b> · meta '+(metaDia>0?fmt1(metaDia):'—')+'/dia<br><span style="font-size:9px">'+itens+' ordem(ns) · '+fmt1(duEff)+' du restantes</span></div>'
                   :'<div class="ms" style="font-size:10px;color:var(--text-muted);margin-top:2px">sem programação</div>')
             +'</div>';
         }).join('');
