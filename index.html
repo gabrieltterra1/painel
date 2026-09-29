@@ -15183,10 +15183,22 @@ async function readSheets() {
     'PLANO_91':          parsePlano91
   };
 
-  // Fetch CONFIG primeiro (metas, feriados, etc.)
+  // Fetch CONFIG primeiro (metas, feriados, etc.) — crítico, então 2 tentativas com timeout maior
   try {
-    const cfgRes = await _fetchTO(WEBAPP+'?aba=CONFIG&t='+Date.now(), 20000);
-    const cfgText = await cfgRes.text();
+    let cfgText='';
+    for (let t=1; t<=2; t++){
+      try {
+        const cfgRes = await _fetchTO(WEBAPP+'?aba=CONFIG&t='+Date.now(), 45000);
+        if (!cfgRes.ok) throw new Error('HTTP '+cfgRes.status);
+        cfgText = await cfgRes.text();
+        if (cfgText && cfgText.trim().startsWith('{')) break; // veio JSON válido
+        throw new Error('resposta inválida');
+      } catch(e){
+        console.warn('CONFIG tentativa '+t+' falhou:', e && e.message ? e.message : e);
+        cfgText='';
+        if (t<2) await _sleep(1500);
+      }
+    }
     if (cfgText && cfgText.trim().startsWith('{')) {
       DATA.config = JSON.parse(cfgText);
       // Processos excluídos (persistidos): chave PROC_EXCLUIDOS = lista separada por "|"
