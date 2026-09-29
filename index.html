@@ -15226,7 +15226,8 @@ async function readSheets() {
   // Fetch PROC_FORNECEDOR (mapeamento fornecedor->processo editável) ANTES de parsear serviços,
   // para que getFornProcesso já mescle código + Sheets na classificação.
   try {
-    const pfRes = await _fetchTO(WEBAPP+'?aba=PROC_FORNECEDOR&t='+Date.now(), 15000);
+    // timeout curto: se a aba nao existir, nao vale segurar a fila do Apps Script
+    const pfRes = await _fetchTO(WEBAPP+'?aba=PROC_FORNECEDOR&t='+Date.now(), 6000);
     DATA.procFornecedor = {}; // { cod: {processo, nome} }
     if (!pfRes.ok) throw new Error('HTTP '+pfRes.status+' (aba ausente?)');
     const pfText = await pfRes.text();
@@ -15261,11 +15262,11 @@ async function _fetchTO(url, ms){
   }
 }
 
-  const fetchAba = async (aba, tentativas=4) => {
+  const fetchAba = async (aba, tentativas=2) => {
     let ultErro;
     for (let t=1; t<=tentativas; t++) {
       try {
-        const res = await _fetchTO(WEBAPP+'?aba='+encodeURIComponent(aba)+'&t='+Date.now(), 25000);
+        const res = await _fetchTO(WEBAPP+'?aba='+encodeURIComponent(aba)+'&t='+Date.now(), 20000);
         if (!res.ok) throw new Error('HTTP '+res.status);
         const text = await res.text();
         if (!text.trim()) throw new Error('vazio');
@@ -15282,39 +15283,31 @@ async function _fetchTO(url, ms){
     throw ultErro;
   };
 
-  // busca em lotes pequenos sequenciais (respeita concorrência e tempo do Apps Script)
-  const _emLotes = async (chaves, tam) => {
-    const out = [];
-    for (let i=0; i<chaves.length; i+=tam) {
-      const lote = chaves.slice(i, i+tam);
-      const res = await Promise.allSettled(lote.map(aba => fetchAba(aba)));
-      out.push(...res);
-    }
-    return out;
-  };
-
+  // Leitura SEQUENCIAL (uma aba por vez).
+  // Medido no ambiente real: cada aba responde em ~2s sozinha, mas em lote de 4 vai a 9-18s,
+  // porque o Apps Script serializa execucoes por usuario e as chamadas se enfileiram.
+  // Em serie o total fica ~2s x N, bem abaixo do lote concorrente.
   const abaKeys = Object.keys(abas);
   let found = 0, errors = [];
 
-  // ── Busca em LOTES PEQUENOS SEQUENCIAIS (2 por vez) ──
-  // Comprovado: o Apps Script trava se receber muitas requisições ao mesmo tempo,
-  // e o endpoint único (?acao=tudo) estoura o limite de 60s. Lotes de 2 respeitam
-  // a concorrência e o tempo. O cache por aba no Apps Script acelera as repetições.
-  const PESADAS = ['SERVICO_TERCEIROS','DISPONIBILIDADE','PLANO_91','ESTOQUE_SEG_DETALHE'];
-  const leves = abaKeys.filter(k=>PESADAS.indexOf(k)<0);
-  const pesadas = abaKeys.filter(k=>PESADAS.indexOf(k)>=0);
-  const ordem = [];
-  const maxLen = Math.max(leves.length, pesadas.length);
-  for (let i=0;i<maxLen;i++){ if(pesadas[i]) ordem.push(pesadas[i]); if(leves[i]) ordem.push(leves[i]); if(leves[i+maxLen]) ordem.push(leves[i+maxLen]); }
+  // ordem: as mais uteis primeiro, para o painel ja mostrar algo util antes do fim
+  const PRIORIDADE = ['OF_ABERTAS','ITENS_MONTADOS','PEDIDOS_DE_VENDA','IFE','ESTOQUE_SEG_DETALHE',
+                      'ESTOQUE_SEGURANCA','TRANSITO','TERMICO_POLIMENTO','SERVICO_TERCEIROS',
+                      'DISPONIBILIDADE','PLANO_91'];
+  const ordem = PRIORIDADE.filter(k=>abaKeys.indexOf(k)>=0);
   abaKeys.forEach(k=>{ if(ordem.indexOf(k)<0) ordem.push(k); });
 
-  const results = await _emLotes(ordem, 2);
-  for (let i = 0; i < ordem.length; i++) {
-    const aba = ordem[i]; const result = results[i];
-    if (result.status === 'fulfilled' && result.value) {
-      try { abas[aba](result.value); found++; }
+  for (let i=0; i<ordem.length; i++) {
+    const aba = ordem[i];
+    setStatus('active', 'Lendo planilha... ('+(i+1)+'/'+ordem.length+')', aba);
+    try {
+      const texto = await fetchAba(aba);
+      try { abas[aba](texto); found++; }
       catch(e) { errors.push(aba); console.error(aba, e); }
-    } else { errors.push(aba); console.error(aba, result.reason); }
+    } catch(e) {
+      errors.push(aba); console.error(aba, e);
+    }
+    if (i < ordem.length-1) await _sleep(150); // respiro entre chamadas
   }
 
   if (found > 0) {
