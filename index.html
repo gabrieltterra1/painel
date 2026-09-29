@@ -10321,7 +10321,7 @@ async function pfSalvar() {
     if (st) { st.textContent = '✅ Salvo! Reclassificando...'; st.style.color = 'var(--green)'; }
     // re-parseia serviços com o novo mapa (reclassifica os processos)
     try {
-      const sres = await fetch(WEBAPP+'?aba=SERVICO_TERCEIROS&t='+Date.now());
+      const sres = await _fetchTO(WEBAPP+'?aba=SERVICO_TERCEIROS&t='+Date.now(), 25000);
       const stext = await sres.text();
       if (stext && stext.trim()) parseServico(stext);
     } catch(e) { console.warn('reparse servico', e); }
@@ -15185,7 +15185,7 @@ async function readSheets() {
 
   // Fetch CONFIG primeiro (metas, feriados, etc.)
   try {
-    const cfgRes = await fetch(WEBAPP+'?aba=CONFIG&t='+Date.now());
+    const cfgRes = await _fetchTO(WEBAPP+'?aba=CONFIG&t='+Date.now(), 20000);
     const cfgText = await cfgRes.text();
     if (cfgText && cfgText.trim().startsWith('{')) {
       DATA.config = JSON.parse(cfgText);
@@ -15214,10 +15214,11 @@ async function readSheets() {
   // Fetch PROC_FORNECEDOR (mapeamento fornecedor->processo editável) ANTES de parsear serviços,
   // para que getFornProcesso já mescle código + Sheets na classificação.
   try {
-    const pfRes = await fetch(WEBAPP+'?aba=PROC_FORNECEDOR&t='+Date.now());
-    const pfText = await pfRes.text();
+    const pfRes = await _fetchTO(WEBAPP+'?aba=PROC_FORNECEDOR&t='+Date.now(), 15000);
     DATA.procFornecedor = {}; // { cod: {processo, nome} }
-    if (pfText && pfText.trim()) {
+    if (!pfRes.ok) throw new Error('HTTP '+pfRes.status+' (aba ausente?)');
+    const pfText = await pfRes.text();
+    if (pfText && pfText.trim() && pfText.slice(0,60).toLowerCase().indexOf('<html')<0) {
       const rows = parseCSV(pfText, ';');
       // pula cabeçalho (COD | PROCESSO | NOME)
       for (let i = 1; i < rows.length; i++) {
@@ -15232,11 +15233,27 @@ async function readSheets() {
 
   // Fetch paralelo — todas as abas ao mesmo tempo
   const _sleep = ms => new Promise(r=>setTimeout(r,ms));
+// Fetch com timeout: evita que uma requisição pendente trave o carregamento inteiro.
+// Retorna a resposta ou lança erro ('timeout' / 'HTTP nnn').
+async function _fetchTO(url, ms){
+  const ms2 = ms || 25000;
+  const ctrl = (typeof AbortController!=='undefined') ? new AbortController() : null;
+  const tid = setTimeout(()=>{ try{ ctrl && ctrl.abort(); }catch(e){} }, ms2);
+  try {
+    const res = await fetch(url, ctrl?{signal:ctrl.signal}:undefined);
+    clearTimeout(tid);
+    return res;
+  } catch(e){
+    clearTimeout(tid);
+    throw (e && e.name==='AbortError') ? new Error('timeout ('+Math.round(ms2/1000)+'s)') : e;
+  }
+}
+
   const fetchAba = async (aba, tentativas=4) => {
     let ultErro;
     for (let t=1; t<=tentativas; t++) {
       try {
-        const res = await fetch(WEBAPP+'?aba='+encodeURIComponent(aba)+'&t='+Date.now());
+        const res = await _fetchTO(WEBAPP+'?aba='+encodeURIComponent(aba)+'&t='+Date.now(), 25000);
         if (!res.ok) throw new Error('HTTP '+res.status);
         const text = await res.text();
         if (!text.trim()) throw new Error('vazio');
