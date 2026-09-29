@@ -10310,6 +10310,7 @@ async function pfSalvar() {
     const payload = JSON.stringify({ action: 'salvarProcFornecedor', data: _pfDados.map(d => ({ cod: d.cod, processo: d.processo, nome: d.nome||'' })) });
     // POST fire-and-forget (no-cors): o Sheets recebe, mas não lemos a resposta — assumimos sucesso.
     fetch(WEBAPP, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: payload });
+    window._procFornAusente = false; // a aba passa a existir a partir deste salvamento
     // Atualiza o mapa em memória imediatamente para refletir sem recarregar tudo
     DATA.procFornecedor = {};
     _pfDados.forEach(d => { if (d.cod && d.processo) DATA.procFornecedor[d.cod] = { processo: d.processo, nome: d.nome||'' }; });
@@ -15225,11 +15226,17 @@ async function readSheets() {
 
   // Fetch PROC_FORNECEDOR (mapeamento fornecedor->processo editável) ANTES de parsear serviços,
   // para que getFornProcesso já mescle código + Sheets na classificação.
+  // A aba é OPCIONAL: só passa a existir quando o usuário salva um mapeamento pelo painel
+  // (o Apps Script a cria em salvarProcFornecedor). Enquanto não existir, o fetch dá 404 e
+  // ocupa a fila do Apps Script a cada leitura — então marcamos e paramos de tentar.
+  if (window._procFornAusente) {
+    DATA.procFornecedor = DATA.procFornecedor || {};
+  } else
   try {
-    // timeout curto: se a aba nao existir, nao vale segurar a fila do Apps Script
     const pfRes = await _fetchTO(WEBAPP+'?aba=PROC_FORNECEDOR&t='+Date.now(), 6000);
     DATA.procFornecedor = {}; // { cod: {processo, nome} }
-    if (!pfRes.ok) throw new Error('HTTP '+pfRes.status+' (aba ausente?)');
+    if (pfRes.status === 404) { window._procFornAusente = true; throw new Error('aba ainda não existe (será criada ao salvar um mapeamento)'); }
+    if (!pfRes.ok) throw new Error('HTTP '+pfRes.status);
     const pfText = await pfRes.text();
     if (pfText && pfText.trim() && pfText.slice(0,60).toLowerCase().indexOf('<html')<0) {
       const rows = parseCSV(pfText, ';');
@@ -15241,7 +15248,12 @@ async function readSheets() {
         if (cod && proc) DATA.procFornecedor[cod] = { processo: proc, nome: nome };
       }
     }
-  } catch(e) { console.warn('PROC_FORNECEDOR não disponível:', e); DATA.procFornecedor = DATA.procFornecedor || {}; }
+  } catch(e) {
+    // timeout tambem indica aba inexistente (o 404 do Apps Script chega via redirect que expira)
+    if (String(e && e.message||'').indexOf('timeout')>=0) window._procFornAusente = true;
+    console.warn('PROC_FORNECEDOR não disponível:', e && e.message ? e.message : e);
+    DATA.procFornecedor = DATA.procFornecedor || {};
+  }
 
 
   // Fetch paralelo — todas as abas ao mesmo tempo
