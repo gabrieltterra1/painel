@@ -1343,6 +1343,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <button class="ns-btn" onclick="setNSProduct('cilindro')">CILINDRO</button>
       <button class="ns-btn" onclick="setNSProduct('todos')">TODOS</button>
       <button onclick="abrirFaltaConsolidadoProduto()" title="Somatório das faltas de todas as empresas, por código" style="margin-left:10px;background:rgba(61,139,255,.14);border:1px solid var(--serie-azul);color:var(--serie-azul);padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.5px">Σ VER CONSOLIDADO</button>
+      <button id="ns-btn-transito" onclick="toggleNSTransito()" title="Simula o nível de serviço após a chegada dos produtos que estão em trânsito para as filiais" style="margin-left:6px;background:rgba(0,201,122,.10);border:1px solid var(--green);color:var(--green);padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.5px">🚚 SIMULAR TRÂNSITO</button>
     </div>
   </div>
   <div class="chart-card" style="margin-bottom:28px;">
@@ -11433,6 +11434,59 @@ const NS_TAB_CLASSES = {
 
 // ===== NS CHART — dynamic product selector =====
 let _nsProduct = 'tomada_bomba';
+let _nsComTransito = false; // simula a chegada dos produtos em trânsito
+
+// filtros de linha de estoque por série do gráfico
+const NS_SERIE_FILTRO = {
+  'TOMADA':       r => r.classificacao === '300.200.001',
+  'BOMBA':        r => r.classificacao === '300.500.001',
+  'GUINCHO OS-M': r => r.classificacao === '800.010.020',
+  'GUINCHO OP':   r => r.classificacao === '800.010.040',
+  'ENROLADOR':    r => String(r.classificacao||'').startsWith('800.050'),
+  'CILINDRO':     r => r.classificacao === '300.400.001' || r.classificacao === '300.300.005'
+};
+
+// Incremento (em pontos percentuais) que o estoque em trânsito traria ao NS de cada empresa.
+// CÁLCULO POR CÓDIGO: o estoque de segurança é definido por item, então o trânsito de um código
+// que já está completo NÃO melhora o nível de serviço. Para cada código:
+//   abastecido      = min(estoque atual, parâmetro)
+//   abast. simulado = min(estoque atual + trânsito, parâmetro)
+// O ganho é a soma das diferenças dividida pela soma dos parâmetros.
+function _nsDeltaTransito(filtro, empsNS){
+  const nomeEmp = { 'SP':'SP','MG':'MG','GO':'GO','PE':'PE' };
+  return empsNS.map(e => {
+    if (e === 'RS') return 0; // trânsito é da Matriz para as filiais
+    const alvo = nomeEmp[e];
+    const itens = (DATA.estoqueDet||[]).filter(it =>
+      it.EMPRESA === alvo && filtro({classificacao: it.COD_CLASSE}));
+    if (!itens.length) return null;
+    let somaParam = 0, ganho = 0;
+    itens.forEach(it => {
+      const param = Number(it.PARAM_ES)||0;
+      if (param <= 0) return;                       // item sem estoque de segurança cadastrado
+      somaParam += param;
+      const atual   = Number(it.EST_ATUAL)||0;
+      const trans   = Number(it.EST_TRANSITO)||0;
+      if (trans <= 0) return;
+      const abastHoje = Math.min(atual, param);
+      const abastSim  = Math.min(atual + trans, param);
+      ganho += (abastSim - abastHoje);              // só conta o que cobre falta real do código
+    });
+    if (somaParam <= 0) return null;
+    return Math.round(ganho/somaParam*1000)/10;
+  });
+}
+
+function toggleNSTransito(){
+  _nsComTransito = !_nsComTransito;
+  const b = document.getElementById('ns-btn-transito');
+  if (b){
+    b.style.background = _nsComTransito ? 'rgba(0,201,122,.22)' : 'rgba(0,201,122,.10)';
+    b.style.fontWeight = _nsComTransito ? '800' : '700';
+    b.textContent = _nsComTransito ? '🚚 COM TRÂNSITO ✓' : '🚚 SIMULAR TRÂNSITO';
+  }
+  renderNSChart();
+}
 
 function setNSProduct(prod) {
   _nsProduct = prod;
@@ -11453,22 +11507,44 @@ function renderNSChart() {
   const palette = ['#3d8bff','#ff8c3b','#00c97a','#c97aff','#ffaa00'];
   let datasets = [];
 
+  // helper: adiciona a série e, se a simulação estiver ligada, a barra empilhada do trânsito
+  const _addSerie = (label, data, cor) => {
+    const stackId = 's_'+label.replace(/[^A-Za-z0-9]/g,'');
+    datasets.push({ label, data, backgroundColor:serieFill(cor), borderRadius:4, stack:stackId, _cor:cor });
+    if (_nsComTransito){
+      const filtro = NS_SERIE_FILTRO[label];
+      if (filtro){
+        const delta = _nsDeltaTransito(filtro, empsNS);
+        if (delta.some(v=>v>0)){
+          datasets.push({
+            label: label+' (trânsito)',
+            data: delta,
+            backgroundColor: serieFill(cor, '45'),           // mesma cor, bem translúcida
+            borderColor: cssVar(cor), borderWidth: 1, borderDash: [4,3],
+            borderRadius: 4, stack: stackId, _transito: true
+          });
+        }
+      }
+    }
+  };
+
+  // null = sem parâmetro de estoque de segurança cadastrado (≠ 0%)
+  const _nsPct = (filtro) => empsNS.map(e => {
+    const rows = DATA.estoque.filter(r => r.uf === e && filtro(r));
+    const totParam = rows.reduce((s,r)=>s+r.qtde_param_es,0);
+    if (totParam <= 0) return null;
+    const totAbast = rows.reduce((s,r)=>s+r.qtde_abast,0);
+    return Math.round(totAbast/totParam*1000)/10;
+  });
+
   if (_nsProduct === 'tomada_bomba' || _nsProduct === 'todos') {
-    datasets.push({ label:'TOMADA', data: empsNS.map(e=>(n[e]||{}).TOM||0), backgroundColor:serieFill('--serie-azul'), borderRadius:4 });
-    datasets.push({ label:'BOMBA',  data: empsNS.map(e=>(n[e]||{}).BOM||0), backgroundColor:serieFill('--serie-laranja'), borderRadius:4 });
+    _addSerie('TOMADA', empsNS.map(e=>(n[e]||{}).TOM||0), '--serie-azul');
+    _addSerie('BOMBA',  empsNS.map(e=>(n[e]||{}).BOM||0), '--serie-laranja');
   }
   if (_nsProduct === 'guincho_enrol' || _nsProduct === 'todos') {
-    // null = sem parâmetro de estoque de segurança cadastrado (≠ 0%)
-    const _nsPct = (filtro) => empsNS.map(e => {
-      const rows = DATA.estoque.filter(r => r.uf === e && filtro(r));
-      const totParam = rows.reduce((s,r)=>s+r.qtde_param_es,0);
-      if (totParam <= 0) return null;
-      const totAbast = rows.reduce((s,r)=>s+r.qtde_abast,0);
-      return Math.round(totAbast/totParam*1000)/10;
-    });
-    datasets.push({ label:'GUINCHO OS-M', data: _nsPct(r=>r.classificacao === '800.010.020'), backgroundColor:serieFill('--serie-laranja'), borderRadius:4 });
-    datasets.push({ label:'GUINCHO OP',   data: _nsPct(r=>r.classificacao === '800.010.040'), backgroundColor:serieFill('--serie-ciano'),   borderRadius:4 });
-    datasets.push({ label:'ENROLADOR',    data: _nsPct(r=>r.classificacao.startsWith('800.050')), backgroundColor:serieFill('--serie-roxo'), borderRadius:4 });
+    _addSerie('GUINCHO OS-M', _nsPct(NS_SERIE_FILTRO['GUINCHO OS-M']), '--serie-laranja');
+    _addSerie('GUINCHO OP',   _nsPct(NS_SERIE_FILTRO['GUINCHO OP']),   '--serie-ciano');
+    _addSerie('ENROLADOR',    _nsPct(NS_SERIE_FILTRO['ENROLADOR']),    '--serie-roxo');
   }
 
   if (_nsProduct === 'cilindro' || _nsProduct === 'todos') {
@@ -11478,7 +11554,7 @@ function renderNSChart() {
       const avg = rows.reduce((s,r)=>s+r.pct_es,0)/rows.length;
       return parseFloat(avg.toFixed(1));
     });
-    if (cilData.some(v=>v!==null)) datasets.push({label:'CILINDRO',data:cilData,backgroundColor:serieFill('--serie-verde'),borderRadius:4});
+    if (cilData.some(v=>v!==null)) _addSerie('CILINDRO', cilData, '--serie-verde');
   }
   datasets.push({ label:'META', data:[90,90,90,90,90], type:'line', borderColor:cssVar('--serie-verde'), borderWidth:2, borderDash:[6,4], pointRadius:0, fill:false, tension:0 });
 
@@ -11491,7 +11567,7 @@ function renderNSChart() {
         if(!elements || !elements.length) return;
         const el = elements[0];
         const ds = window._nsChart.data.datasets[el.datasetIndex];
-        if(!ds || ds.type==='line') return; // ignora linha de meta
+        if(!ds || ds.type==='line' || ds._transito) return; // ignora linha de meta e barra simulada
         const ufArr = ['RS','SP','MG','GO','PE'];
         const uf = ufArr[el.index];
         const classes = NS_TAB_CLASSES[ds.label];
@@ -11501,9 +11577,15 @@ function renderNSChart() {
       onHover: (evt, elements) => { const c = elements && elements.length && window._nsChart.data.datasets[elements[0].datasetIndex].type!=='line'; evt.native.target.style.cursor = c ? 'pointer' : 'default'; },
       plugins: {
         legend: { labels: { color: cssVar('--text'), font: { size: 12 } } },
-        tooltip: { callbacks: { label: ctx => ctx.parsed.y==null
-          ? `${ctx.dataset.label}: sem parâmetro de estoque de segurança`
-          : `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%` } },
+        tooltip: { callbacks: { label: ctx => {
+          if (ctx.parsed.y==null) return `${ctx.dataset.label}: sem parâmetro de estoque de segurança`;
+          if (ctx.dataset._transito){
+            const base = (ctx.chart.data.datasets.find(d=>d.stack===ctx.dataset.stack && !d._transito)||{}).data||[];
+            const b = Number(base[ctx.dataIndex])||0;
+            return `+${ctx.parsed.y.toFixed(1)} pp com trânsito → ${(b+ctx.parsed.y).toFixed(1)}%`;
+          }
+          return `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%`;
+        } } },
         datalabels: {
           display: ctx => ctx.dataset.type !== 'line',
           color: ctx => ctx.dataset.data[ctx.dataIndex]==null ? cssVar('--text-muted') : '#fff',
@@ -11511,12 +11593,20 @@ function renderNSChart() {
           anchor: ctx => ctx.dataset.data[ctx.dataIndex]==null ? 'start' : 'end',
           align: ctx => ctx.dataset.data[ctx.dataIndex]==null ? 'end' : 'start',
           offset: 4,
-          formatter: v => v==null ? 's/ param.' : v.toFixed(1) + '%'
+          formatter: (v, ctx) => {
+            if (v==null) return 's/ param.';
+            if (ctx.dataset._transito){
+              const base = (ctx.chart.data.datasets.find(d=>d.stack===ctx.dataset.stack && !d._transito)||{}).data||[];
+              const b = Number(base[ctx.dataIndex])||0;
+              return v>0 ? '→ '+(b+v).toFixed(1)+'%' : '';
+            }
+            return v.toFixed(1) + '%';
+          }
         }
       },
       scales: {
-        x: { ticks: { color: cssVar('--text-muted'), font: { size: 14, weight: '700' } }, grid: { color: cssVar('--grid') } },
-        y: { min: 0, max: 105, afterFit:(s)=>{ s.width = 90; }, ticks: { color: cssVar('--text-muted'), callback: v => v + '%' }, grid: { color: cssVar('--grid') } }
+        x: { stacked: true, ticks: { color: cssVar('--text-muted'), font: { size: 14, weight: '700' } }, grid: { color: cssVar('--grid') } },
+        y: { stacked: true, min: 0, max: 105, afterFit:(s)=>{ s.width = 90; }, ticks: { color: cssVar('--text-muted'), callback: v => v + '%' }, grid: { color: cssVar('--grid') } }
       }
     }
   });
@@ -11538,7 +11628,24 @@ function renderNSChart() {
       ${nsLabels.map(l=>`<th style="padding:7px 14px;text-align:center;color:var(--text);font-family:var(--font-display);letter-spacing:2px">${l}</th>`).join('')}
     </tr></thead>
     <tbody>
-      ${dataRows.map((ds,i) => `<tr style="border-bottom:1px solid var(--border)">
+      ${dataRows.map((ds,i) => {
+        if (ds._transito){
+          // linha da simulação: mostra o NS projetado (base + trânsito)
+          const base = (datasets.find(d=>d.stack===ds.stack && !d._transito)||{}).data||[];
+          const cor = colors[ds.label.replace(' (trânsito)','')]||palette[i];
+          return `<tr style="border-bottom:1px solid var(--border);background:rgba(0,201,122,.05)">
+            <td style="padding:6px 14px;white-space:nowrap;font-size:11px;color:var(--text-muted)">
+              <span style="display:inline-block;width:10px;height:10px;background:${cor};opacity:.35;border:1px dashed ${cor};border-radius:2px;margin-right:6px;vertical-align:middle"></span>↳ com trânsito
+            </td>
+            ${ds.data.map((v,j)=>{
+              const b0 = Number(base[j]);
+              if (v==null || base[j]==null) return `<td style="text-align:center;color:var(--text-muted);padding:6px 14px">—</td>`;
+              if (!v) return `<td style="text-align:center;color:var(--muted-dim);padding:6px 14px">—</td>`;
+              return `<td style="text-align:center;color:var(--green);font-weight:700;padding:6px 14px">${(b0+v).toFixed(1)}% <span style="font-size:10px;opacity:.8">(+${v.toFixed(1)})</span></td>`;
+            }).join('')}
+          </tr>`;
+        }
+        return `<tr style="border-bottom:1px solid var(--border)">
         <td style="padding:6px 14px;white-space:nowrap;cursor:pointer" title="Ver falta consolidada (todas as empresas)"
             onclick="abrirFaltaConsolidado((NS_TAB_CLASSES['${ds.label}']||[]),'${ds.label}')">
           <span style="display:inline-block;width:10px;height:10px;background:${colors[ds.label]||palette[i]};border-radius:2px;margin-right:6px;vertical-align:middle"></span><span style="text-decoration:underline;text-decoration-style:dotted">${ds.label}</span>
@@ -11546,7 +11653,8 @@ function renderNSChart() {
         ${ds.data.map(v=>v==null
           ? `<td style="text-align:center;color:var(--text-muted);font-weight:600;padding:6px 14px" title="Sem parâmetro de estoque de segurança cadastrado">s/ param.</td>`
           : `<td style="text-align:center;color:${colors[ds.label]||palette[i]};font-weight:700;padding:6px 14px">${v.toFixed(1)}%</td>`).join('')}
-      </tr>`).join('')}
+      </tr>`;
+      }).join('')}
       <tr>
         <td style="padding:6px 14px;white-space:nowrap">
           <span style="display:inline-block;width:12px;height:2px;background:#00c97a;margin-right:6px;vertical-align:middle"></span>META
