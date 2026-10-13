@@ -11591,8 +11591,11 @@ function renderNSChart() {
           color: ctx => ctx.dataset.data[ctx.dataIndex]==null ? cssVar('--text-muted') : '#fff',
           font: { size: 11, weight: '700' },
           anchor: ctx => ctx.dataset.data[ctx.dataIndex]==null ? 'start' : 'end',
-          align: ctx => ctx.dataset.data[ctx.dataIndex]==null ? 'end' : 'start',
-          offset: 4,
+          // barra de trânsito: rótulo ACIMA da coluna (align 'end'), para não colidir
+          // com o rótulo da barra base quando os valores ficam próximos
+          align: ctx => ctx.dataset._transito ? 'end'
+                      : (ctx.dataset.data[ctx.dataIndex]==null ? 'end' : 'start'),
+          offset: ctx => ctx.dataset._transito ? 6 : 4,
           formatter: (v, ctx) => {
             if (v==null) return 's/ param.';
             if (ctx.dataset._transito){
@@ -11606,7 +11609,7 @@ function renderNSChart() {
       },
       scales: {
         x: { stacked: true, ticks: { color: cssVar('--text-muted'), font: { size: 14, weight: '700' } }, grid: { color: cssVar('--grid') } },
-        y: { stacked: true, min: 0, max: 105, afterFit:(s)=>{ s.width = 90; }, ticks: { color: cssVar('--text-muted'), callback: v => v + '%' }, grid: { color: cssVar('--grid') } }
+        y: { stacked: true, min: 0, max: _nsComTransito ? 118 : 105, afterFit:(s)=>{ s.width = 90; }, ticks: { color: cssVar('--text-muted'), callback: v => v + '%' }, grid: { color: cssVar('--grid') } }
       }
     }
   });
