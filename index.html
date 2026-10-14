@@ -10879,7 +10879,46 @@ function renderDisponibilidade() {
   });
   const cardsEl = document.getElementById('disp-cards');
   if (cardsEl) {
-    cardsEl.innerHTML = Object.keys(porEmp).sort().map(emp => {
+    // ── CARD CONSOLIDADO: soma de todas as empresas, por categoria ──
+    const _cons = { saldo:0, disponivel:0, itens:0, fams:{} };
+    Object.keys(porEmp).forEach(emp => {
+      const e = porEmp[emp];
+      _cons.saldo += e.saldo; _cons.disponivel += e.disponivel; _cons.itens += e.itens;
+      Object.keys(e.fams).forEach(f => {
+        if (!_cons.fams[f]) _cons.fams[f] = { saldo:0, disponivel:0 };
+        _cons.fams[f].saldo += e.fams[f].saldo;
+        _cons.fams[f].disponivel += e.fams[f].disponivel;
+      });
+    });
+    const _consFamsTxt = Object.keys(_cons.fams).sort((a,b)=>{
+      const ia = _DISP_FAM_ORDEM.indexOf(a), ib = _DISP_FAM_ORDEM.indexOf(b);
+      const oa = ia < 0 ? 999 : ia, ob = ib < 0 ? 999 : ib;
+      if (oa !== ob) return oa - ob;
+      return _cons.fams[b].disponivel - _cons.fams[a].disponivel;
+    }).map(f => {
+      const fv = _cons.fams[f];
+      return '<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:3px 0;border-top:1px solid var(--border)">'
+        +'<span style="color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px" title="'+f+'">'+f+'</span>'
+        +'<span style="white-space:nowrap"><span style="color:var(--green);font-weight:700">'+fmtN(fv.disponivel)+'</span> <span style="color:var(--text-muted)">/ '+fmtN(fv.saldo)+'</span></span>'
+        +'</div>';
+    }).join('');
+    const _nEmp = Object.keys(porEmp).length;
+    const _consHtml = _nEmp > 1
+      ? '<div style="flex:1;min-width:230px;max-width:320px;background:var(--surface);border:2px solid var(--green);border-radius:10px;padding:12px 14px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">'
+          +'<div style="font-size:13px;font-weight:800;color:var(--green);letter-spacing:.5px">Σ CONSOLIDADO</div>'
+          +'<div style="font-size:9px;color:var(--text-muted)">'+_cons.itens+' itens · '+_nEmp+' empresas</div>'
+        +'</div>'
+        +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">'
+          +'<div><div style="font-size:18px;font-weight:900;color:var(--green)">'+fmtN(_cons.disponivel)+'</div><div style="font-size:8px;color:var(--text-muted)">DISPONÍVEL</div></div>'
+          +'<div style="text-align:right"><div style="font-size:18px;font-weight:900;color:var(--blue)">'+fmtN(_cons.saldo)+'</div><div style="font-size:8px;color:var(--text-muted)">SALDO</div></div>'
+        +'</div>'
+        +'<div style="font-size:8px;color:var(--text-muted);margin-bottom:2px">disponível / saldo por família:</div>'
+        +_consFamsTxt
+        +'</div>'
+      : '';
+
+    cardsEl.innerHTML = _consHtml + Object.keys(porEmp).sort().map(emp => {
       const e = porEmp[emp];
       const famsTxt = Object.keys(e.fams).sort((a,b)=>{
         const ia = _DISP_FAM_ORDEM.indexOf(a), ib = _DISP_FAM_ORDEM.indexOf(b);
