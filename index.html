@@ -10897,7 +10897,7 @@ function renderDisponibilidade() {
       return _cons.fams[b].disponivel - _cons.fams[a].disponivel;
     }).map(f => {
       const fv = _cons.fams[f];
-      return '<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:3px 0;border-top:1px solid var(--border)">'
+      return '<div onclick="dispFiltrarProdutoConsolidado(\''+f.replace(/'/g,"\\'")+'\')" style="display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:3px 0;border-top:1px solid var(--border);cursor:pointer" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'\'">'
         +'<span style="color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px" title="'+f+'">'+f+'</span>'
         +'<span style="white-space:nowrap"><span style="color:var(--green);font-weight:700">'+fmtN(fv.disponivel)+'</span> <span style="color:var(--text-muted)">/ '+fmtN(fv.saldo)+'</span></span>'
         +'</div>';
@@ -11218,6 +11218,24 @@ function dispFiltrarProduto(empresa, familia) {
   const tbl = document.getElementById('disp-table');
   if (tbl) tbl.scrollIntoView({ behavior:'smooth', block:'start' });
 }
+// Clique numa família do card CONSOLIDADO: mantém todas as empresas, filtra só a família
+function dispFiltrarProdutoConsolidado(familia) {
+  // todas as empresas marcadas
+  const empItens = document.querySelectorAll('#ms-disp-emp-itens input[type=checkbox]');
+  empItens.forEach(cb => { cb.checked = true; });
+  const empAll = document.getElementById('ms-disp-emp-all'); if (empAll) empAll.checked = true;
+  // marca só a família clicada
+  const famItens = document.querySelectorAll('#ms-disp-classe-itens input[type=checkbox]');
+  famItens.forEach(cb => { cb.checked = (cb.value === familia); });
+  const famAll = document.getElementById('ms-disp-classe-all'); if (famAll) famAll.checked = false;
+  // atualiza labels
+  const le=document.getElementById('ms-disp-emp-label'); if(le) le.textContent='Todas as empresas';
+  const lc=document.getElementById('ms-disp-classe-label'); if(lc) lc.textContent=familia;
+  renderDisponibilidade();
+  const tbl = document.getElementById('disp-table');
+  if (tbl) tbl.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
 function dispLimparFiltros() {
   const b = document.getElementById('disp-search'); if (b) b.value = '';
   const so = document.getElementById('disp-so-disponiveis'); if (so) so.checked = false;
