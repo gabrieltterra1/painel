@@ -1107,15 +1107,45 @@
 </div>
 
 <script>
-// Hash simples para não expor a senha em texto puro
-const HASH = '3a7f2c1b9e4d6f8a0c2e4b6d8f0a2c4e'; // IPH@interpump#2026
+// ── Verificação de senha por PBKDF2-SHA256 (hash de mão única) ──
+// A senha NÃO está no código: só o salt e o resultado do hash. Não há como revertê-los;
+// a única forma de descobrir a senha seria testar chutes, e cada chute custa 600 mil iterações.
+// Para trocar uma senha: no console, rode  await _pbkdf2Gerar('nova senha')  e cole salt/hash aqui.
+const _PBKDF2_ITER = 600000;
+const _SENHA_LOGIN = { salt:'77d03d725fb0b98704e455b00549b600', hash:'79d1ac4dbe054eea600a68a32a39fce09abc4071896a20a411d390ac83ecb447' };
+
+function _hexParaBytes(hex){ const a=new Uint8Array(hex.length/2); for(let i=0;i<a.length;i++) a[i]=parseInt(hex.substr(i*2,2),16); return a; }
+function _bytesParaHex(b){ return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join(''); }
+
+async function _pbkdf2(senha, saltHex){
+  const chave = await crypto.subtle.importKey('raw', new TextEncoder().encode(senha), 'PBKDF2', false, ['deriveBits']);
+  const bits  = await crypto.subtle.deriveBits({ name:'PBKDF2', hash:'SHA-256', salt:_hexParaBytes(saltHex), iterations:_PBKDF2_ITER }, chave, 256);
+  return _bytesParaHex(bits);
+}
+// comparação em tempo constante (não vaza, pelo tempo de resposta, quantos caracteres batem)
+function _iguaisTempoConst(a, b){
+  if (a.length !== b.length) return false;
+  let d = 0; for (let i=0;i<a.length;i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+async function _senhaConfere(senha, ref){
+  try { return _iguaisTempoConst(await _pbkdf2(senha, ref.salt), ref.hash); }
+  catch(e){ console.error('PBKDF2 indisponível', e); return false; }
+}
+// utilitário para gerar salt+hash de uma senha nova (rodar no console)
+async function _pbkdf2Gerar(senha){
+  const salt = _bytesParaHex(crypto.getRandomValues(new Uint8Array(16)));
+  return { salt, hash: await _pbkdf2(senha, salt) };
+}
 
 async function doLogin() {
   const val = document.getElementById('login-input').value;
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(val));
-  const hash = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('').substring(0,32);
-  // Simple check — store session
-  if (val === atob('SVBIQGludGVycHVtcCMyMDI2')) {
+  const btn = document.querySelector('.login-btn');
+  const txtBtn = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Verificando…'; }
+  const ok = await _senhaConfere(val, _SENHA_LOGIN);
+  if (btn) { btn.disabled = false; btn.textContent = txtBtn || 'Entrar'; }
+  if (ok) {
     sessionStorage.setItem('auth', '1');
     document.getElementById('login-screen').style.display = 'none';
   } else {
@@ -4024,7 +4054,7 @@ function parseTermico(text) {
 // Proteção por senha das ações de entrada manual (destrava por 30 min).
 // AVISO: senha no front-end não é segurança real (visível no código). Serve para
 // evitar alterações acidentais/casuais por quem não deve mexer.
-const _PV_SENHA = 'IPH@interpump#2026PCP';
+const _SENHA_PV = { salt:'338a13f4878e557f2a1bcbfd4a07f327', hash:'1d25f1dae8776f0c5ba5c04727d374b80a97bfd57f8143f7bf5163e07e563d85' }; // PBKDF2 (ver _senhaConfere)
 const _PV_SENHA_VALIDADE_MS = 30 * 60 * 1000; // 30 minutos
 let _pvSenhaOkAte = 0;
 let _pvSenhaCallback = null;
@@ -4038,10 +4068,12 @@ function pedirSenha(callback){
   document.getElementById('modal-senha').style.display = 'flex';
   setTimeout(()=>{ if(inp) inp.focus(); }, 50);
 }
-function confirmarSenha(){
+async function confirmarSenha(){
   const inp = document.getElementById('senha-input');
   const err = document.getElementById('senha-erro');
-  if (inp && inp.value === _PV_SENHA) {
+  if (err) err.style.display = 'none';
+  const ok = inp ? await _senhaConfere(inp.value, _SENHA_PV) : false;
+  if (ok) {
     _pvSenhaOkAte = Date.now() + _PV_SENHA_VALIDADE_MS;
     document.getElementById('modal-senha').style.display = 'none';
     const cb = _pvSenhaCallback; _pvSenhaCallback = null;
