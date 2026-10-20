@@ -12703,7 +12703,7 @@ function _raLinhasFiltradas(){
   const D = window._raDados || _raBuild();
   let arr = D.linhasFlat.slice();
   // filtros rápidos do topo
-  if(raFiltroTopo.familia) arr=arr.filter(l=>l.familia===raFiltroTopo.familia);
+  if(raFiltroTopo.familia) arr=arr.filter(l=>(l.familia||'OUTROS')===raFiltroTopo.familia);
   if(raFiltroTopo.status)  arr=arr.filter(l=>l.status===raFiltroTopo.status);
   if(raFiltroTopo.rep)     arr=arr.filter(l=>l.rep===raFiltroTopo.rep);
   if(raFiltroTopo.completo) arr=arr.filter(l=>(l.completo?'SIM':'NÃO')===raFiltroTopo.completo);
@@ -12769,7 +12769,28 @@ function _raRenderTabela(){
   if(cnt) cnt.textContent=linhas.length+' linhas';
 }
 function raOrdenar(col){ if(raSortCol===col) raSortAsc=!raSortAsc; else { raSortCol=col; raSortAsc=true; } _raRenderTabela(); }
-function raSetFiltroTopo(campo,val){ raFiltroTopo[campo]=val; _raRenderTabela(); }
+function raSetFiltroTopo(campo,val){ raFiltroTopo[campo]=val; if(campo==='familia') _raMarcarCardFam(val); _raRenderTabela(); }
+
+// Clique num card do resumo: família → filtra só ela; TOTAL ('') → todas as famílias
+function _raClicarCardFam(fam){
+  fam = fam || '';
+  const sel = document.getElementById('ra-f-familia');
+  if (sel){
+    if (fam && !Array.from(sel.options).some(o=>o.value===fam)){
+      const o=document.createElement('option'); o.value=fam; o.textContent=fam; sel.appendChild(o);
+    }
+    sel.value = fam;
+  }
+  raSetFiltroTopo('familia', fam);
+}
+// destaca o card correspondente ao filtro de família ativo
+function _raMarcarCardFam(fam){
+  document.querySelectorAll('#resumo-atrasos-modal .ra-card[data-ra-fam]').forEach(c=>{
+    const ativo = (c.dataset.raFam||'') === (fam||'');
+    c.style.outline = ativo ? '2px solid var(--serie-azul)' : '';
+    c.style.outlineOffset = ativo ? '2px' : '';
+  });
+}
 function raAbrirFiltroCol(ev, col){
   ev.stopPropagation();
   const exist=document.getElementById('ra-colfiltro-pop'); if(exist) exist.remove();
@@ -12801,6 +12822,7 @@ function raColAplicar(col){
 }
 function raLimparFiltros(){ raColFiltros={}; raFiltroTopo={familia:'',status:'',rep:'',completo:''}; 
   ['ra-f-familia','ra-f-status','ra-f-rep','ra-f-completo'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  _raMarcarCardFam('');
   _raRenderTabela();
 }
 
@@ -12812,7 +12834,7 @@ function abrirResumoAtrasos(){
 
   // ── Cards ──
   let cardsHtml = '<div class="ra-cards">';
-  cardsHtml += '<div class="ra-card ra-card-tot">'
+  cardsHtml += '<div class="ra-card ra-card-tot" data-ra-fam="" onclick="_raClicarCardFam(\'\')" style="cursor:pointer" title="Mostrar todas as famílias">'
     + '<div class="ra-card-t">TOTAL EM ATRASO</div>'
     + '<div class="ra-card-n">'+D.qtdeTotal.toLocaleString('pt-BR')+'</div>'
     + '<div class="ra-card-s">'+D.pedidosOrd.length+' pedidos · <b style="color:#0fe08a">'+D.qtdeFaturar.toLocaleString('pt-BR')+' un p/ faturar</b></div></div>';
@@ -12825,7 +12847,7 @@ function abrirResumoAtrasos(){
     + '<div class="ra-card-s" style="line-height:1.6">'+listaComp+'</div></div>';
   Object.keys(D.fam).sort().forEach(f=>{
     const c = D.fam[f];
-    cardsHtml += '<div class="ra-card">'
+    cardsHtml += '<div class="ra-card" data-ra-fam="'+esc(f)+'" onclick="_raClicarCardFam(this.dataset.raFam)" style="cursor:pointer" title="Filtrar '+esc(f)+'">'
       + '<div class="ra-card-t">'+esc(f)+'</div>'
       + '<div class="ra-card-n">'+c.qtde.toLocaleString('pt-BR')+'</div>'
       + '<div class="ra-card-s">'+c.pedidos.size+' pedidos · '+(c.qtdeFaturar>0?'<b style="color:#0fe08a">'+c.qtdeFaturar.toLocaleString('pt-BR')+' un p/ faturar</b>':'0 p/ faturar')+'</div></div>';
@@ -12864,6 +12886,7 @@ function abrirResumoAtrasos(){
     + '<button onclick="document.getElementById(\'resumo-atrasos-modal\').remove()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1">\u2715</button>'
     + '</div></div>'
     + '<div style="padding:16px 20px;overflow:auto;background:var(--card,#151a2e)">'+cardsHtml+filtrosTopo+'<div id="ra-tabela-cont" style="overflow-x:auto"></div></div></div>';
+  _raMarcarCardFam('');
   _raRenderTabela();
 }
 
