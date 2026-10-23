@@ -12770,11 +12770,27 @@ function _raRenderTabela(){
   if(cnt) cnt.textContent=linhas.length+' linhas';
 }
 function raOrdenar(col){ if(raSortCol===col) raSortAsc=!raSortAsc; else { raSortCol=col; raSortAsc=true; } _raRenderTabela(); }
-function raSetFiltroTopo(campo,val){ raFiltroTopo[campo]=val; if(campo==='familia') _raMarcarCardFam(val); _raRenderTabela(); }
+function raSetFiltroTopo(campo,val){ raFiltroTopo[campo]=val; if(campo==='familia'||campo==='completo') _raMarcarCardFam(); _raRenderTabela(); }
+
+// Clique no card 100% P/ FATURAR: mostra só os pedidos completos (todas as famílias).
+// Clicar de novo desliga o filtro.
+function _raClicarCardComp(){
+  const ligar = raFiltroTopo.completo !== 'SIM';
+  raFiltroTopo.familia = '';
+  raFiltroTopo.completo = ligar ? 'SIM' : '';
+  const sf=document.getElementById('ra-f-familia');  if(sf) sf.value='';
+  const sc=document.getElementById('ra-f-completo'); if(sc) sc.value=raFiltroTopo.completo;
+  _raMarcarCardFam();
+  _raRenderTabela();
+}
 
 // Clique num card do resumo: família → filtra só ela; TOTAL ('') → todas as famílias
 function _raClicarCardFam(fam){
   fam = fam || '';
+  if (!fam){ // TOTAL: tudo — inclusive desliga o filtro de 100% p/ faturar
+    raFiltroTopo.completo = '';
+    const sc=document.getElementById('ra-f-completo'); if(sc) sc.value='';
+  }
   const sel = document.getElementById('ra-f-familia');
   if (sel){
     if (fam && !Array.from(sel.options).some(o=>o.value===fam)){
@@ -12784,13 +12800,19 @@ function _raClicarCardFam(fam){
   }
   raSetFiltroTopo('familia', fam);
 }
-// destaca o card correspondente ao filtro de família ativo
-function _raMarcarCardFam(fam){
+// destaca os cards conforme os filtros ativos (família e 100% p/ faturar)
+function _raMarcarCardFam(){
+  const fam = raFiltroTopo.familia || '';
+  const comp = raFiltroTopo.completo === 'SIM';
+  const marcar = (c, ativo, cor) => { c.style.outline = ativo ? '2px solid '+cor : ''; c.style.outlineOffset = ativo ? '2px' : ''; };
   document.querySelectorAll('#resumo-atrasos-modal .ra-card[data-ra-fam]').forEach(c=>{
-    const ativo = (c.dataset.raFam||'') === (fam||'');
-    c.style.outline = ativo ? '2px solid var(--serie-azul)' : '';
-    c.style.outlineOffset = ativo ? '2px' : '';
+    const f = c.dataset.raFam || '';
+    // TOTAL só fica ativo quando não há nenhum dos dois filtros
+    const ativo = f ? (f === fam) : (!fam && !comp);
+    marcar(c, ativo, 'var(--serie-azul)');
   });
+  const cc = document.querySelector('#resumo-atrasos-modal .ra-card-comp');
+  if (cc) marcar(cc, comp, '#0fe08a');
 }
 function raAbrirFiltroCol(ev, col){
   ev.stopPropagation();
@@ -12842,7 +12864,7 @@ function abrirResumoAtrasos(){
   let listaComp = D.pedsCompletos.slice(0,6).map(p=>'<b>'+esc(p.pedido)+'</b> '+esc((p.cliente||'').slice(0,20))).join('<br>');
   if(D.pedsCompletos.length>6) listaComp += '<br>+'+(D.pedsCompletos.length-6)+' pedidos';
   if(!D.pedsCompletos.length) listaComp = '<span style="opacity:.6">nenhum</span>';
-  cardsHtml += '<div class="ra-card ra-card-comp">'
+  cardsHtml += '<div class="ra-card ra-card-comp" onclick="_raClicarCardComp()" style="cursor:pointer" title="Filtrar só os pedidos 100% prontos para faturar">'
     + '<div class="ra-card-t" style="color:#0fe08a">✅ PEDIDOS 100% P/ FATURAR</div>'
     + '<div class="ra-card-n" style="color:#0fe08a">'+D.completos+'</div>'
     + '<div class="ra-card-s" style="line-height:1.6">'+listaComp+'</div></div>';
