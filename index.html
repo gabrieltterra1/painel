@@ -8398,6 +8398,38 @@ function renderServico() {
         }
       };
     });
+    // ── PROJEÇÃO do ano atual até dezembro — mesma regra do card "Projeção 12m":
+    //    média = total dos meses fechados ÷ nº de meses fechados ; fim do ano = média × 12.
+    //    A linha parte do acumulado real do último mês fechado e soma a média a cada mês.
+    if (anosGraf.indexOf(anoAtual) >= 0) {
+      const corP = ANOS_CORES[anoAtual] || '#475569';
+      const mesesFech = [...new Set(dataGraf.filter(r => r.mes.startsWith(anoAtual+'-') && r.mes < mesAtualKey).map(r => r.mes))];
+      const totFech = dataGraf.filter(r => mesesFech.includes(r.mes)).reduce((s,r) => s + r.valor, 0);
+      const mediaP = mesesFech.length ? totFech / mesesFech.length : 0;
+      const ultFech = mesAtualNum - 1; // último mês fechado (1-12)
+      if (mediaP > 0 && ultFech >= 1 && ultFech < 12) {
+        const proj = Array.from({length: 12}, (_, i) => {
+          const idx = i + 1;
+          if (idx < ultFech) return null;
+          if (idx === ultFech) return totFech;               // ancora no realizado fechado
+          return totFech + mediaP * (idx - ultFech);           // + média por mês até dez
+        });
+        datasets.push({
+          label: anoAtual + ' (projeção)', data: proj,
+          borderColor: corP, backgroundColor: 'transparent',
+          borderWidth: 2, borderDash: [6, 4],
+          pointRadius: proj.map((v,i) => i === 11 ? 4 : 0),
+          pointBackgroundColor: corP, tension: 0, fill: false, spanGaps: false,
+          datalabels: {
+            display: ctx => ctx.dataIndex === 11,
+            color: corP, font: {size: 10, weight: '700'},
+            anchor: 'end', align: 'right',
+            formatter: v => v ? 'proj. ' + fmtK(v) : ''
+          }
+        });
+      }
+    }
+
     servicoCharts.push(new Chart(acumCanvas, {
       type: 'line',
       data: { labels: mesesLabel12, datasets },
@@ -8411,7 +8443,7 @@ function renderServico() {
           x: { ticks: { color: cssVar('--text-muted') }, grid: { color: cssVar('--grid') } },
           y: { ticks: { color: cssVar('--text-muted'), callback: fmtK }, grid: { color: cssVar('--grid') } }
         },
-        layout: { padding: { right: 50 } }
+        layout: { padding: { right: 90 } }
       },
       plugins: [ChartDataLabels]
     }));
