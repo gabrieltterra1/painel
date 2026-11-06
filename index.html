@@ -12745,11 +12745,16 @@ function _raRenderTabela(){
   else linhas.forEach(l=>{
     const corSt=_raCorStatus(l.status);
     const trCls=l.completo?' class="ra-comp"':'';
+    // pedido emitido com entrega para o mesmo dia
+    const mesmoDia = !!(l.emissao && l.entrega && l.emissao===l.entrega);
+    const diasAtr = l.entrega ? Math.max(0,Math.round((new Date().setHours(0,0,0,0)-new Date(l.entrega+'T00:00:00'))/86400000)) : null;
+    const bgMD = mesmoDia ? 'background:rgba(168,85,247,.20);' : '';
+    const tipMD = mesmoDia ? 'Emissão e entrega no mesmo dia' : '';
     tbody+='<tr'+trCls+' style="border-bottom:1px solid var(--border)">'
-      +'<td style="padding:6px 8px;font-weight:700">'+esc(l.pedido)+'</td>'
-      +'<td style="padding:6px 8px;white-space:nowrap">'+(_raDataBR(l.emissao)||'—')+'</td>'
-      +'<td style="padding:6px 8px;white-space:nowrap;color:#ff6b6b;font-weight:700"'
-        +(l.entrega?' title="'+Math.max(0,Math.round((new Date().setHours(0,0,0,0)-new Date(l.entrega+'T00:00:00'))/86400000))+' dia(s) de atraso"':'')+'>'
+      +'<td style="padding:6px 8px;font-weight:700;'+(mesmoDia?'border-left:3px solid #a855f7;':'')+'"'+(mesmoDia?' title="'+tipMD+'"':'')+'>'+esc(l.pedido)+'</td>'
+      +'<td style="padding:6px 8px;white-space:nowrap;'+bgMD+(mesmoDia?'color:#c084fc;font-weight:700':'')+'"'+(mesmoDia?' title="'+tipMD+'"':'')+'>'+(_raDataBR(l.emissao)||'—')+'</td>'
+      +'<td style="padding:6px 8px;white-space:nowrap;color:#ff6b6b;font-weight:700;'+bgMD+'"'
+        +' title="'+[tipMD, diasAtr!=null?diasAtr+' dia(s) de atraso':''].filter(Boolean).join(' · ')+'">'
         +(_raDataBR(l.entrega)||'—')+'</td>'
       +'<td style="padding:6px 8px">'+l.qtde.toLocaleString('pt-BR')+'</td>'
       +'<td style="padding:6px 8px;font-weight:700">'+esc(l.codigo)+'</td>'
@@ -12779,7 +12784,11 @@ function _raRenderTabela(){
     +'<tbody>'+tbody+'</tbody></table>';
   // atualiza contador
   const cnt=document.getElementById('ra-contador');
-  if(cnt) cnt.textContent=linhas.length+' linhas';
+  if(cnt){
+    const nMD = linhas.filter(l=>l.emissao && l.entrega && l.emissao===l.entrega).length;
+    cnt.innerHTML = linhas.length+' linhas'
+      + (nMD ? ' · <span style="color:#c084fc;font-weight:700;border-left:3px solid #a855f7;padding-left:5px" title="Linhas destacadas em roxo: pedido emitido com entrega para o mesmo dia">'+nMD+' com emissão = entrega</span>' : '');
+  }
 }
 function raOrdenar(col){ if(raSortCol===col) raSortAsc=!raSortAsc; else { raSortCol=col; raSortAsc=true; } _raRenderTabela(); }
 function raSetFiltroTopo(campo,val){ raFiltroTopo[campo]=val; if(campo==='familia'||campo==='completo') _raMarcarCardFam(); _raRenderTabela(); }
