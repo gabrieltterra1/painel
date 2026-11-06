@@ -12674,7 +12674,8 @@ function _raBuild(){
     if (todoFaturar){ completos++; pedsCompletos.push({pedido:numPed, cliente:itens[0].cliente||''}); } else parciais++;
     comSt.forEach(({p,st}) => {
       linhasFlat.push({ pedido:numPed, codigo:p.codigo, desc:p.descricao, qtde:Math.round(p.qtde),
-        familia:p.familia, status:st, cliente:p.cliente, rep:p.repDesc, completo:todoFaturar });
+        familia:p.familia, status:st, cliente:p.cliente, rep:p.repDesc, completo:todoFaturar,
+        emissao:p.dataEmisStr||'', entrega:p.dataEntStr||'' });
       const f = p.familia||'OUTROS';
       if(!fam[f]) fam[f] = {pedidos:new Set(), qtde:0, qtdeFaturar:0};
       fam[f].pedidos.add(numPed); fam[f].qtde += Math.round(p.qtde);
@@ -12691,12 +12692,15 @@ let raColFiltros = {};   // { colKey: Set(valores) }
 let raSortCol = 'pedido', raSortAsc = true;
 let raFiltroTopo = { familia:'', status:'', rep:'', completo:'' };
 const RA_COLS = [
-  ['pedido','PEDIDO','70px'], ['qtde','QTDE','55px','num'], ['codigo','CÓDIGO','70px'],
+  ['pedido','PEDIDO','70px'], ['emissao','EMISSÃO','82px'], ['entrega','ENTREGA','82px'],
+  ['qtde','QTDE','55px','num'], ['codigo','CÓDIGO','70px'],
   ['desc','DESCRIÇÃO','200px'], ['familia','FAMÍLIA','80px'], ['cliente','CLIENTE','140px'],
   ['rep','REPRES.','130px'], ['status','STATUS','130px'], ['completoLbl','COMPL.?','65px']
 ];
+function _raDataBR(iso){ return iso ? String(iso).split('-').reverse().join('/') : ''; }
 function _raColVal(l, col){
   if(col==='completoLbl') return l.completo?'SIM':'NÃO';
+  if(col==='emissao'||col==='entrega') return _raDataBR(l[col]);
   if(col==='qtde') return String(l.qtde);
   return String(l[col]==null?'':l[col]);
 }
@@ -12713,6 +12717,10 @@ function _raLinhasFiltradas(){
   // ordenação
   const num = raSortCol==='qtde';
   arr.sort((a,b)=>{
+    if(raSortCol==='emissao'||raSortCol==='entrega'){
+      const da=a[raSortCol]||'', db=b[raSortCol]||'';
+      return raSortAsc ? da.localeCompare(db) : db.localeCompare(da);
+    }
     let va=_raColVal(a,raSortCol), vb=_raColVal(b,raSortCol);
     if(num){ va=parseFloat(va)||0; vb=parseFloat(vb)||0; return raSortAsc?va-vb:vb-va; }
     return raSortAsc ? String(va).localeCompare(String(vb),'pt-BR',{numeric:true}) : String(vb).localeCompare(String(va),'pt-BR',{numeric:true});
@@ -12733,12 +12741,16 @@ function _raRenderTabela(){
   const esc=_daEscapeHtml;
   const linhas=_raLinhasFiltradas();
   let tbody='';
-  if(!linhas.length){ tbody='<tr><td colspan="9" style="padding:24px;text-align:center;color:var(--text-muted)">Nenhuma linha com esses filtros.</td></tr>'; }
+  if(!linhas.length){ tbody='<tr><td colspan="11" style="padding:24px;text-align:center;color:var(--text-muted)">Nenhuma linha com esses filtros.</td></tr>'; }
   else linhas.forEach(l=>{
     const corSt=_raCorStatus(l.status);
     const trCls=l.completo?' class="ra-comp"':'';
     tbody+='<tr'+trCls+' style="border-bottom:1px solid var(--border)">'
       +'<td style="padding:6px 8px;font-weight:700">'+esc(l.pedido)+'</td>'
+      +'<td style="padding:6px 8px;white-space:nowrap">'+(_raDataBR(l.emissao)||'—')+'</td>'
+      +'<td style="padding:6px 8px;white-space:nowrap;color:#ff6b6b;font-weight:700"'
+        +(l.entrega?' title="'+Math.max(0,Math.round((new Date().setHours(0,0,0,0)-new Date(l.entrega+'T00:00:00'))/86400000))+' dia(s) de atraso"':'')+'>'
+        +(_raDataBR(l.entrega)||'—')+'</td>'
       +'<td style="padding:6px 8px">'+l.qtde.toLocaleString('pt-BR')+'</td>'
       +'<td style="padding:6px 8px;font-weight:700">'+esc(l.codigo)+'</td>'
       +'<td style="padding:6px 8px" title="'+esc(l.desc)+'">'+esc(l.desc)+'</td>'
@@ -12761,7 +12773,7 @@ function _raRenderTabela(){
   const cols = RA_COLS.map(c=>'<col style="width:'+c[2]+'">').join('');
   const cont=document.getElementById('ra-tabela-cont');
   if(cont) cont.innerHTML=
-    '<table class="ra-tbl" style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;min-width:920px">'
+    '<table class="ra-tbl" style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;min-width:1090px">'
     +'<colgroup>'+cols+'</colgroup>'
     +'<thead><tr style="background:var(--border);color:var(--text-muted);text-align:left">'+th+'</tr></thead>'
     +'<tbody>'+tbody+'</tbody></table>';
@@ -12899,7 +12911,7 @@ function abrirResumoAtrasos(){
     document.body.appendChild(modal);
   }
   modal.innerHTML =
-    '<div style="background:var(--card,#151a2e);border:1px solid var(--border);border-radius:14px;max-width:1060px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.6)">'
+    '<div style="background:var(--card,#151a2e);border:1px solid var(--border);border-radius:14px;max-width:1240px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.6)">'
     + '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">'
     + '<h2 style="margin:0;font-size:17px">\u{1F4CB} Resumo de Pedidos em Atraso</h2>'
     + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
